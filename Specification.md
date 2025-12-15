@@ -7,7 +7,7 @@
 Qwiratry defines a **Raku architecture for declarative queries and flexible data walking**, suitable for trees, tables, relational structures, logic-programming environments, and anything reasonably structured and traversable.
 
 It separates:
-- **what** to query (`Query`)
+- **what** to query (the **Query** group)
 - **how** to walk the data (`Walker`)
 - **how results are produced incrementally** (`QueryIterator`)
 - and optionally **how output is transformed** (Transformers + Templates)
@@ -17,7 +17,7 @@ This provides a general-purpose query execution pipeline that works across diffe
 ## 1.2 High-Level Principles
 
 1. **Separation of concerns**  
-   A `Query` describe intent; a `Walker` interprets and executes; a `QueryIterator` yields results.
+   Items in the **Query** group describe the syntax  of intent; a `Walker` interprets and executes; a `QueryIterator` yields results.
 
 2. **Reusability and composability**  
    Walkers can produce multiple iterators; queries can be reused and optimised; traversal strategies can be composed.
@@ -48,7 +48,7 @@ Note that, as far as new syntax goes, only Transformers are provided at this lev
 Qwiratry is a Raku framework for declarative queries, flexible data walking, and structured transformation.  
 
 It separates:
-* `Query`: what to query
+* The **Query** group: what to query
 * The **Walker** Group: How to walk the data.  Defines traversal strategies and execution plans.  
 * The **Per-traversal** group: A walker might do multiple traversals.  This includes how results are produced incrementally.  This is roles instantiated per traversal to manage mutable state and incremental results.
 * The **Strategy** Group: provides element-level behaviour and reusable processing logic
@@ -60,9 +60,7 @@ The architecture is divided into five main groups of roles:
 
 The **Query Group** encapsulates all roles that define *what the user wants to find or match* in the data. Queries are declarative, immutable, and introspectable, allowing multiple traversal strategies or transformers to interpret the same query safely and efficiently.  
 
-**Current Roles:**
-
-- **Query** – describes a search, pattern, or constraint.  
+- The **Query** Group – describes a search, pattern, or constraint.  
   - Composable and reusable across multiple walkers or iterators.  
   - Supports introspection, normalisation, and optimisation before execution.  
 
@@ -77,7 +75,7 @@ The **Query Group** encapsulates all roles that define *what the user wants to f
 * **Walker** – Encapsulates *how* a query is executed over a data structure. Determines traversal strategy, ordering, caching, and backtracking behaviour. Produces `QueryIterator` instances.  
 * **Walker::Plan** – Represents a precomputed execution strategy for a specific query and root data structure. Enables multiple iterators without re-planning, supports introspection, and allows optimisation or multi-phase execution.
 
-**Purpose:** Separating the Walker from the Query and the Plan enables multiple data models to execute the same query differently and allows traversal strategies to be reused.
+**Purpose:** Separating the Walker from the Query Group and the Plan enables multiple data models to execute the same query differently and allows traversal strategies to be reused.
 
 Concrete implementations include:  
 `Tree::Walker::DFS`, `Table::Walker::IndexScan`, `Logic::Walker::Backward`, etc.
@@ -107,21 +105,19 @@ Concrete implementations include:
 
 | Group                | Whole Walk/Data Level | Per-traversal          | Node Level                               | Other                       |
 |----------------------|-----------------------|------------------------|-----------------------------------------|-----------------------------|
-| Query Group           | `Query`                |                        |                                         |                             |
+| Query Group           | Query AST classes    |                        |                                         |                             |
 | Walker Group          | `Walker`, `Walker::Plan` | `Context`, `QueryIterator` | `Strategy`                                 | `ControlSignal`               |
 | Transformer Group     | `Transformer`          |                        | `Template`                                 | `Wrapper`    |
-
----
 
 # 3. Role Specifications
 
 ## 3.1 The **Query** Group
 
-### 3.1.1. Role `Query`
+The **Query** group are Raku AST objects that represent items in the Query Slang.  
 
 #### Purpose
 
-`Query` encapsulates *what the user wants* —patterns, constraints, filters — without specifying how they are executed. Queries must be **immutable**, **composable**, and **introspectable**.  This ensures they can safely be shared between multiple plans, walkers, or iterators without accidental mutation.  
+The **Query** Group encapsulates *what the user wants* —patterns, constraints, filters — without specifying how they are executed. Queries must be **immutable**, **composable**, and **introspectable**.  This ensures they can safely be shared between multiple plans, walkers, or iterators without accidental mutation.  
 
 #### Rationale
 
@@ -129,19 +125,14 @@ Concrete implementations include:
 - Enables reuse across walkers.  
 - Allows optimisation, simplification, or normalisation prior to execution.
 
-#### Definition
-
-````raku
-role Query {
-    method matches(Mu:D $candidate --> Bool:D) { ... }
-    method descriptor(--> Query::Descriptor)     { ... }
-    method compose(&op, Query $other --> Query)  { ... }
-}
-````
-
 #### Composability and Introspection
 
-TODO
+Queries are represented as immutable Raku AST nodes. They can be shared across multiple Walkers and Transformers safely. Inline blocks are already AST nodes, making composition straightforward.  
+
+Queries are treated as observationally immutable.
+Walkers and Transformers MUST NOT perform mutations that affect other consumers of the same Query AST. Any rewriting or annotation must either operate on copies or be confined to execution plans or traversal-local state.
+
+The AST is introspectable: strategies, Walkers, and Transformers can examine structure to optimise execution, decide pushdown, or provide diagnostic information. Explicit combinators are rarely needed, since operator composition and blocks naturally build complex queries.
 
 ## 3.2. The **Walker** Group
 
@@ -151,7 +142,7 @@ Multiple classes participate in query execution:
 
 * `Strategy`: responsible for what happens when elements are visited/matched/traversed. Controls rewrites, pruning, and multi-pass logic.
 
-- `QueryMatch`: Represents a successful result of a `Query` against an element. Contains information needed for rewrites or analysis.
+- `QueryMatch`: Represents a successful result of a Query AST against an element. Contains information needed for rewrites or analysis.
 
 - `Context`: Mutable per-traversal storage for Strategy. Stores queues, counters, memoisation, accumulated results, or rewrite state. Persistent across all hooks.
 
@@ -161,36 +152,37 @@ Multiple classes participate in query execution:
 
 ### 3.2.1 The `Walker` Role
 
-#### Purpose
+#### 3.2.1.1. Purpose
 
-`Walker` encapsulates *how* a query is executed, including traversal strategy, ordering, backtracking, and optimisation planning. Walkers take a `Query` and produce a `QueryIterator`.
+`Walker` encapsulates *how* a query is executed, including traversal strategy, ordering, backtracking, and optimisation planning. Walkers take a Query AST and produce a `QueryIterator`.
 
-#### Capabilities
+#### 3.2.1.2. Capabilities
 
 * **Single-pass** or **composite** traversal  
 * **Multi-phase execution** (plan → rewrite → execute)  
 * **Stateful caching** for repeated queries  
 * **Reusable** to produce multiple iterators  
 * **Backtracking** or lazy evaluation
+* **Query AST Ingestion** Reads the Query AST, and either gives a Walker call to replace it, or spits the Query AST back out into the AST tree again
 
-#### Errors
+#### 3.2.1.3. Errors
 
 If a Walker cannot interpret a Query, it throws `UnknownQueryElementException`.
 
-#### Definition
+#### 3.2.1.4. Definition
 
 ````raku
 role Walker does Iterable {
 	##### Callable Methods
 
 	# Plan an execution strategy based on the query (and optionally the data root)
-	method plan(Query $query, Mu $root --> Walker::Plan) { ... }
+	method plan(CompUnit::Perl5AST::Node $query, Mu $root --> Walker::Plan) { ... }
 
 	# Produce a QueryIterator for incremental results
-	method iterator(Query $q) returns QueryIterator { ... }
+	method iterator(CompUnit::Perl5AST::Node $q) returns QueryIterator { ... }
 
 	# Convenience method that calls .plan, and .iterator
-	method start(Query $query, Mu:D $root --> QueryIterator) { ... }
+	method start(CompUnit::Perl5AST::Node $query, Mu:D $root --> QueryIterator) { ... }
 	
 	##### Hook Methods
 	# Optional: hooks for extending Walker behaviour itself
@@ -200,17 +192,281 @@ role Walker does Iterable {
 }
 ````
 
-#### Methods
+#### 3.2.1.5. Methods
 
-TODO
+##### Required Methods
+
+###### `method plan`
+
+````raku
+method plan(
+    CompUnit::Perl5AST::Node $query,
+    Mu:D $root
+    --> Walker::Plan
+)
+````
+
+**Purpose**
+
+Analyse the Query AST and the root data structure, and produce an optimised execution plan.
+
+**Responsibilities**
+
+A Walker implementation MAY:
+
+* Analyse the AST structure (operators, blocks, predicates)
+* Decide traversal order and strategy (DFS, BFS, index scan, join order)
+* Identify sub-expressions suitable for:
+  - predicate pushdown
+  - backend delegation (e.g. SQL)
+  - multi-phase execution
+* Precompute metadata used during execution
+
+**Constraints**
+
+* MUST NOT mutate the shared Query AST in observable ways
+* MAY copy or rewrite AST fragments into the Plan
+* MUST return a reusable `Walker::Plan`
+
+###### `method iterator`
+
+````raku
+method iterator(
+    Walker::Plan $plan
+    --> QueryIterator
+)
+````
+
+**Purpose**
+
+Produce a new incremental result stream from an existing execution plan.
+
+**Responsibilities**
+
+* Create a fresh `Context`
+* Initialise traversal state
+* Return a `QueryIterator` that yields results lazily
+
+**Notes**
+
+* Multiple iterators MAY be created from the same plan
+* Iterators MUST NOT share mutable traversal state
+
+###### `method start` (Convenience)
+
+````raku
+method start(
+    CompUnit::Perl5AST::Node $query,
+    Mu:D $root
+    --> QueryIterator
+)
+````
+
+**Purpose**
+
+One-shot execution entrypoint.
+
+**Definition**
+
+Equivalent to:
+
+````raku
+self.plan($query, $root).iterator
+````
+
+##### Optional Hook Methods
+
+These hooks allow Walker-level behaviour that is **orthogonal to element-level Strategy hooks**.
+
+###### `method PRE-PASS`
+
+````raku
+method PRE-PASS(Context $ctx) { }
+````
+
+Called before a traversal pass begins.
+
+Typical uses:
+
+* Initialise global traversal state
+* Prepare caches or indexes
+* Initialise multi-pass bookkeeping
+
+###### `method POST-PASS`
+
+````raku
+method POST-PASS(Context $ctx) { }
+````
+
+Called after a traversal pass completes.
+
+Typical uses:
+
+* Collect diagnostics
+* Decide whether to trigger another pass
+* Finalise results or clean up resources
+
+##### Optional Capability Methods
+
+These are introspection helpers; they are **not required**, but recommended for advanced walkers.
+
+###### `method capabilities`
+
+````raku
+method capabilities(--> Associative)
+````
+
+Returns metadata such as:
+
+* supports-lazy
+* supports-backtracking
+* supports-rewrite
+* supports-multi-phase
+* supports-streaming
+
+Used by:
+
+* Transformers
+* Composite Walkers
+* Debugging / profiling tools
+
+###### `method supports`
+
+````raku
+method supports(CompUnit::Perl5AST::Node $query --> Bool)
+````
+
+Returns whether this Walker can interpret the given AST.
+
+This allows:
+
+* Walker selection / delegation
+* Hybrid or master walkers
+
+#### 3.2.1.6. Detecting Walker Handovers
+
+Qwiratry supports multi-domain queries (e.g. SQL, JSON, in-memory objects) by allowing responsibility for parts of a query to be handed over between Walkers. Handover decisions are made explicitly and predictably during the planning phase.
+
+A **Master Walker** is responsible for detecting when handovers are required and for delegating planning and execution to appropriate domain-specific Walkers.
+
+##### Domain Metadata on Roots
+
+Root objects MAY carry optional domain metadata using a custom compile-time trait:
+
+````raku
+provides<domain-name>
+````
+
+This trait is implemented using `trait_mod:<provides>` and attaches advisory metadata to the object, container, or declaration it is applied to.
+
+Examples:
+
+````raku
+my $table  provides<sql>  = SQL::Table.new(...);
+my $doc    provides<json> = load-json(...);
+my $hybrid provides<sql json> = ...;
+````
+
+The `provides` trait:
+
+* is applied at compile time
+* does not alter the object’s runtime semantics
+* does not affect method dispatch or type identity
+* exists solely to guide Walker selection and planning
+
+The attached metadata MUST be discoverable by Slangs and by Walkers during planning.
+
+##### Handover Detection Priority
+
+Walker handover detection follows this priority order:
+
+1. **Explicit domain metadata** (`provides<…>`)
+2. **Walker capability checks**
+3. **AST pattern suitability**
+4. **Heuristic or reflective probing (last resort)**
+
+Each step may either accept responsibility for a sub-expression or trigger delegation.
+
+##### 1. Domain Metadata Check (Fast Path)
+
+If a root object declares one or more domains via `provides`, the Master Walker SHOULD attempt to select a Walker capable of handling at least one of those domains.
+
+If no suitable Walker exists, planning MUST fail early with a diagnostic error.
+
+If multiple domains are declared, hybrid execution is implied and delegation is expected.
+
+Domain metadata is advisory and MUST NOT force a Walker to accept responsibility.
+
+##### 2. Walker Capability Checks
+
+Each Walker MUST provide a capability predicate:
+
+````raku
+method supports(CompUnit::Perl5AST::Node $node --> Bool)
+````
+
+During planning, the Master Walker examines relevant AST subtrees and queries candidate Walkers.
+
+If the active Walker does not support a subtree, responsibility for that subtree MUST be handed over to another Walker or rejected.
+
+##### 3. AST Pattern Suitability (Optimisation)
+
+Walkers MAY recognise AST patterns that are:
+
+* efficiently executable in a specific backend
+* suitable for predicate pushdown
+* unsuitable for local execution
+
+Examples include:
+
+* pure predicates
+* simple comparisons
+* boolean combinations
+* field-access chains
+
+Pattern recognition is an optimisation mechanism and MUST NOT be required for correctness.
+
+##### 4. Plan-Level Handover
+
+All Walker handovers SHOULD occur during the planning phase.
+
+When a handover is detected:
+
+* the Master Walker extracts the relevant AST subtree
+* delegates planning of that subtree to another Walker
+* embeds the resulting `Walker::Plan` as a node in its own plan
+
+This produces a composed execution plan containing subplans from multiple Walkers.
+
+Execution proceeds by orchestrating these subplans, not by re-evaluating domain suitability at runtime.
+
+##### 5. Composite Execution
+
+For queries involving multiple domains, the Master Walker coordinates:
+
+* execution ordering
+* data flow between subplans
+* join semantics
+* result materialisation or streaming
+
+Domain-specific Walkers remain independent and do not require knowledge of other domains.
+
+##### Normative Notes
+
+* `provides` is advisory metadata only.
+* Walkers MUST remain free to decline responsibility.
+* Domain metadata MUST NOT override Walker capability checks.
+* Execution-time Walker handover SHOULD be avoided.
+* Hybrid execution MUST be explicit in the resulting plan structure.
+
 
 ### 3.2.2 The `Walker::Plan` Role
 
-`Walker::Plan` encapsulates an optimised execution strategy derived from a `Walker` and a `Query`. It allows multiple incremental result streams to be produced without re-planning, supports introspection, and enables multi-phase execution.
+`Walker::Plan` encapsulates an optimised execution strategy derived from a `Walker` and a Query AST. It allows multiple incremental result streams to be produced without re-planning, supports introspection, and enables multi-phase execution.
 
 #### Purpose
 
-* Encapsulate an execution strategy for a specific `Query` (and optionally a root data structure).  
+* Encapsulate an execution strategy for a specific Query AST (and optionally a root data structure).  
 * Support introspection, debugging, and caching.  
 * Produce multiple `QueryIterator` instances from the same plan.  
 * Enable optimisation or adjustments without modifying the original `Walker`.
@@ -223,8 +479,8 @@ role Walker::Plan {
     # Produce a QueryIterator for this plan.
     method iterator(--> QueryIterator) { ... }
 
-    # Return the Query that this plan represents.
-    method query(--> Query) { ... }
+    # Return the Query AST that this plan represents.
+    method query(--> CompUnit::Perl5AST::Node) { ... }
 
     # Describe the execution strategy in human-readable form.
     method describe(--> Str) { ... }
@@ -262,7 +518,7 @@ say $plan.describe;
 ### 3.2.3 Role `Context`
 
 The `Context` role provides **mutable, per-traversal state** for Walkers and Strategies.  
-It is the shared workspace through which traversal hooks communicate, store intermediate results, manage queues or stacks, and coordinate rewrites or multi-phase logic. Unlike `Query` or `Walker`, which are immutable or reusable, a `Context` instance is created fresh for each traversal or plan execution.
+It is the shared workspace through which traversal hooks communicate, store intermediate results, manage queues or stacks, and coordinate rewrites or multi-phase logic. Unlike Query AST or `Walker`, which are immutable or reusable, a `Context` instance is created fresh for each traversal or plan execution.
 
 
 #### Purpose
@@ -428,7 +684,7 @@ transformer TransformerName is OtherTransformer :streaming {
 }
 ````
 
-#### Declarator Components
+#### 3.3.2.1. Declarator Components
 
 | Item       | Example       | Purpose |
 | ---------- | ------------- | ------ |
@@ -444,16 +700,16 @@ transformer TransformerName is OtherTransformer :streaming {
 * The `returns` trait can enforce the type of output returned by templates or the Transformer.
 * The `does TreeRewrite` role overrides the APPLY method with one that does rewriting instead of outputting.  If this is done, then note that `make` will immediately replace the current node.  
 
-#### Internals
+#### 3.3.2.2. Internals
 
 * Declaring a Transformer automatically creates a sub/method with the Transformer name.  
 * Calling it (e.g., `TransformerName($tree)`) invokes the underlying `TRANSFORM` method on the Transformer object.  
 
-#### Traits
+#### 3.3.2.3. Traits
 
 TODO (:streaming, returns, does TreeRewrite)
 
-### 3.3.3. Methods on the Transformer class
+#### 3.3.2.4. Methods on the Transformer class
 
 The following methods are declared on the base Transformer class.  Those in capitals are designed to be overridden.  
 
@@ -468,7 +724,7 @@ class Transformer {
 }
 ```
 
-#### `proto method TRANSFORM($data, Iterator :$iterator)`
+##### `proto method TRANSFORM($data, Iterator :$iterator)`
 
 This is the method that is called when the Transformer itself is called.  
 
@@ -490,7 +746,7 @@ The default iterator is a depth-first, top-down iterator.
 
 Direct calls to template names bypass walk ordering.
 
-#### ORDER-TEMPLATES and @.ordered-templates
+##### ORDER-TEMPLATES and @.ordered-templates
 
 This takes the templates that are part of the Transformer, and puts them in the right order in `@.ordered-templates`.
 
@@ -514,20 +770,20 @@ Here's a list of orderings we didn't choose, and why:
 * Raku's Multiple Dispatch system is dependent on arity and types, which aren't applicable either
 * XSLT allows explicit priorities (which we've copied), and then specificity (which we've also copied), but finally uses document ordering.  We're going to try the `:tie-breaker` mechanism, and see how it works.  
 
-#### APPLY method
+##### APPLY method
 
 The purpose of the APPLY method is to take the node given it, and apply the templates.  It can be overridden.  It is responsible for selecting and invoking the appropriate template(s) for a given node, **without handling traversal or iteration**, which is already done by `TRANSFORM`
 
 The rest of this section covers the default version that appears in `Transformer.APPLY`.  
 
-##### Purpose
+###### Purpose
 
 - Apply templates to a single node according to `@.ordered-templates`.
 - Return the output of the **first matching template**.
 - Maintain deterministic behavior consistent with XSLT: **no fallback to other templates if a match fails**.
 - Produce a sequence of output nodes (can be empty if no templates match).
 
-##### Default Algorithm
+###### Default Algorithm
 
 1. Receive a single node `$node`.
 2. iterate through the Transformer’s **ordered template list**  (already sorted by priority and specificity).  For the **first template whose `when` clause matches** `$node`:
@@ -538,15 +794,15 @@ The rest of this section covers the default version that appears in `Transformer
 
 When exiting the routine for any reason, pop the top iterator off the stack (use the relevant phaser for this).  
 
-### 3.3.4. `copy` and `deepcopy` Methods
+##### `copy` and `deepcopy` Methods
 
 This section specifies the required behaviour of shallow and deep copying for all transformable node types within the Transformer framework. These methods MUST be attached to the Transformer object.
 
-##### `copy()` — Shallow Copy
+###### `copy()` — Shallow Copy
 
 The `copy()` method MUST implement a shallow clone of the node.
 
-###### Required Behaviour
+####### Required Behaviour
 
 1. Create a new instance of the same node type.  
 	1. First check if the node has a `.copy()` method -- if so, call that to get the copy
@@ -556,11 +812,11 @@ The `copy()` method MUST implement a shallow clone of the node.
 4. The operation MUST be O(1) with respect to the number of descendants.  
 5. Node classes MAY implement their own `.copy()` to customise shallow-copy behaviour, but MUST adhere to the above constraints.
 
-##### `deepcopy()` — Deep Copy
+###### `deepcopy()` — Deep Copy
 
 The `deepcopy()` method MUST implement a full recursive clone of the entire data or DAG rooted at the node.
 
-###### Required Behaviour
+####### Required Behaviour
 
 1. Recursively clone the node and all of its children.  
 2. Maintain structural sharing:  
@@ -571,7 +827,7 @@ The `deepcopy()` method MUST implement a full recursive clone of the entire data
 4. For primitive, immutable leaf types (e.g., Str, Numeric, Bool), simply return the value as-is.  
 5. Produce a fully independent object graph, identical in content but disjoint in identity.
 
-#### `transform` method
+##### `transform` method
 
 ```
 method transform(
@@ -606,7 +862,7 @@ Possible values for `$mode` include:
 * `rewrite-optional` and `rewrite-mandatory` are particularly relevant for **tree or AST transformers**, where in-place or replacement mutations may be requested by strategies.  
 * For post-transformation pipelines, `post` and `default` typically behave the same.
 
-### 3.3.2. Templates
+### 3.3.3. Templates
 
 Templates define **match-and-action rules** within a Transformer. Each template consists of:
 
@@ -647,7 +903,7 @@ TODO (see material above)
 * It should be possible to call `NextTemplate.throw` in the body of an action, and, instead of the result of the action being put into the tree, we instead continue with the next matching template.  
 * If no templates match a node, it does nothing
 
-### 3.3.3. Wrappers
+### 3.3.4. Wrappers
 
 Wrappers allow custom pre- or post-processing of template matches or the entire Transformer output.  They consist of:
 
@@ -667,7 +923,7 @@ Under the hood, each wrapper is:
 * Defined as a submethod called eg. `WRAP_TRANSFORMER`
 * Called up the Transformer hierarchy *a la* `TWEAK`.  
 
-### 3.3.4. Magic Variables
+### 3.3.5. Magic Variables
 
 There should be three magic variables that are updated when walking the data.  These are:
 * `$*CONTEXT` and `$_`: Both set to the current input context node (ie. the current item in the data being walked)
@@ -676,7 +932,7 @@ There should be three magic variables that are updated when walking the data.  T
 
 # 4. Query Execution Flow
 
-1. **Query Construction**  
+1. **Query Extraction/Replacement**  
    Constructed via a Slang or directly in code, representing the desired search, filter, or pattern.
 
 2. **Walker Planning**  
@@ -699,31 +955,17 @@ There should be three magic variables that are updated when walking the data.  T
 
 A Raku Slang can be provided to:
 
-* Parse tree or table operators and produce a `Query` object  
-* Compose multiple queries with logical operators (`and`, `or`, `not`)  
+* Parse tree or table operators and produce a Query AST object  
 * Annotate queries for optimisation hints or execution preferences  
 * Optionally, allow inline predicates as code blocks
 
-
-Any operator may take a trailing block, and that block becomes a Query object.
-
-Examples desugar to:
-
-````raku
-Query::Op.new(
-    :operator<descendant>,
-    :arg(Any),
-    :predicate(Query::BlockPredicate.new(
-        block => -> $x { $x.value > 10 }
-    ))
-)
-````
+Any operator may take a trailing block, and that block becomes a Query AST object.
 
 Slang requirements:
 
 1. Extend grammar for operator-term with trailing block.  
 2. In actions, produce AST nodes for Query objects.  
-3. At BEGIN-time, compile these into Query subclasses.
+3. At BEGIN-time, feed these to the Walker
 
 # 7. Examples
 
@@ -731,7 +973,7 @@ Slang requirements:
 
 ````raku
 class Tree::Walker::DFS does Walker {
-    method start(Query $q, $node --> QueryIterator) {
+    method start(CompUnit::Perl5AST::Node $q, $node --> QueryIterator) {
         gather {
             sub dfs($n) {
                 take $n if $q.matches($n);
@@ -749,7 +991,7 @@ class Tree::Walker::DFS does Walker {
 class Table::Walker::Scan does Walker {
     has @!rows;
 
-    method start(Query $q, @rows --> QueryIterator) {
+    method start(CompUnit::Perl5AST::Node $q, @rows --> QueryIterator) {
         gather for @rows -> $r {
             take $r if $q.matches($r);
         }
@@ -761,7 +1003,7 @@ class Table::Walker::Scan does Walker {
 
 ````raku
 class Logic::Walker::Backward does Walker {
-    method start(Query $goal, $kb --> QueryIterator) {
+    method start(CompUnit::Perl5AST::Node $goal, $kb --> QueryIterator) {
         Logic::Iterator::Backward.new(:$kb, :$goal);
     }
 }
@@ -801,10 +1043,8 @@ From Ancient Greek carob seeds to Arabic units of weight and Catalan carats, the
 
 # TODO
 
-* Feed it in again, and ask whether the document could be better structured.  Am working on this.  Current status:
-	* This v1 document needs to be kept, for the TODO list, and to ensure that nothing gets left out
-	* When done with this, look through the document for TODO sections
+* Look through the document for TODO sections.  If I can't find anything useful, ask ChatGPT a) to identify material that belongs there, and b) if there's nothing useful, to write something.  
 * Feed it back in one more time, and tell it that we want this to be a specification for an AI to create the project, and ask what needs changing.  
 * Once this one is done, either install Spec Kitty and do it, or rewrite the Tree-Oriented Programming spec to rely on this one
 	* When redoing the Tree one, make a note that, when we want article ideas, we should ask ChatGPT "what domains does this apply to"?  
-* Ask ChatGPT to compare this model with the Raku compilation and execution model, so I know which bits I can reuse, and which I can't
+
