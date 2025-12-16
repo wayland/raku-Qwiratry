@@ -553,9 +553,39 @@ role Context {
 
 #### Purpose  
 
-`QueryIterator` exposes a pull-based stream of results. It bridges the high-level Walker and the actual result production, maintaining execution state: stacks, queues, backtracking frames, cursor positions, and suspended computations for lazy execution.
+A `QueryIterator` exposes a pull-based stream of results from a traversal. It bridges the high-level `Walker` and the actual production of results, maintaining execution state such as:
 
-### Definition
+* stacks, queues, and backtracking frames  
+* cursor positions  
+* suspended computations for lazy execution  
+
+In addition to the capabilities of a regular Raku `Iterator`, a `QueryIterator` is deeply integrated with the Qwiratry architecture and the traversal process. It coordinates the interaction between the `Walker`, the `Query`, and the `Strategy`, and maintains a per-traversal `Context` object for state management.
+
+#### Comparison with a regular Raku `Iterator`
+
+While a regular Raku iterator provides a simple lazy sequence:
+
+````raku
+my $it = Iterator.new( -> $i { $i ** 2 }, 1..5 );
+say $it.next; # 1
+say $it.next; # 4
+````
+
+A `QueryIterator` additionally provides:
+
+| Aspect                  | Regular Raku Iterator | QueryIterator |
+|-------------------------|--------------------|---------------|
+| **Underlying state**    | Internal closure, local to iterator | Shared `Context` object with Walker and Strategy |
+| **Backtracking support** | No | Yes, allows rewinding or revisiting elements per Walker logic |
+| **Multi-phase execution** | No | Yes, supports pre-pass, post-pass, or other Walker phases |
+| **Lazy traversal**       | Only for the sequence it wraps | Traverses hierarchical or relational data lazily according to Walker strategy |
+| **Integration**          | Standalone | Fully integrated with Qwiratry’s Walker/Query/Strategy architecture |
+| **Mutation/rewrites**    | Not supported | Strategies can modify nodes or schedule rewrites during iteration |
+
+Conceptually, a regular iterator is a simple conveyor belt delivering items.  
+A `QueryIterator` is a conveyor belt with branching lanes, decision points, shared traversal state, and optional backtracking or multi-pass logic.
+
+#### Definition
 
 ````raku
 role QueryIterator does Iterator {
@@ -707,7 +737,58 @@ transformer TransformerName is OtherTransformer :streaming {
 
 #### 3.3.2.3. Traits
 
-TODO (:streaming, returns, does TreeRewrite)
+Transformer declarators and templates can have **traits** that modify their behavior. Traits affect traversal, output, or method dispatch without requiring subclassing or method overrides.
+
+##### Common Traits
+
+| Trait | Applied To | Effect |
+|-------|------------|--------|
+| `:streaming` | Transformer, Template | Enables incremental output using `gather/take`. The Transformer or Template acts as an iterator; results are produced lazily and can be consumed on-the-fly. |
+| `returns(Type)` | Transformer, Template | Enforces that the output of the Transformer or Template is of the specified type. Throws a runtime error if the result does not conform. |
+| `does RoleName` | Transformer | Mixes in a role, altering behavior. For example, `does TreeRewrite` modifies the APPLY method to perform in-place rewriting rather than generating new nodes. |
+
+##### Transformer-level vs Template-level Traits
+
+* **Transformer-level traits**  
+  - Apply to all templates and the overall transformation process.  
+  - Example: `transformer MyX :streaming` makes the entire Transformer produce a lazy stream.  
+
+* **Template-level traits**  
+  - Apply to individual templates.  
+  - Example: `template section :streaming do { ... }` produces output incrementally for that template alone, without affecting other templates.  
+
+##### Notes
+
+* Traits are applied at **compile-time** using the declarator syntax (`transformer MyX :streaming does TreeRewrite { ... }`).  
+* Transformers and Templates may inspect traits at runtime via introspection (`.WHAT` or `.^traits`) to adjust behavior.  
+* Traits **do not mutate input data** unless combined with a role like `TreeRewrite`.  
+* Multiple traits can be combined, but conflicts should be resolved deterministically (e.g., last-applied wins for overlapping behavior).  
+
+##### Example Usage
+
+````raku
+# Streaming Transformer producing nodes lazily
+transformer StreamSections :streaming {
+    template section() when { $_.name eq 'section' } do {
+        make Node.new(name => $_.name);
+    }
+}
+
+# Transformer that rewrites input in place
+transformer RewriteTree does TreeRewrite {
+    template leaf() when { $_.is_leaf } do {
+        make $_.copy;
+    }
+}
+
+# Enforcing output type
+transformer TableToNodes returns(Array) {
+    template row() do {
+        make Node.new(data => $_.data);
+    }
+}
+````
+
 
 #### 3.3.2.4. Methods on the Transformer class
 
@@ -864,6 +945,8 @@ Possible values for `$mode` include:
 
 ### 3.3.3. Templates
 
+#### Structure
+
 Templates define **match-and-action rules** within a Transformer. Each template consists of:
 
 | Item       | Example       | Purpose |
@@ -875,7 +958,7 @@ Templates define **match-and-action rules** within a Transformer. Each template 
 | Matcher | `when {...}` | This is a code block.  It's expected to contain a query such as those involving by the Tree Operators.  It can be used for matching nodes (like the `select` clause on an XSLT template) |
 | Action  | `do {...}` | This code block produces output nodes.  If the template is turned into a method, this is the body of the method |
 
-**Matching with Iterators and Operators:**
+#### Iterators, Axis Operators, and Predicates
 
 * `when` clauses can use **composed iterators** (which are both callable and iterable) for path specifications:
 
@@ -886,13 +969,7 @@ template section() when { $_ ⪪⪪ <div> } do { <action on div> }
 * Axis operators (like `⪪`, `⪫`, `⥷`) can be used directly within templates to select nodes.  
 * Predicates and combinators (like `∪`, `∩`) can refine node selection in `when` clauses.  
 
-#### Structure
 
-TODO (template, optional name/signature, when matcher, do action)
-
-#### Iterators, Axis Operators, and Predicates
-
-TODO (see material above)
 
 #### Return Values
 
@@ -1040,11 +1117,4 @@ These three are all from Arabic قِيرَاط (qīrāṭ, “husk”), from Anc
 
 From Ancient Greek carob seeds to Arabic units of weight and Catalan carats, the etymology mirrors the idea of measuring, traversing, and transforming data.
 
-
-# TODO
-
-* Look through the document for TODO sections.  If I can't find anything useful, ask ChatGPT a) to identify material that belongs there, and b) if there's nothing useful, to write something.  
-* Feed it back in one more time, and tell it that we want this to be a specification for an AI to create the project, and ask what needs changing.  
-* Once this one is done, either install Spec Kitty and do it, or rewrite the Tree-Oriented Programming spec to rely on this one
-	* When redoing the Tree one, make a note that, when we want article ideas, we should ask ChatGPT "what domains does this apply to"?  
 
