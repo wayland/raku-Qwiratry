@@ -1,6 +1,6 @@
 # Specification Traceability Map
 
-**Generated**: 2025-12-17T15:54:50.117710+11:00
+**Generated**: 2025-12-17T19:24:13.271721+11:00
 
 This document maps all sections of `Specification.md` to feature tickets, providing a comprehensive view of specification coverage. Each section is linked to the feature(s) that implement it, or marked as "not yet assigned" if no feature covers it.
 
@@ -62,6 +62,56 @@ graph TD
 ```
 
 **Note:** Arrows indicate blocking relationships. Feature A --> Feature B means "A blocks B" (B depends on A).
+
+## Cross-Reference Index
+
+| Spec Section | Feature Tickets |
+|--------------|----------------|
+| 1 | ⚠️ *not yet assigned* |
+| 1.1 | ⚠️ *not yet assigned* |
+| 1.2 | ⚠️ *not yet assigned* |
+| 1.3 | ⚠️ *not yet assigned* |
+| 2 | ⚠️ *not yet assigned* |
+| 2.1 | ⚠️ *not yet assigned* |
+| 2.1.1 | ⚠️ *not yet assigned* |
+| 2.1.2 | ⚠️ *not yet assigned* |
+| 2.1.3 | ⚠️ *not yet assigned* |
+| 2.1.4 | ⚠️ *not yet assigned* |
+| 2.1.5 | ⚠️ *not yet assigned* |
+| 2.1.6 | ⚠️ *not yet assigned* |
+| 3 | ⚠️ *not yet assigned* |
+| 3.1 | ⚠️ *not yet assigned* |
+| 3.2 | ⚠️ *not yet assigned* |
+| 3.2.1 | ⚠️ *not yet assigned* |
+| 3.2.1.1 | ⚠️ *not yet assigned* |
+| 3.2.1.2 | ⚠️ *not yet assigned* |
+| 3.2.1.3 | ⚠️ *not yet assigned* |
+| 3.2.1.4 | ⚠️ *not yet assigned* |
+| 3.2.1.5 | ⚠️ *not yet assigned* |
+| 3.2.1.6 | ⚠️ *not yet assigned* |
+| 3.2.2 | ⚠️ *not yet assigned* |
+| 3.2.3 | ⚠️ *not yet assigned* |
+| 3.2.4 | ⚠️ *not yet assigned* |
+| 3.2.5 | ⚠️ *not yet assigned* |
+| 3.2.6 | ⚠️ *not yet assigned* |
+| 3.3 | ⚠️ *not yet assigned* |
+| 3.3.1 | ⚠️ *not yet assigned* |
+| 3.3.2 | ⚠️ *not yet assigned* |
+| 3.3.2.1 | ⚠️ *not yet assigned* |
+| 3.3.2.2 | ⚠️ *not yet assigned* |
+| 3.3.2.3 | ⚠️ *not yet assigned* |
+| 3.3.2.4 | ⚠️ *not yet assigned* |
+| 3.3.3 | ⚠️ *not yet assigned* |
+| 3.3.4 | ⚠️ *not yet assigned* |
+| 3.3.5 | ⚠️ *not yet assigned* |
+| 4 | ⚠️ *not yet assigned* |
+| 5 | ⚠️ *not yet assigned* |
+| 6 | ⚠️ *not yet assigned* |
+| 7 | ⚠️ *not yet assigned* |
+| 7.1 | ⚠️ *not yet assigned* |
+| 7.2 | ⚠️ *not yet assigned* |
+| 7.3 | ⚠️ *not yet assigned* |
+| 8 | ⚠️ *not yet assigned* |
 
 ## Section Mappings
 ### Section 1: Introduction

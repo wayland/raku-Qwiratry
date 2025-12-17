@@ -179,11 +179,11 @@
 **Prompt**: `/tasks/planned/WP06-cross-reference-index.md`
 
 ### Included Subtasks
-- [ ] T028 Generate cross-reference table data structure (section -> features mapping)
-- [ ] T029 [P] Generate markdown table format for cross-reference index
-- [ ] T030 [P] Implement reverse lookup (feature -> sections it covers)
-- [ ] T031 [P] Embed cross-reference table in traceability map document
-- [ ] T032 Handle multiple features covering same section (comma-separated list)
+- [x] T028 Generate cross-reference table data structure (section -> features mapping)
+- [x] T029 [P] Generate markdown table format for cross-reference index
+- [x] T030 [P] Implement reverse lookup (feature -> sections it covers)
+- [x] T031 [P] Embed cross-reference table in traceability map document
+- [x] T032 Handle multiple features covering same section (comma-separated list)
 
 ### Implementation Notes
 - Table format: `| Spec Section | Feature Tickets |`
