@@ -7,12 +7,19 @@
       "accepted_from_commit": "4a0c0c7464b862bc1a2d356c45a737785c9a3ea8",
       "branch": "001-specification-traceability-map",
       "mode": "local"
+    },
+    {
+      "accepted_at": "2025-12-17T09:26:08Z",
+      "accepted_by": "claude-reviewer",
+      "accepted_from_commit": "c14fa3009779037f479bf548b75821581151ab64",
+      "branch": "001-specification-traceability-map",
+      "mode": "local"
     }
   ],
   "acceptance_mode": "local",
-  "accepted_at": "2025-12-17T09:26:02Z",
+  "accepted_at": "2025-12-17T09:26:08Z",
   "accepted_by": "claude-reviewer",
-  "accepted_from_commit": "4a0c0c7464b862bc1a2d356c45a737785c9a3ea8",
+  "accepted_from_commit": "c14fa3009779037f479bf548b75821581151ab64",
   "created_at": "2025-12-16T22:00:41Z",
   "feature_number": "001",
   "friendly_name": "Specification Traceability Map",
