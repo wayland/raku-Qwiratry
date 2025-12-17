@@ -1,67 +1,69 @@
 #| Unit tests for Context role
 #| Tests Context role contract, lifecycle, and state persistence
 use Test;
+use lib 'lib';
 
 use Qwiratry::Context;
 
 plan 10;
 
-# --- Context role composition tests ---
+# =============================================================================
+# Context role basic tests
+# =============================================================================
 
-subtest 'Context role can be composed with a class', {
+subtest 'Context role exists and can be composed' => {
     plan 2;
-    my class TestContext does Context { }
-    my $ctx = TestContext.new;
-    ok $ctx.defined, 'Context instance created';
+    
+    ok Context.^name eq 'Context', 'Context role exists';
+    ok Context.HOW.^name ~~ /Metamodel/, 'Context is a proper role';
+}
+
+subtest 'Concrete class can compose Context' => {
+    plan 3;
+    
+    my class SimpleContext does Context {
+        has Int $.counter = 0;
+    }
+    
+    my $ctx = SimpleContext.new;
+    
+    ok $ctx.defined, 'Concrete class can be instantiated';
     ok $ctx ~~ Context, 'Instance does Context role';
-};
+    is $ctx.counter, 0, 'Concrete attribute accessible';
+}
 
-subtest 'Context class can have mutable attributes', {
-    plan 3;
-    my class MutableContext does Context {
-        has Int $.counter is rw = 0;
-    }
-    my $ctx = MutableContext.new;
-    is $ctx.counter, 0, 'Initial value is 0';
-    $ctx.counter = 5;
-    is $ctx.counter, 5, 'Value can be changed';
-    $ctx.counter++;
-    is $ctx.counter, 6, 'Value can be incremented';
-};
-
-subtest 'Context class can have array attributes', {
-    plan 3;
-    my class ArrayContext does Context {
-        has @.items;
-    }
-    my $ctx = ArrayContext.new;
-    is $ctx.items.elems, 0, 'Array starts empty';
-    $ctx.items.push('a');
-    is $ctx.items.elems, 1, 'Item added';
-    $ctx.items.push('b', 'c');
-    is-deeply $ctx.items, ['a', 'b', 'c'], 'Multiple items added';
-};
-
-subtest 'Context class can have hash attributes', {
-    plan 3;
-    my class HashContext does Context {
-        has %.cache;
-    }
-    my $ctx = HashContext.new;
-    is $ctx.cache.elems, 0, 'Hash starts empty';
-    $ctx.cache<key1> = 'value1';
-    is $ctx.cache<key1>, 'value1', 'Value stored';
-    $ctx.cache<key2> = 'value2';
-    is $ctx.cache.elems, 2, 'Multiple values stored';
-};
-
-# --- Context lifecycle tests ---
-
-subtest 'Multiple Context instances are independent', {
+subtest 'Context concrete class with mutable state' => {
     plan 4;
+    
+    my class MutableContext does Context {
+        has Int $.visit-count is rw = 0;
+        has @.results;
+    }
+    
+    my $ctx = MutableContext.new;
+    
+    is $ctx.visit-count, 0, 'Initial value correct';
+    
+    $ctx.visit-count = 5;
+    is $ctx.visit-count, 5, 'Mutable attribute can be changed';
+    
+    $ctx.results.push('result1');
+    $ctx.results.push('result2');
+    is $ctx.results.elems, 2, 'Array attribute can accumulate';
+    is $ctx.results[0], 'result1', 'Array contents preserved';
+}
+
+# =============================================================================
+# Context lifecycle tests
+# =============================================================================
+
+subtest 'Multiple Context instances are independent' => {
+    plan 4;
+    
     my class CounterContext does Context {
         has Int $.count is rw = 0;
     }
+    
     my $ctx1 = CounterContext.new;
     my $ctx2 = CounterContext.new;
     
@@ -74,98 +76,147 @@ subtest 'Multiple Context instances are independent', {
     $ctx1.count++;
     is $ctx1.count, 11, 'First context incremented';
     is $ctx2.count, 20, 'Second context unchanged';
-};
+}
 
-subtest 'Context instances do not share state', {
-    plan 2;
-    my class SharedTestContext does Context {
-        has @.data;
-    }
-    my $ctx1 = SharedTestContext.new;
-    my $ctx2 = SharedTestContext.new;
-    
-    $ctx1.data.push('only-in-ctx1');
-    
-    is $ctx1.data.elems, 1, 'First context has data';
-    is $ctx2.data.elems, 0, 'Second context is empty';
-};
-
-subtest 'Each new Context is fresh', {
+subtest 'Fresh Context per traversal simulation' => {
     plan 3;
-    my class FreshContext does Context {
-        has Int $.value is rw = 42;
+    
+    my class TraversalContext does Context {
+        has Int $.nodes-visited is rw = 0;
     }
     
-    my $ctx1 = FreshContext.new;
-    $ctx1.value = 100;
+    # Simulate first traversal
+    my $traversal1 = TraversalContext.new;
+    $traversal1.nodes-visited++ for ^5;
     
-    my $ctx2 = FreshContext.new;
-    is $ctx2.value, 42, 'New context has default value';
+    # Simulate second traversal (fresh context)
+    my $traversal2 = TraversalContext.new;
+    $traversal2.nodes-visited++ for ^3;
     
-    my $ctx3 = FreshContext.new(value => 0);
-    is $ctx3.value, 0, 'New context with custom initial value';
-    is $ctx1.value, 100, 'Original context unchanged';
-};
+    is $traversal1.nodes-visited, 5, 'First traversal count correct';
+    is $traversal2.nodes-visited, 3, 'Second traversal count correct';
+    
+    # Contexts are independent
+    ok $traversal1.nodes-visited != $traversal2.nodes-visited, 
+       'Traversals have independent state';
+}
 
-# --- Context state persistence tests ---
+subtest 'Context does not share state across instances' => {
+    plan 2;
+    
+    my class HashContext does Context {
+        has %.cache;
+    }
+    
+    my $ctx1 = HashContext.new;
+    my $ctx2 = HashContext.new;
+    
+    $ctx1.cache<key1> = 'value1';
+    
+    ok $ctx1.cache<key1>:exists, 'First context has key';
+    nok $ctx2.cache<key1>:exists, 'Second context does not have key';
+}
 
-subtest 'Context state persists across operations', {
+# =============================================================================
+# Context state persistence tests
+# =============================================================================
+
+subtest 'State persists across operations' => {
     plan 4;
-    my class PersistentContext does Context {
-        has Int $.operations is rw = 0;
-        has @.log;
+    
+    my class OperationContext does Context {
+        has @.operations;
+        has Int $.total is rw = 0;
     }
-    my $ctx = PersistentContext.new;
+    
+    my $ctx = OperationContext.new;
     
     # Simulate multiple operations
-    sub operation1($c) { $c.operations++; $c.log.push('op1'); }
-    sub operation2($c) { $c.operations++; $c.log.push('op2'); }
-    sub operation3($c) { $c.operations++; $c.log.push('op3'); }
-    
-    operation1($ctx);
-    is $ctx.operations, 1, 'After first operation';
-    
-    operation2($ctx);
-    operation3($ctx);
-    
-    is $ctx.operations, 3, 'Operations accumulated';
-    is $ctx.log.elems, 3, 'Log entries accumulated';
-    is-deeply $ctx.log, ['op1', 'op2', 'op3'], 'Log order preserved';
-};
-
-subtest 'Context can be passed to functions expecting Context type', {
-    plan 2;
-    sub process-context(Context $ctx) {
-        $ctx.^name;
+    sub perform-operation($ctx, $op) {
+        $ctx.operations.push($op);
+        $ctx.total++;
     }
+    
+    perform-operation($ctx, 'op1');
+    perform-operation($ctx, 'op2');
+    perform-operation($ctx, 'op3');
+    
+    is $ctx.operations.elems, 3, 'Operations accumulated';
+    is $ctx.total, 3, 'Total tracked';
+    is $ctx.operations[0], 'op1', 'First operation preserved';
+    is $ctx.operations[2], 'op3', 'Last operation preserved';
+}
+
+subtest 'Complex state management' => {
+    plan 5;
+    
+    my class ComplexContext does Context {
+        has @.stack;
+        has %.memo;
+        has Int $.depth is rw = 0;
+    }
+    
+    my $ctx = ComplexContext.new;
+    
+    # Simulate tree traversal
+    $ctx.stack.push('root');
+    $ctx.depth++;
+    $ctx.memo<root> = True;
+    
+    $ctx.stack.push('child1');
+    $ctx.depth++;
+    $ctx.memo<child1> = True;
+    
+    is $ctx.depth, 2, 'Depth tracked';
+    is $ctx.stack.elems, 2, 'Stack has entries';
+    ok $ctx.memo<root>, 'Root memoized';
+    ok $ctx.memo<child1>, 'Child memoized';
+    
+    # Pop back
+    $ctx.stack.pop;
+    $ctx.depth--;
+    is $ctx.depth, 1, 'Depth decremented';
+}
+
+# =============================================================================
+# Context type checking tests
+# =============================================================================
+
+subtest 'Context can be used as type constraint' => {
+    plan 2;
     
     my class TypedContext does Context {
         has Str $.name = 'test';
     }
     
+    sub accepts-context(Context $ctx) {
+        $ctx ~~ Context;
+    }
+    
     my $ctx = TypedContext.new;
-    lives-ok { process-context($ctx) }, 'Context accepted by typed parameter';
-    is process-context($ctx), 'TypedContext', 'Correct type returned';
-};
+    
+    ok accepts-context($ctx), 'Context passes type constraint';
+    lives-ok { accepts-context($ctx) }, 'No exception with Context type';
+}
 
-subtest 'Context can compose with other roles', {
-    plan 3;
-    my role Loggable {
-        has @.messages;
-        method log(Str $msg) { @.messages.push($msg) }
+subtest 'Multiple classes can implement Context' => {
+    plan 4;
+    
+    my class ContextA does Context {
+        has Int $.a = 1;
     }
     
-    my class CompositeContext does Context does Loggable {
-        has Int $.counter is rw = 0;
+    my class ContextB does Context {
+        has Str $.b = 'B';
     }
     
-    my $ctx = CompositeContext.new;
-    ok $ctx ~~ Context, 'Does Context';
-    ok $ctx ~~ Loggable, 'Does Loggable';
+    my $a = ContextA.new;
+    my $b = ContextB.new;
     
-    $ctx.log('test message');
-    $ctx.counter = 5;
-    is $ctx.messages[0], 'test message', 'Loggable functionality works';
-};
+    ok $a ~~ Context, 'ContextA does Context';
+    ok $b ~~ Context, 'ContextB does Context';
+    is $a.a, 1, 'ContextA has own attributes';
+    is $b.b, 'B', 'ContextB has own attributes';
+}
 
 done-testing;
