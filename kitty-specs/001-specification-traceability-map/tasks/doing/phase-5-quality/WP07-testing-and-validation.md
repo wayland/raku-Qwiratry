@@ -11,7 +11,7 @@ subtasks:
   - "T040"
 title: "Testing & Validation"
 phase: "Phase 5 - Quality"
-lane: "for_review"
+lane: "doing"
 assignee: "claude"
 agent: "claude"
 shell_pid: "25639"

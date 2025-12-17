@@ -57,9 +57,9 @@ my $script = "scripts/verify-spec-coverage.raku";
 my $output-dir = $test-dir.child("docs");
 $output-dir.mkdir unless $output-dir.d;
 
-my $output = qx{raku $script --generate-map --spec-file={$spec-file} --specs-dir={$specs-dir} --output-dir={$output-dir} 2>&1};
-my $exit-code = $?;
-is $exit-code, 0, "Script generates map with dependencies";
+my $proc = run("raku", $script, "--generate-map", "--spec-file={$spec-file}", "--specs-dir={$specs-dir}", "--output-dir={$output-dir}", :out, :err);
+my $output = $proc.out.slurp;
+is $proc.exitcode, 0, "Script generates map with dependencies";
 
 # Test 2: Dependency graph section exists in output
 if $output-dir.child("spec-traceability-map.md").e {
@@ -69,9 +69,9 @@ if $output-dir.child("spec-traceability-map.md").e {
 }
 
 # Test 3: Coverage script validates dependency graph
-my $coverage-output = qx{raku $script --json --spec-file={$spec-file} --specs-dir={$specs-dir} 2>&1};
-my $coverage-exit = $?;
-is $coverage-exit, 1, "Coverage script runs with dependency validation";
+my $coverage-proc = run("raku", $script, "--json", "--spec-file={$spec-file}", "--specs-dir={$specs-dir}", :out, :err);
+my $coverage-output = $coverage-proc.out.slurp;
+is $coverage-proc.exitcode, 1, "Coverage script runs with dependency validation";
 
 # Test 4: JSON output includes dependency graph status
 use JSON::Fast;

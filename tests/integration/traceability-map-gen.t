@@ -58,9 +58,9 @@ my $script = "scripts/verify-spec-coverage.raku";
 ok $script.IO.e, "Script exists";
 
 # Test 2: Generate traceability map
-my $output = qx{raku $script --generate-map --spec-file={$spec-file} --specs-dir={$specs-dir} --output-dir={$output-dir} 2>&1};
-my $exit-code = $?;
-is $exit-code, 0, "Script exits successfully with --generate-map";
+my $proc = run("raku", $script, "--generate-map", "--spec-file={$spec-file}", "--specs-dir={$specs-dir}", "--output-dir={$output-dir}", :out, :err);
+my $output = $proc.out.slurp;
+is $proc.exitcode, 0, "Script exits successfully with --generate-map";
 
 # Test 3: Output file is created
 my $output-file = $output-dir.child("spec-traceability-map.md");
@@ -78,7 +78,7 @@ if $output-file.e {
 # Test 5: Generated timestamp is present
 if $output-file.e {
     my $content = $output-file.slurp;
-    ok $content ~~ /Generated.*\d{4}-\d{2}-\d{2}/, "Output contains generation timestamp";
+    ok $content ~~ /Generated.*\d ** 4 '-' \d ** 2 '-' \d ** 2/, "Output contains generation timestamp";
 }
 
 done-testing;

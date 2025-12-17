@@ -36,9 +36,9 @@ my $missing-meta-dir = $specs-dir.child("001-missing-meta");
 $missing-meta-dir.mkdir;
 # Don't create meta.json
 
-my $output1 = qx{raku $script --json --spec-file={$spec-file} --specs-dir={$specs-dir} 2>&1};
-my $exit1 = $?;
-is $exit1, 1, "Script handles missing meta.json gracefully (exits 1)";
+my $proc1 = run("raku", $script, "--json", "--spec-file={$spec-file}", "--specs-dir={$specs-dir}", :out, :err);
+my $output1 = $proc1.out.slurp;
+is $proc1.exitcode, 1, "Script handles missing meta.json gracefully (exits 1)";
 ok $output1.contains("WARN") || $output1.contains("ERROR"), 
     "Script logs warning/error for missing meta.json";
 
@@ -49,9 +49,9 @@ my $invalid-json-dir = $specs-dir.child("002-invalid-json");
 $invalid-json-dir.mkdir;
 $invalid-json-dir.child("meta.json").spurt("{ invalid json }");
 
-my $output2 = qx{raku $script --json --spec-file={$spec-file} --specs-dir={$specs-dir} 2>&1};
-my $exit2 = $?;
-is $exit2, 1, "Script handles invalid JSON gracefully";
+my $proc2 = run("raku", $script, "--json", "--spec-file={$spec-file}", "--specs-dir={$specs-dir}", :out, :err);
+my $output2 = $proc2.out.slurp;
+is $proc2.exitcode, 1, "Script handles invalid JSON gracefully";
 ok $output2.contains("ERROR") || $output2.contains("Invalid"), 
     "Script logs error for invalid JSON";
 
@@ -83,8 +83,8 @@ $circular2-dir.child("meta.json").spurt(q:to/META/);
 }
 META
 
-my $output3 = qx{raku $script --json --spec-file={$spec-file} --specs-dir={$specs-dir} 2>&1};
-my $exit3 = $?;
+my $proc3 = run("raku", $script, "--json", "--spec-file={$spec-file}", "--specs-dir={$specs-dir}", :out, :err);
+my $output3 = $proc3.out.slurp;
 use JSON::Fast;
 try {
     my %json = from-json($output3);
@@ -117,8 +117,8 @@ $broken-link-dir.child("meta.json").spurt(q:to/META/);
 }
 META
 
-my $output4 = qx{raku $script --json --spec-file={$spec-file} --specs-dir={$specs-dir} 2>&1};
-my $exit4 = $?;
+my $proc4 = run("raku", $script, "--json", "--spec-file={$spec-file}", "--specs-dir={$specs-dir}", :out, :err);
+my $output4 = $proc4.out.slurp;
 try {
     my %json = from-json($output4);
     ok %json<dependency_graph><validation_errors>.elems > 0,
@@ -132,9 +132,9 @@ $broken-link-dir.child("meta.json").unlink if $broken-link-dir.child("meta.json"
 $broken-link-dir.rmdir if $broken-link-dir.d;
 
 # Test 5: Missing specification file
-my $output5 = qx{raku $script --spec-file=nonexistent.md --specs-dir={$specs-dir} 2>&1};
-my $exit5 = $?;
-is $exit5, 2, "Script exits with code 2 for missing specification file";
+my $proc5 = run("raku", $script, "--spec-file=nonexistent.md", "--specs-dir={$specs-dir}", :out, :err);
+my $output5 = $proc5.out.slurp;
+is $proc5.exitcode, 2, "Script exits with code 2 for missing specification file";
 ok $output5.contains("ERROR") || $output5.contains("not found"),
     "Script reports error for missing specification file";
 

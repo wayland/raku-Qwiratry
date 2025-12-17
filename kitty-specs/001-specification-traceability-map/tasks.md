@@ -210,14 +210,14 @@
 **Prompt**: `/tasks/planned/WP07-testing-and-validation.md`
 
 ### Included Subtasks
-- [ ] T033 [P] Write unit tests for spec section parsing (`tests/unit/spec-parser.t`)
-- [ ] T034 [P] Write unit tests for feature metadata reading (`tests/unit/feature-metadata.t`)
-- [ ] T035 [P] Write unit tests for dependency graph generation (`tests/unit/dependency-graph.t`)
-- [ ] T036 [P] Write unit tests for coverage calculation (`tests/unit/coverage-calc.t`)
-- [ ] T037 [P] Write integration test for traceability map generation (`tests/integration/traceability-map-gen.t`)
-- [ ] T038 [P] Write integration test for coverage script execution (`tests/integration/coverage-script.t`)
-- [ ] T039 [P] Write contract tests for JSON output format validation
-- [ ] T040 Test edge cases: missing files, malformed JSON, circular dependencies, broken links
+- [x] T033 [P] Write unit tests for spec section parsing (`tests/unit/spec-parser.t`)
+- [x] T034 [P] Write unit tests for feature metadata reading (`tests/unit/feature-metadata.t`)
+- [x] T035 [P] Write unit tests for dependency graph generation (`tests/unit/dependency-graph.t`)
+- [x] T036 [P] Write unit tests for coverage calculation (`tests/unit/coverage-calc.t`)
+- [x] T037 [P] Write integration test for traceability map generation (`tests/integration/traceability-map-gen.t`)
+- [x] T038 [P] Write integration test for coverage script execution (`tests/integration/coverage-script.t`)
+- [x] T039 [P] Write contract tests for JSON output format validation
+- [x] T040 Test edge cases: missing files, malformed JSON, circular dependencies, broken links
 
 ### Implementation Notes
 - Use Raku Test module (built-in)

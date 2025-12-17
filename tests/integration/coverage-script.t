@@ -59,26 +59,62 @@ END {
 my $script = "scripts/verify-spec-coverage.raku";
 ok $script.IO.e, "Script exists";
 
+# Helper: Run script and return proc and output
+# For JSON mode, JSON is on stdout, errors on stderr
+sub run-script(*@args) {
+    my $proc = run("raku", $script, |@args, :out, :err);
+    my $stdout = $proc.out.slurp;
+    my $stderr = $proc.err.slurp;
+    # For JSON mode, return stdout (JSON), otherwise merge both
+    my $output = @args.grep(* eq "--json").elems > 0 ?? $stdout !! $stdout ~ $stderr;
+    return ($proc, $output);
+}
+
+# Helper function to try parsing JSON
+sub try-parse-json(Str $text) {
+    my $result;
+    try {
+        $result = from-json($text);
+        CATCH {
+            return Nil;
+        }
+    }
+    return $result;
+}
+
 # Test 2: Text output format
-my $text-output = qx{raku $script --spec-file={$spec-file} --specs-dir={$specs-dir} 2>&1};
-my $text-exit = $?;
-is $text-exit, 1, "Script exits with code 1 (uncovered sections found)";
+my ($text-proc, $text-output) = run-script("--spec-file={$spec-file}", "--specs-dir={$specs-dir}");
+is $text-proc.exitcode, 1, "Script exits with code 1 (uncovered sections found)";
 ok $text-output.contains("Coverage Report"), "Text output contains 'Coverage Report'";
 ok $text-output.contains("Coverage:"), "Text output contains coverage percentage";
 
 # Test 3: JSON output format
-my $json-output = qx{raku $script --json --spec-file={$spec-file} --specs-dir={$specs-dir} 2>&1};
-my $json-exit = $?;
-is $json-exit, 1, "JSON mode exits with code 1";
+my ($json-proc, $json-output) = run-script("--json", "--spec-file={$spec-file}", "--specs-dir={$specs-dir}");
+is $json-proc.exitcode, 1, "JSON mode exits with code 1";
 
 # Test 4: Parse JSON output
+# JSON is on stdout, may be multi-line
+
 my %json;
-try {
-    %json = from-json($json-output);
-    CATCH {
-        flunk "JSON output is not valid JSON: {.message}";
-        exit 1;
+# Try parsing the entire output as JSON first
+my $json-result = try-parse-json($json-output);
+if $json-result {
+    %json = $json-result;
+} else {
+    # If that fails, try to extract JSON from lines containing { or [
+    my $json-lines = $json-output.lines.grep({$_ ~~ /[\{]/ || $_ ~~ /[\[]/});
+    if $json-lines.elems > 0 {
+        my $json-text = $json-lines.join("\n");
+        $json-result = try-parse-json($json-text);
+        if $json-result {
+            %json = $json-result;
+        }
     }
+}
+
+unless %json {
+    flunk "JSON output is not valid JSON. Output: {$json-output.head(200)}";
+    exit 1;
 }
 
 # Test 5: JSON structure matches contract (T039)

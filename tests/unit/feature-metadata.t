@@ -55,16 +55,17 @@ my $script = "scripts/verify-spec-coverage.raku";
 my $spec-file = $test-dir.child("Specification.md");
 $spec-file.spurt("# 1. Test\n## 1.1 Subsection\n");
 
-my $output = qx{raku $script --json --spec-file={$spec-file} --specs-dir={$test-dir} 2>&1};
-my $exit-code = $?;
-is $exit-code, 1, "Script reads and processes valid meta.json files";
+my $proc = run("raku", $script, "--json", "--spec-file={$spec-file}", "--specs-dir={$test-dir}", :out, :err);
+my $output = $proc.out.slurp;
+is $proc.exitcode, 1, "Script reads and processes valid meta.json files";
 
 # Test 2: Script handles missing meta.json gracefully
 my $missing-dir = $test-dir.child("003-missing-meta");
 $missing-dir.mkdir;
 # Don't create meta.json
 
-my $output2 = qx{raku $script --json --spec-file={$spec-file} --specs-dir={$test-dir} 2>&1};
+my $proc2 = run("raku", $script, "--json", "--spec-file={$spec-file}", "--specs-dir={$test-dir}", :out, :err);
+my $output2 = $proc2.out.slurp;
 ok $output2.contains("WARN") || $output2.contains("ERROR"), 
     "Script logs warning/error for missing meta.json";
 $missing-dir.rmdir if $missing-dir.d;
@@ -74,7 +75,8 @@ my $invalid-dir = $test-dir.child("004-invalid-json");
 $invalid-dir.mkdir;
 $invalid-dir.child("meta.json").spurt("{ invalid json }");
 
-my $output3 = qx{raku $script --json --spec-file={$spec-file} --specs-dir={$test-dir} 2>&1};
+my $proc3 = run("raku", $script, "--json", "--spec-file={$spec-file}", "--specs-dir={$test-dir}", :out, :err);
+my $output3 = $proc3.out.slurp;
 ok $output3.contains("ERROR") || $output3.contains("Invalid"),
     "Script logs error for invalid JSON";
 $invalid-dir.child("meta.json").unlink if $invalid-dir.child("meta.json").e;
@@ -85,7 +87,8 @@ my $incomplete-dir = $test-dir.child("005-incomplete");
 $incomplete-dir.mkdir;
 $incomplete-dir.child("meta.json").spurt('{"slug": "005-incomplete"}');
 
-my $output4 = qx{raku $script --json --spec-file={$spec-file} --specs-dir={$test-dir} 2>&1};
+my $proc4 = run("raku", $script, "--json", "--spec-file={$spec-file}", "--specs-dir={$test-dir}", :out, :err);
+my $output4 = $proc4.out.slurp;
 ok $output4.contains("ERROR") || $output4.contains("Missing"),
     "Script logs error for missing required fields";
 $incomplete-dir.child("meta.json").unlink if $incomplete-dir.child("meta.json").e;
