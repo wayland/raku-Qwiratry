@@ -1,6 +1,6 @@
 # Specification Traceability Map
 
-**Generated**: 2025-12-17T11:43:37.443748+11:00
+**Generated**: 2025-12-17T15:54:50.117710+11:00
 
 This document maps all sections of `Specification.md` to feature tickets, providing a comprehensive view of specification coverage. Each section is linked to the feature(s) that implement it, or marked as "not yet assigned" if no feature covers it.
 
@@ -55,6 +55,13 @@ This document maps all sections of `Specification.md` to feature tickets, provid
 - Section 7.2: Table Walker
 - Section 7.3: Logic Walker
 - Section 8: Applicability Across Domains
+
+## Dependency Graph
+```mermaid
+graph TD
+```
+
+**Note:** Arrows indicate blocking relationships. Feature A --> Feature B means "A blocks B" (B depends on A).
 
 ## Section Mappings
 ### Section 1: Introduction

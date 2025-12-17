@@ -379,14 +379,20 @@ sub generate-traceability-map(
     # T014: Generate header with timestamp
     my $header = generate-markdown-header($now);
     
-    # T012: Generate section mappings
-    my $mappings = generate-section-mappings(@sections, %section-to-features, $specs-dir);
-    
     # T013: Generate uncovered summary
     my $summary = generate-uncovered-summary(@sections, %section-to-features);
     
-    # Combine all parts
-    my $markdown = $header ~ $summary ~ $mappings;
+    # T012: Generate section mappings
+    my $mappings = generate-section-mappings(@sections, %section-to-features, $specs-dir);
+    
+    # WP04: Generate dependency graph
+    my Array[Str] %graph = build-dependency-graph(@features);
+    my Array[Str] @validation-errors = validate-dependency-graph(%graph, @features);
+    my Array[Str] @cycles = detect-circular-dependencies(%graph);
+    my $dependency-graph = generate-dependency-graph-section(@features, %graph, @cycles, @validation-errors);
+    
+    # Combine all parts: header, summary, dependency graph, then mappings
+    my $markdown = $header ~ $summary ~ $dependency-graph ~ $mappings;
     
     # Ensure output directory exists
     my $output-dir = $output-file.IO.dirname;
@@ -398,6 +404,178 @@ sub generate-traceability-map(
     $output-file.IO.spurt($markdown);
     
     return $markdown;
+}
+
+# WP04: Dependency Graph Generation Functions
+
+# T015: Build dependency graph from feature metadata
+sub build-dependency-graph(FeatureTicket @features) {
+    # Graph structure: from_feature -> [to_feature1, to_feature2, ...]
+    # Feature A --> Feature B means "A blocks B"
+    my Array[Str] %graph;
+    
+    # Build graph from dependencies arrays
+    for @features -> $feature {
+        # Initialize empty array for features with no dependencies
+        unless %graph{$feature.slug}:exists {
+            %graph{$feature.slug} = Array[Str].new;
+        }
+        
+        # Add edges: if feature depends on X, then X blocks feature
+        # So: X --> feature (X blocks feature)
+        for $feature.dependencies -> $dep-slug {
+            unless %graph{$dep-slug}:exists {
+                %graph{$dep-slug} = Array[Str].new;
+            }
+            # Add edge: dep-slug blocks feature
+            %graph{$dep-slug}.push($feature.slug);
+        }
+    }
+    
+    return %graph;
+}
+
+# T019: Validate graph structure (no self-deps, valid refs)
+sub validate-dependency-graph(
+    Array[Str] %graph,
+    FeatureTicket @features
+) {
+    my Str @errors;
+    my SetHash $feature-slugs = SetHash.new(@features.map(*.slug));
+    
+    # Check for self-dependencies and validate references
+    for @features -> $feature {
+        # Check self-dependencies
+        if $feature.dependencies.grep(* eq $feature.slug).elems > 0 {
+            @errors.push("ERROR: Feature {$feature.slug} depends on itself (self-dependency)");
+        }
+        
+        # Validate all dependency targets exist
+        for $feature.dependencies -> $dep-slug {
+            unless $feature-slugs{$dep-slug}:exists {
+                @errors.push("ERROR: Feature {$feature.slug} depends on non-existent feature: {$dep-slug}");
+            }
+        }
+    }
+    
+    return @errors;
+}
+
+# T016: Detect circular dependencies using DFS
+sub detect-circular-dependencies(Array[Str] %graph) {
+    my Str @cycles;
+    my SetHash $visited = SetHash.new;
+    my SetHash $rec-stack = SetHash.new;
+    
+    sub dfs-visit(Str $node, Str @path) {
+        if $rec-stack{$node}:exists {
+            # Found a cycle! Extract the cycle from the path
+            my Int $cycle-start = @path.first-index(* eq $node);
+            if $cycle-start.defined {
+                my @cycle = @path[$cycle-start..*];
+                @cycle.push($node);  # Close the cycle
+                @cycles.push(@cycle.join(" --> "));
+            }
+            return;
+        }
+        
+        if $visited{$node}:exists {
+            return;  # Already processed this node
+        }
+        
+        $visited{$node} = True;
+        $rec-stack{$node} = True;
+        @path.push($node);
+        
+        # Visit all neighbors
+        if %graph{$node}:exists {
+            for %graph{$node}.list -> $neighbor {
+                dfs-visit($neighbor, @path);
+            }
+        }
+        
+        $rec-stack{$node}:delete;
+        @path.pop;
+    }
+    
+    # Run DFS from each unvisited node
+    for %graph.keys -> $node {
+        unless $visited{$node}:exists {
+            my Str @path;
+            dfs-visit($node, @path);
+        }
+    }
+    
+    return @cycles;
+}
+
+# T017: Generate Mermaid flowchart syntax from dependency graph
+sub generate-mermaid-diagram(Array[Str] %graph, FeatureTicket @features) {
+    my Str @lines;
+    @lines.push("```mermaid");
+    @lines.push("graph TD");
+    
+    # Create a mapping of slug to friendly name for node labels
+    my Str %slug-to-name = @features.map({$_.slug => $_.friendly_name}).Hash;
+    
+    # Generate edges: from --> to (from blocks to)
+    for %graph.kv -> $from, $to-list {
+        my $from-label = %slug-to-name{$from} // $from;
+        for $to-list.list -> $to {
+            my $to-label = %slug-to-name{$to} // $to;
+            # Use feature slug as node ID, friendly name as label
+            # Escape brackets in labels for Mermaid
+            my $from-id = $from.subst(/<[\[\]]>/, {$_ eq '[' ?? '\\[' !! '\\]'}, :g);
+            my $to-id = $to.subst(/<[\[\]]>/, {$_ eq '[' ?? '\\[' !! '\\]'}, :g);
+            my $from-label-escaped = $from-label.subst(/<[\[\]]>/, {$_ eq '[' ?? '\\[' !! '\\]'}, :g);
+            my $to-label-escaped = $to-label.subst(/<[\[\]]>/, {$_ eq '[' ?? '\\[' !! '\\]'}, :g);
+            
+            @lines.push("    {$from-id}[\"{$from-label-escaped}\"] --> {$to-id}[\"{$to-label-escaped}\"]");
+        }
+    }
+    
+    @lines.push("```");
+    
+    return @lines.join("\n");
+}
+
+# T018: Generate dependency graph section for traceability map
+sub generate-dependency-graph-section(
+    FeatureTicket @features,
+    Array[Str] %graph,
+    Array[Str] @cycles,
+    Array[Str] @validation-errors
+) {
+    my Str @lines;
+    @lines.push("## Dependency Graph\n");
+    
+    if @validation-errors.elems > 0 {
+        @lines.push("⚠️ **Graph validation errors:**\n\n");
+        for @validation-errors -> $error {
+            @lines.push("- {$error}\n");
+        }
+        @lines.push("\n");
+    }
+    
+    if @cycles.elems > 0 {
+        @lines.push("❌ **Circular dependencies detected:**\n\n");
+        for @cycles -> $cycle {
+            @lines.push("- {$cycle}\n");
+        }
+        @lines.push("\n");
+        @lines.push("⚠️ **Warning:** Circular dependencies prevent correct implementation ordering.\n\n");
+    }
+    
+    # Generate Mermaid diagram
+    if %graph.keys.elems > 0 {
+        my $mermaid = generate-mermaid-diagram(%graph, @features);
+        @lines.push("{$mermaid}\n\n");
+        @lines.push("**Note:** Arrows indicate blocking relationships. Feature A --> Feature B means \"A blocks B\" (B depends on A).\n\n");
+    } else {
+        @lines.push("No dependencies defined between features.\n\n");
+    }
+    
+    return @lines.join("");
 }
 
 # MAIN sub for CLI argument parsing
