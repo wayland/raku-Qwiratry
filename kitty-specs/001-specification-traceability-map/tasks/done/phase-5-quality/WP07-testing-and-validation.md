@@ -12,7 +12,6 @@ subtasks:
 title: "Testing & Validation"
 phase: "Phase 5 - Quality"
 lane: "done"
-assignee: ""
 agent: "claude-reviewer"
 shell_pid: "25639"
 review_status: "approved with minor notes"

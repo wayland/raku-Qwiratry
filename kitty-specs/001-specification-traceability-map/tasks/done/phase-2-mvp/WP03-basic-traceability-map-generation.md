@@ -9,7 +9,6 @@ subtasks:
 title: "Basic Traceability Map Generation"
 phase: "Phase 2 - MVP"
 lane: "done"
-assignee: ""
 agent: "claude-reviewer"
 shell_pid: "317556"
 review_status: "approved without changes"

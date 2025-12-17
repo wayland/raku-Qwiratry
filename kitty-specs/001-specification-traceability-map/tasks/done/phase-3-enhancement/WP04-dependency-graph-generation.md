@@ -9,7 +9,6 @@ subtasks:
 title: "Dependency Graph Generation"
 phase: "Phase 3 - Enhancement"
 lane: "done"
-assignee: ""
 agent: "claude-reviewer"
 shell_pid: "16761"
 review_status: "approved without changes"

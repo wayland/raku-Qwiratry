@@ -12,7 +12,6 @@ subtasks:
 title: "Coverage Verification Script"
 phase: "Phase 3 - Enhancement"
 lane: "done"
-assignee: ""
 agent: "claude-reviewer"
 shell_pid: "19978"
 review_status: "approved without changes"

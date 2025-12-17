@@ -9,7 +9,6 @@ subtasks:
 title: "Cross-Reference Index"
 phase: "Phase 4 - Polish"
 lane: "done"
-assignee: ""
 agent: "claude-reviewer"
 shell_pid: "22461"
 review_status: "approved without changes"
