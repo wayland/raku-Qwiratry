@@ -109,6 +109,8 @@ Concrete implementations include:
 | Walker Group          | `Walker`, `Walker::Plan` | `Context`, `QueryIterator` | `Strategy`                                 | `ControlSignal`               |
 | Transformer Group     | `Transformer`          |                        | `Template`                                 | `Wrapper`    |
 
+The Query AST classes are descendents of RakuAST::Node that are used to describe the Query Slang.  
+
 # 3. Role Specifications
 
 ## 3.1 The **Query** Group
