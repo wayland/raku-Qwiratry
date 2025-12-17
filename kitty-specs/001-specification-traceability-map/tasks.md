@@ -245,12 +245,12 @@
 **Prompt**: `/tasks/planned/WP08-polish-and-documentation.md`
 
 ### Included Subtasks
-- [ ] T041 Validate quickstart.md scenarios work correctly
-- [ ] T042 [P] Update README with script usage instructions
-- [ ] T043 [P] Add inline code comments and documentation
-- [ ] T044 [P] Create example meta.json with dependencies and spec_sections
-- [ ] T045 [P] Document error messages and troubleshooting guide
-- [ ] T046 [P] Verify all acceptance scenarios from spec.md are satisfied
+- [x] T041 Validate quickstart.md scenarios work correctly
+- [x] T042 [P] Update README with script usage instructions
+- [x] T043 [P] Add inline code comments and documentation
+- [x] T044 [P] Create example meta.json with dependencies and spec_sections
+- [x] T045 [P] Document error messages and troubleshooting guide
+- [x] T046 [P] Verify all acceptance scenarios from spec.md are satisfied
 
 ### Implementation Notes
 - Test all quickstart scenarios manually
