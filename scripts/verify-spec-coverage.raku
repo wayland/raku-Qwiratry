@@ -578,6 +578,136 @@ sub generate-dependency-graph-section(
     return @lines.join("");
 }
 
+# WP05: Coverage Verification Functions
+
+# T027: Validate file paths to prevent directory traversal
+sub validate-path(Str $path, Str $base-dir) {
+    # Reject paths with .. components
+    if $path.contains('..') {
+        return False;
+    }
+    
+    # Resolve path relative to base directory
+    my $resolved = $base-dir.IO.child($path).resolve;
+    my $base-resolved = $base-dir.IO.resolve;
+    
+    # Ensure resolved path is within base directory
+    unless $resolved.Str.starts-with($base-resolved.Str) {
+        return False;
+    }
+    
+    return True;
+}
+
+# T024: Format text output (human-readable)
+sub format-text-output(
+    Real $coverage-percent,
+    Int $total-sections,
+    Int $covered-sections,
+    SpecificationSection @uncovered,
+    Array[Hash] @broken-links,
+    Bool $graph-valid,
+    Array[Str] @cycles,
+    Array[Str] @validation-errors,
+    Bool $verbose
+) {
+    my Str @lines;
+    @lines.push("Coverage Report");
+    @lines.push("================\n");
+    @lines.push("Coverage: {$coverage-percent}% ({$covered-sections}/{$total-sections} sections)\n");
+    @lines.push("Covered sections: {$covered-sections}");
+    @lines.push("Uncovered sections: {@uncovered.elems}\n");
+    
+    if @uncovered.elems > 0 {
+        @lines.push("Uncovered Sections:");
+        for @uncovered.sort({$_.identifier}) -> $section {
+            @lines.push("  - {$section.identifier}: {$section.title}");
+        }
+        @lines.push("");
+    }
+    
+    if @broken-links.elems > 0 {
+        @lines.push("Broken Links:");
+        for @broken-links -> $link {
+            @lines.push("  - {$link<feature>}: {$link<reason>}");
+            if $verbose {
+                @lines.push("    Expected path: {$link<expected_path>}");
+            }
+        }
+        @lines.push("");
+    }
+    
+    @lines.push("Dependency Graph Status: " ~ ($graph-valid ?? "Valid" !! "Invalid"));
+    if @cycles.elems > 0 {
+        @lines.push("Circular Dependencies: {@cycles.elems} detected");
+        if $verbose {
+            for @cycles -> $cycle {
+                @lines.push("  - {$cycle}");
+            }
+        }
+    } else {
+        @lines.push("Circular Dependencies: None");
+    }
+    
+    if @validation-errors.elems > 0 {
+        @lines.push("Graph Validation Errors: {@validation-errors.elems}");
+        if $verbose {
+            for @validation-errors -> $error {
+                @lines.push("  - {$error}");
+            }
+        }
+    }
+    
+    return @lines.join("\n");
+}
+
+# T025: Format JSON output (structured data for CI/CD)
+sub format-json-output(
+    Real $coverage-percent,
+    Int $total-sections,
+    Int $covered-sections,
+    SpecificationSection @uncovered,
+    Array[Hash] @broken-links,
+    Bool $graph-valid,
+    Array[Str] @cycles,
+    Array[Str] @validation-errors,
+    Bool $traceability-map-generated
+) {
+    my Array[Hash] @uncovered-json;
+    for @uncovered -> $section {
+        @uncovered-json.push({
+            section => $section.identifier,
+            title => $section.title,
+            level => $section.level
+        });
+    }
+    
+    my Array[Hash] @cycles-json;
+    for @cycles -> $cycle {
+        @cycles-json.push({
+            cycle => $cycle
+        });
+    }
+    
+    my %output = {
+        status => (@uncovered.elems == 0 && @broken-links.elems == 0 && $graph-valid) ?? "success" !! "partial",
+        coverage_percent => $coverage-percent,
+        total_sections => $total-sections,
+        covered_sections => $covered-sections,
+        uncovered_sections => @uncovered-json,
+        broken_links => @broken-links,
+        dependency_graph => {
+            valid => $graph-valid,
+            circular_dependencies => @cycles-json,
+            validation_errors => @validation-errors,
+            total_relationships => 0  # Could calculate from graph if needed
+        },
+        traceability_map_generated => $traceability-map-generated
+    };
+    
+    return %output;
+}
+
 # MAIN sub for CLI argument parsing
 multi sub MAIN(
     Bool :$json = False,           # --json flag
@@ -593,9 +723,21 @@ multi sub MAIN(
         exit 0;
     }
 
-    # Validate file paths
+    # T027: Validate file paths and check existence
+    my $repo-root = ".".IO.resolve;
+    
+    unless validate-path($spec-file, $repo-root.Str) {
+        note "ERROR: Invalid file path (directory traversal detected): $spec-file";
+        exit 2;
+    }
+    
     unless $spec-file.IO.e {
         note "ERROR: Specification file not found: $spec-file";
+        exit 2;
+    }
+    
+    unless validate-path($specs-dir, $repo-root.Str) {
+        note "ERROR: Invalid directory path (directory traversal detected): $specs-dir";
         exit 2;
     }
     
@@ -604,6 +746,12 @@ multi sub MAIN(
         exit 2;
     }
     
+    unless validate-path($output-dir, $repo-root.Str) {
+        note "ERROR: Invalid output directory path (directory traversal detected): $output-dir";
+        exit 2;
+    }
+    
+    # T026: Add logging (INFO/ERROR/WARN)
     # WP02: Parse specification and load features
     if $verbose {
         note "INFO: Parsing specification file: $spec-file";
@@ -685,9 +833,94 @@ multi sub MAIN(
             }
         }
     } else {
-        # WP05: Coverage verification (not yet implemented)
-        note "INFO: Coverage verification (WP05 - not yet implemented)";
-        # TODO: Implement in WP05
+        # WP05: Coverage verification
+        if $verbose {
+            note "INFO: Running coverage verification...";
+        }
+        
+        # T020 & T021: Build section-to-feature mapping (includes subsection inheritance)
+        my Array[Str] %section-to-features = build-section-to-feature-mapping(
+            @sections,
+            @features,
+            %section-map
+        );
+        
+        # T020: Calculate coverage
+        my SpecificationSection @uncovered;
+        my SpecificationSection @covered;
+        for @sections -> $section {
+            if %section-to-features{$section.identifier}.elems > 0 {
+                @covered.push($section);
+            } else {
+                @uncovered.push($section);
+            }
+        }
+        
+        my $coverage-percent = @sections.elems > 0 
+            ?? (@covered.elems / @sections.elems * 100).round(2)
+            !! 100.0;
+        
+        # T022: Detect broken links
+        my Array[Hash] @broken-links;
+        for @features -> $feature {
+            unless $feature.directory_path.IO.d {
+                my $link-info = {
+                    feature => $feature.slug,
+                    reason => "directory_not_found",
+                    expected_path => $feature.directory_path
+                };
+                @broken-links.push($link-info);
+                # T026: Log broken links as errors
+                note "ERROR: Feature {$feature.slug}: directory not found at {$feature.directory_path}";
+            }
+        }
+        
+        # T026: Log warnings for uncovered sections
+        if @uncovered.elems > 0 {
+            for @uncovered -> $section {
+                note "WARN: Section {$section.identifier} ({$section.title}) is not covered by any feature";
+            }
+        }
+        
+        # WP04: Validate dependency graph
+        my Array[Str] %graph = build-dependency-graph(@features);
+        my Array[Str] @validation-errors = validate-dependency-graph(%graph, @features);
+        my Array[Str] @cycles = detect-circular-dependencies(%graph);
+        my $graph-valid = @validation-errors.elems == 0 && @cycles.elems == 0;
+        
+        # T024 & T025: Format output
+        if $json {
+            # T025: JSON output
+            my %json-output = format-json-output(
+                $coverage-percent,
+                @sections.elems,
+                @covered.elems,
+                @uncovered,
+                @broken-links,
+                $graph-valid,
+                @cycles,
+                @validation-errors,
+                False  # traceability_map_generated
+            );
+            say to-json(%json-output, :pretty);
+        } else {
+            # T024: Text output
+            say format-text-output(
+                $coverage-percent,
+                @sections.elems,
+                @covered.elems,
+                @uncovered,
+                @broken-links,
+                $graph-valid,
+                @cycles,
+                @validation-errors,
+                $verbose
+            );
+        }
+        
+        # Exit code: 0 if all covered and no errors, 1 if uncovered sections or broken links
+        my $exit-code = (@uncovered.elems == 0 && @broken-links.elems == 0 && $graph-valid) ?? 0 !! 1;
+        exit $exit-code;
     }
     
     # Verbose output for debugging
