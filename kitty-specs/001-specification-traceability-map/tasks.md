@@ -112,11 +112,11 @@
 **Prompt**: `/tasks/planned/WP04-dependency-graph-generation.md`
 
 ### Included Subtasks
-- [ ] T015 Build dependency graph from feature metadata (dependencies arrays)
-- [ ] T016 [P] Detect circular dependencies and report errors
-- [ ] T017 [P] Generate Mermaid flowchart syntax from dependency relationships
-- [ ] T018 [P] Embed Mermaid diagram in traceability map markdown
-- [ ] T019 Validate graph structure (no self-dependencies, valid feature references)
+- [x] T015 Build dependency graph from feature metadata (dependencies arrays)
+- [x] T016 [P] Detect circular dependencies and report errors
+- [x] T017 [P] Generate Mermaid flowchart syntax from dependency relationships
+- [x] T018 [P] Embed Mermaid diagram in traceability map markdown
+- [x] T019 Validate graph structure (no self-dependencies, valid feature references)
 
 ### Implementation Notes
 - Read `dependencies` arrays from all meta.json files
