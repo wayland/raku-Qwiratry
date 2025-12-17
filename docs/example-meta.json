@@ -1,0 +1,8 @@
+{
+  "feature_number": "002",
+  "slug": "002-example-feature",
+  "friendly_name": "Example Feature",
+  "dependencies": ["001-specification-traceability-map"],
+  "spec_sections": ["3.2.1", "3.2.2", "3.2.3"]
+}
+
