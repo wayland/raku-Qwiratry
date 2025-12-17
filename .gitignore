@@ -14,3 +14,5 @@
 /.worktrees
 .precomp
 __pycache__
+.kittify/.dashboard
+.kittify/active-mission
