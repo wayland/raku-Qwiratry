@@ -7,10 +7,10 @@ subtasks:
   - "T012"
 title: "Exception Hierarchy"
 phase: "Phase 1 - Foundational"
-lane: "planned"
-assignee: ""
-agent: ""
-shell_pid: ""
+lane: "doing"
+assignee: "claude"
+agent: "claude"
+shell_pid: "72117"
 review_status: ""
 reviewed_by: ""
 history:
@@ -137,4 +137,5 @@ history:
 ## Activity Log
 
 - 2025-12-17T11:41:34Z – system – lane=planned – Prompt created.
+- 2025-12-17T13:45:32Z – claude – shell_pid=72117 – lane=doing – Started implementation
 
