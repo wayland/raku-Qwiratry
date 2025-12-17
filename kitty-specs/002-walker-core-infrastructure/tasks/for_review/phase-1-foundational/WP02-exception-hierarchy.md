@@ -7,7 +7,7 @@ subtasks:
   - "T012"
 title: "Exception Hierarchy"
 phase: "Phase 1 - Foundational"
-lane: "doing"
+lane: "for_review"
 assignee: "claude"
 agent: "claude"
 shell_pid: "72117"
@@ -137,7 +137,6 @@ history:
 ## Activity Log
 
 - 2025-12-17T11:41:34Z – system – lane=planned – Prompt created.
-- 2025-12-17T13:45:32Z – claude – shell_pid=72117 – lane=doing – Started implementation
 - 2025-12-17T13:45:32Z – claude – shell_pid=72117 – lane=doing – Started implementation
 - 2025-12-17T13:50:00Z – claude – shell_pid=72117 – lane=doing – Completed: X::Qwiratry::Walker and X::Qwiratry::UnknownQueryElement exceptions implemented with message, walker-type, and query-ast attributes. Comprehensive unit tests written (15 test subtests). Syntax verified.
 

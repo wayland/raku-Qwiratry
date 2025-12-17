@@ -4,8 +4,168 @@ use Test;
 
 use Qwiratry::Context;
 
-# Placeholder test - will be implemented in WP03
-plan 1;
-todo "Context role tests will be implemented in WP03";
-pass "Test file structure verified";
+plan 10;
 
+# --- Context role composition tests ---
+
+subtest 'Context role can be composed with a class', {
+    plan 2;
+    my class TestContext does Context { }
+    my $ctx = TestContext.new;
+    ok $ctx.defined, 'Context instance created';
+    ok $ctx ~~ Context, 'Instance does Context role';
+};
+
+subtest 'Context class can have mutable attributes', {
+    plan 3;
+    my class MutableContext does Context {
+        has Int $.counter is rw = 0;
+    }
+    my $ctx = MutableContext.new;
+    is $ctx.counter, 0, 'Initial value is 0';
+    $ctx.counter = 5;
+    is $ctx.counter, 5, 'Value can be changed';
+    $ctx.counter++;
+    is $ctx.counter, 6, 'Value can be incremented';
+};
+
+subtest 'Context class can have array attributes', {
+    plan 3;
+    my class ArrayContext does Context {
+        has @.items;
+    }
+    my $ctx = ArrayContext.new;
+    is $ctx.items.elems, 0, 'Array starts empty';
+    $ctx.items.push('a');
+    is $ctx.items.elems, 1, 'Item added';
+    $ctx.items.push('b', 'c');
+    is-deeply $ctx.items, ['a', 'b', 'c'], 'Multiple items added';
+};
+
+subtest 'Context class can have hash attributes', {
+    plan 3;
+    my class HashContext does Context {
+        has %.cache;
+    }
+    my $ctx = HashContext.new;
+    is $ctx.cache.elems, 0, 'Hash starts empty';
+    $ctx.cache<key1> = 'value1';
+    is $ctx.cache<key1>, 'value1', 'Value stored';
+    $ctx.cache<key2> = 'value2';
+    is $ctx.cache.elems, 2, 'Multiple values stored';
+};
+
+# --- Context lifecycle tests ---
+
+subtest 'Multiple Context instances are independent', {
+    plan 4;
+    my class CounterContext does Context {
+        has Int $.count is rw = 0;
+    }
+    my $ctx1 = CounterContext.new;
+    my $ctx2 = CounterContext.new;
+    
+    $ctx1.count = 10;
+    $ctx2.count = 20;
+    
+    is $ctx1.count, 10, 'First context has correct value';
+    is $ctx2.count, 20, 'Second context has correct value';
+    
+    $ctx1.count++;
+    is $ctx1.count, 11, 'First context incremented';
+    is $ctx2.count, 20, 'Second context unchanged';
+};
+
+subtest 'Context instances do not share state', {
+    plan 2;
+    my class SharedTestContext does Context {
+        has @.data;
+    }
+    my $ctx1 = SharedTestContext.new;
+    my $ctx2 = SharedTestContext.new;
+    
+    $ctx1.data.push('only-in-ctx1');
+    
+    is $ctx1.data.elems, 1, 'First context has data';
+    is $ctx2.data.elems, 0, 'Second context is empty';
+};
+
+subtest 'Each new Context is fresh', {
+    plan 3;
+    my class FreshContext does Context {
+        has Int $.value is rw = 42;
+    }
+    
+    my $ctx1 = FreshContext.new;
+    $ctx1.value = 100;
+    
+    my $ctx2 = FreshContext.new;
+    is $ctx2.value, 42, 'New context has default value';
+    
+    my $ctx3 = FreshContext.new(value => 0);
+    is $ctx3.value, 0, 'New context with custom initial value';
+    is $ctx1.value, 100, 'Original context unchanged';
+};
+
+# --- Context state persistence tests ---
+
+subtest 'Context state persists across operations', {
+    plan 4;
+    my class PersistentContext does Context {
+        has Int $.operations is rw = 0;
+        has @.log;
+    }
+    my $ctx = PersistentContext.new;
+    
+    # Simulate multiple operations
+    sub operation1($c) { $c.operations++; $c.log.push('op1'); }
+    sub operation2($c) { $c.operations++; $c.log.push('op2'); }
+    sub operation3($c) { $c.operations++; $c.log.push('op3'); }
+    
+    operation1($ctx);
+    is $ctx.operations, 1, 'After first operation';
+    
+    operation2($ctx);
+    operation3($ctx);
+    
+    is $ctx.operations, 3, 'Operations accumulated';
+    is $ctx.log.elems, 3, 'Log entries accumulated';
+    is-deeply $ctx.log, ['op1', 'op2', 'op3'], 'Log order preserved';
+};
+
+subtest 'Context can be passed to functions expecting Context type', {
+    plan 2;
+    sub process-context(Context $ctx) {
+        $ctx.^name;
+    }
+    
+    my class TypedContext does Context {
+        has Str $.name = 'test';
+    }
+    
+    my $ctx = TypedContext.new;
+    lives-ok { process-context($ctx) }, 'Context accepted by typed parameter';
+    is process-context($ctx), 'TypedContext', 'Correct type returned';
+};
+
+subtest 'Context can compose with other roles', {
+    plan 3;
+    my role Loggable {
+        has @.messages;
+        method log(Str $msg) { @.messages.push($msg) }
+    }
+    
+    my class CompositeContext does Context does Loggable {
+        has Int $.counter is rw = 0;
+    }
+    
+    my $ctx = CompositeContext.new;
+    ok $ctx ~~ Context, 'Does Context';
+    ok $ctx ~~ Loggable, 'Does Loggable';
+    
+    $ctx.log('test message');
+    $ctx.counter = 5;
+    is $ctx.messages[0], 'test message', 'Loggable functionality works';
+};
+
+done-testing;
