@@ -220,3 +220,4 @@ class MyContext does Context {
 - See `contracts/walker-api.md` for complete API reference
 - Implement concrete walkers (e.g., `Tree::Walker::DFS`, `Table::Walker::Scan`)
 
+

@@ -241,3 +241,4 @@ X::Qwiratry::UnknownQueryElement
 - Walker and Walker::Plan are reusable
 - QueryIterator instances are independent
 
+

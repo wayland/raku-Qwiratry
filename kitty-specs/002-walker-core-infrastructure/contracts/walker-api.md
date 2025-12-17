@@ -386,3 +386,4 @@ class X::Qwiratry::UnknownQueryElement is X::Qwiratry::Walker {
 - **Result**: `Mu` (any type) or `Nil`
 - **Capabilities**: `Associative` (Hash with structured metadata)
 
+

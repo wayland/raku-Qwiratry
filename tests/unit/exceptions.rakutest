@@ -2,36 +2,44 @@
 #| Tests X::Qwiratry::Walker and X::Qwiratry::UnknownQueryElement exceptions
 use Test;
 
+use lib 'lib';
 use Qwiratry::X;
 
-plan 15;
+plan 16;
 
-# --- X::Qwiratry::Walker base exception tests ---
+# =============================================================================
+# T011: Unit tests for exception hierarchy
+# =============================================================================
 
-subtest 'X::Qwiratry::Walker can be created', {
-    plan 3;
+subtest 'X::Qwiratry::Walker base exception', {
+    plan 6;
+    
+    # Test that X::Qwiratry::Walker can be created
     my $ex = X::Qwiratry::Walker.new(message => 'Test error');
-    ok $ex.defined, 'Exception created';
-    is $ex.message, 'Test error', 'Message attribute accessible';
-    is $ex.walker-type, 'Unknown', 'Walker-type has default value';
-};
-
-subtest 'X::Qwiratry::Walker accepts all attributes', {
-    plan 2;
-    my $ex = X::Qwiratry::Walker.new(
+    ok $ex.defined, 'Exception can be created';
+    isa-ok $ex, Exception, 'Is an Exception';
+    isa-ok $ex, X::Qwiratry::Walker, 'Is X::Qwiratry::Walker';
+    
+    # Test attributes
+    is $ex.message, 'Test error', 'message attribute is accessible';
+    is $ex.walker-type, 'Unknown', 'walker-type has default value';
+    
+    # Test with custom walker-type
+    my $ex2 = X::Qwiratry::Walker.new(
         message => 'Custom error',
-        walker-type => 'TestWalker'
+        walker-type => 'Tree::Walker::DFS'
     );
-    is $ex.message, 'Custom error', 'Custom message set';
-    is $ex.walker-type, 'TestWalker', 'Custom walker-type set';
+    is $ex2.walker-type, 'Tree::Walker::DFS', 'Custom walker-type is stored';
 };
 
-subtest 'X::Qwiratry::Walker can be thrown and caught', {
-    plan 2;
+subtest 'X::Qwiratry::Walker throwing and catching', {
+    plan 3;
+    
     my $caught = False;
-    my $caught-message = '';
+    my $caught-message;
+    
     try {
-        X::Qwiratry::Walker.new(message => 'Thrown error').throw;
+        die X::Qwiratry::Walker.new(message => 'Thrown error');
         CATCH {
             when X::Qwiratry::Walker {
                 $caught = True;
@@ -39,130 +47,118 @@ subtest 'X::Qwiratry::Walker can be thrown and caught', {
             }
         }
     }
-    ok $caught, 'Exception was caught';
-    is $caught-message, 'Thrown error', 'Caught exception has correct message';
+    
+    ok $caught, 'Exception can be thrown and caught';
+    is $caught-message, 'Thrown error', 'Message preserved when caught';
+    
+    # Test gist output
+    my $ex = X::Qwiratry::Walker.new(message => 'Test', walker-type => 'TestWalker');
+    like $ex.gist, /X\:\:Qwiratry\:\:Walker/, 'gist contains exception type';
 };
 
-subtest 'X::Qwiratry::Walker gist is informative', {
-    plan 1;
-    my $ex = X::Qwiratry::Walker.new(
-        message => 'Error message',
-        walker-type => 'MyWalker'
-    );
-    like $ex.gist, /Error \s+ message/, 'Gist contains message';
-};
-
-subtest 'X::Qwiratry::Walker is an Exception', {
-    plan 1;
-    my $ex = X::Qwiratry::Walker.new(message => 'Test');
-    ok $ex ~~ Exception, 'Is an Exception';
-};
-
-# --- X::Qwiratry::UnknownQueryElement exception tests ---
-
-subtest 'X::Qwiratry::UnknownQueryElement can be created', {
-    plan 4;
+subtest 'X::Qwiratry::UnknownQueryElement exception', {
+    plan 7;
+    
+    # Test that X::Qwiratry::UnknownQueryElement can be created
     my $ex = X::Qwiratry::UnknownQueryElement.new(
         message => 'Unknown element',
+        walker-type => 'TestWalker',
         query-ast => 'mock-ast'
     );
-    ok $ex.defined, 'Exception created';
-    is $ex.message, 'Unknown element', 'Message attribute accessible';
-    is $ex.query-ast, 'mock-ast', 'Query-ast attribute accessible';
-    is $ex.walker-type, 'Unknown', 'Inherits walker-type default';
+    ok $ex.defined, 'Exception can be created';
+    isa-ok $ex, Exception, 'Is an Exception';
+    isa-ok $ex, X::Qwiratry::Walker, 'Inherits from X::Qwiratry::Walker';
+    isa-ok $ex, X::Qwiratry::UnknownQueryElement, 'Is X::Qwiratry::UnknownQueryElement';
+    
+    # Test attributes
+    is $ex.message, 'Unknown element', 'message attribute inherited';
+    is $ex.walker-type, 'TestWalker', 'walker-type attribute inherited';
+    is $ex.query-ast, 'mock-ast', 'query-ast attribute is accessible';
 };
 
-subtest 'X::Qwiratry::UnknownQueryElement accepts all attributes', {
-    plan 3;
-    my $ex = X::Qwiratry::UnknownQueryElement.new(
-        message => 'Cannot interpret',
-        walker-type => 'TreeWalker',
-        query-ast => 'complex-ast'
-    );
-    is $ex.message, 'Cannot interpret', 'Message set';
-    is $ex.walker-type, 'TreeWalker', 'Walker-type set';
-    is $ex.query-ast, 'complex-ast', 'Query-ast set';
-};
-
-subtest 'X::Qwiratry::UnknownQueryElement extends X::Qwiratry::Walker', {
-    plan 2;
-    my $ex = X::Qwiratry::UnknownQueryElement.new(message => 'Test');
-    ok $ex ~~ X::Qwiratry::Walker, 'Is a X::Qwiratry::Walker';
-    ok $ex ~~ Exception, 'Is an Exception';
-};
-
-subtest 'X::Qwiratry::UnknownQueryElement can be thrown and caught', {
-    plan 3;
+subtest 'X::Qwiratry::UnknownQueryElement throwing and catching', {
+    plan 4;
+    
     my $caught = False;
-    my $caught-ast = '';
-    my $caught-message = '';
+    my $caught-ast;
+    my $caught-as-base = False;
+    
+    # Test catching as specific type
     try {
-        X::Qwiratry::UnknownQueryElement.new(
-            message => 'Unknown query',
+        die X::Qwiratry::UnknownQueryElement.new(
+            message => 'Cannot interpret',
             query-ast => 'test-ast'
-        ).throw;
+        );
         CATCH {
             when X::Qwiratry::UnknownQueryElement {
                 $caught = True;
-                $caught-message = .message;
                 $caught-ast = .query-ast;
             }
         }
     }
-    ok $caught, 'Exception was caught';
-    is $caught-message, 'Unknown query', 'Caught exception has correct message';
-    is $caught-ast, 'test-ast', 'Caught exception has correct query-ast';
-};
-
-subtest 'X::Qwiratry::UnknownQueryElement can be caught as base type', {
-    plan 1;
-    my $caught = False;
+    
+    ok $caught, 'Exception can be thrown and caught';
+    is $caught-ast, 'test-ast', 'query-ast preserved when caught';
+    
+    # Test catching as base type
     try {
-        X::Qwiratry::UnknownQueryElement.new(message => 'Test').throw;
+        die X::Qwiratry::UnknownQueryElement.new(
+            message => 'Test',
+            query-ast => 'ast'
+        );
         CATCH {
             when X::Qwiratry::Walker {
-                $caught = True;
+                $caught-as-base = True;
             }
         }
     }
-    ok $caught, 'UnknownQueryElement caught as Walker exception';
-};
-
-subtest 'X::Qwiratry::UnknownQueryElement gist is informative', {
-    plan 2;
+    
+    ok $caught-as-base, 'Can be caught as base X::Qwiratry::Walker';
+    
+    # Test gist output
     my $ex = X::Qwiratry::UnknownQueryElement.new(
-        message => 'Cannot handle',
-        query-ast => 'test-ast'
+        message => 'Test',
+        query-ast => 'mock'
     );
-    like $ex.gist, /Cannot \s+ handle/, 'Gist contains message';
-    like $ex.gist, /query\-ast/, 'Gist mentions query-ast';
+    like $ex.gist, /UnknownQueryElement/, 'gist contains exception type';
 };
 
-# --- Diagnostic message tests ---
+# =============================================================================
+# T012: Verify exception message formatting and attribute access
+# =============================================================================
 
-subtest 'Exception messages are non-empty', {
-    plan 2;
-    my $ex1 = X::Qwiratry::Walker.new(message => 'Error');
-    my $ex2 = X::Qwiratry::UnknownQueryElement.new(message => 'Error');
-    ok $ex1.gist.chars > 0, 'Walker gist is non-empty';
-    ok $ex2.gist.chars > 0, 'UnknownQueryElement gist is non-empty';
-};
-
-subtest 'Exceptions can handle undefined query-ast', {
-    plan 1;
-    my $ex = X::Qwiratry::UnknownQueryElement.new(message => 'Test');
-    lives-ok { $ex.gist }, 'Gist works with undefined query-ast';
-};
-
-subtest 'Exception attributes are accessible after catch', {
+subtest 'Exception message formatting', {
     plan 4;
+    
+    my $ex = X::Qwiratry::Walker.new(
+        message => 'Detailed error message',
+        walker-type => 'Custom::Walker'
+    );
+    
+    ok $ex.gist.contains('Detailed error message'), 'gist contains message';
+    ok $ex.gist.contains('Custom::Walker'), 'gist contains walker-type';
+    
+    my $ex2 = X::Qwiratry::UnknownQueryElement.new(
+        message => 'Unknown query element',
+        walker-type => 'Tree::Walker',
+        query-ast => 'RakuAST::Call'
+    );
+    
+    ok $ex2.gist.contains('Unknown query element'), 'UnknownQueryElement gist contains message';
+    ok $ex2.gist.contains('Tree::Walker'), 'UnknownQueryElement gist contains walker-type';
+};
+
+subtest 'Attribute access in CATCH block', {
+    plan 5;
+    
     my ($msg, $type, $ast);
+    
     try {
-        X::Qwiratry::UnknownQueryElement.new(
-            message => 'Access test',
-            walker-type => 'AccessWalker',
-            query-ast => 'access-ast'
-        ).throw;
+        die X::Qwiratry::UnknownQueryElement.new(
+            message => 'Error in CATCH test',
+            walker-type => 'CATCH::Test::Walker',
+            query-ast => 'sample-ast-node'
+        );
         CATCH {
             when X::Qwiratry::UnknownQueryElement {
                 $msg = .message;
@@ -171,26 +167,23 @@ subtest 'Exception attributes are accessible after catch', {
             }
         }
     }
-    is $msg, 'Access test', 'Message accessible in CATCH';
-    is $type, 'AccessWalker', 'Walker-type accessible in CATCH';
-    is $ast, 'access-ast', 'Query-ast accessible in CATCH';
-    pass 'All attributes accessible';
+    
+    is $msg, 'Error in CATCH test', 'message accessible in CATCH';
+    is $type, 'CATCH::Test::Walker', 'walker-type accessible in CATCH';
+    is $ast, 'sample-ast-node', 'query-ast accessible in CATCH';
+    ok $msg.defined, 'message is defined';
+    ok $ast.defined, 'query-ast is defined';
 };
 
-subtest 'Multiple exceptions can be distinguished', {
+subtest 'Exception with undefined query-ast', {
     plan 2;
-    my $is-unknown = False;
-    my $is-base = False;
     
-    try {
-        X::Qwiratry::UnknownQueryElement.new(message => 'Unknown').throw;
-        CATCH {
-            when X::Qwiratry::UnknownQueryElement { $is-unknown = True }
-            when X::Qwiratry::Walker { $is-base = True }
-        }
-    }
-    ok $is-unknown, 'UnknownQueryElement caught specifically';
-    nok $is-base, 'Base exception not triggered for specific';
+    my $ex = X::Qwiratry::UnknownQueryElement.new(
+        message => 'No AST provided'
+    );
+    
+    nok $ex.query-ast.defined, 'query-ast can be undefined';
+    like $ex.gist, /undefined/, 'gist handles undefined query-ast';
 };
 
 done-testing;
