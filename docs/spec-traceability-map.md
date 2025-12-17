@@ -1,6 +1,6 @@
 # Specification Traceability Map
 
-**Generated**: 2025-12-17T19:24:13.271721+11:00
+**Generated**: 2025-12-17T19:38:46.342985+11:00
 
 This document maps all sections of `Specification.md` to feature tickets, providing a comprehensive view of specification coverage. Each section is linked to the feature(s) that implement it, or marked as "not yet assigned" if no feature covers it.
 

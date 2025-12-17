@@ -221,6 +221,19 @@ sub load-all-features(Str $specs-dir) {
 # WP03: Traceability Map Generation Functions
 
 # T010: Build section-to-feature mapping data structure
+# 
+# Algorithm:
+# 1. Initialize mapping: section_id -> [feature_slug1, feature_slug2, ...]
+# 2. First pass: Direct coverage - assign features to sections listed in spec_sections
+# 3. Second pass: Subsection inheritance - if parent section is covered, 
+#    all child subsections automatically inherit coverage from parent
+#
+# Example: If section "3.2.1" is covered by feature "001-walker-core",
+#          then sections "3.2.1.1", "3.2.1.2", etc. are also considered covered
+#          by the same feature, even if not explicitly listed.
+#
+# This inheritance ensures that covering a parent section automatically
+# covers all its subsections, reducing the need to list every subsection.
 sub build-section-to-feature-mapping(
     SpecificationSection @sections,
     FeatureTicket @features,
@@ -235,6 +248,7 @@ sub build-section-to-feature-mapping(
     }
     
     # First pass: Direct coverage from spec_sections arrays
+    # Features explicitly list which sections they cover in meta.json
     for @features -> $feature {
         for $feature.spec_sections -> $section-id {
             if %section-to-features{$section-id}:exists {
@@ -245,12 +259,13 @@ sub build-section-to-feature-mapping(
     
     # Second pass: Apply subsection inheritance
     # If a section is covered, all its subsections inherit the coverage
+    # This means covering "3.2.1" automatically covers "3.2.1.1", "3.2.1.2", etc.
     for @sections -> $section {
         if $section.parent_id {
             # Check if parent is covered
             my $parent-id = $section.parent_id;
             if %section-to-features{$parent-id}.elems > 0 {
-                # Inherit all features from parent
+                # Inherit all features from parent (avoid duplicates)
                 for %section-to-features{$parent-id} -> $feature-slug {
                     unless %section-to-features{$section.identifier}.grep(* eq $feature-slug) {
                         %section-to-features{$section.identifier}.push($feature-slug);
@@ -414,6 +429,15 @@ sub generate-traceability-map(
 # WP04: Dependency Graph Generation Functions
 
 # T015: Build dependency graph from feature metadata
+#
+# Algorithm:
+# - Reads dependencies from each feature's meta.json
+# - Builds a directed graph where: Feature A --> Feature B means "A blocks B"
+# - If feature X depends on Y, then Y blocks X (Y must be completed before X)
+#
+# Graph structure: from_feature -> [to_feature1, to_feature2, ...]
+# Example: If "002-strategy" depends on "001-walker", then graph["001-walker"] contains "002-strategy"
+#          This means "001-walker blocks 002-strategy" (walker must be done before strategy)
 sub build-dependency-graph(FeatureTicket @features) {
     # Graph structure: from_feature -> [to_feature1, to_feature2, ...]
     # Feature A --> Feature B means "A blocks B"
@@ -428,6 +452,7 @@ sub build-dependency-graph(FeatureTicket @features) {
         
         # Add edges: if feature depends on X, then X blocks feature
         # So: X --> feature (X blocks feature)
+        # This means X must be completed before feature can be started
         for $feature.dependencies -> $dep-slug {
             unless %graph{$dep-slug}:exists {
                 %graph{$dep-slug} = Array[Str].new;
@@ -466,13 +491,24 @@ sub validate-dependency-graph(
     return @errors;
 }
 
-# T016: Detect circular dependencies using DFS
+# T016: Detect circular dependencies using Depth-First Search (DFS)
+#
+# Algorithm:
+# - Uses DFS with recursion stack to detect cycles
+# - If we encounter a node that's already in the recursion stack, we found a cycle
+# - Tracks the path to extract the full cycle path for reporting
+#
+# Example cycle: A --> B --> C --> A
+# This would be reported as: "A --> B --> C --> A"
+#
+# Time complexity: O(V + E) where V = vertices (features), E = edges (dependencies)
 sub detect-circular-dependencies(Array[Str] %graph) {
     my Str @cycles;
-    my SetHash $visited = SetHash.new;
-    my SetHash $rec-stack = SetHash.new;
+    my SetHash $visited = SetHash.new;      # Nodes we've fully processed
+    my SetHash $rec-stack = SetHash.new;    # Nodes in current DFS path (for cycle detection)
     
     sub dfs-visit(Str $node, Str @path) {
+        # If node is in recursion stack, we found a cycle
         if $rec-stack{$node}:exists {
             # Found a cycle! Extract the cycle from the path
             my Int $cycle-start = @path.first-index(* eq $node);
@@ -484,15 +520,17 @@ sub detect-circular-dependencies(Array[Str] %graph) {
             return;
         }
         
+        # Skip if already fully processed (prevents duplicate cycle detection)
         if $visited{$node}:exists {
             return;  # Already processed this node
         }
         
+        # Mark as visited and add to recursion stack
         $visited{$node} = True;
         $rec-stack{$node} = True;
         @path.push($node);
         
-        # Visit all neighbors
+        # Visit all neighbors (features blocked by this feature)
         if %graph{$node}:exists {
             for %graph{$node}.list -> $neighbor {
                 dfs-visit($neighbor, @path);
