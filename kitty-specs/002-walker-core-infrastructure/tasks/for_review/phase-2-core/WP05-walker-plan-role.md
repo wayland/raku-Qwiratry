@@ -14,10 +14,10 @@ subtasks:
   - "T033"
 title: "Walker::Plan Role"
 phase: "Phase 2 - Core Infrastructure"
-lane: "planned"
-assignee: ""
-agent: ""
-shell_pid: ""
+lane: "for_review"
+assignee: "claude"
+agent: "claude"
+shell_pid: "72117"
 review_status: ""
 reviewed_by: ""
 history:
@@ -216,5 +216,8 @@ history:
 ## Activity Log
 
 - 2025-12-17T11:41:34Z – system – lane=planned – Prompt created.
+- 2025-12-17T23:00:00Z – claude – shell_pid=72117 – lane=doing – Started implementation
+- 2025-12-17T23:05:00Z – claude – shell_pid=72117 – lane=doing – Completed: Walker::Plan role with iterator(), query(), describe() (required), optimise(), subplans(), capabilities() (optional with defaults). Comprehensive unit tests (14 test groups) covering method signatures, iterator independence, Query AST immutability.
+- 2025-12-17T23:05:00Z – claude – shell_pid=72117 – lane=for_review – Ready for review. Note: Walker role (WP06) also implemented in same file.
 
 
