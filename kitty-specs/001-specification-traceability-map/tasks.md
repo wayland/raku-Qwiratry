@@ -143,14 +143,14 @@
 **Prompt**: `/tasks/planned/WP05-coverage-verification-script.md`
 
 ### Included Subtasks
-- [ ] T020 Implement coverage calculation algorithm (check section against feature spec_sections)
-- [ ] T021 [P] Implement subsection coverage inheritance (3.2.1.1 covered if 3.2.1 covered)
-- [ ] T022 [P] Implement broken link detection (check feature directories exist)
-- [ ] T023 [P] Implement CLI argument parsing (--json, --verbose, --generate-map, --help)
-- [ ] T024 [P] Implement text output formatter (human-readable coverage report)
-- [ ] T025 [P] Implement JSON output formatter (structured data for CI/CD)
-- [ ] T026 Add logging (INFO for steps, ERROR for failures, WARN for uncovered sections)
-- [ ] T027 [P] Add file path validation to prevent directory traversal
+- [x] T020 Implement coverage calculation algorithm (check section against feature spec_sections)
+- [x] T021 [P] Implement subsection coverage inheritance (3.2.1.1 covered if 3.2.1 covered)
+- [x] T022 [P] Implement broken link detection (check feature directories exist)
+- [x] T023 [P] Implement CLI argument parsing (--json, --verbose, --generate-map, --help)
+- [x] T024 [P] Implement text output formatter (human-readable coverage report)
+- [x] T025 [P] Implement JSON output formatter (structured data for CI/CD)
+- [x] T026 Add logging (INFO for steps, ERROR for failures, WARN for uncovered sections)
+- [x] T027 [P] Add file path validation to prevent directory traversal
 
 ### Implementation Notes
 - Coverage calculation: For each section, check if it or any parent is in a feature's spec_sections
