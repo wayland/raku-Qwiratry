@@ -1,0 +1,12 @@
+#| Integration tests for query execution flow
+#| Tests plan → iterator → results flow end-to-end
+use Test;
+
+use Qwiratry::Walker;
+use Qwiratry::QueryIterator;
+
+# Placeholder test - will be implemented in WP07
+plan 1;
+todo "Integration tests will be implemented in WP07";
+pass "Test file structure verified";
+

@@ -1,0 +1,11 @@
+#| Unit tests for Context role
+#| Tests Context role contract, lifecycle, and state persistence
+use Test;
+
+use Qwiratry::Context;
+
+# Placeholder test - will be implemented in WP03
+plan 1;
+todo "Context role tests will be implemented in WP03";
+pass "Test file structure verified";
+

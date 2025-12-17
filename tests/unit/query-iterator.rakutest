@@ -1,0 +1,11 @@
+#| Unit tests for QueryIterator role
+#| Tests QueryIterator role contract, Iterator extension, and next() method
+use Test;
+
+use Qwiratry::QueryIterator;
+
+# Placeholder test - will be implemented in WP04
+plan 1;
+todo "QueryIterator role tests will be implemented in WP04";
+pass "Test file structure verified";
+

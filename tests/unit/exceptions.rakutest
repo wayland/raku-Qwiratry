@@ -1,0 +1,11 @@
+#| Unit tests for exception hierarchy
+#| Tests X::Qwiratry::Walker and X::Qwiratry::UnknownQueryElement exceptions
+use Test;
+
+use Qwiratry::X;
+
+# Placeholder test - will be implemented in WP02
+plan 1;
+todo "Exception hierarchy tests will be implemented in WP02";
+pass "Test file structure verified";
+

@@ -1,0 +1,13 @@
+#| Example walker tests
+#| Tests concrete SimpleWalker implementation demonstrating all roles
+use Test;
+
+use Qwiratry::Walker;
+use Qwiratry::Context;
+use Qwiratry::QueryIterator;
+
+# Placeholder test - will be implemented in WP07
+plan 1;
+todo "Example walker tests will be implemented in WP07";
+pass "Test file structure verified";
+

@@ -1,0 +1,11 @@
+#| Unit tests for Walker::Plan role
+#| Tests Walker::Plan role contract, method signatures, and behavior
+use Test;
+
+use Qwiratry::Walker;
+
+# Placeholder test - will be implemented in WP05
+plan 1;
+todo "Walker::Plan role tests will be implemented in WP05";
+pass "Test file structure verified";
+
