@@ -176,13 +176,13 @@ role Walker does Iterable {
 	##### Callable Methods
 
 	# Plan an execution strategy based on the query (and optionally the data root)
-	method plan(CompUnit::Perl5AST::Node $query, Mu $root --> Walker::Plan) { ... }
+	method plan(RakuAST::Node $query, Mu $root --> Walker::Plan) { ... }
 
 	# Produce a QueryIterator for incremental results
-	method iterator(CompUnit::Perl5AST::Node $q) returns QueryIterator { ... }
+	method iterator(RakuAST::Node $q) returns QueryIterator { ... }
 
 	# Convenience method that calls .plan, and .iterator
-	method start(CompUnit::Perl5AST::Node $query, Mu:D $root --> QueryIterator) { ... }
+	method start(RakuAST::Node $query, Mu:D $root --> QueryIterator) { ... }
 	
 	##### Hook Methods
 	# Optional: hooks for extending Walker behaviour itself
@@ -200,7 +200,7 @@ role Walker does Iterable {
 
 ````raku
 method plan(
-    CompUnit::Perl5AST::Node $query,
+    RakuAST::Node $query,
     Mu:D $root
     --> Walker::Plan
 )
@@ -256,7 +256,7 @@ Produce a new incremental result stream from an existing execution plan.
 
 ````raku
 method start(
-    CompUnit::Perl5AST::Node $query,
+    RakuAST::Node $query,
     Mu:D $root
     --> QueryIterator
 )
@@ -333,7 +333,7 @@ Used by:
 ###### `method supports`
 
 ````raku
-method supports(CompUnit::Perl5AST::Node $query --> Bool)
+method supports(RakuAST::Node $query --> Bool)
 ````
 
 Returns whether this Walker can interpret the given AST.
@@ -402,7 +402,7 @@ Domain metadata is advisory and MUST NOT force a Walker to accept responsibility
 Each Walker MUST provide a capability predicate:
 
 ````raku
-method supports(CompUnit::Perl5AST::Node $node --> Bool)
+method supports(RakuAST::Node $node --> Bool)
 ````
 
 During planning, the Master Walker examines relevant AST subtrees and queries candidate Walkers.
@@ -480,7 +480,7 @@ role Walker::Plan {
     method iterator(--> QueryIterator) { ... }
 
     # Return the Query AST that this plan represents.
-    method query(--> CompUnit::Perl5AST::Node) { ... }
+    method query(--> RakuAST::Node) { ... }
 
     # Describe the execution strategy in human-readable form.
     method describe(--> Str) { ... }
@@ -1050,7 +1050,7 @@ Slang requirements:
 
 ````raku
 class Tree::Walker::DFS does Walker {
-    method start(CompUnit::Perl5AST::Node $q, $node --> QueryIterator) {
+    method start(RakuAST::Node $q, $node --> QueryIterator) {
         gather {
             sub dfs($n) {
                 take $n if $q.matches($n);
@@ -1068,7 +1068,7 @@ class Tree::Walker::DFS does Walker {
 class Table::Walker::Scan does Walker {
     has @!rows;
 
-    method start(CompUnit::Perl5AST::Node $q, @rows --> QueryIterator) {
+    method start(RakuAST::Node $q, @rows --> QueryIterator) {
         gather for @rows -> $r {
             take $r if $q.matches($r);
         }
@@ -1080,7 +1080,7 @@ class Table::Walker::Scan does Walker {
 
 ````raku
 class Logic::Walker::Backward does Walker {
-    method start(CompUnit::Perl5AST::Node $goal, $kb --> QueryIterator) {
+    method start(RakuAST::Node $goal, $kb --> QueryIterator) {
         Logic::Iterator::Backward.new(:$kb, :$goal);
     }
 }
