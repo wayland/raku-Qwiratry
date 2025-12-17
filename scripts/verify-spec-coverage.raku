@@ -391,8 +391,13 @@ sub generate-traceability-map(
     my Array[Str] @cycles = detect-circular-dependencies(%graph);
     my $dependency-graph = generate-dependency-graph-section(@features, %graph, @cycles, @validation-errors);
     
-    # Combine all parts: header, summary, dependency graph, then mappings
-    my $markdown = $header ~ $summary ~ $dependency-graph ~ $mappings;
+    # WP06: Generate cross-reference index
+    my Array[Str] %cross-ref = build-cross-reference-data(@sections, %section-to-features);
+    my Array[Str] %reverse-lookup = build-reverse-lookup(@sections, %section-to-features);
+    my $cross-reference-table = generate-cross-reference-table(@sections, %cross-ref, $specs-dir);
+    
+    # Combine all parts: header, summary, dependency graph, cross-reference table, then mappings
+    my $markdown = $header ~ $summary ~ $dependency-graph ~ $cross-reference-table ~ $mappings;
     
     # Ensure output directory exists
     my $output-dir = $output-file.IO.dirname;
@@ -577,6 +582,88 @@ sub generate-dependency-graph-section(
     
     return @lines.join("");
 }
+
+# WP06: Cross-Reference Index Functions
+
+# T028: Generate cross-reference table data structure
+sub build-cross-reference-data(
+    SpecificationSection @sections,
+    Array[Str] %section-to-features
+) {
+    # Data structure: section_id -> [feature_slug1, feature_slug2, ...]
+    # This is essentially the same as %section-to-features, but we'll ensure
+    # all sections are included even if they have no features
+    my Array[Str] %cross-ref;
+    
+    for @sections -> $section {
+        if %section-to-features{$section.identifier}:exists {
+            %cross-ref{$section.identifier} = %section-to-features{$section.identifier};
+        } else {
+            %cross-ref{$section.identifier} = Array[Str].new;
+        }
+    }
+    
+    return %cross-ref;
+}
+
+# T030: Build reverse lookup (feature -> sections)
+sub build-reverse-lookup(
+    SpecificationSection @sections,
+    Array[Str] %section-to-features
+) {
+    # Reverse index: feature_slug -> [section_id1, section_id2, ...]
+    my Array[Str] %feature-to-sections;
+    
+    for %section-to-features.kv -> $section-id, $feature-slugs {
+        for $feature-slugs.list -> $feature-slug {
+            unless %feature-to-sections{$feature-slug}:exists {
+                %feature-to-sections{$feature-slug} = Array[Str].new;
+            }
+            %feature-to-sections{$feature-slug}.push($section-id);
+        }
+    }
+    
+    return %feature-to-sections;
+}
+
+# T029 & T032: Generate markdown table format for cross-reference index
+sub generate-cross-reference-table(
+    SpecificationSection @sections,
+    Array[Str] %cross-ref,
+    Str $specs-dir
+) {
+    my Str @lines;
+    @lines.push("## Cross-Reference Index\n");
+    @lines.push("\n");
+    @lines.push("| Spec Section | Feature Tickets |\n");
+    @lines.push("|--------------|----------------|\n");
+    
+    # Sort sections by identifier (numeric sort)
+    for @sections.sort({$_.identifier}) -> $section {
+        my Array[Str] $slugs-array = %cross-ref{$section.identifier} // Array[Str].new;
+        my Str @feature-slugs = $slugs-array.grep(*.chars > 0).Array;
+        
+        if @feature-slugs.elems > 0 {
+            # T032: Handle multiple features per section (comma-separated)
+            my Str @links;
+            for @feature-slugs -> $slug {
+                # Relative path from docs/ to kitty-specs/
+                my $relative-path = "../{$specs-dir}/{$slug}/";
+                @links.push("[{$slug}]({$relative-path})");
+            }
+            @lines.push("| {$section.identifier} | " ~ @links.join(", ") ~ " |\n");
+        } else {
+            # Section not covered
+            @lines.push("| {$section.identifier} | ⚠️ *not yet assigned* |\n");
+        }
+    }
+    
+    @lines.push("\n");
+    return @lines.join("");
+}
+
+# T031: Embed cross-reference table in traceability map
+# This is called from generate-traceability-map
 
 # WP05: Coverage Verification Functions
 
