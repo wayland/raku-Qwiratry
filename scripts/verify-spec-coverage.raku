@@ -218,6 +218,188 @@ sub load-all-features(Str $specs-dir) {
     return @features;
 }
 
+# WP03: Traceability Map Generation Functions
+
+# T010: Build section-to-feature mapping data structure
+sub build-section-to-feature-mapping(
+    SpecificationSection @sections,
+    FeatureTicket @features,
+    %section-map
+) {
+    # Map: section_id -> [feature_slug1, feature_slug2, ...]
+    my Array[Str] %section-to-features;
+    
+    # Initialize all sections with empty arrays
+    for @sections -> $section {
+        %section-to-features{$section.identifier} = Array[Str].new;
+    }
+    
+    # First pass: Direct coverage from spec_sections arrays
+    for @features -> $feature {
+        for $feature.spec_sections -> $section-id {
+            if %section-to-features{$section-id}:exists {
+                %section-to-features{$section-id}.push($feature.slug);
+            }
+        }
+    }
+    
+    # Second pass: Apply subsection inheritance
+    # If a section is covered, all its subsections inherit the coverage
+    for @sections -> $section {
+        if $section.parent_id {
+            # Check if parent is covered
+            my $parent-id = $section.parent_id;
+            if %section-to-features{$parent-id}.elems > 0 {
+                # Inherit all features from parent
+                for %section-to-features{$parent-id} -> $feature-slug {
+                    unless %section-to-features{$section.identifier}.grep(* eq $feature-slug) {
+                        %section-to-features{$section.identifier}.push($feature-slug);
+                    }
+                }
+            }
+        }
+    }
+    
+    return %section-to-features;
+}
+
+# T014 & T011: Generate markdown document header with timestamp
+sub generate-markdown-header(DateTime $timestamp) {
+    my $iso-timestamp = $timestamp.Str;
+    return qq:to/HEADER/;
+# Specification Traceability Map
+
+**Generated**: {$iso-timestamp}
+
+This document maps all sections of `Specification.md` to feature tickets, providing a comprehensive view of specification coverage. Each section is linked to the feature(s) that implement it, or marked as "not yet assigned" if no feature covers it.
+
+---
+
+HEADER
+}
+
+# T012: Generate section mappings with feature links
+sub generate-section-mappings(
+    SpecificationSection @sections,
+    Array[Str] %section-to-features,
+    Str $specs-dir
+) {
+    my Str @lines;
+    
+    @lines.push("## Section Mappings\n");
+    
+    # Group sections by top-level section (e.g., "1", "2", "3")
+    my Array[SpecificationSection] %sections-by-top-level;
+    for @sections -> $section {
+        my $top-level = $section.identifier.split('.')[0];
+        unless %sections-by-top-level{$top-level}:exists {
+            %sections-by-top-level{$top-level} = Array[SpecificationSection].new;
+        }
+        %sections-by-top-level{$top-level}.push($section);
+    }
+    
+    # Generate mappings in order
+    for %sections-by-top-level.keys.sort({$_.Int}) -> $top-level {
+        my Array[SpecificationSection] $top-sections-array = %sections-by-top-level{$top-level};
+        my SpecificationSection @top-sections = $top-sections-array.list;
+        
+        # Find the main section (level 1 or 2)
+        my $main-section = @top-sections.first({$_.level <= 2});
+        if $main-section {
+            @lines.push("### Section {$main-section.identifier}: {$main-section.title}\n");
+        } else {
+            @lines.push("### Section {$top-level}\n");
+        }
+        
+        # Generate mappings for all sections in this top-level group
+        for @top-sections.sort({$_.identifier}) -> $section {
+            my Array[Str] $slugs-array = %section-to-features{$section.identifier} // Array[Str].new;
+            my Str @feature-slugs = $slugs-array.grep(*.chars > 0).Array;
+            
+            if @feature-slugs.elems > 0 {
+                # Generate comma-separated links
+                my Str @links;
+                for @feature-slugs -> $slug {
+                    # Relative path from docs/ to kitty-specs/
+                    my $relative-path = "../{$specs-dir}/{$slug}/";
+                    @links.push("[{$slug}]({$relative-path})");
+                }
+                @lines.push("- **Section {$section.identifier}** ({$section.title}): " ~ @links.join(", ") ~ "\n");
+            } else {
+                # T013: Mark uncovered sections
+                @lines.push("- **Section {$section.identifier}** ({$section.title}): ⚠️ **not yet assigned**\n");
+            }
+        }
+        
+        @lines.push("\n");
+    }
+    
+    return @lines.join("");
+}
+
+# T013: Generate summary of uncovered sections
+sub generate-uncovered-summary(
+    SpecificationSection @sections,
+    Array[Str] %section-to-features
+) {
+    my SpecificationSection @uncovered;
+    
+    for @sections -> $section {
+        if %section-to-features{$section.identifier}.elems == 0 {
+            @uncovered.push($section);
+        }
+    }
+    
+    if @uncovered.elems == 0 {
+        return "## Coverage Summary\n\n✅ **All sections are covered by at least one feature.**\n\n";
+    }
+    
+    my Str @lines;
+    @lines.push("## Coverage Summary\n\n");
+    @lines.push("⚠️ **{@uncovered.elems} section(s) not yet assigned to any feature:**\n\n");
+    
+    for @uncovered.sort({$_.identifier}) -> $section {
+        @lines.push("- Section {$section.identifier}: {$section.title}\n");
+    }
+    
+    @lines.push("\n");
+    return @lines.join("");
+}
+
+# T011: Generate complete traceability map document
+sub generate-traceability-map(
+    SpecificationSection @sections,
+    FeatureTicket @features,
+    Array[Str] %section-to-features,
+    Str $specs-dir,
+    Str $output-file
+) {
+    my DateTime $now = DateTime.now;
+    
+    # T014: Generate header with timestamp
+    my $header = generate-markdown-header($now);
+    
+    # T012: Generate section mappings
+    my $mappings = generate-section-mappings(@sections, %section-to-features, $specs-dir);
+    
+    # T013: Generate uncovered summary
+    my $summary = generate-uncovered-summary(@sections, %section-to-features);
+    
+    # Combine all parts
+    my $markdown = $header ~ $summary ~ $mappings;
+    
+    # Ensure output directory exists
+    my $output-dir = $output-file.IO.dirname;
+    unless $output-dir.IO.d {
+        $output-dir.IO.mkdir;
+    }
+    
+    # Write to file
+    $output-file.IO.spurt($markdown);
+    
+    return $markdown;
+}
+
 # MAIN sub for CLI argument parsing
 multi sub MAIN(
     Bool :$json = False,           # --json flag
@@ -285,16 +467,52 @@ multi sub MAIN(
         %section-map{$section.identifier} = $section;
     }
     
-    # TODO: Implement coverage calculation and map generation in WP03-WP05
+    # WP03: Generate traceability map if requested
     if $generate-map {
-        note "INFO: Generate map mode (WP03 - not yet implemented)";
-        # TODO: Implement in WP03
+        if $verbose {
+            note "INFO: Generating traceability map...";
+        }
+        
+        # T010: Build section-to-feature mapping
+        my Array[Str] %section-to-features = build-section-to-feature-mapping(
+            @sections,
+            @features,
+            %section-map
+        );
+        
+        if $verbose {
+            note "INFO: Built mapping for {@sections.elems} sections";
+            my $covered-count = %section-to-features.keys.grep({%section-to-features{$_}.elems > 0}).elems;
+            note "INFO: {$covered-count} sections covered, {@sections.elems - $covered-count} uncovered";
+        }
+        
+        # Generate output file path
+        my $output-file = $output-dir.IO.child("spec-traceability-map.md").absolute;
+        
+        # T011-T014: Generate markdown document
+        try {
+            generate-traceability-map(
+                @sections,
+                @features,
+                %section-to-features,
+                $specs-dir,
+                $output-file
+            );
+            
+            say "SUCCESS: Traceability map generated at: $output-file";
+            exit 0;
+            CATCH {
+                note "ERROR: Failed to generate traceability map: {.message}";
+                exit 1;
+            }
+        }
     } else {
+        # WP05: Coverage verification (not yet implemented)
         note "INFO: Coverage verification (WP05 - not yet implemented)";
         # TODO: Implement in WP05
     }
     
-    # For now, just report what we parsed (for testing WP02)
+    # Verbose output for debugging
     if $verbose {
         note "\nParsed Sections:";
         for @sections -> $section {

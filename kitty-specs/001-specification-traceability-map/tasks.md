@@ -78,14 +78,14 @@
 
 **Goal**: Generate markdown traceability map document mapping spec sections to feature tickets with proper links.
 **Independent Test**: Running script generates `docs/spec-traceability-map.md` with all major spec sections mapped to features or marked "not yet assigned", and all feature links are valid.
-**Prompt**: `/tasks/planned/WP03-basic-traceability-map-generation.md`
+**Prompt**: `/tasks/done/phase-2-mvp/WP03-basic-traceability-map-generation.md`
 
 ### Included Subtasks
-- [ ] T010 Build section-to-feature mapping data structure from parsed sections and feature metadata
-- [ ] T011 [P] Implement markdown document generator for traceability map
-- [ ] T012 [P] Generate section mappings with feature links (relative paths to kitty-specs/)
-- [ ] T013 [P] Mark uncovered sections as "not yet assigned" with warning indicators
-- [ ] T014 Add document header with generation timestamp
+- [x] T010 Build section-to-feature mapping data structure from parsed sections and feature metadata
+- [x] T011 [P] Implement markdown document generator for traceability map
+- [x] T012 [P] Generate section mappings with feature links (relative paths to kitty-specs/)
+- [x] T013 [P] Mark uncovered sections as "not yet assigned" with warning indicators
+- [x] T014 Add document header with generation timestamp
 
 ### Implementation Notes
 - Map each section identifier to list of covering feature slugs
