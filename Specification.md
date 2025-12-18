@@ -569,8 +569,8 @@ While a regular Raku iterator provides a simple lazy sequence:
 
 ````raku
 my $it = Iterator.new( -> $i { $i ** 2 }, 1..5 );
-say $it.next; # 1
-say $it.next; # 4
+say $it.pull-one; # 1
+say $it.pull-one; # 4
 ````
 
 A `QueryIterator` additionally provides:
@@ -592,7 +592,7 @@ A `QueryIterator` is a conveyor belt with branching lanes, decision points, shar
 ````raku
 role QueryIterator does Iterator {
 	# Return the next matching result, or Nil if exhausted
-	method next(--> Mu) { ... }
+	method pull-one(--> Mu) { ... }
 }
 ````
 
@@ -1021,7 +1021,7 @@ There should be three magic variables that are updated when walking the data.  T
    `Walker.iterator($query)` produces a `QueryIterator` exposing results incrementally. Multiple iterators may be produced from the same Walker/query combination.
 
 4. **Result Consumption**  
-   The consumer calls `next()` or iterates over the iterator. Lazy evaluation, backtracking, or streaming behaviours are managed internally.
+   The consumer calls `pull-one()` or iterates over the iterator. Lazy evaluation, backtracking, or streaming behaviours are managed internally.
 
 # 5. Composite and Multi-phase Walkers
 

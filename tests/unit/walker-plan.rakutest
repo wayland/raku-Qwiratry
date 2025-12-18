@@ -26,8 +26,8 @@ my class TestIterator does QueryIterator {
     has @.items;
     has Int $!index = 0;
     
-    method next(--> Mu) {
-        return Nil if $!index >= @!items.elems;
+    method pull-one(--> Mu) {
+        return IterationEnd if $!index >= @!items.elems;
         $.context.iterations++;
         @!items[$!index++]
     }
@@ -210,16 +210,16 @@ subtest 'Multiple iterators from same plan are independent' => {
     my $iter1 = $plan.iterator;
     my $iter2 = $plan.iterator;
     
-    # Advance iter1 twice using next() (spec method)
-    is $iter1.next, 'a', 'iter1 first item';
-    is $iter1.next, 'b', 'iter1 second item';
+    # Advance iter1 twice using pull-one() (Raku Iterator protocol)
+    is $iter1.pull-one, 'a', 'iter1 first item';
+    is $iter1.pull-one, 'b', 'iter1 second item';
     
     # iter2 should still be at start
-    is $iter2.next, 'a', 'iter2 starts fresh';
-    is $iter2.next, 'b', 'iter2 second item';
+    is $iter2.pull-one, 'a', 'iter2 starts fresh';
+    is $iter2.pull-one, 'b', 'iter2 second item';
     
     # iter1 continues
-    is $iter1.next, 'c', 'iter1 continues independently';
+    is $iter1.pull-one, 'c', 'iter1 continues independently';
     
     # Verify contexts are independent
     is $iter2.context.iterations, 2, 'iter2 context tracks its own iterations';
@@ -235,8 +235,8 @@ subtest 'Each iterator has its own Context' => {
     
     ok $iter1.context !=== $iter2.context, 'Iterators have different Context instances';
     
-    $iter1.next;
-    $iter1.next;
+    $iter1.pull-one;
+    $iter1.pull-one;
     
     is $iter1.context.iterations, 2, 'iter1 context has 2 iterations';
     is $iter2.context.iterations, 0, 'iter2 context has 0 iterations';
@@ -255,8 +255,8 @@ subtest 'Plan does not mutate original Query AST' => {
     
     # Perform operations
     my $iter = $plan.iterator;
-    $iter.next;
-    $iter.next;
+    $iter.pull-one;
+    $iter.pull-one;
     
     # Verify original is unchanged
     is @original-query.elems, 3, 'Original query length unchanged';

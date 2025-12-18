@@ -27,8 +27,8 @@ my class SimpleIterator does QueryIterator {
     has @.values;
     has Int $!cursor = 0;
     
-    method next(--> Mu) {
-        return Nil if $!cursor >= @!values.elems;
+    method pull-one(--> Mu) {
+        return IterationEnd if $!cursor >= @!values.elems;
         my $val = @!values[$!cursor++];
         $.context.nodes-visited++;
         $.context.visited-values.push($val);
@@ -121,11 +121,11 @@ subtest 'Basic plan → iterator → results flow' => {
     my $iter = $walker.iterator($plan);
     ok $iter ~~ QueryIterator, 'iterator() returns QueryIterator';
     
-    # Step 4: Iterate using next() (spec method) and collect results
+    # Step 4: Iterate using pull-one() (Raku Iterator protocol) and collect results
     my @results;
     loop {
-        my $val = $iter.next;
-        last unless $val.defined;
+        my $val = $iter.pull-one;
+        last if $val =:= IterationEnd;
         @results.push($val);
     }
     
@@ -148,13 +148,13 @@ subtest 'Multiple iterators from same plan are independent' => {
     ok $iter1 !=== $iter2, 'Iterators are different instances';
     ok $iter1.context !=== $iter2.context, 'Contexts are different instances';
     
-    # Advance iter1 using next()
-    is $iter1.next, 'a', 'iter1 first';
-    is $iter1.next, 'b', 'iter1 second';
-    is $iter1.next, 'c', 'iter1 third';
+    # Advance iter1 using pull-one()
+    is $iter1.pull-one, 'a', 'iter1 first';
+    is $iter1.pull-one, 'b', 'iter1 second';
+    is $iter1.pull-one, 'c', 'iter1 third';
     
     # iter2 should still be at start
-    is $iter2.next, 'a', 'iter2 starts fresh';
+    is $iter2.pull-one, 'a', 'iter2 starts fresh';
     
     # Verify independent context state
     is $iter1.context.nodes-visited, 3, 'iter1 context has 3 visits';
@@ -172,9 +172,9 @@ subtest 'Context state management during iteration' => {
     is $iter.context.nodes-visited, 0, 'Initial visit count is 0';
     is $iter.context.visited-values.elems, 0, 'No values visited yet';
     
-    # After some iteration using next()
-    $iter.next;
-    $iter.next;
+    # After some iteration using pull-one()
+    $iter.pull-one;
+    $iter.pull-one;
     
     is $iter.context.nodes-visited, 2, 'Visit count updated';
     is $iter.context.visited-values.elems, 2, 'Values tracked';
@@ -205,8 +205,8 @@ subtest 'start() convenience method works end-to-end' => {
     
     my @results;
     loop {
-        my $val = $iter.next;
-        last unless $val.defined;
+        my $val = $iter.pull-one;
+        last if $val =:= IterationEnd;
         @results.push($val);
     }
     

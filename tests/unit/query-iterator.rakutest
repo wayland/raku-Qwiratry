@@ -1,12 +1,12 @@
 #| Unit tests for QueryIterator role
-#| Tests QueryIterator role contract, Iterator extension, next() method, and Context integration
+#| Tests QueryIterator role contract, Iterator extension, pull-one() method, and Context integration
 use Test;
 use lib 'lib';
 
 use Qwiratry::QueryIterator;
 use Qwiratry::Context;
 
-plan 14;
+plan 11;
 
 # =============================================================================
 # Helper classes for testing
@@ -22,18 +22,18 @@ my class ListIterator does QueryIterator {
     has @.items;
     has Int $!index = 0;
     
-    method next(--> Mu) {
+    method pull-one(--> Mu) {
         if $!index >= @!items.elems {
-            return Nil;
+            return IterationEnd;
         }
         $.context.items-processed++;
         @!items[$!index++]
     }
 }
 
-# Empty QueryIterator that returns Nil immediately
+# Empty QueryIterator (uses default implementation)
 my class EmptyIterator does QueryIterator {
-    method next(--> Mu) { Nil }
+    # Uses default pull-one which returns IterationEnd immediately
 }
 
 # =============================================================================
@@ -100,8 +100,8 @@ subtest 'Context is accessible during iteration' => {
     
     is $ctx.items-processed, 0, 'Initial count is 0';
     
-    $iter.next;
-    $iter.next;
+    $iter.pull-one;
+    $iter.pull-one;
     
     is $ctx.items-processed, 2, 'Context state updated during iteration';
     is $iter.context.items-processed, 2, 'Can access Context via iterator';
@@ -116,10 +116,10 @@ subtest 'Context required for construction' => {
 }
 
 # =============================================================================
-# next() method contract tests (per specification)
+# pull-one() method contract tests (Raku Iterator protocol)
 # =============================================================================
 
-subtest 'next() returns values then Nil' => {
+subtest 'pull-one() returns values then IterationEnd' => {
     plan 4;
     
     my $ctx = TestContext.new;
@@ -128,23 +128,23 @@ subtest 'next() returns values then Nil' => {
         items => ['x', 'y']
     );
     
-    is $iter.next, 'x', 'First value returned';
-    is $iter.next, 'y', 'Second value returned';
-    ok !$iter.next.defined, 'Nil returned when exhausted';
-    ok !$iter.next.defined, 'Nil returned consistently';
+    is $iter.pull-one, 'x', 'First value returned';
+    is $iter.pull-one, 'y', 'Second value returned';
+    ok $iter.pull-one =:= IterationEnd, 'IterationEnd returned when exhausted';
+    ok $iter.pull-one =:= IterationEnd, 'IterationEnd returned consistently';
 }
 
-subtest 'Empty iterator returns Nil immediately' => {
+subtest 'Empty iterator returns IterationEnd immediately' => {
     plan 2;
     
     my $ctx = TestContext.new;
     my $iter = EmptyIterator.new(context => $ctx);
     
-    ok !$iter.next.defined, 'First next returns Nil';
-    ok !$iter.next.defined, 'Subsequent calls return Nil';
+    ok $iter.pull-one =:= IterationEnd, 'First pull-one returns IterationEnd';
+    ok $iter.pull-one =:= IterationEnd, 'Subsequent calls return IterationEnd';
 }
 
-subtest 'Multiple calls after exhaustion return Nil' => {
+subtest 'Multiple calls after exhaustion return IterationEnd' => {
     plan 4;
     
     my $ctx = TestContext.new;
@@ -153,31 +153,12 @@ subtest 'Multiple calls after exhaustion return Nil' => {
         items => [1]
     );
     
-    $iter.next;  # Consume the single item
+    $iter.pull-one;  # Consume the single item
     
-    ok !$iter.next.defined, 'First exhaustion check';
-    ok !$iter.next.defined, 'Second exhaustion check';
-    ok !$iter.next.defined, 'Third exhaustion check';
-    ok !$iter.next.defined, 'Fourth exhaustion check';
-}
-
-# =============================================================================
-# pull-one() bridge method tests (for Raku Iterator compatibility)
-# =============================================================================
-
-subtest 'pull-one() bridges to next() for Iterator protocol' => {
-    plan 4;
-    
-    my $ctx = TestContext.new;
-    my $iter = ListIterator.new(
-        context => $ctx,
-        items => ['a', 'b']
-    );
-    
-    is $iter.pull-one, 'a', 'pull-one returns first value';
-    is $iter.pull-one, 'b', 'pull-one returns second value';
-    ok $iter.pull-one =:= IterationEnd, 'pull-one returns IterationEnd when exhausted';
-    ok $iter.pull-one =:= IterationEnd, 'pull-one returns IterationEnd consistently';
+    ok $iter.pull-one =:= IterationEnd, 'First exhaustion check';
+    ok $iter.pull-one =:= IterationEnd, 'Second exhaustion check';
+    ok $iter.pull-one =:= IterationEnd, 'Third exhaustion check';
+    ok $iter.pull-one =:= IterationEnd, 'Fourth exhaustion check';
 }
 
 # =============================================================================
@@ -195,18 +176,18 @@ subtest 'Multiple iterators from same data are independent' => {
     my $iter2 = ListIterator.new(context => $ctx2, items => @data);
     
     # Advance iter1 twice
-    $iter1.next;
-    $iter1.next;
+    $iter1.pull-one;
+    $iter1.pull-one;
     
     # iter2 should still be at start
-    is $iter2.next, 'a', 'iter2 starts at beginning';
-    is $iter1.next, 'c', 'iter1 continues from its position';
+    is $iter2.pull-one, 'a', 'iter2 starts at beginning';
+    is $iter1.pull-one, 'c', 'iter1 continues from its position';
     
     is $ctx1.items-processed, 3, 'ctx1 tracks iter1 progress';
     is $ctx2.items-processed, 1, 'ctx2 tracks iter2 progress';
 }
 
-subtest 'Iterator can be used with for loop via pull-one bridge' => {
+subtest 'Iterator can be used with for loop' => {
     plan 2;
     
     my $ctx = TestContext.new;
@@ -223,35 +204,6 @@ subtest 'Iterator can be used with for loop via pull-one bridge' => {
     
     is @collected.elems, 3, 'All items collected';
     is-deeply @collected, [10, 20, 30], 'Items in correct order';
-}
-
-subtest 'QueryIterator type can be used as constraint' => {
-    plan 2;
-    
-    sub process-iterator(QueryIterator $iter) {
-        $iter.next;
-    }
-    
-    my $ctx = TestContext.new;
-    my $iter = ListIterator.new(context => $ctx, items => [1]);
-    
-    lives-ok { process-iterator($iter) }, 'QueryIterator passes type constraint';
-    is $ctx.items-processed, 1, 'Iterator was actually used';
-}
-
-subtest 'Both next() and pull-one() work correctly on same iterator' => {
-    plan 4;
-    
-    my $ctx = TestContext.new;
-    my $iter = ListIterator.new(
-        context => $ctx,
-        items => [1, 2, 3, 4]
-    );
-    
-    is $iter.next, 1, 'next() returns first item';
-    is $iter.pull-one, 2, 'pull-one() returns second item';
-    is $iter.next, 3, 'next() returns third item';
-    is $iter.pull-one, 4, 'pull-one() returns fourth item';
 }
 
 done-testing;

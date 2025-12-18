@@ -38,8 +38,8 @@ my class SimpleIterator does QueryIterator {
     has @.items;
     has Int $!position = 0;
     
-    method next(--> Mu) {
-        return Nil if $!position >= @!items.elems;
+    method pull-one(--> Mu) {
+        return IterationEnd if $!position >= @!items.elems;
         
         my $item = @!items[$!position++];
         $.context.visit-count++;
@@ -169,10 +169,10 @@ subtest 'SimpleWalker plan produces working iterators' => {
     my $iter = $plan.iterator;
     
     ok $iter ~~ QueryIterator, 'iterator() returns QueryIterator';
-    is $iter.next, 10, 'First item via next()';
-    is $iter.next, 20, 'Second item via next()';
-    is $iter.next, 30, 'Third item via next()';
-    ok !$iter.next.defined, 'Iterator exhausted (returns Nil)';
+    is $iter.pull-one, 10, 'First item';
+    is $iter.pull-one, 20, 'Second item';
+    is $iter.pull-one, 30, 'Third item';
+    ok $iter.pull-one =:= IterationEnd, 'Iterator exhausted';
 }
 
 subtest 'SimpleWalker start() convenience method' => {
@@ -182,11 +182,11 @@ subtest 'SimpleWalker start() convenience method' => {
     my $iter = $walker.start({ type => 'query' }, <a b c>);
     
     ok $iter ~~ QueryIterator, 'start() returns iterator';
-    is $iter.next, 'a', 'First result';
+    is $iter.pull-one, 'a', 'First result';
     
     # Exhaust iterator
-    $iter.next; $iter.next;
-    ok !$iter.next.defined, 'Iterator exhausts correctly';
+    $iter.pull-one; $iter.pull-one;
+    ok $iter.pull-one =:= IterationEnd, 'Iterator exhausts correctly';
 }
 
 subtest 'SimpleWalker iterator() takes Walker::Plan' => {
@@ -197,8 +197,8 @@ subtest 'SimpleWalker iterator() takes Walker::Plan' => {
     my $iter = $walker.iterator($plan);
     
     ok $iter ~~ QueryIterator, 'iterator(plan) returns QueryIterator';
-    is $iter.next, 100, 'First result from plan';
-    is $iter.next, 200, 'Second result from plan';
+    is $iter.pull-one, 100, 'First result from plan';
+    is $iter.pull-one, 200, 'Second result from plan';
 }
 
 subtest 'SimpleWalker throws exception for invalid queries' => {
@@ -267,8 +267,8 @@ subtest 'SimpleWalker Context tracks state' => {
     
     is $iter.context.visit-count, 0, 'Initial visit count';
     
-    $iter.next;
-    $iter.next;
+    $iter.pull-one;
+    $iter.pull-one;
     
     is $iter.context.visit-count, 2, 'Visit count updated';
     is $iter.context.results.elems, 2, 'Results collected';
@@ -301,12 +301,12 @@ subtest 'Multiple iterators are independent' => {
     ok $iter1 !=== $iter2, 'Different iterator instances';
     ok $iter1.context !=== $iter2.context, 'Different context instances';
     
-    # Advance iter1 using next()
-    $iter1.next;
-    $iter1.next;
+    # Advance iter1 using pull-one()
+    $iter1.pull-one;
+    $iter1.pull-one;
     
     # iter2 should be independent
-    is $iter2.next, 1, 'iter2 starts at beginning';
+    is $iter2.pull-one, 1, 'iter2 starts at beginning';
     is $iter1.context.visit-count, 2, 'iter1 context has 2 visits';
     is $iter2.context.visit-count, 1, 'iter2 context has 1 visit';
     
@@ -353,11 +353,11 @@ subtest 'End-to-end query execution scenario' => {
     # Context should be initialized
     ok $iter.context.initialized, 'Context initialized by PRE-PASS';
     
-    # Iterate using next() (spec method) and collect
+    # Iterate using pull-one() (Raku Iterator protocol) and collect
     my @results;
     loop {
-        my $val = $iter.next;
-        last unless $val.defined;
+        my $val = $iter.pull-one;
+        last if $val =:= IterationEnd;
         @results.push($val);
     }
     

@@ -29,8 +29,8 @@ my class TestIterator does QueryIterator {
     has @.items;
     has Int $!index = 0;
     
-    method next(--> Mu) {
-        return Nil if $!index >= @!items.elems;
+    method pull-one(--> Mu) {
+        return IterationEnd if $!index >= @!items.elems;
         $.context.operations++;
         @!items[$!index++]
     }
@@ -336,11 +336,11 @@ subtest 'Full walker workflow' => {
     my $iter = $walker.iterator($plan);
     ok $iter ~~ QueryIterator, 'Got QueryIterator';
     
-    # Iterate using next() (spec method)
+    # Iterate using pull-one() (Raku Iterator protocol)
     my @results;
     loop {
-        my $val = $iter.next;
-        last unless $val.defined;
+        my $val = $iter.pull-one;
+        last if $val =:= IterationEnd;
         @results.push($val);
     }
     
