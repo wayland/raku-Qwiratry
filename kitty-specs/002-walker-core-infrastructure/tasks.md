@@ -26,14 +26,14 @@
 **Prompt**: `/tasks/planned/WP01-setup-and-project-structure.md`
 
 ### Included Subtasks
-- [ ] T001 Create lib/Qwiratry/ directory structure
-- [ ] T002 [P] Create lib/Qwiratry/Walker.rakumod skeleton
-- [ ] T003 [P] Create lib/Qwiratry/Context.rakumod skeleton
-- [ ] T004 [P] Create lib/Qwiratry/QueryIterator.rakumod skeleton
-- [ ] T005 [P] Create lib/Qwiratry/X.rakumod skeleton
-- [ ] T006 Create tests/ directory structure (unit/, integration/, examples/)
-- [ ] T007 [P] Create test skeleton files for each role
-- [ ] T008 Verify module loading and test framework setup
+- [x] T001 Create lib/Qwiratry/ directory structure
+- [x] T002 [P] Create lib/Qwiratry/Walker.rakumod skeleton
+- [x] T003 [P] Create lib/Qwiratry/Context.rakumod skeleton
+- [x] T004 [P] Create lib/Qwiratry/QueryIterator.rakumod skeleton
+- [x] T005 [P] Create lib/Qwiratry/X.rakumod skeleton
+- [x] T006 Create tests/ directory structure (unit/, integration/, examples/)
+- [x] T007 [P] Create test skeleton files for each role
+- [x] T008 Verify module loading and test framework setup
 
 ### Implementation Notes
 - Create all module files with proper `unit module` declarations
@@ -61,10 +61,10 @@
 **Prompt**: `/tasks/planned/WP02-exception-hierarchy.md`
 
 ### Included Subtasks
-- [ ] T009 Implement X::Qwiratry::Walker base exception class in lib/Qwiratry/X.rakumod
-- [ ] T010 Implement X::Qwiratry::UnknownQueryElement exception class in lib/Qwiratry/X.rakumod
-- [ ] T011 [P] Write unit tests for exception hierarchy in tests/unit/exceptions.rakutest
-- [ ] T012 Verify exception message formatting and attribute access
+- [x] T009 Implement X::Qwiratry::Walker base exception class in lib/Qwiratry/X.rakumod
+- [x] T010 Implement X::Qwiratry::UnknownQueryElement exception class in lib/Qwiratry/X.rakumod
+- [x] T011 [P] Write unit tests for exception hierarchy in tests/unit/exceptions.rakutest
+- [x] T012 Verify exception message formatting and attribute access
 
 ### Implementation Notes
 - Base exception: X::Qwiratry::Walker with $.message and $.walker-type attributes
@@ -91,10 +91,10 @@
 **Prompt**: `/tasks/planned/WP03-context-role.md`
 
 ### Included Subtasks
-- [ ] T013 Implement Context role in lib/Qwiratry/Context.rakumod
-- [ ] T014 [P] Write unit tests for Context role in tests/unit/context.rakutest
-- [ ] T015 Verify Context lifecycle (created fresh per traversal)
-- [ ] T016 Test Context state persistence across operations
+- [x] T013 Implement Context role in lib/Qwiratry/Context.rakumod
+- [x] T014 [P] Write unit tests for Context role in tests/unit/context.rakutest
+- [x] T015 Verify Context lifecycle (created fresh per traversal)
+- [x] T016 Test Context state persistence across operations
 
 ### Implementation Notes
 - Context is a marker role (no required methods)
@@ -120,12 +120,12 @@
 **Prompt**: `/tasks/planned/WP04-query-iterator-role.md`
 
 ### Included Subtasks
-- [ ] T017 Implement QueryIterator role in lib/Qwiratry/QueryIterator.rakumod
-- [ ] T018 Implement next() method contract (returns Mu or Nil)
-- [ ] T019 [P] Write unit tests for QueryIterator role in tests/unit/query-iterator.rakutest
-- [ ] T020 Test QueryIterator receives Context via constructor
-- [ ] T021 Test QueryIterator.next() returns Nil when exhausted
-- [ ] T022 Verify QueryIterator extends Iterator role correctly
+- [x] T017 Implement QueryIterator role in lib/Qwiratry/QueryIterator.rakumod
+- [x] T018 Implement next() method contract (returns Mu or Nil)
+- [x] T019 [P] Write unit tests for QueryIterator role in tests/unit/query-iterator.rakutest
+- [x] T020 Test QueryIterator receives Context via constructor
+- [x] T021 Test QueryIterator.next() returns Nil when exhausted
+- [x] T022 Verify QueryIterator extends Iterator role correctly
 
 ### Implementation Notes
 - QueryIterator does Iterator role
@@ -152,17 +152,17 @@
 **Prompt**: `/tasks/planned/WP05-walker-plan-role.md`
 
 ### Included Subtasks
-- [ ] T023 Implement Walker::Plan role in lib/Qwiratry/Walker.rakumod
-- [ ] T024 Implement iterator() method (returns QueryIterator)
-- [ ] T025 Implement query() method (returns RakuAST::Node)
-- [ ] T026 Implement describe() method (returns Str)
-- [ ] T027 Implement optimise() method (callback receives plan, returns modified plan)
-- [ ] T028 Implement subplans() method (returns @Walker::Plan, default empty)
-- [ ] T029 Implement capabilities() method (returns Associative, default empty hash)
-- [ ] T030 [P] Write unit tests for Walker::Plan role in tests/unit/walker-plan.rakutest
-- [ ] T031 Test multiple iterators from same plan are independent
-- [ ] T032 Test plan does not mutate original Query AST
-- [ ] T033 Test optimise callback signature and behavior
+- [x] T023 Implement Walker::Plan role in lib/Qwiratry/Walker.rakumod
+- [x] T024 Implement iterator() method (returns QueryIterator)
+- [x] T025 Implement query() method (returns RakuAST::Node)
+- [x] T026 Implement describe() method (returns Str)
+- [x] T027 Implement optimise() method (callback receives plan, returns modified plan)
+- [x] T028 Implement subplans() method (returns @Walker::Plan, default empty)
+- [x] T029 Implement capabilities() method (returns Associative, default empty hash)
+- [x] T030 [P] Write unit tests for Walker::Plan role in tests/unit/walker-plan.rakutest
+- [x] T031 Test multiple iterators from same plan are independent
+- [x] T032 Test plan does not mutate original Query AST
+- [x] T033 Test optimise callback signature and behavior
 
 ### Implementation Notes
 - All methods required except optimise, subplans, capabilities (optional with defaults)
@@ -192,23 +192,23 @@
 **Prompt**: `/tasks/planned/WP06-walker-role.md`
 
 ### Included Subtasks
-- [ ] T034 Implement Walker role in lib/Qwiratry/Walker.rakumod
-- [ ] T035 Implement plan() method (RakuAST::Node $query, Mu $root --> Walker::Plan)
-- [ ] T036 Implement iterator() convenience method (RakuAST::Node $q --> QueryIterator)
-- [ ] T037 Implement start() default method (RakuAST::Node $query, Mu:D $root --> QueryIterator)
-- [ ] T038 Implement PRE-PASS() hook (default empty)
-- [ ] T039 Implement POST-PASS() hook (default empty)
-- [ ] T040 Implement capabilities() method (default empty hash with structured metadata format)
-- [ ] T041 Implement supports() method (default False)
-- [ ] T042 Throw X::Qwiratry::UnknownQueryElement when query uninterpretable
-- [ ] T043 [P] Write unit tests for Walker role in tests/unit/walker.rakutest
-- [ ] T044 Test plan() creates Walker::Plan
-- [ ] T045 Test iterator() convenience method (uses stored root)
-- [ ] T046 Test start() equivalent to plan().iterator()
-- [ ] T047 Test exception thrown for uninterpretable queries
-- [ ] T048 Test hooks are called at appropriate times
-- [ ] T049 Test capabilities() returns structured metadata
-- [ ] T050 Test supports() returns Bool
+- [x] T034 Implement Walker role in lib/Qwiratry/Walker.rakumod
+- [x] T035 Implement plan() method (RakuAST::Node $query, Mu $root --> Walker::Plan)
+- [x] T036 Implement iterator() convenience method (RakuAST::Node $q --> QueryIterator)
+- [x] T037 Implement start() default method (RakuAST::Node $query, Mu:D $root --> QueryIterator)
+- [x] T038 Implement PRE-PASS() hook (default empty)
+- [x] T039 Implement POST-PASS() hook (default empty)
+- [x] T040 Implement capabilities() method (default empty hash with structured metadata format)
+- [x] T041 Implement supports() method (default False)
+- [x] T042 Throw X::Qwiratry::UnknownQueryElement when query uninterpretable
+- [x] T043 [P] Write unit tests for Walker role in tests/unit/walker.rakutest
+- [x] T044 Test plan() creates Walker::Plan
+- [x] T045 Test iterator() convenience method (uses stored root)
+- [x] T046 Test start() equivalent to plan().iterator()
+- [x] T047 Test exception thrown for uninterpretable queries
+- [x] T048 Test hooks are called at appropriate times
+- [x] T049 Test capabilities() returns structured metadata
+- [x] T050 Test supports() returns Bool
 
 ### Implementation Notes
 - plan() is required, must throw exception if query uninterpretable
@@ -239,13 +239,13 @@
 **Prompt**: `/tasks/planned/WP07-integration-tests-and-examples.md`
 
 ### Included Subtasks
-- [ ] T051 Write integration test for plan → iterator → results flow in tests/integration/walker-flow.rakutest
-- [ ] T052 Create SimpleWalker example class implementing all roles
-- [ ] T053 Write example walker tests in tests/examples/simple-walker.rakutest
-- [ ] T054 Test multiple iterators from same plan produce independent results
-- [ ] T055 Test Context state persists across hook calls
-- [ ] T056 Validate quickstart.md scenarios work correctly
-- [ ] T057 Test end-to-end query execution with example walker
+- [x] T051 Write integration test for plan → iterator → results flow in tests/integration/walker-flow.rakutest
+- [x] T052 Create SimpleWalker example class implementing all roles
+- [x] T053 Write example walker tests in tests/examples/simple-walker.rakutest
+- [x] T054 Test multiple iterators from same plan produce independent results
+- [x] T055 Test Context state persists across hook calls
+- [x] T056 Validate quickstart.md scenarios work correctly
+- [x] T057 Test end-to-end query execution with example walker
 
 ### Implementation Notes
 - Integration test: verify plan → iterator → results flow
