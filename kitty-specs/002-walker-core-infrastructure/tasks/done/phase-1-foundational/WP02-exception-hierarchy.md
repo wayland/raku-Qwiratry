@@ -7,10 +7,10 @@ subtasks:
   - "T012"
 title: "Exception Hierarchy"
 phase: "Phase 1 - Foundational"
-lane: "for_review"
+lane: "done"
 assignee: "claude"
-agent: "claude"
-shell_pid: "72117"
+agent: "claude-reviewer"
+shell_pid: "89292"
 review_status: ""
 reviewed_by: ""
 history:
@@ -140,4 +140,4 @@ history:
 - 2025-12-17T13:45:32Z – claude – shell_pid=72117 – lane=doing – Started implementation
 - 2025-12-17T22:53:29Z – claude – shell_pid=72117 – lane=doing – Completed: X::Qwiratry::Walker and X::Qwiratry::UnknownQueryElement exceptions with $.message, $.walker-type, $.query-ast attributes. Comprehensive unit tests (16 test groups). Syntax verified.
 - 2025-12-17T22:53:29Z – claude – shell_pid=72117 – lane=for_review – Ready for review
-
+- 2025-12-18T20:29:02Z – claude-reviewer – shell_pid=89292 – lane=done – Code review approved
