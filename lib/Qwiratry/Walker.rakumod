@@ -97,7 +97,11 @@ role Walker::Plan is export {
     #| Return capability metadata for this plan.
     #|
     #| Provides structured information about plan capabilities for introspection.
-    #| Common capabilities: supports-lazy, supports-backtracking, supports-streaming
+    #| Format: { capability-name => { enabled => Bool, ... }, ... }
+    #|
+    #| Example: { lazy => { enabled => True, type => "incremental" } }
+    #|
+    #|Common capabilities: supports-lazy, supports-backtracking, supports-streaming
     #|
     #| Default implementation returns empty hash.
     #|
@@ -111,7 +115,7 @@ role Walker::Plan is export {
 #| Walker role - encapsulates how a query is executed over a data structure.
 #|
 #| Walker is the main entry point for query execution. It creates execution
-#| plans via plan() and produces iterators from plans via iterator().
+#| plans via plan() and can produce iterators via iterator() or start().
 #|
 #| Required methods (must be implemented by concrete classes):
 #|   - plan(RakuAST::Node $query, Mu $root) → Walker::Plan
@@ -134,17 +138,27 @@ role Walker::Plan is export {
 #|       }
 #|   }
 role Walker does Iterable is export {
-    #| Create an execution plan for the given query and root.
+    #| Analyse the Query AST and root data structure, produce an optimised execution plan.
     #|
-    #| This is the primary method for query execution. The plan encapsulates
-    #| the execution strategy and can produce multiple iterators.
+    #| This method creates a Walker::Plan - a precomputed execution strategy.
+    #| The plan can then produce multiple independent QueryIterator instances
+    #| via plan.iterator() or walker.iterator(plan).
     #|
-    #| Must throw X::Qwiratry::UnknownQueryElement if the query cannot be
-    #| interpreted by this walker.
+    #| Responsibilities (MAY):
+    #|   - Analyse AST structure (operators, blocks, predicates)
+    #|   - Decide traversal order and strategy (DFS, BFS, index scan, join order)
+    #|   - Identify sub-expressions for predicate pushdown or backend delegation
+    #|   - Precompute metadata used during execution
+    #|
+    #| Constraints:
+    #|   - MUST NOT mutate the shared Query AST in observable ways
+    #|   - MAY copy or rewrite AST fragments into the Plan
+    #|   - MUST return a reusable Walker::Plan
+    #|   - MUST throw X::Qwiratry::UnknownQueryElement if query cannot be interpreted
     #|
     #| @param $query - The Query AST (RakuAST::Node)
     #| @param $root - The root data structure to query
-    #| @returns Walker::Plan - Execution plan for the query
+    #| @returns Walker::Plan - Precomputed execution strategy for the query
     #| @throws X::Qwiratry::UnknownQueryElement if query cannot be interpreted
     method plan(RakuAST::Node $query, Mu:D $root --> Walker::Plan) { ... }
     
