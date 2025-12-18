@@ -1,0 +1,45 @@
+#!/usr/bin/env raku
+use Test;
+use lib 'lib';
+use Qwiratry::Walker;
+use Qwiratry::Strategy;
+use Qwiratry::Context;
+use Qwiratry::ControlSignal;
+use Qwiratry::FinishResult;
+
+plan *;
+
+# Placeholder tests - implemented in WP05 and WP06
+
+subtest 'User Story 1 - Basic Traversal Control', {
+    plan 1;
+    pass 'Placeholder - STOP_TRAVERSAL tests will be added in WP06';
+}
+
+subtest 'User Story 2 - Element Skipping and Pruning', {
+    plan 1;
+    pass 'Placeholder - SKIP_ELEMENT and should-follow tests will be added in WP06';
+}
+
+subtest 'User Story 3 - Match Processing', {
+    plan 1;
+    pass 'Placeholder - on-match collection tests will be added in WP06';
+}
+
+subtest 'User Story 4 - Pre/Post Visit Processing', {
+    plan 1;
+    pass 'Placeholder - before/after hook tests will be added in WP06';
+}
+
+subtest 'User Story 5 - Traversal Completion', {
+    plan 1;
+    pass 'Placeholder - finish hook tests will be added in WP06';
+}
+
+subtest 'User Story 6 - Fixed-Point Iteration', {
+    plan 1;
+    pass 'Placeholder - should-continue multi-pass tests will be added in WP06';
+}
+
+done-testing;
+

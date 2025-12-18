@@ -1,0 +1,16 @@
+#!/usr/bin/env raku
+use Test;
+use lib 'lib';
+use Qwiratry::ControlSignal;
+
+plan *;
+
+# Placeholder tests - implemented in WP02
+
+subtest 'ControlSignal enum exists', {
+    plan 1;
+    pass 'Placeholder - enum tests will be added in WP02';
+}
+
+done-testing;
+

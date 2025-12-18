@@ -1,0 +1,46 @@
+#!/usr/bin/env raku
+use Test;
+use lib 'lib';
+use Qwiratry::Strategy;
+
+plan *;
+
+# Placeholder tests - implemented in WP04
+
+subtest 'Strategy role can be composed', {
+    plan 1;
+    pass 'Placeholder - composition tests will be added in WP04';
+}
+
+subtest 'before hook', {
+    plan 1;
+    pass 'Placeholder - before hook tests will be added in WP04';
+}
+
+subtest 'on-match hook', {
+    plan 1;
+    pass 'Placeholder - on-match hook tests will be added in WP04';
+}
+
+subtest 'should-follow hook', {
+    plan 1;
+    pass 'Placeholder - should-follow hook tests will be added in WP04';
+}
+
+subtest 'after hook', {
+    plan 1;
+    pass 'Placeholder - after hook tests will be added in WP04';
+}
+
+subtest 'finish hook', {
+    plan 1;
+    pass 'Placeholder - finish hook tests will be added in WP04';
+}
+
+subtest 'should-continue hook', {
+    plan 1;
+    pass 'Placeholder - should-continue hook tests will be added in WP04';
+}
+
+done-testing;
+

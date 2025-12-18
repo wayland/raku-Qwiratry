@@ -1,0 +1,16 @@
+#!/usr/bin/env raku
+use Test;
+use lib 'lib';
+use Qwiratry::RewriteSpec;
+
+plan *;
+
+# Placeholder tests - implemented in WP03
+
+subtest 'RewriteSpec role exists', {
+    plan 1;
+    pass 'Placeholder - role tests will be added in WP03';
+}
+
+done-testing;
+
