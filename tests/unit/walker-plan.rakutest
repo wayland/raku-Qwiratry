@@ -1,5 +1,8 @@
 #| Unit tests for Walker::Plan role
 #| Tests Walker::Plan role contract, method signatures, and behavior
+#|
+#| Note: The spec requires query() to return RakuAST::Node, but for testing
+#| we use Mu for flexibility. Production code should use actual RakuAST::Node types.
 use Test;
 use lib 'lib';
 
@@ -23,14 +26,15 @@ my class TestIterator does QueryIterator {
     has @.items;
     has Int $!index = 0;
     
-    method pull-one(--> Mu) {
-        return IterationEnd if $!index >= @!items.elems;
+    method next(--> Mu) {
+        return Nil if $!index >= @!items.elems;
         $.context.iterations++;
         @!items[$!index++]
     }
 }
 
 # Concrete Walker::Plan implementation for testing
+# Note: query() returns Mu for testing flexibility; spec requires RakuAST::Node
 my class TestPlan does Walker::Plan {
     has $.query-ast;
     has @.data;
@@ -41,6 +45,7 @@ my class TestPlan does Walker::Plan {
         TestIterator.new(context => $ctx, items => @!data);
     }
     
+    # Return Mu for testing; spec requires RakuAST::Node
     method query(--> Mu) {
         $!query-ast
     }
@@ -49,17 +54,17 @@ my class TestPlan does Walker::Plan {
         "TestPlan with {+@!data} items"
     }
     
-    method optimise(&modification --> Walker::Plan) {
+    method optimise(&modification) {
         # Apply modification and return result
         modification(self)
     }
     
-    method subplans() {
+    method subplans(--> Array[Walker::Plan]) {
         # Return empty array (non-composite)
-        []
+        Array[Walker::Plan].new
     }
     
-    method capabilities(--> Hash) {
+    method capabilities(--> Associative) {
         { lazy => { enabled => True } }
     }
 }
@@ -77,7 +82,10 @@ my class CompositePlan does Walker::Plan {
     method query(--> Mu) { $!query-ast }
     method describe(--> Str) { "CompositePlan with {+@!child-plans} subplans" }
     
-    method subplans() { @!child-plans }
+    method subplans(--> Array[Walker::Plan]) { 
+        my Walker::Plan @result = @!child-plans;
+        @result
+    }
 }
 
 # =============================================================================
@@ -158,7 +166,7 @@ subtest 'optimise() with callback' => {
     ok $result ~~ Walker::Plan, 'Result is Walker::Plan';
 }
 
-subtest 'subplans() returns array' => {
+subtest 'subplans() returns Array[Walker::Plan]' => {
     plan 3;
     
     my $simple-plan = TestPlan.new(query-ast => 'q', data => []);
@@ -179,13 +187,13 @@ subtest 'subplans() returns array' => {
     ok @subplans[0] ~~ Walker::Plan, 'Subplans are Walker::Plan';
 }
 
-subtest 'capabilities() returns Hash' => {
+subtest 'capabilities() returns Associative' => {
     plan 3;
     
     my $plan = TestPlan.new(query-ast => 'q', data => []);
     my %caps = $plan.capabilities;
     
-    ok %caps ~~ Hash, 'capabilities() returns Hash';
+    ok %caps ~~ Associative, 'capabilities() returns Associative';
     ok %caps<lazy>:exists, 'Capabilities include expected keys';
     ok %caps<lazy><enabled>, 'Capability metadata accessible';
 }
@@ -202,16 +210,16 @@ subtest 'Multiple iterators from same plan are independent' => {
     my $iter1 = $plan.iterator;
     my $iter2 = $plan.iterator;
     
-    # Advance iter1 twice
-    is $iter1.pull-one, 'a', 'iter1 first item';
-    is $iter1.pull-one, 'b', 'iter1 second item';
+    # Advance iter1 twice using next() (spec method)
+    is $iter1.next, 'a', 'iter1 first item';
+    is $iter1.next, 'b', 'iter1 second item';
     
     # iter2 should still be at start
-    is $iter2.pull-one, 'a', 'iter2 starts fresh';
-    is $iter2.pull-one, 'b', 'iter2 second item';
+    is $iter2.next, 'a', 'iter2 starts fresh';
+    is $iter2.next, 'b', 'iter2 second item';
     
     # iter1 continues
-    is $iter1.pull-one, 'c', 'iter1 continues independently';
+    is $iter1.next, 'c', 'iter1 continues independently';
     
     # Verify contexts are independent
     is $iter2.context.iterations, 2, 'iter2 context tracks its own iterations';
@@ -227,8 +235,8 @@ subtest 'Each iterator has its own Context' => {
     
     ok $iter1.context !=== $iter2.context, 'Iterators have different Context instances';
     
-    $iter1.pull-one;
-    $iter1.pull-one;
+    $iter1.next;
+    $iter1.next;
     
     is $iter1.context.iterations, 2, 'iter1 context has 2 iterations';
     is $iter2.context.iterations, 0, 'iter2 context has 0 iterations';
@@ -247,8 +255,8 @@ subtest 'Plan does not mutate original Query AST' => {
     
     # Perform operations
     my $iter = $plan.iterator;
-    $iter.pull-one;
-    $iter.pull-one;
+    $iter.next;
+    $iter.next;
     
     # Verify original is unchanged
     is @original-query.elems, 3, 'Original query length unchanged';

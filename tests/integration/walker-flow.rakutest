@@ -27,8 +27,8 @@ my class SimpleIterator does QueryIterator {
     has @.values;
     has Int $!cursor = 0;
     
-    method pull-one(--> Mu) {
-        return IterationEnd if $!cursor >= @!values.elems;
+    method next(--> Mu) {
+        return Nil if $!cursor >= @!values.elems;
         my $val = @!values[$!cursor++];
         $.context.nodes-visited++;
         $.context.visited-values.push($val);
@@ -51,16 +51,18 @@ my class SimplePlan does Walker::Plan {
     method query(--> Mu) { $!query-ast }
     method describe(--> Str) { "SimplePlan over {+@!data} items" }
     
-    method capabilities(--> Hash) {
+    method capabilities(--> Associative) {
         { lazy => { enabled => True, type => 'incremental' } }
     }
 }
 
 #| Simple Walker that creates plans for queries over data
+#| Note: Uses Mu for query type in tests; spec requires RakuAST::Node
 my class SimpleWalker does Walker {
     has $.root;
     
-    method plan(Mu $query, Mu $root --> Walker::Plan) {
+    # Spec: plan(RakuAST::Node $query, Mu:D $root --> Walker::Plan)
+    method plan($query, $root --> Walker::Plan) {
         # Check if query is "supported"
         if $query ~~ Hash && $query<type> eq 'unsupported' {
             X::Qwiratry::UnknownQueryElement.new(
@@ -75,8 +77,9 @@ my class SimpleWalker does Walker {
         SimplePlan.new(query-ast => $query, data => @data, walker => self);
     }
     
-    method iterator(Mu $q --> QueryIterator) {
-        self.plan($q, $!root).iterator;
+    # Spec: iterator(Walker::Plan $plan --> QueryIterator)
+    method iterator(Walker::Plan $plan --> QueryIterator) {
+        $plan.iterator;
     }
     
     method PRE-PASS(Context $ctx) {
@@ -87,11 +90,11 @@ my class SimpleWalker does Walker {
         $ctx.post-pass-called = True if $ctx ~~ SimpleContext;
     }
     
-    method capabilities(--> Hash) {
+    method capabilities(--> Associative) {
         { streaming => { enabled => True } }
     }
     
-    method supports(Mu $query --> Bool) {
+    method supports($query --> Bool) {
         return False unless $query ~~ Hash;
         $query<type> ne 'unsupported'
     }
@@ -114,15 +117,15 @@ subtest 'Basic plan → iterator → results flow' => {
     # Step 2: Get query from plan
     is $plan.query, $query, 'Plan contains original query';
     
-    # Step 3: Get iterator from plan
-    my $iter = $plan.iterator;
+    # Step 3: Get iterator from plan (via Walker.iterator)
+    my $iter = $walker.iterator($plan);
     ok $iter ~~ QueryIterator, 'iterator() returns QueryIterator';
     
-    # Step 4: Iterate and collect results
+    # Step 4: Iterate using next() (spec method) and collect results
     my @results;
     loop {
-        my $val = $iter.pull-one;
-        last if $val =:= IterationEnd;
+        my $val = $iter.next;
+        last unless $val.defined;
         @results.push($val);
     }
     
@@ -145,13 +148,13 @@ subtest 'Multiple iterators from same plan are independent' => {
     ok $iter1 !=== $iter2, 'Iterators are different instances';
     ok $iter1.context !=== $iter2.context, 'Contexts are different instances';
     
-    # Advance iter1
-    is $iter1.pull-one, 'a', 'iter1 first';
-    is $iter1.pull-one, 'b', 'iter1 second';
-    is $iter1.pull-one, 'c', 'iter1 third';
+    # Advance iter1 using next()
+    is $iter1.next, 'a', 'iter1 first';
+    is $iter1.next, 'b', 'iter1 second';
+    is $iter1.next, 'c', 'iter1 third';
     
     # iter2 should still be at start
-    is $iter2.pull-one, 'a', 'iter2 starts fresh';
+    is $iter2.next, 'a', 'iter2 starts fresh';
     
     # Verify independent context state
     is $iter1.context.nodes-visited, 3, 'iter1 context has 3 visits';
@@ -169,9 +172,9 @@ subtest 'Context state management during iteration' => {
     is $iter.context.nodes-visited, 0, 'Initial visit count is 0';
     is $iter.context.visited-values.elems, 0, 'No values visited yet';
     
-    # After some iteration
-    $iter.pull-one;
-    $iter.pull-one;
+    # After some iteration using next()
+    $iter.next;
+    $iter.next;
     
     is $iter.context.nodes-visited, 2, 'Visit count updated';
     is $iter.context.visited-values.elems, 2, 'Values tracked';
@@ -202,8 +205,8 @@ subtest 'start() convenience method works end-to-end' => {
     
     my @results;
     loop {
-        my $val = $iter.pull-one;
-        last if $val =:= IterationEnd;
+        my $val = $iter.next;
+        last unless $val.defined;
         @results.push($val);
     }
     
@@ -268,7 +271,7 @@ subtest 'Walker capabilities() returns metadata' => {
     my $walker = SimpleWalker.new;
     my %caps = $walker.capabilities;
     
-    ok %caps ~~ Hash, 'capabilities() returns Hash';
+    ok %caps ~~ Associative, 'capabilities() returns Associative';
     ok %caps<streaming>:exists, 'Has streaming capability';
     ok %caps<streaming><enabled>, 'Streaming is enabled';
 }

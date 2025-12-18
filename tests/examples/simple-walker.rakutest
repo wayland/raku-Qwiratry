@@ -38,8 +38,8 @@ my class SimpleIterator does QueryIterator {
     has @.items;
     has Int $!position = 0;
     
-    method pull-one(--> Mu) {
-        return IterationEnd if $!position >= @!items.elems;
+    method next(--> Mu) {
+        return Nil if $!position >= @!items.elems;
         
         my $item = @!items[$!position++];
         $.context.visit-count++;
@@ -67,7 +67,7 @@ my class SimplePlan does Walker::Plan {
         "SimplePlan: {$!query-ast<type> // 'unknown'} over {+@!data} items"
     }
     
-    method capabilities(--> Hash) {
+    method capabilities(--> Associative) {
         {
             lazy => { enabled => True, type => 'incremental' },
             streaming => { enabled => True }
@@ -76,10 +76,12 @@ my class SimplePlan does Walker::Plan {
 }
 
 #| Example Walker implementation demonstrating all features
+#| Note: Uses Mu for query type in tests; spec requires RakuAST::Node
 my class SimpleWalker does Walker {
     has $.default-root;
     
-    method plan(Mu $query, Mu $root --> Walker::Plan) {
+    # Spec: plan(RakuAST::Node $query, Mu:D $root --> Walker::Plan)
+    method plan($query, $root --> Walker::Plan) {
         # Validate query
         unless $query ~~ Hash {
             X::Qwiratry::UnknownQueryElement.new(
@@ -102,8 +104,9 @@ my class SimpleWalker does Walker {
         SimplePlan.new(query-ast => $query, data => @data, parent-walker => self);
     }
     
-    method iterator(Mu $q --> QueryIterator) {
-        self.plan($q, $!default-root // []).iterator;
+    # Spec: iterator(Walker::Plan $plan --> QueryIterator)
+    method iterator(Walker::Plan $plan --> QueryIterator) {
+        $plan.iterator;
     }
     
     method PRE-PASS(Context $ctx) {
@@ -114,7 +117,7 @@ my class SimpleWalker does Walker {
         $ctx.finalized = True if $ctx ~~ SimpleContext;
     }
     
-    method capabilities(--> Hash) {
+    method capabilities(--> Associative) {
         {
             lazy => { enabled => True },
             parallel => { enabled => False },
@@ -122,7 +125,7 @@ my class SimpleWalker does Walker {
         }
     }
     
-    method supports(Mu $query --> Bool) {
+    method supports($query --> Bool) {
         return False unless $query ~~ Hash;
         return False if $query<type> && $query<type> eq 'invalid';
         True
@@ -134,12 +137,13 @@ my class SimpleWalker does Walker {
 # =============================================================================
 
 subtest 'SimpleWalker can be instantiated' => {
-    plan 2;
+    plan 3;
     
     my $walker = SimpleWalker.new(default-root => [1, 2, 3]);
     
     ok $walker.defined, 'Walker created';
     ok $walker ~~ Walker, 'Walker does Walker role';
+    ok $walker ~~ Iterable, 'Walker does Iterable role';
 }
 
 subtest 'SimpleWalker creates valid plans' => {
@@ -165,10 +169,10 @@ subtest 'SimpleWalker plan produces working iterators' => {
     my $iter = $plan.iterator;
     
     ok $iter ~~ QueryIterator, 'iterator() returns QueryIterator';
-    is $iter.pull-one, 10, 'First item';
-    is $iter.pull-one, 20, 'Second item';
-    is $iter.pull-one, 30, 'Third item';
-    ok $iter.pull-one =:= IterationEnd, 'Iterator exhausted';
+    is $iter.next, 10, 'First item via next()';
+    is $iter.next, 20, 'Second item via next()';
+    is $iter.next, 30, 'Third item via next()';
+    ok !$iter.next.defined, 'Iterator exhausted (returns Nil)';
 }
 
 subtest 'SimpleWalker start() convenience method' => {
@@ -178,21 +182,23 @@ subtest 'SimpleWalker start() convenience method' => {
     my $iter = $walker.start({ type => 'query' }, <a b c>);
     
     ok $iter ~~ QueryIterator, 'start() returns iterator';
-    is $iter.pull-one, 'a', 'First result';
+    is $iter.next, 'a', 'First result';
     
     # Exhaust iterator
-    $iter.pull-one; $iter.pull-one;
-    ok $iter.pull-one =:= IterationEnd, 'Iterator exhausts correctly';
+    $iter.next; $iter.next;
+    ok !$iter.next.defined, 'Iterator exhausts correctly';
 }
 
-subtest 'SimpleWalker iterator() convenience method' => {
-    plan 2;
+subtest 'SimpleWalker iterator() takes Walker::Plan' => {
+    plan 3;
     
     my $walker = SimpleWalker.new(default-root => [100, 200]);
-    my $iter = $walker.iterator({ type => 'fetch' });
+    my $plan = $walker.plan({ type => 'fetch' }, [100, 200]);
+    my $iter = $walker.iterator($plan);
     
-    ok $iter ~~ QueryIterator, 'iterator() returns QueryIterator';
-    is $iter.pull-one, 100, 'Uses default root';
+    ok $iter ~~ QueryIterator, 'iterator(plan) returns QueryIterator';
+    is $iter.next, 100, 'First result from plan';
+    is $iter.next, 200, 'Second result from plan';
 }
 
 subtest 'SimpleWalker throws exception for invalid queries' => {
@@ -261,8 +267,8 @@ subtest 'SimpleWalker Context tracks state' => {
     
     is $iter.context.visit-count, 0, 'Initial visit count';
     
-    $iter.pull-one;
-    $iter.pull-one;
+    $iter.next;
+    $iter.next;
     
     is $iter.context.visit-count, 2, 'Visit count updated';
     is $iter.context.results.elems, 2, 'Results collected';
@@ -295,12 +301,12 @@ subtest 'Multiple iterators are independent' => {
     ok $iter1 !=== $iter2, 'Different iterator instances';
     ok $iter1.context !=== $iter2.context, 'Different context instances';
     
-    # Advance iter1
-    $iter1.pull-one;
-    $iter1.pull-one;
+    # Advance iter1 using next()
+    $iter1.next;
+    $iter1.next;
     
     # iter2 should be independent
-    is $iter2.pull-one, 1, 'iter2 starts at beginning';
+    is $iter2.next, 1, 'iter2 starts at beginning';
     is $iter1.context.visit-count, 2, 'iter1 context has 2 visits';
     is $iter2.context.visit-count, 1, 'iter2 context has 1 visit';
     
@@ -347,11 +353,11 @@ subtest 'End-to-end query execution scenario' => {
     # Context should be initialized
     ok $iter.context.initialized, 'Context initialized by PRE-PASS';
     
-    # Iterate and collect
+    # Iterate using next() (spec method) and collect
     my @results;
     loop {
-        my $val = $iter.pull-one;
-        last if $val =:= IterationEnd;
+        my $val = $iter.next;
+        last unless $val.defined;
         @results.push($val);
     }
     

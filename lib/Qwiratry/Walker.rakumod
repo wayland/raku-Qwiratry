@@ -6,8 +6,8 @@
 #|
 #| Lifecycle:
 #|   Walker creates Walker::Plan via plan() method
-#|   Walker::Plan creates QueryIterator instances via iterator() method
-#|   QueryIterator produces results incrementally via pull-one()
+#|   Walker creates QueryIterator from Walker::Plan via iterator() method
+#|   QueryIterator produces results incrementally via next()
 unit module Qwiratry::Walker;
 
 use Qwiratry::Context;
@@ -21,28 +21,28 @@ use Qwiratry::QueryIterator;
 #|
 #| Required methods (must be implemented by concrete classes):
 #|   - iterator() → QueryIterator
-#|   - query() → RakuAST::Node (or Mu for flexibility)
+#|   - query() → RakuAST::Node
 #|   - describe() → Str
 #|
 #| Optional methods (have default implementations):
 #|   - optimise(&modification) → Walker::Plan
-#|   - subplans() → Array
-#|   - capabilities() → Hash
+#|   - subplans() → Array[Walker::Plan]
+#|   - capabilities() → Associative
 #|
 #| Example concrete implementation:
 #|   class MyPlan does Walker::Plan {
-#|       has $.query-ast;
+#|       has RakuAST::Node $.query-ast;
 #|       has $.root;
 #|       
 #|       method iterator(--> QueryIterator) {
 #|           my $ctx = MyContext.new;
 #|           MyIterator.new(context => $ctx, plan => self);
 #|       }
-#|       method query() { $!query-ast }
+#|       method query(--> RakuAST::Node) { $!query-ast }
 #|       method describe(--> Str) { "MyPlan for {$!query-ast.^name}" }
 #|   }
 role Walker::Plan is export {
-    #| Create a fresh QueryIterator for this plan.
+    #| Produce a QueryIterator for this plan.
     #|
     #| Each call creates an independent iterator with its own Context.
     #| Multiple iterators from the same plan do not share mutable state.
@@ -50,13 +50,13 @@ role Walker::Plan is export {
     #| @returns QueryIterator - A new iterator ready to produce results
     method iterator(--> QueryIterator) { ... }
     
-    #| Return the Query AST used to create this plan.
+    #| Return the Query AST that this plan represents.
     #|
     #| The returned AST should be treated as immutable. Plans must not
     #| mutate the original Query AST in observable ways.
     #|
-    #| @returns Mu - The Query AST (typically RakuAST::Node)
-    method query(--> Mu) { ... }
+    #| @returns RakuAST::Node - The Query AST
+    method query(--> RakuAST::Node) { ... }
     
     #| Return a human-readable description of the execution strategy.
     #|
@@ -75,7 +75,7 @@ role Walker::Plan is export {
     #|
     #| @param &modification - Callback: Walker::Plan → Walker::Plan
     #| @returns Walker::Plan - The optimized plan (may be same or new instance)
-    method optimise(&modification --> Walker::Plan) {
+    method optimise(&modification) {
         # Default: return self unchanged
         # Concrete implementations may apply the modification
         self
@@ -88,23 +88,21 @@ role Walker::Plan is export {
     #|
     #| Default implementation returns empty array (non-composite plan).
     #|
-    #| @returns Array - Array of Walker::Plan instances (empty for simple plans)
-    method subplans() {
+    #| @returns Array[Walker::Plan] - Array of Walker::Plan instances (empty for simple plans)
+    method subplans(--> Array[Walker::Plan]) {
         # Default: no subplans (simple, non-composite plan)
-        []
+        Array[Walker::Plan].new
     }
     
     #| Return capability metadata for this plan.
     #|
     #| Provides structured information about plan capabilities for introspection.
-    #| Format: { capability-name => { enabled => Bool, ... }, ... }
-    #|
-    #| Example: { lazy => { enabled => True, type => "incremental" } }
+    #| Common capabilities: supports-lazy, supports-backtracking, supports-streaming
     #|
     #| Default implementation returns empty hash.
     #|
-    #| @returns Hash - Capability metadata
-    method capabilities(--> Hash) {
+    #| @returns Associative - Capability metadata
+    method capabilities(--> Associative) {
         # Default: no special capabilities declared
         {}
     }
@@ -113,28 +111,29 @@ role Walker::Plan is export {
 #| Walker role - encapsulates how a query is executed over a data structure.
 #|
 #| Walker is the main entry point for query execution. It creates execution
-#| plans via plan() and can produce iterators via iterator() or start().
+#| plans via plan() and produces iterators from plans via iterator().
 #|
 #| Required methods (must be implemented by concrete classes):
-#|   - plan($query, $root) → Walker::Plan
+#|   - plan(RakuAST::Node $query, Mu $root) → Walker::Plan
+#|   - iterator(Walker::Plan $plan) → QueryIterator
 #|
 #| Optional methods (have default implementations):
-#|   - iterator($q) → QueryIterator (uses stored root)
-#|   - start($query, $root) → QueryIterator
+#|   - start($query, $root) → QueryIterator (convenience: plan + iterator)
 #|   - PRE-PASS($ctx) - Hook called before traversal
 #|   - POST-PASS($ctx) - Hook called after traversal
-#|   - capabilities() → Hash
+#|   - capabilities() → Associative
 #|   - supports($query) → Bool
 #|
 #| Example concrete implementation:
 #|   class TreeWalker does Walker {
-#|       has $.root;
-#|       
-#|       method plan(Mu $query, Mu $root --> Walker::Plan) {
+#|       method plan(RakuAST::Node $query, Mu:D $root --> Walker::Plan) {
 #|           TreePlan.new(query-ast => $query, root => $root);
 #|       }
+#|       method iterator(Walker::Plan $plan --> QueryIterator) {
+#|           $plan.iterator;
+#|       }
 #|   }
-role Walker is export {
+role Walker does Iterable is export {
     #| Create an execution plan for the given query and root.
     #|
     #| This is the primary method for query execution. The plan encapsulates
@@ -143,39 +142,40 @@ role Walker is export {
     #| Must throw X::Qwiratry::UnknownQueryElement if the query cannot be
     #| interpreted by this walker.
     #|
-    #| @param $query - The Query AST (typically RakuAST::Node)
+    #| @param $query - The Query AST (RakuAST::Node)
     #| @param $root - The root data structure to query
     #| @returns Walker::Plan - Execution plan for the query
     #| @throws X::Qwiratry::UnknownQueryElement if query cannot be interpreted
-    method plan(Mu $query, Mu $root --> Walker::Plan) { ... }
+    method plan(RakuAST::Node $query, Mu:D $root --> Walker::Plan) { ... }
     
-    #| Convenience method to create an iterator using stored root.
+    #| Produce a new incremental result stream from an existing execution plan.
     #|
-    #| Equivalent to self.plan($q, $root).iterator where $root is stored
-    #| in the walker instance. Concrete implementations must store the root
-    #| to use this method.
+    #| Creates a fresh Context, initialises traversal state, and returns
+    #| a QueryIterator that yields results lazily.
     #|
-    #| Default implementation calls plan() with the query and stored root.
+    #| Multiple iterators MAY be created from the same plan.
+    #| Iterators MUST NOT share mutable traversal state.
     #|
-    #| @param $q - The Query AST
+    #| @param $plan - The execution plan to iterate
     #| @returns QueryIterator - Ready to produce results
-    method iterator(Mu $q --> QueryIterator) { ... }
+    method iterator(Walker::Plan $plan --> QueryIterator) { ... }
     
-    #| Convenience method combining plan() and iterator().
+    #| One-shot execution entrypoint (convenience method).
     #|
-    #| Default implementation: self.plan($query, $root).iterator
+    #| Equivalent to: self.plan($query, $root).iterator
+    #| via self.iterator(self.plan($query, $root))
     #|
-    #| @param $query - The Query AST
+    #| @param $query - The Query AST (RakuAST::Node)
     #| @param $root - The root data structure (must be defined)
     #| @returns QueryIterator - Ready to produce results
-    method start(Mu $query, Mu:D $root --> QueryIterator) {
-        self.plan($query, $root).iterator
+    method start(RakuAST::Node $query, Mu:D $root --> QueryIterator) {
+        self.iterator(self.plan($query, $root))
     }
     
-    #| Hook called before traversal begins.
+    #| Hook called before a traversal pass begins.
     #|
-    #| Override to initialize Context state, set up resources, or perform
-    #| pre-traversal validation. Called once per traversal.
+    #| Override to initialize global traversal state, prepare caches or
+    #| indexes, or initialize multi-pass bookkeeping. Called once per pass.
     #|
     #| Default implementation: no-op
     #|
@@ -184,10 +184,10 @@ role Walker is export {
         # Default: no-op
     }
     
-    #| Hook called after traversal completes.
+    #| Hook called after a traversal pass completes.
     #|
-    #| Override to finalize Context state, clean up resources, or perform
-    #| post-traversal processing. Called once per traversal.
+    #| Override to collect diagnostics, decide whether to trigger another
+    #| pass, or finalize results/clean up resources. Called once per pass.
     #|
     #| Default implementation: no-op
     #|
@@ -198,26 +198,33 @@ role Walker is export {
     
     #| Return capability metadata for this walker.
     #|
-    #| Provides structured information about walker capabilities.
-    #| Format: { capability-name => { enabled => Bool, ... }, ... }
+    #| Provides structured information about walker capabilities:
+    #|   - supports-lazy
+    #|   - supports-backtracking
+    #|   - supports-rewrite
+    #|   - supports-multi-phase
+    #|   - supports-streaming
+    #|
+    #| Used by Transformers, Composite Walkers, and debugging/profiling tools.
     #|
     #| Default implementation returns empty hash.
     #|
-    #| @returns Hash - Capability metadata
-    method capabilities(--> Hash) {
+    #| @returns Associative - Capability metadata
+    method capabilities(--> Associative) {
         # Default: no special capabilities declared
         {}
     }
     
     #| Check if this walker can interpret the given query.
     #|
-    #| Useful for query routing in composite walker scenarios.
+    #| Returns whether this Walker can interpret the given AST.
+    #| Useful for Walker selection/delegation in hybrid or master walkers.
     #|
     #| Default implementation returns False (conservative).
     #|
     #| @param $query - The Query AST to check
     #| @returns Bool - True if walker can interpret query
-    method supports(Mu $query --> Bool) {
+    method supports(RakuAST::Node $query --> Bool) {
         # Default: conservative - assume cannot support
         False
     }

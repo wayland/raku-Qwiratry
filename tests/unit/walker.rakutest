@@ -1,5 +1,8 @@
 #| Unit tests for Walker role
 #| Tests Walker role contract, method signatures, and behavior
+#|
+#| Note: The spec requires RakuAST::Node for query parameters, but for testing
+#| we use Hash mock objects. Production code should use actual RakuAST::Node types.
 use Test;
 use lib 'lib';
 
@@ -8,7 +11,7 @@ use Qwiratry::QueryIterator;
 use Qwiratry::Context;
 use Qwiratry::X;
 
-plan 15;
+plan 16;
 
 # =============================================================================
 # Helper classes for testing
@@ -26,14 +29,15 @@ my class TestIterator does QueryIterator {
     has @.items;
     has Int $!index = 0;
     
-    method pull-one(--> Mu) {
-        return IterationEnd if $!index >= @!items.elems;
+    method next(--> Mu) {
+        return Nil if $!index >= @!items.elems;
         $.context.operations++;
         @!items[$!index++]
     }
 }
 
 # Concrete Walker::Plan implementation for testing
+# Note: query() returns Mu for testing flexibility; spec requires RakuAST::Node
 my class TestPlan does Walker::Plan {
     has $.query-ast;
     has @.data;
@@ -46,16 +50,20 @@ my class TestPlan does Walker::Plan {
         $iter
     }
     
+    # Return Mu for testing; spec requires RakuAST::Node
     method query(--> Mu) { $!query-ast }
     method describe(--> Str) { "TestPlan" }
 }
 
 # Concrete Walker implementation for testing
+# Uses Mu for query type in tests; spec requires RakuAST::Node
 my class TestWalker does Walker {
     has $.root;
     has @.supported-queries = <select filter>;
     
-    method plan(Mu $query, Mu $root --> Walker::Plan) {
+    # Spec: plan(RakuAST::Node $query, Mu:D $root --> Walker::Plan)
+    # Test uses Mu for flexibility
+    method plan($query, $root --> Walker::Plan) {
         # Simulate checking if query is interpretable
         if $query ~~ Hash && $query<type> eq 'unknown' {
             X::Qwiratry::UnknownQueryElement.new(
@@ -67,8 +75,9 @@ my class TestWalker does Walker {
         TestPlan.new(query-ast => $query, data => [1, 2, 3], walker => self);
     }
     
-    method iterator(Mu $q --> QueryIterator) {
-        self.plan($q, $!root).iterator;
+    # Spec: iterator(Walker::Plan $plan --> QueryIterator)
+    method iterator(Walker::Plan $plan --> QueryIterator) {
+        $plan.iterator;
     }
     
     method PRE-PASS(Context $ctx) {
@@ -79,11 +88,13 @@ my class TestWalker does Walker {
         $ctx.post-pass-called = True if $ctx ~~ TestContext;
     }
     
-    method capabilities(--> Hash) {
+    method capabilities(--> Associative) {
         { lazy => { enabled => True }, streaming => { enabled => True } }
     }
     
-    method supports(Mu $query --> Bool) {
+    # Spec: supports(RakuAST::Node $query --> Bool)
+    # Test uses Mu for flexibility
+    method supports($query --> Bool) {
         return False unless $query ~~ Hash;
         @!supported-queries.grep($query<type>).Bool
     }
@@ -93,12 +104,12 @@ my class TestWalker does Walker {
 my class MinimalWalker does Walker {
     has $.root;
     
-    method plan(Mu $query, Mu $root --> Walker::Plan) {
+    method plan($query, $root --> Walker::Plan) {
         TestPlan.new(query-ast => $query, data => [$root], walker => self);
     }
     
-    method iterator(Mu $q --> QueryIterator) {
-        self.plan($q, $!root).iterator;
+    method iterator(Walker::Plan $plan --> QueryIterator) {
+        $plan.iterator;
     }
 }
 
@@ -111,6 +122,13 @@ subtest 'Walker role exists' => {
     
     ok Walker.^name eq 'Walker', 'Walker role exists';
     ok Walker.HOW.^name ~~ /Metamodel/, 'Walker is a proper role';
+}
+
+subtest 'Walker does Iterable' => {
+    plan 1;
+    
+    my $walker = TestWalker.new(root => [1, 2, 3]);
+    ok $walker ~~ Iterable, 'Walker does Iterable role';
 }
 
 subtest 'Concrete class can compose Walker' => {
@@ -139,14 +157,16 @@ subtest 'plan() creates Walker::Plan' => {
     is $plan.query, $query, 'Plan contains query AST';
 }
 
-subtest 'iterator() returns QueryIterator' => {
-    plan 2;
+subtest 'iterator() takes Walker::Plan and returns QueryIterator' => {
+    plan 3;
     
     my $walker = TestWalker.new(root => 'data');
     my $query = { type => 'select' };
+    my $plan = $walker.plan($query, 'root');
     
-    my $iter = $walker.iterator($query);
+    my $iter = $walker.iterator($plan);
     
+    ok $iter.defined, 'iterator() returns defined value';
     ok $iter ~~ QueryIterator, 'iterator() returns QueryIterator';
     ok $iter ~~ Iterator, 'QueryIterator does Iterator';
 }
@@ -164,7 +184,7 @@ subtest 'start() convenience method' => {
     ok $iter ~~ Iterator, 'Result does Iterator';
 }
 
-subtest 'start() equivalent to plan().iterator()' => {
+subtest 'start() equivalent to iterator(plan())' => {
     plan 2;
     
     my $walker = TestWalker.new;
@@ -173,11 +193,11 @@ subtest 'start() equivalent to plan().iterator()' => {
     
     my $iter1 = $walker.start($query, $root);
     my $plan = $walker.plan($query, $root);
-    my $iter2 = $plan.iterator;
+    my $iter2 = $walker.iterator($plan);
     
     # Both should be QueryIterators
     ok $iter1 ~~ QueryIterator, 'start() returns QueryIterator';
-    ok $iter2 ~~ QueryIterator, 'plan().iterator() returns QueryIterator';
+    ok $iter2 ~~ QueryIterator, 'iterator(plan()) returns QueryIterator';
 }
 
 # =============================================================================
@@ -238,7 +258,7 @@ subtest 'PRE-PASS hook called' => {
     
     my $walker = TestWalker.new(root => 'data');
     my $plan = $walker.plan({ type => 'select' }, 'root');
-    my $iter = $plan.iterator;
+    my $iter = $walker.iterator($plan);
     
     ok $iter.context.pre-pass-called, 'PRE-PASS was called';
 }
@@ -257,24 +277,24 @@ subtest 'Default PRE-PASS and POST-PASS are no-ops' => {
 # Introspection tests
 # =============================================================================
 
-subtest 'capabilities() returns Hash' => {
+subtest 'capabilities() returns Associative' => {
     plan 3;
     
     my $walker = TestWalker.new;
     my %caps = $walker.capabilities;
     
-    ok %caps ~~ Hash, 'capabilities() returns Hash';
+    ok %caps ~~ Associative, 'capabilities() returns Associative';
     ok %caps<lazy>:exists, 'Has lazy capability';
     ok %caps<lazy><enabled>, 'Capability metadata accessible';
 }
 
-subtest 'Default capabilities() returns empty Hash' => {
+subtest 'Default capabilities() returns empty Associative' => {
     plan 2;
     
     my $walker = MinimalWalker.new(root => 'data');
     my %caps = $walker.capabilities;
     
-    ok %caps ~~ Hash, 'Default capabilities() returns Hash';
+    ok %caps ~~ Associative, 'Default capabilities() returns Associative';
     is %caps.elems, 0, 'Default capabilities is empty';
 }
 
@@ -312,15 +332,15 @@ subtest 'Full walker workflow' => {
     my $plan = $walker.plan($query, 'root');
     ok $plan ~~ Walker::Plan, 'Got Walker::Plan';
     
-    # Get iterator
-    my $iter = $plan.iterator;
+    # Get iterator from plan via walker
+    my $iter = $walker.iterator($plan);
     ok $iter ~~ QueryIterator, 'Got QueryIterator';
     
-    # Iterate
+    # Iterate using next() (spec method)
     my @results;
     loop {
-        my $val = $iter.pull-one;
-        last if $val =:= IterationEnd;
+        my $val = $iter.next;
+        last unless $val.defined;
         @results.push($val);
     }
     
