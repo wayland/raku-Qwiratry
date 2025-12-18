@@ -7,7 +7,7 @@ plan 10;
 # T040: Test edge cases: missing files, malformed JSON, circular dependencies, broken links
 
 # Create test fixtures
-my $test-dir = "t/edge-cases-test".IO;
+my $test-dir = "specification-traceability-map/t/edge-cases-test".IO;
 $test-dir.mkdir unless $test-dir.d;
 
 my $spec-file = $test-dir.child("Specification.md");
@@ -29,7 +29,7 @@ END {
     $test-dir.rmdir if $test-dir.d;
 }
 
-my $script = "scripts/verify-spec-coverage.raku";
+my $script = "specification-traceability-map/scripts/verify-spec-coverage.raku";
 
 # Test 1: Missing meta.json file (should handle gracefully)
 my $missing-meta-dir = $specs-dir.child("001-missing-meta");

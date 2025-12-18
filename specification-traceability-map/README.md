@@ -26,10 +26,10 @@ raku --version
 Generate or update the traceability map document:
 
 ```bash
-raku scripts/verify-spec-coverage.raku --generate-map
+raku specification-traceability-map/scripts/verify-spec-coverage.raku --generate-map
 ```
 
-This creates `docs/spec-traceability-map.md` containing:
+This creates `specification-traceability-map/docs/spec-traceability-map.md` containing:
 - Coverage summary
 - Dependency graph (Mermaid format)
 - Cross-reference index table
@@ -41,10 +41,10 @@ Verify which spec sections are covered:
 
 ```bash
 # Text output (human-readable)
-raku scripts/verify-spec-coverage.raku
+raku specification-traceability-map/scripts/verify-spec-coverage.raku
 
 # JSON output (for CI/CD)
-raku scripts/verify-spec-coverage.raku --json
+raku specification-traceability-map/scripts/verify-spec-coverage.raku --json
 ```
 
 **Text Output Example**:
@@ -86,25 +86,25 @@ Uncovered Sections:
 
 ```bash
 # Generate traceability map
-raku scripts/verify-spec-coverage.raku --generate-map
+raku specification-traceability-map/scripts/verify-spec-coverage.raku --generate-map
 
 # Check coverage (text output)
-raku scripts/verify-spec-coverage.raku
+raku specification-traceability-map/scripts/verify-spec-coverage.raku
 
 # Check coverage (JSON output)
-raku scripts/verify-spec-coverage.raku --json
+raku specification-traceability-map/scripts/verify-spec-coverage.raku --json
 
 # Verbose output (includes debug information)
-raku scripts/verify-spec-coverage.raku --verbose
+raku specification-traceability-map/scripts/verify-spec-coverage.raku --verbose
 
 # Custom paths
-raku scripts/verify-spec-coverage.raku \
+raku specification-traceability-map/scripts/verify-spec-coverage.raku \
   --spec-file=path/to/Specification.md \
   --specs-dir=path/to/kitty-specs \
   --output-dir=path/to/docs
 
 # Help
-raku scripts/verify-spec-coverage.raku --help
+raku specification-traceability-map/scripts/verify-spec-coverage.raku --help
 ```
 
 ## Feature Metadata Format
@@ -147,20 +147,20 @@ To include a feature in the traceability system, add metadata to its `meta.json`
    ```
 3. Regenerate traceability map:
    ```bash
-   raku scripts/verify-spec-coverage.raku --generate-map
+   raku specification-traceability-map/scripts/verify-spec-coverage.raku --generate-map
    ```
 
 ### Checking Coverage Before Release
 
 ```bash
 # Get coverage percentage
-raku scripts/verify-spec-coverage.raku --json | jq '.coverage_percent'
+raku specification-traceability-map/scripts/verify-spec-coverage.raku --json | jq '.coverage_percent'
 
 # Check for uncovered sections
-raku scripts/verify-spec-coverage.raku --json | jq '.uncovered_sections'
+raku specification-traceability-map/scripts/verify-spec-coverage.raku --json | jq '.uncovered_sections'
 
 # Use in CI/CD (fail if coverage < 100%)
-COVERAGE=$(raku scripts/verify-spec-coverage.raku --json | jq -r '.coverage_percent')
+COVERAGE=$(raku specification-traceability-map/scripts/verify-spec-coverage.raku --json | jq -r '.coverage_percent')
 if [ "$COVERAGE" -lt 100 ]; then
   echo "Coverage is $COVERAGE%, must be 100%"
   exit 1
@@ -169,13 +169,13 @@ fi
 
 ### Finding Which Feature Implements a Spec Section
 
-1. Open `docs/spec-traceability-map.md`
+1. Open `specification-traceability-map/docs/spec-traceability-map.md`
 2. Search for section identifier (e.g., "3.2.1")
 3. Check the cross-reference index table or section mappings
 
 ### Viewing Dependency Graph
 
-Open `docs/spec-traceability-map.md` in a markdown viewer that supports Mermaid:
+Open `specification-traceability-map/docs/spec-traceability-map.md` in a markdown viewer that supports Mermaid:
 - GitHub (renders automatically)
 - GitLab (renders automatically)
 - VS Code with Mermaid extension
@@ -233,7 +233,7 @@ Open `docs/spec-traceability-map.md` in a markdown viewer that supports Mermaid:
 **Problem**: Script errors are written to stderr, not stdout.
 
 **Solution**: 
-- Check stderr for error messages: `raku scripts/verify-spec-coverage.raku --json 2>&1`
+- Check stderr for error messages: `raku specification-traceability-map/scripts/verify-spec-coverage.raku --json 2>&1`
 - Verify all required files exist
 - Check that Raku version is 6.e or later
 
@@ -280,7 +280,7 @@ Features have circular dependencies that create a cycle.
 
 ## Examples
 
-See `docs/example-meta.json` for a complete example of feature metadata with dependencies and spec_sections.
+See `specification-traceability-map/docs/example-meta.json` for a complete example of feature metadata with dependencies and spec_sections.
 
 ## Testing
 
@@ -288,13 +288,13 @@ Run the test suite:
 
 ```bash
 # All unit tests
-for test in tests/unit/*.t; do raku -I. "$test"; done
+for test in specification-traceability-map/tests/unit/*.t; do raku -I. "$test"; done
 
 # All integration tests
-for test in tests/integration/*.t; do raku -I. "$test"; done
+for test in specification-traceability-map/tests/integration/*.t; do raku -I. "$test"; done
 ```
 
-See `tests/README.md` for more details.
+See `specification-traceability-map/tests/README.md` for more details.
 
 ## License
 

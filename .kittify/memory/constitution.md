@@ -37,9 +37,10 @@ Follow-up TODOs: none
 - Prefer straightforward designs that ease debugging and onboarding.
 - Operational readiness (runbooks, metrics, alerts where applicable) is part of “done”.
 
-### P6. Coding like Tim Nelson (Wayland Smith) and Elizabeth Matthijsen (lizmat)
+### P6. Raku Coding Style
 
-- Where possible, we code like a mix of Tim Nelson and Elizabeth Matthijsen.  
+- Where possible, we code like a mix of Tim Nelson (Wayland Smith) and Elizabeth Mattijsen (lizmat).  
+- Each class is documented with its own Rakudoc embedded in it
 
 ## Quality and Safety Standards
 
@@ -64,4 +65,4 @@ Follow-up TODOs: none
 - Compliance reviews occur at spec, plan, tasks, and implementation review stages; violations must be resolved or formally waived.
 - Store references to supporting guidance and scripts in commands/templates to keep them synchronized.
 
-**Version**: 1.0.0 | **Ratified**: 2025-12-16 | **Last Amended**: 2025-12-16
+**Version**: 1.0.1 | **Ratified**: 2025-12-16 | **Last Amended**: 2025-12-16

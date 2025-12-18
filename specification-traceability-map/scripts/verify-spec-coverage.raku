@@ -225,7 +225,7 @@ multi sub MAIN(
     Bool :$generate-map = False,   # --generate-map flag
     Str :$spec-file = "Specification.md",  # --spec-file=path
     Str :$specs-dir = "kitty-specs",       # --specs-dir=path
-    Str :$output-dir = "docs",             # --output-dir=path
+    Str :$output-dir = "specification-traceability-map/docs",             # --output-dir=path
     Bool :$help = False            # --help flag
 ) {
     if $help {
@@ -320,7 +320,7 @@ sub show-help() {
     Coverage Verification Script
 
     Usage:
-        raku scripts/verify-spec-coverage.raku [OPTIONS]
+        raku specification-traceability-map/scripts/verify-spec-coverage.raku [OPTIONS]
 
     Options:
         --json              Output results as JSON instead of human-readable text
@@ -328,7 +328,7 @@ sub show-help() {
         --generate-map      Generate/update traceability map document
         --spec-file=path    Path to Specification.md (default: Specification.md)
         --specs-dir=path    Path to kitty-specs directory (default: kitty-specs)
-        --output-dir=path   Directory for generated traceability map (default: docs)
+        --output-dir=path   Directory for generated traceability map (default: specification-traceability-map/docs)
         --help              Show this help message
 
     Exit Codes:
@@ -338,13 +338,13 @@ sub show-help() {
 
     Examples:
         # Check coverage
-        raku scripts/verify-spec-coverage.raku
+        raku specification-traceability-map/scripts/verify-spec-coverage.raku
 
         # Generate traceability map
-        raku scripts/verify-spec-coverage.raku --generate-map
+        raku specification-traceability-map/scripts/verify-spec-coverage.raku --generate-map
 
         # JSON output for CI/CD
-        raku scripts/verify-spec-coverage.raku --json
+        raku specification-traceability-map/scripts/verify-spec-coverage.raku --json
     HELP
 }
 

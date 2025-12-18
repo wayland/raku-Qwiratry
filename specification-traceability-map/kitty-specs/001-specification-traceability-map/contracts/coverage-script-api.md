@@ -1,6 +1,6 @@
 # API Contract: Coverage Verification Script
 
-**Script**: `scripts/verify-spec-coverage.raku`  
+**Script**: `specification-traceability-map/scripts/verify-spec-coverage.raku`  
 **Version**: 1.0.0
 
 ## Command-Line Interface
@@ -8,7 +8,7 @@
 ### Synopsis
 
 ```bash
-raku scripts/verify-spec-coverage.raku [OPTIONS]
+raku specification-traceability-map/scripts/verify-spec-coverage.raku [OPTIONS]
 ```
 
 ### Options
@@ -20,7 +20,7 @@ raku scripts/verify-spec-coverage.raku [OPTIONS]
 | `--generate-map` | Generate/update traceability map document | false |
 | `--spec-file` | Path to Specification.md | `Specification.md` (repo root) |
 | `--specs-dir` | Path to kitty-specs directory | `kitty-specs/` (repo root) |
-| `--output-dir` | Directory for generated traceability map | `docs/` (repo root) |
+| `--output-dir` | Directory for generated traceability map | `specification-traceability-map/docs/` (repo root) |
 | `--help` | Show help message | - |
 
 ### Exit Codes
@@ -134,7 +134,7 @@ WARN: Section 3.5.2 is not covered by any feature
 
 ### Traceability Map Document
 
-**Location**: `docs/spec-traceability-map.md`
+**Location**: `specification-traceability-map/docs/spec-traceability-map.md`
 
 **Structure**:
 1. Header with generation timestamp

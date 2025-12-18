@@ -7,9 +7,9 @@
 Run a single test file directly with Raku:
 
 ```bash
-raku -I. tests/unit/spec-parser.t
-raku -I. tests/unit/feature-metadata.t
-raku -I. tests/integration/traceability-map-gen.t
+raku -I. specification-traceability-map/tests/unit/spec-parser.t
+raku -I. specification-traceability-map/tests/unit/feature-metadata.t
+raku -I. specification-traceability-map/tests/integration/traceability-map-gen.t
 ```
 
 ### All Unit Tests
@@ -17,7 +17,7 @@ raku -I. tests/integration/traceability-map-gen.t
 Run all unit tests:
 
 ```bash
-for test in tests/unit/*.t; do raku -I. "$test"; done
+for test in specification-traceability-map/tests/unit/*.t; do raku -I. "$test"; done
 ```
 
 ### All Integration Tests
@@ -25,7 +25,7 @@ for test in tests/unit/*.t; do raku -I. "$test"; done
 Run all integration tests:
 
 ```bash
-for test in tests/integration/*.t; do raku -I. "$test"; done
+for test in specification-traceability-map/tests/integration/*.t; do raku -I. "$test"; done
 ```
 
 ### Using prove6 (if available)
@@ -33,18 +33,18 @@ for test in tests/integration/*.t; do raku -I. "$test"; done
 If `prove6` is installed, you can use it to run all tests:
 
 ```bash
-prove6 -v tests/
+prove6 -v specification-traceability-map/tests/
 ```
 
 ## Test Structure
 
-- **Unit Tests** (`tests/unit/`): Test individual functions and modules in isolation
+- **Unit Tests** (`specification-traceability-map/tests/unit/`): Test individual functions and modules in isolation
   - `spec-parser.t`: Tests for Specification.md parsing
   - `feature-metadata.t`: Tests for meta.json reading
   - `dependency-graph.t`: Tests for dependency graph generation
   - `coverage-calc.t`: Tests for coverage calculation
 
-- **Integration Tests** (`tests/integration/`): Test end-to-end workflows
+- **Integration Tests** (`specification-traceability-map/tests/integration/`): Test end-to-end workflows
   - `traceability-map-gen.t`: End-to-end traceability map generation
   - `coverage-script.t`: End-to-end coverage script execution
 

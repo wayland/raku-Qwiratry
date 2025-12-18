@@ -19,10 +19,10 @@ The Specification Traceability Map provides automated tracking of which sections
 Run the coverage verification script to generate/update the traceability map:
 
 ```bash
-raku scripts/verify-spec-coverage.raku --generate-map
+raku specification-traceability-map/scripts/verify-spec-coverage.raku --generate-map
 ```
 
-This creates `docs/spec-traceability-map.md` with:
+This creates `specification-traceability-map/docs/spec-traceability-map.md` with:
 - Section-to-feature mappings
 - Auto-generated dependency graph (Mermaid)
 - Cross-reference index table
@@ -32,7 +32,7 @@ This creates `docs/spec-traceability-map.md` with:
 Check which spec sections are covered:
 
 ```bash
-raku scripts/verify-spec-coverage.raku
+raku specification-traceability-map/scripts/verify-spec-coverage.raku
 ```
 
 **Text output**:
@@ -46,12 +46,12 @@ Dependency graph: Valid (no circular dependencies)
 
 **JSON output** (for CI/CD):
 ```bash
-raku scripts/verify-spec-coverage.raku --json
+raku specification-traceability-map/scripts/verify-spec-coverage.raku --json
 ```
 
 ### 3. View Dependency Graph
 
-Open `docs/spec-traceability-map.md` in a markdown viewer that supports Mermaid (GitHub, GitLab, etc.) to see the visual dependency graph.
+Open `specification-traceability-map/docs/spec-traceability-map.md` in a markdown viewer that supports Mermaid (GitHub, GitLab, etc.) to see the visual dependency graph.
 
 ## Adding Feature Metadata
 
@@ -76,20 +76,20 @@ To include a feature in the traceability system, add metadata to its `meta.json`
 ### Update Traceability Map After Adding Feature
 
 1. Add `spec_sections` and `dependencies` to feature's `meta.json`
-2. Run: `raku scripts/verify-spec-coverage.raku --generate-map`
-3. Review generated `docs/spec-traceability-map.md`
+2. Run: `raku specification-traceability-map/scripts/verify-spec-coverage.raku --generate-map`
+3. Review generated `specification-traceability-map/docs/spec-traceability-map.md`
 
 ### Check Coverage Before Release
 
 ```bash
-raku scripts/verify-spec-coverage.raku --json | jq '.coverage_percent'
+raku specification-traceability-map/scripts/verify-spec-coverage.raku --json | jq '.coverage_percent'
 ```
 
 Use in CI/CD pipeline to fail if coverage drops below threshold.
 
 ### Find Which Feature Implements a Spec Section
 
-1. Open `docs/spec-traceability-map.md`
+1. Open `specification-traceability-map/docs/spec-traceability-map.md`
 2. Search for section identifier (e.g., "3.2.1")
 3. Check cross-reference table or section mapping
 
