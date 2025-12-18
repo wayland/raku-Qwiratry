@@ -1,0 +1,369 @@
+#| Example walker tests
+#| Tests concrete SimpleWalker implementation demonstrating all roles
+use Test;
+use lib 'lib';
+
+use Qwiratry::Walker;
+use Qwiratry::QueryIterator;
+use Qwiratry::Context;
+use Qwiratry::X;
+
+plan 12;
+
+# =============================================================================
+# SimpleWalker: Complete example implementation
+# This demonstrates how to implement all Walker infrastructure roles
+# =============================================================================
+
+#| Example Context implementation with traversal state
+my class SimpleContext does Context {
+    #| Number of nodes visited during traversal
+    has Int $.visit-count is rw = 0;
+    
+    #| Maximum depth reached (for tree traversals)
+    has Int $.max-depth is rw = 0;
+    
+    #| Collected results during traversal
+    has @.results;
+    
+    #| Flag for PRE-PASS hook execution
+    has Bool $.initialized is rw = False;
+    
+    #| Flag for POST-PASS hook execution
+    has Bool $.finalized is rw = False;
+}
+
+#| Example QueryIterator implementation
+my class SimpleIterator does QueryIterator {
+    has @.items;
+    has Int $!position = 0;
+    
+    method pull-one(--> Mu) {
+        return IterationEnd if $!position >= @!items.elems;
+        
+        my $item = @!items[$!position++];
+        $.context.visit-count++;
+        $.context.results.push($item);
+        
+        $item
+    }
+}
+
+#| Example Walker::Plan implementation
+my class SimplePlan does Walker::Plan {
+    has $.query-ast;
+    has @.data;
+    has $.parent-walker;
+    
+    method iterator(--> QueryIterator) {
+        my $ctx = SimpleContext.new;
+        $!parent-walker.PRE-PASS($ctx) if $!parent-walker.defined;
+        SimpleIterator.new(context => $ctx, items => @!data);
+    }
+    
+    method query(--> Mu) { $!query-ast }
+    
+    method describe(--> Str) {
+        "SimplePlan: {$!query-ast<type> // 'unknown'} over {+@!data} items"
+    }
+    
+    method capabilities(--> Associative) {
+        {
+            lazy => { enabled => True, type => 'incremental' },
+            streaming => { enabled => True }
+        }
+    }
+}
+
+#| Example Walker implementation demonstrating all features
+#| Note: Uses Mu for query type in tests; spec requires RakuAST::Node
+my class SimpleWalker does Walker {
+    has $.default-root;
+    
+    # Spec: plan(RakuAST::Node $query, Mu:D $root --> Walker::Plan)
+    method plan($query, $root --> Walker::Plan) {
+        # Validate query
+        unless $query ~~ Hash {
+            X::Qwiratry::UnknownQueryElement.new(
+                message => "Query must be a Hash, got {$query.^name}",
+                walker-type => 'SimpleWalker',
+                query-ast => $query
+            ).throw;
+        }
+        
+        if $query<type> && $query<type> eq 'invalid' {
+            X::Qwiratry::UnknownQueryElement.new(
+                message => "Invalid query type: {$query<type>}",
+                walker-type => 'SimpleWalker',
+                query-ast => $query
+            ).throw;
+        }
+        
+        # Create plan
+        my @data = $root ~~ Positional ?? @$root !! ($root,);
+        SimplePlan.new(query-ast => $query, data => @data, parent-walker => self);
+    }
+    
+    # Spec: iterator(Walker::Plan $plan --> QueryIterator)
+    method iterator(Walker::Plan $plan --> QueryIterator) {
+        $plan.iterator;
+    }
+    
+    method PRE-PASS(Context $ctx) {
+        $ctx.initialized = True if $ctx ~~ SimpleContext;
+    }
+    
+    method POST-PASS(Context $ctx) {
+        $ctx.finalized = True if $ctx ~~ SimpleContext;
+    }
+    
+    method capabilities(--> Associative) {
+        {
+            lazy => { enabled => True },
+            parallel => { enabled => False },
+            streaming => { enabled => True }
+        }
+    }
+    
+    method supports($query --> Bool) {
+        return False unless $query ~~ Hash;
+        return False if $query<type> && $query<type> eq 'invalid';
+        True
+    }
+}
+
+# =============================================================================
+# Example Walker tests
+# =============================================================================
+
+subtest 'SimpleWalker can be instantiated' => {
+    plan 3;
+    
+    my $walker = SimpleWalker.new(default-root => [1, 2, 3]);
+    
+    ok $walker.defined, 'Walker created';
+    ok $walker ~~ Walker, 'Walker does Walker role';
+    ok $walker ~~ Iterable, 'Walker does Iterable role';
+}
+
+subtest 'SimpleWalker creates valid plans' => {
+    plan 4;
+    
+    my $walker = SimpleWalker.new;
+    my $query = { type => 'select', fields => ['name', 'age'] };
+    my $root = <Alice Bob Carol>;
+    
+    my $plan = $walker.plan($query, $root);
+    
+    ok $plan ~~ Walker::Plan, 'plan() returns Walker::Plan';
+    is $plan.query, $query, 'Plan contains query';
+    ok $plan.describe ~~ Str, 'describe() returns string';
+    like $plan.describe, /select/, 'Description includes query type';
+}
+
+subtest 'SimpleWalker plan produces working iterators' => {
+    plan 5;
+    
+    my $walker = SimpleWalker.new;
+    my $plan = $walker.plan({ type => 'scan' }, [10, 20, 30]);
+    my $iter = $plan.iterator;
+    
+    ok $iter ~~ QueryIterator, 'iterator() returns QueryIterator';
+    is $iter.pull-one, 10, 'First item';
+    is $iter.pull-one, 20, 'Second item';
+    is $iter.pull-one, 30, 'Third item';
+    ok $iter.pull-one =:= IterationEnd, 'Iterator exhausted';
+}
+
+subtest 'SimpleWalker start() convenience method' => {
+    plan 3;
+    
+    my $walker = SimpleWalker.new;
+    my $iter = $walker.start({ type => 'query' }, <a b c>);
+    
+    ok $iter ~~ QueryIterator, 'start() returns iterator';
+    is $iter.pull-one, 'a', 'First result';
+    
+    # Exhaust iterator
+    $iter.pull-one; $iter.pull-one;
+    ok $iter.pull-one =:= IterationEnd, 'Iterator exhausts correctly';
+}
+
+subtest 'SimpleWalker iterator() takes Walker::Plan' => {
+    plan 3;
+    
+    my $walker = SimpleWalker.new(default-root => [100, 200]);
+    my $plan = $walker.plan({ type => 'fetch' }, [100, 200]);
+    my $iter = $walker.iterator($plan);
+    
+    ok $iter ~~ QueryIterator, 'iterator(plan) returns QueryIterator';
+    is $iter.pull-one, 100, 'First result from plan';
+    is $iter.pull-one, 200, 'Second result from plan';
+}
+
+subtest 'SimpleWalker throws exception for invalid queries' => {
+    plan 4;
+    
+    my $walker = SimpleWalker.new;
+    
+    # Test invalid type
+    my $caught = False;
+    try {
+        $walker.plan({ type => 'invalid' }, [1]);
+        CATCH {
+            when X::Qwiratry::UnknownQueryElement {
+                $caught = True;
+            }
+        }
+    }
+    ok $caught, 'Throws for invalid query type';
+    
+    # Test non-Hash query
+    $caught = False;
+    try {
+        $walker.plan('not-a-hash', [1]);
+        CATCH {
+            when X::Qwiratry::UnknownQueryElement {
+                $caught = True;
+            }
+        }
+    }
+    ok $caught, 'Throws for non-Hash query';
+    
+    # Verify exception details
+    my $exception;
+    try {
+        $walker.plan({ type => 'invalid' }, [1]);
+        CATCH {
+            when X::Qwiratry::UnknownQueryElement {
+                $exception = $_;
+            }
+        }
+    }
+    is $exception.walker-type, 'SimpleWalker', 'Walker type in exception';
+    like $exception.message, /invalid/, 'Message mentions invalid';
+}
+
+subtest 'SimpleWalker hooks are called' => {
+    plan 2;
+    
+    my $walker = SimpleWalker.new;
+    my $plan = $walker.plan({ type => 'test' }, [1]);
+    my $iter = $plan.iterator;
+    
+    ok $iter.context.initialized, 'PRE-PASS was called (initialized = True)';
+    
+    # POST-PASS would be called by higher-level orchestration
+    $walker.POST-PASS($iter.context);
+    ok $iter.context.finalized, 'POST-PASS can be called (finalized = True)';
+}
+
+subtest 'SimpleWalker Context tracks state' => {
+    plan 4;
+    
+    my $walker = SimpleWalker.new;
+    my $plan = $walker.plan({ type => 'count' }, <x y z>);
+    my $iter = $plan.iterator;
+    
+    is $iter.context.visit-count, 0, 'Initial visit count';
+    
+    $iter.pull-one;
+    $iter.pull-one;
+    
+    is $iter.context.visit-count, 2, 'Visit count updated';
+    is $iter.context.results.elems, 2, 'Results collected';
+    is-deeply $iter.context.results, ['x', 'y'], 'Results correct';
+}
+
+subtest 'SimpleWalker capabilities() and supports()' => {
+    plan 5;
+    
+    my $walker = SimpleWalker.new;
+    
+    my %caps = $walker.capabilities;
+    ok %caps<lazy><enabled>, 'Has lazy capability';
+    ok %caps<streaming><enabled>, 'Has streaming capability';
+    nok %caps<parallel><enabled>, 'Parallel not enabled';
+    
+    ok $walker.supports({ type => 'select' }), 'Supports valid query';
+    nok $walker.supports({ type => 'invalid' }), 'Does not support invalid';
+}
+
+subtest 'Multiple iterators are independent' => {
+    plan 6;
+    
+    my $walker = SimpleWalker.new;
+    my $plan = $walker.plan({ type => 'multi' }, [1, 2, 3, 4]);
+    
+    my $iter1 = $plan.iterator;
+    my $iter2 = $plan.iterator;
+    
+    ok $iter1 !=== $iter2, 'Different iterator instances';
+    ok $iter1.context !=== $iter2.context, 'Different context instances';
+    
+    # Advance iter1 using pull-one()
+    $iter1.pull-one;
+    $iter1.pull-one;
+    
+    # iter2 should be independent
+    is $iter2.pull-one, 1, 'iter2 starts at beginning';
+    is $iter1.context.visit-count, 2, 'iter1 context has 2 visits';
+    is $iter2.context.visit-count, 1, 'iter2 context has 1 visit';
+    
+    # Results are independent
+    is-deeply $iter1.context.results, [1, 2], 'iter1 results independent';
+}
+
+subtest 'Plan capabilities reflect walker capabilities' => {
+    plan 2;
+    
+    my $walker = SimpleWalker.new;
+    my $plan = $walker.plan({ type => 'cap-test' }, [1]);
+    
+    my %plan-caps = $plan.capabilities;
+    ok %plan-caps<lazy><enabled>, 'Plan has lazy capability';
+    ok %plan-caps<streaming><enabled>, 'Plan has streaming capability';
+}
+
+subtest 'End-to-end query execution scenario' => {
+    plan 7;
+    
+    # Scenario: Query a list of records, iterate results, track state
+    my @records = (
+        { name => 'Alice', age => 30 },
+        { name => 'Bob', age => 25 },
+        { name => 'Carol', age => 35 }
+    );
+    
+    my $walker = SimpleWalker.new;
+    my $query = { type => 'select', filter => { age => '> 26' } };
+    
+    # Create plan
+    my $plan = $walker.plan($query, @records);
+    ok $plan ~~ Walker::Plan, 'Plan created';
+    
+    # Describe the plan
+    my $desc = $plan.describe;
+    ok $desc.contains('select'), 'Description includes query type';
+    
+    # Get iterator
+    my $iter = $plan.iterator;
+    ok $iter ~~ QueryIterator, 'Iterator created';
+    
+    # Context should be initialized
+    ok $iter.context.initialized, 'Context initialized by PRE-PASS';
+    
+    # Iterate using pull-one() (Raku Iterator protocol) and collect
+    my @results;
+    loop {
+        my $val = $iter.pull-one;
+        last if $val =:= IterationEnd;
+        @results.push($val);
+    }
+    
+    is @results.elems, 3, 'All records returned';
+    is $iter.context.visit-count, 3, 'All visits tracked';
+    is-deeply $iter.context.results, @records, 'Results match input';
+}
+
+done-testing;
