@@ -877,39 +877,6 @@ The rest of this section covers the default version that appears in `Transformer
 
 When exiting the routine for any reason, pop the top iterator off the stack (use the relevant phaser for this).  
 
-##### `copy` and `deepcopy` Methods
-
-This section specifies the required behaviour of shallow and deep copying for all transformable node types within the Transformer framework. These methods MUST be attached to the Transformer object.
-
-###### `copy()` — Shallow Copy
-
-The `copy()` method MUST implement a shallow clone of the node.
-
-####### Required Behaviour
-
-1. Create a new instance of the same node type.  
-	1. First check if the node has a `.copy()` method -- if so, call that to get the copy
-2. Copy all immediate attributes, fields, or metadata values into the new instance.  
-3. **Do not recursively copy children.**  
-   - All child references MUST be shared with the original node.  
-4. The operation MUST be O(1) with respect to the number of descendants.  
-5. Node classes MAY implement their own `.copy()` to customise shallow-copy behaviour, but MUST adhere to the above constraints.
-
-###### `deepcopy()` — Deep Copy
-
-The `deepcopy()` method MUST implement a full recursive clone of the entire data or DAG rooted at the node.
-
-####### Required Behaviour
-
-1. Recursively clone the node and all of its children.  
-2. Maintain structural sharing:  
-	* If multiple parents reference the same child (DAG structure), the resulting deep copy MUST reference a single cloned child, not duplicate subtrees.  
-	* This requires maintaining a "visited" hash keyed by object identity.  
-3. Detect and correctly handle cycles:  
-	* When encountering a node already present in the "visited" hash, reuse the existing clone rather than descending further.  
-4. For primitive, immutable leaf types (e.g., Str, Numeric, Bool), simply return the value as-is.  
-5. Produce a fully independent object graph, identical in content but disjoint in identity.
-
 ##### `transform` method
 
 ```
@@ -1008,6 +975,70 @@ There should be three magic variables that are updated when walking the data.  T
 * `$*CONTEXT` and `$_`: Both set to the current input context node (ie. the current item in the data being walked)
 * `$*CAPTURE` and `$/`: Both set to the capture of the template signature parameters.  These can then be returned, if desired, or accessed via `$/<parameter1>`.  
 * `self`: Reference to the current Transformer object
+
+### 3.3.6. `Copy` service class
+
+```
+module Qwiratry::Copy;
+
+multi sub copy(Mu $x) {
+    $x   # default: identity
+}
+
+multi sub copy(Positional $p) {
+    $p.clone
+}
+
+multi sub copy(Associative $a) {
+    $a.clone
+}
+
+multi sub deepcopy(Positional $p) {
+    $p.map({ deepcopy($_) }).Array
+}
+
+multi sub deepcopy(Associative $a) {
+    $a.map({ .key => deepcopy(.value) }).Hash
+}
+
+multi sub deepcopy(Mu $x) {
+    $x   # atoms, objects with identity
+}
+```
+
+##### `copy` and `deepcopy` Methods
+
+This section specifies the required behaviour of shallow and deep copying for all transformable node types within the Transformer framework. These methods MUST be attached to the Transformer object.
+
+###### `copy()` — Shallow Copy
+
+The `copy()` method MUST implement a shallow clone of the node.
+
+####### Required Behaviour
+
+1. Create a new instance of the same node type.  
+	1. First check if the node has a `.copy()` method -- if so, call that to get the copy
+2. Copy all immediate attributes, fields, or metadata values into the new instance.  
+3. **Do not recursively copy children.**  
+   - All child references MUST be shared with the original node.  
+4. The operation MUST be O(1) with respect to the number of descendants.  
+5. Node classes MAY implement their own `.copy()` to customise shallow-copy behaviour, but MUST adhere to the above constraints.
+
+###### `deepcopy()` — Deep Copy
+
+The `deepcopy()` method MUST implement a full recursive clone of the entire data or DAG rooted at the node.
+
+####### Required Behaviour
+
+1. Recursively clone the node and all of its children.  
+2. Maintain structural sharing:  
+	* If multiple parents reference the same child (DAG structure), the resulting deep copy MUST reference a single cloned child, not duplicate subtrees.  
+	* This requires maintaining a "visited" hash keyed by object identity.  
+3. Detect and correctly handle cycles:  
+	* When encountering a node already present in the "visited" hash, reuse the existing clone rather than descending further.  
+4. For primitive, immutable leaf types (e.g., Str, Numeric, Bool), simply return the value as-is.  
+5. Produce a fully independent object graph, identical in content but disjoint in identity.
+
 
 # 4. Query Execution Flow
 
