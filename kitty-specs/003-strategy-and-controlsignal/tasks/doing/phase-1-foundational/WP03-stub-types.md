@@ -10,10 +10,10 @@ subtasks:
   - "T021"
 title: "RewriteSpec and FinishResult Stub Types"
 phase: "Phase 1 - Foundational"
-lane: "planned"
-assignee: ""
-agent: ""
-shell_pid: ""
+lane: "doing"
+assignee: "claude"
+agent: "claude"
+shell_pid: "126866"
 review_status: ""
 reviewed_by: ""
 history:
@@ -216,4 +216,5 @@ method gist(--> Str) {
 ## Activity Log
 
 - 2024-12-19T09:45:00Z - system - lane=planned - Prompt created.
+- 2024-12-19T10:35:00Z - claude - shell_pid=126866 - lane=doing - Started implementation
 
