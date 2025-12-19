@@ -261,13 +261,13 @@
 **Prompt**: `/tasks/planned/WP08-integration-tests-and-polish.md`
 
 ### Included Subtasks
-- [ ] T055 [P] Integration tests: end-to-end multi-domain query planning and execution in `tests/integration/composite-handover.rakutest`
-- [ ] T056 [P] Integration tests: composite plan with subplans from different walkers executes correctly
-- [ ] T057 [P] Integration tests: handover detection works with real domain-specific walkers (if available)
-- [ ] T058 Code cleanup and refactoring: ensure Raku coding style (Tim Nelson/Elizabeth Mattijsen style)
-- [ ] T059 Documentation updates: ensure Rakudoc comments in all modules
-- [ ] T060 Validate quickstart.md scenario (if quickstart exists)
-- [ ] T061 Performance validation: verify trait metadata discovery is efficient, walker discovery is cached
+- [x] T055 [P] Integration tests: end-to-end multi-domain query planning and execution in `tests/integration/composite-handover.rakutest`
+- [x] T056 [P] Integration tests: composite plan with subplans from different walkers executes correctly
+- [x] T057 [P] Integration tests: handover detection works with real domain-specific walkers (if available)
+- [x] T058 Code cleanup and refactoring: ensure Raku coding style (Tim Nelson/Elizabeth Mattijsen style)
+- [x] T059 Documentation updates: ensure Rakudoc comments in all modules
+- [x] T060 Validate quickstart.md scenario (if quickstart exists)
+- [x] T061 Performance validation: verify trait metadata discovery is efficient, walker discovery is cached
 
 ### Implementation Notes
 - Write comprehensive integration tests covering end-to-end flows
