@@ -227,14 +227,14 @@
 **Prompt**: `/tasks/planned/WP07-handover-detection-priority-and-edge-cases.md`
 
 ### Included Subtasks
-- [ ] T047 Implement AST pattern suitability check (optional optimization): recognize AST patterns, delegate if pattern matches
-- [ ] T048 Implement heuristic probing (optional, last resort): use heuristics to select walker
-- [ ] T049 Ensure priority order: domain metadata → capability → pattern → heuristic
-- [ ] T050 Handle edge case: no walker supports required subtree → fail with diagnostic error
-- [ ] T051 Handle edge case: multiple walkers support subtree → select first one (or based on priority/specificity)
-- [ ] T052 Handle edge case: walker declines responsibility after accepting via `supports()` → walker throws exception during planning
-- [ ] T053 [P] Integration tests: priority order is followed correctly in `tests/integration/composite-handover.rakutest`
-- [ ] T054 [P] Integration tests: edge cases handled correctly
+- [x] T047 Implement AST pattern suitability check (optional optimization): recognize AST patterns, delegate if pattern matches
+- [x] T048 Implement heuristic probing (optional, last resort): use heuristics to select walker
+- [x] T049 Ensure priority order: domain metadata → capability → pattern → heuristic
+- [x] T050 Handle edge case: no walker supports required subtree → fail with diagnostic error
+- [x] T051 Handle edge case: multiple walkers support subtree → select first one (or based on priority/specificity)
+- [x] T052 Handle edge case: walker declines responsibility after accepting via `supports()` → walker throws exception during planning
+- [x] T053 [P] Integration tests: priority order is followed correctly in `tests/integration/composite-handover.rakutest`
+- [x] T054 [P] Integration tests: edge cases handled correctly
 
 ### Implementation Notes
 - AST pattern suitability is optional optimization (not required for correctness)
