@@ -11,7 +11,7 @@ subtasks:
 title: "RewriteSpec and FinishResult Stub Types"
 phase: "Phase 1 - Foundational"
 lane: "done"
-assignee: ""
+assignee: "claude-reviewer"
 agent: "claude-reviewer"
 shell_pid: "23643"
 review_status: "approved without changes"

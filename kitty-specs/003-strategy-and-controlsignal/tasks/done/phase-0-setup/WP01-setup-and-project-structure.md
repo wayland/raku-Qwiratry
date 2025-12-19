@@ -13,7 +13,7 @@ subtasks:
 title: "Setup and Project Structure"
 phase: "Phase 0 - Setup"
 lane: "done"
-assignee: ""
+assignee: "claude-reviewer"
 agent: "claude-reviewer"
 shell_pid: "23643"
 review_status: "approved without changes"
