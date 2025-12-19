@@ -196,7 +196,7 @@
 
 **Goal**: Comprehensive integration tests and usage examples demonstrating all user stories.
 **Independent Test**: All 6 user stories from spec have passing integration tests.
-**Prompt**: `tasks/for_review/phase-3-polish/WP06-integration-tests-and-examples.md` ✅
+**Prompt**: `tasks/done/phase-3-polish/WP06-integration-tests-and-examples.md` ✅
 
 ### Included Subtasks
 - [x] T049 [P] Integration test: Basic traversal control (User Story 1) - STOP_TRAVERSAL
