@@ -3,19 +3,33 @@ use Test;
 use lib 'lib';
 use Qwiratry::FinishResult;
 
-plan *;
+plan 4;
 
-# Placeholder tests - implemented in WP03
-
-subtest 'FinishResult class construction', {
-    plan 1;
-    pass 'Placeholder - class tests will be added in WP03';
+subtest 'Construction with type only', {
+    plan 2;
+    my $r = FinishResult.new(type => 'final-result');
+    is $r.type, 'final-result', 'type attribute set';
+    ok !$r.value.defined, 'value is undefined by default';
 }
 
-subtest 'FinishResult gist method', {
-    plan 1;
-    pass 'Placeholder - gist tests will be added in WP03';
+subtest 'Construction with type and value', {
+    plan 2;
+    my $r = FinishResult.new(type => 'aggregated', value => [1, 2, 3]);
+    is $r.type, 'aggregated', 'type attribute set';
+    is-deeply $r.value, [1, 2, 3], 'value attribute set';
+}
+
+subtest 'Type is required', {
+    plan 2;
+    dies-ok { FinishResult.new() }, 'Dies without type parameter';
+    dies-ok { FinishResult.new(value => 42) }, 'Dies with only value';
+}
+
+subtest 'Gist output', {
+    plan 2;
+    my $r = FinishResult.new(type => 'test', value => 'hello');
+    like $r.gist, /FinishResult/, 'gist contains class name';
+    like $r.gist, /test/, 'gist contains type';
 }
 
 done-testing;
-
