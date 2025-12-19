@@ -13,10 +13,10 @@ subtasks:
   - "T027"
 title: "Handover Detection - Domain Metadata & Capability Checks"
 phase: "Phase 2 - Core"
-lane: "doing"
+lane: "for_review"
 assignee: ""
 agent: "claude"
-shell_pid: "20070"
+shell_pid: "21260"
 review_status: ""
 reviewed_by: ""
 history:
@@ -221,3 +221,4 @@ history:
   - Updated plan() method to use detect-handover() for delegation
   - Created comprehensive unit tests for all handover detection methods
   - All code compiles successfully
+- 2025-12-19T09:27:44Z – claude – shell_pid=21260 – lane=for_review – Ready for review - implementation complete
