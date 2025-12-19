@@ -49,18 +49,18 @@
 
 ---
 
-## Work Package WP02: ControlSignal Enum (Priority: P0) 🎯 MVP Foundation
+## Work Package WP02: ControlSignal Enum (Priority: P0) 🎯 MVP Foundation ✅
 
 **Goal**: Implement the ControlSignal enumeration with all 6 values and documented semantics.
 **Independent Test**: Enum values are accessible and can be used as return types.
-**Prompt**: `tasks/planned/phase-1-foundational/WP02-controlsignal-enum.md`
+**Prompt**: `tasks/done/phase-1-foundational/WP02-controlsignal-enum.md` ✅
 
 ### Included Subtasks
-- [ ] T010 Write unit tests for ControlSignal enum values (tests-first)
-- [ ] T011 Implement ControlSignal enum with 6 values: NO_REWRITE, REWRITE_IMMEDIATE, REWRITE_DEFERRED, SKIP_ELEMENT, STOP_TRAVERSAL, FINAL_RESULT
-- [ ] T012 Add Rakudoc documentation for each enum value
-- [ ] T013 Export enum from module
-- [ ] T014 Verify tests pass
+- [x] T010 Write unit tests for ControlSignal enum values (tests-first)
+- [x] T011 Implement ControlSignal enum with 6 values: NO_REWRITE, REWRITE_IMMEDIATE, REWRITE_DEFERRED, SKIP_ELEMENT, STOP_TRAVERSAL, FINAL_RESULT
+- [x] T012 Add Rakudoc documentation for each enum value
+- [x] T013 Export enum from module
+- [x] T014 Verify tests pass
 
 ### Implementation Notes
 - Enum definition per Specification.md 3.2.6
