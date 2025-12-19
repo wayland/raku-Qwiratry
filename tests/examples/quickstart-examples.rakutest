@@ -1,0 +1,196 @@
+#!/usr/bin/env raku
+use Test;
+use lib 'lib';
+use Qwiratry::ControlSignal;
+use Qwiratry::Strategy;
+use Qwiratry::FinishResult;
+use Qwiratry::Context;
+
+plan 6;
+
+# =============================================================================
+# Validate quickstart.md Examples
+# =============================================================================
+
+subtest 'Quickstart: Basic Strategy Creation' => {
+    plan 3;
+    
+    # Example from quickstart.md
+    class CollectMatchesStrategy does Strategy {
+        method on-match($element, Match $match, Context $ctx) {
+            # Store matched elements in Context
+            $ctx.matches.push: $element if $ctx.matches.defined;
+            NO_REWRITE
+        }
+        
+        method finish($root, Context $ctx --> FinishResult) {
+            FinishResult.new(
+                type => 'collected',
+                value => $ctx.matches // []
+            )
+        }
+    }
+    
+    my $strategy = CollectMatchesStrategy.new;
+    my class TestContext does Context {
+        has @.matches;
+    }
+    my $ctx = TestContext.new;
+    my $match = 'test'.match(/test/);
+    
+    my $result = $strategy.on-match({ name => 'test' }, $match, $ctx);
+    is $result, NO_REWRITE, 'on-match returns NO_REWRITE';
+    
+    my $finish = $strategy.finish({}, $ctx);
+    ok $finish ~~ FinishResult, 'finish returns FinishResult';
+    is $finish.type, 'collected', 'finish result has correct type';
+}
+
+subtest 'Quickstart: Early Termination Pattern' => {
+    plan 2;
+    
+    # Example from quickstart.md
+    class FindFirstStrategy does Strategy {
+        has $.found;
+        
+        method on-match($element, Match $match, Context $ctx) {
+            $!found = $element;
+            STOP_TRAVERSAL
+        }
+        
+        method finish($root, Context $ctx --> FinishResult) {
+            FinishResult.new(type => 'found', value => $.found)
+        }
+    }
+    
+    my $strategy = FindFirstStrategy.new;
+    my class TestContext does Context { }
+    my $ctx = TestContext.new;
+    my $match = 'test'.match(/test/);
+    
+    my $result = $strategy.on-match({ name => 'target' }, $match, $ctx);
+    is $result, STOP_TRAVERSAL, 'Returns STOP_TRAVERSAL';
+    ok $strategy.found.defined, 'Found element stored';
+}
+
+subtest 'Quickstart: Branch Pruning Pattern' => {
+    plan 2;
+    
+    # Example from quickstart.md
+    class SkipMetadataStrategy does Strategy {
+        method should-follow($origin, $relation, $target, Context $ctx --> Bool) {
+            return False if $target<name> eq 'metadata';
+            True
+        }
+    }
+    
+    my $strategy = SkipMetadataStrategy.new;
+    my class TestContext does Context { }
+    my $ctx = TestContext.new;
+    
+    my $should-follow = $strategy.should-follow(
+        { name => 'root' },
+        'child',
+        { name => 'metadata' },
+        $ctx
+    );
+    nok $should-follow, 'Returns False for metadata';
+    
+    $should-follow = $strategy.should-follow(
+        { name => 'root' },
+        'child',
+        { name => 'content' },
+        $ctx
+    );
+    ok $should-follow, 'Returns True for content';
+}
+
+subtest 'Quickstart: Element Filtering Pattern' => {
+    plan 2;
+    
+    # Example from quickstart.md
+    class SkipCommentsStrategy does Strategy {
+        method before($element, Context $ctx) {
+            return SKIP_ELEMENT if $element<type> eq 'comment';
+            Nil
+        }
+    }
+    
+    my $strategy = SkipCommentsStrategy.new;
+    my class TestContext does Context { }
+    my $ctx = TestContext.new;
+    
+    my $signal1 = $strategy.before({ type => 'comment' }, $ctx);
+    is $signal1, SKIP_ELEMENT, 'Returns SKIP_ELEMENT for comments';
+    
+    my $signal2 = $strategy.before({ type => 'content' }, $ctx);
+    ok !$signal2.defined, 'Returns Nil (continue) for non-comments';
+}
+
+subtest 'Quickstart: Depth Tracking Pattern' => {
+    plan 2;
+    
+    # Example from quickstart.md
+    class DepthTrackingStrategy does Strategy {
+        method before($element, Context $ctx) {
+            $ctx.depth++;
+            Nil
+        }
+        
+        method after($element, Context $ctx) {
+            $ctx.depth--;
+            Nil
+        }
+    }
+    
+    my $strategy = DepthTrackingStrategy.new;
+    my class TestContext does Context {
+        has Int $.depth is rw = 0;
+    }
+    my $ctx = TestContext.new;
+    
+    $strategy.before({}, $ctx);
+    is $ctx.depth, 1, 'before increments depth';
+    
+    $strategy.after({}, $ctx);
+    is $ctx.depth, 0, 'after decrements depth';
+}
+
+subtest 'Quickstart: Fixed-Point Iteration Pattern' => {
+    plan 3;
+    
+    # Example from quickstart.md
+    class OptimizationStrategy does Strategy {
+        method on-match($element, Match $match, Context $ctx) {
+            if $element<optimizable> {
+                $ctx.changes++;
+                REWRITE_IMMEDIATE
+            } else {
+                NO_REWRITE
+            }
+        }
+        
+        method should-continue($root, Context $ctx --> Bool) {
+            my $had-changes = $ctx.changes > 0;
+            $ctx.changes = 0;
+            $had-changes
+        }
+    }
+    
+    my $strategy = OptimizationStrategy.new;
+    my class TestContext does Context {
+        has Int $.changes is rw = 0;
+    }
+    my $ctx = TestContext.new;
+    my $match = 'test'.match(/test/);
+    
+    my $result1 = $strategy.on-match({ optimizable => True }, $match, $ctx);
+    is $result1, REWRITE_IMMEDIATE, 'Returns REWRITE_IMMEDIATE for optimizable';
+    is $ctx.changes, 1, 'Changes tracked in context';
+    
+    my $should-continue = $strategy.should-continue({}, $ctx);
+    ok $should-continue, 'should-continue returns True when changes occurred';
+}
+
+done-testing;
+

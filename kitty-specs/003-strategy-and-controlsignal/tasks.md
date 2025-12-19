@@ -192,23 +192,23 @@
 
 ---
 
-## Work Package WP06: Integration Tests and Examples (Priority: P2)
+## Work Package WP06: Integration Tests and Examples (Priority: P2) ✅
 
 **Goal**: Comprehensive integration tests and usage examples demonstrating all user stories.
 **Independent Test**: All 6 user stories from spec have passing integration tests.
-**Prompt**: `tasks/planned/phase-3-polish/WP06-integration-tests-and-examples.md`
+**Prompt**: `tasks/for_review/phase-3-polish/WP06-integration-tests-and-examples.md` ✅
 
 ### Included Subtasks
-- [ ] T049 [P] Integration test: Basic traversal control (User Story 1) - STOP_TRAVERSAL
-- [ ] T050 [P] Integration test: Element skipping and pruning (User Story 2) - SKIP_ELEMENT, should-follow
-- [ ] T051 [P] Integration test: Match processing (User Story 3) - on-match collecting results
-- [ ] T052 [P] Integration test: Pre/post visit processing (User Story 4) - before/after depth tracking
-- [ ] T053 [P] Integration test: Traversal completion (User Story 5) - finish hook aggregation
-- [ ] T054 [P] Integration test: Fixed-point iteration (User Story 6) - should-continue multi-pass
-- [ ] T055 Integration test: Edge cases from spec (Nil returns, signal precedence)
-- [ ] T056 Create example Strategy implementations in tests/examples/
-- [ ] T057 Validate quickstart.md examples compile and run
-- [ ] T058 Final test suite verification
+- [x] T049 [P] Integration test: Basic traversal control (User Story 1) - STOP_TRAVERSAL
+- [x] T050 [P] Integration test: Element skipping and pruning (User Story 2) - SKIP_ELEMENT, should-follow
+- [x] T051 [P] Integration test: Match processing (User Story 3) - on-match collecting results
+- [x] T052 [P] Integration test: Pre/post visit processing (User Story 4) - before/after depth tracking
+- [x] T053 [P] Integration test: Traversal completion (User Story 5) - finish hook aggregation
+- [x] T054 [P] Integration test: Fixed-point iteration (User Story 6) - should-continue multi-pass
+- [x] T055 Integration test: Edge cases from spec (Nil returns, signal precedence)
+- [x] T056 Create example Strategy implementations in tests/examples/
+- [x] T057 Validate quickstart.md examples compile and run
+- [x] T058 Final test suite verification
 
 ### Implementation Notes
 - Each user story test should be self-contained
