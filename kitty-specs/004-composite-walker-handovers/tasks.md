@@ -57,9 +57,9 @@
 - [x] T005 Store domain metadata in meta-object (Array[Str] of domain names)
 - [x] T006 Implement runtime discovery mechanism (access via `.^traits` or `.^meta` introspection)
 - [x] T007 [P] Unit tests: trait application to variable declarations in `tests/unit/provides.rakutest`
-- [ ] T008 [P] Unit tests: metadata discovery for single domain (`provides<sql>`)
-- [ ] T009 [P] Unit tests: metadata discovery for multiple domains (`provides<sql json>`)
-- [ ] T010 [P] Unit tests: verify trait does not alter runtime semantics or method dispatch
+- [x] T008 [P] Unit tests: metadata discovery for single domain (`provides<sql>`)
+- [x] T009 [P] Unit tests: metadata discovery for multiple domains (`provides<sql json>`)
+- [x] T010 [P] Unit tests: verify trait does not alter runtime semantics or method dispatch
 
 ### Implementation Notes
 - Implement `trait_mod:<provides>` that accepts domain names and attaches to declarand's meta-object
