@@ -11,7 +11,7 @@ use Qwiratry::Walker::Plan;
 use Qwiratry::QueryIterator;
 use Qwiratry::Context;
 
-plan 20;
+plan 30;
 
 # =============================================================================
 # Helper classes for testing
@@ -278,5 +278,208 @@ subtest 'Capability delegation (T022, T027)' => {
     ok $master.^can('detect-handover'), 'detect-handover method exists';
     ok True, 'Capability delegation logic verified (first walker selected)';
     ok True, 'Multiple walker support handling verified';
+}
+
+# =============================================================================
+# WP05 Tests: Plan-Level Handover with Embedded Subplans
+# =============================================================================
+
+subtest 'CompositePlan class structure (T028)' => {
+    plan 4;
+    
+    use Qwiratry::MasterWalker;
+    
+    # Create a mock query AST (using a simple class for testing)
+    my $mock-query = class { method ^name { 'MockQuery' } };
+    
+    # Create CompositePlan
+    my $plan = CompositePlan.new(query-ast => $mock-query);
+    
+    ok $plan ~~ Walker::Plan, 'CompositePlan implements Walker::Plan role';
+    ok $plan.^can('subplans'), 'CompositePlan has subplans() method';
+    ok $plan.^can('query'), 'CompositePlan has query() method';
+    ok $plan.^can('describe'), 'CompositePlan has describe() method';
+}
+
+subtest 'CompositePlan attributes (T029)' => {
+    plan 3;
+    
+    use Qwiratry::MasterWalker;
+    use Qwiratry::Walker;
+    
+    my $mock-query = class { method ^name { 'MockQuery' } };
+    
+    # Create mock subplan
+    my class MockPlan does Walker::Plan {
+        has $.query-ast;
+        method iterator { die "Not implemented" }
+        method query { $!query-ast }
+        method describe { "MockPlan" }
+    }
+    
+    my $subplan1 = MockPlan.new(query-ast => $mock-query);
+    my $subplan2 = MockPlan.new(query-ast => $mock-query);
+    
+    my $plan = CompositePlan.new(
+        query-ast => $mock-query,
+        subplans => [$subplan1, $subplan2]
+    );
+    
+    is $plan.query, $mock-query, 'CompositePlan stores query-ast';
+    is $plan.subplans.elems, 2, 'CompositePlan stores subplans';
+    ok $plan.subplans[0] ~~ MockPlan, 'Subplan is correct type';
+}
+
+subtest 'CompositePlan.subplans() method (T030, T036)' => {
+    plan 4;
+    
+    use Qwiratry::MasterWalker;
+    use Qwiratry::Walker;
+    
+    my $mock-query = class { method ^name { 'MockQuery' } };
+    
+    my class MockPlan does Walker::Plan {
+        has $.query-ast;
+        method iterator { die "Not implemented" }
+        method query { $!query-ast }
+        method describe { "MockPlan" }
+    }
+    
+    my $subplan1 = MockPlan.new(query-ast => $mock-query);
+    my $subplan2 = MockPlan.new(query-ast => $mock-query);
+    my @subplans = [$subplan1, $subplan2];
+    
+    my $plan = CompositePlan.new(
+        query-ast => $mock-query,
+        subplans => @subplans
+    );
+    
+    my @returned = $plan.subplans();
+    ok @returned ~~ Array, 'subplans() returns Array';
+    is @returned.elems, 2, 'subplans() returns correct count';
+    ok @returned[0] ~~ Walker::Plan, 'Subplan implements Walker::Plan';
+    ok @returned[1] ~~ Walker::Plan, 'Second subplan implements Walker::Plan';
+}
+
+subtest 'CompositePlan.query() method (T037)' => {
+    plan 3;
+    
+    use Qwiratry::MasterWalker;
+    
+    my $mock-query = class { method ^name { 'MockQuery' } };
+    
+    my $plan = CompositePlan.new(query-ast => $mock-query);
+    
+    is $plan.query, $mock-query, 'query() returns original query AST';
+    ok $plan.query.^name eq 'MockQuery', 'Query AST is not modified';
+    
+    # Verify query() returns same reference
+    ok $plan.query === $mock-query, 'query() returns same reference (immutability)';
+}
+
+subtest 'MasterWalker.plan() with handover delegation (T031, T035)' => {
+    plan 5;
+    
+    use Qwiratry::MasterWalker;
+    use Qwiratry::Provides;
+    use Qwiratry::Walker;
+    
+    # Create walker that will be selected
+    my class DelegatedWalker does Walker {
+        has Bool $.plan-called = False;
+        has $.plan-query;
+        has $.plan-root;
+        
+        method plan($query, $root --> Walker::Plan) {
+            $!plan-called = True;
+            $!plan-query = $query;
+            $!plan-root = $root;
+            
+            # Return a mock plan
+            my class MockPlan does Walker::Plan {
+                has $.query-ast;
+                method iterator { die "Not implemented" }
+                method query { $!query-ast }
+                method describe { "MockPlan" }
+            }
+            MockPlan.new(query-ast => $query);
+        }
+        
+        method iterator(Walker::Plan $plan --> QueryIterator) {
+            die "Not implemented";
+        }
+        
+        method supports($query --> Bool) {
+            return True;
+        }
+    }
+    
+    my $walker = DelegatedWalker.new;
+    my $master = MasterWalker.new(:candidate-walkers([$walker]));
+    
+    # Create root without provides trait (will use capability check)
+    my $root = "plain";
+    my $mock-query = class { method ^name { 'MockQuery' } };
+    
+    # Call plan() - should detect handover and delegate
+    my $plan = $master.plan($mock-query, $root);
+    
+    ok $plan ~~ CompositePlan, 'plan() returns CompositePlan';
+    ok $walker.plan-called, 'Delegated walker\'s plan() was called';
+    is $walker.plan-query, $mock-query, 'Delegated walker received query';
+    is $walker.plan-root, $root, 'Delegated walker received root';
+    is $plan.subplans.elems, 1, 'CompositePlan contains one subplan';
+}
+
+subtest 'Plan immutability (T038)' => {
+    plan 4;
+    
+    use Qwiratry::MasterWalker;
+    use Qwiratry::Walker;
+    
+    # Create walker that returns a plan
+    my class ImmutableWalker does Walker {
+        method plan($query, $root --> Walker::Plan) {
+            my class MockPlan does Walker::Plan {
+                has $.query-ast;
+                method iterator { die "Not implemented" }
+                method query { $!query-ast }
+                method describe { "MockPlan" }
+            }
+            MockPlan.new(query-ast => $query);
+        }
+        
+        method iterator(Walker::Plan $plan --> QueryIterator) {
+            die "Not implemented";
+        }
+        
+        method supports($query --> Bool) {
+            return True;
+        }
+    }
+    
+    my $walker = ImmutableWalker.new;
+    my $master = MasterWalker.new(:candidate-walkers([$walker]));
+    
+    # Create original query
+    my $original-query = class { 
+        method ^name { 'OriginalQuery' }
+        has $.value = "original";
+    }.new;
+    
+    my $root = "plain";
+    
+    # Call plan() - should not mutate original query
+    my $plan = $master.plan($original-query, $root);
+    
+    # Verify original query is unchanged
+    is $original-query.value, "original", 'Original query value unchanged';
+    is $original-query.^name, 'OriginalQuery', 'Original query type unchanged';
+    
+    # Verify composite plan has original query
+    is $plan.query, $original-query, 'CompositePlan.query() returns original query';
+    
+    # Verify subplan has its own query reference
+    ok $plan.subplans[0].query === $original-query, 'Subplan has same query reference (not mutated)';
 }
 

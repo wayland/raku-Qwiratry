@@ -15,6 +15,58 @@ unit module Qwiratry::MasterWalker;
 use Qwiratry::Walker;
 use Qwiratry::Provides;
 use Qwiratry::X;
+use Qwiratry::QueryIterator;
+
+#| Composite Plan that implements Walker::Plan role with embedded subplans.
+#|
+#| Represents a composite execution plan containing subplans from multiple
+#| domain-specific walkers. The composite plan maintains the original query AST
+#| and embeds subplans as an array.
+#|
+#| Example:
+#|   my $plan = CompositePlan.new(
+#|       query-ast => $query,
+#|       subplans => [$subplan1, $subplan2]
+#|   );
+class CompositePlan does Walker::Plan {
+    #| Original query AST (composite query, not modified)
+    has RakuAST::Node $.query-ast is required;
+    
+    #| Embedded subplans from delegated walkers
+    has @.subplans;
+    
+    #| Execution order for subplans (optional, for future use)
+    has @.execution-order;
+    
+    #| Constructor
+    submethod BUILD(:$!query-ast, :@subplans, :@execution-order) {
+        @!subplans = @subplans // Array.new;
+        @!execution-order = @execution-order // Array.new;
+    }
+    
+    #| Return array of embedded subplans
+    method subplans(--> Array) {
+        return @!subplans;
+    }
+    
+    #| Return original query AST (not modified)
+    method query(--> RakuAST::Node) {
+        return $!query-ast;
+    }
+    
+    #| Describe the composite plan
+    method describe(--> Str) {
+        my $subplan-count = @!subplans.elems;
+        return "CompositePlan with $subplan-count subplan(s)";
+    }
+    
+    #| Produce QueryIterator for this composite plan
+    #| This will be fully implemented in WP06
+    method iterator(--> QueryIterator) {
+        # TODO: Implement composite iterator in WP06
+        die "CompositePlan.iterator() not yet implemented (WP06)";
+    }
+}
 
 #| Master Walker class that implements Walker role for composite handovers.
 #|
@@ -175,17 +227,52 @@ class MasterWalker does Walker {
         return Nil;
     }
     
-    #| Required: Create execution plan from query and root.
-    #| Detects handovers and delegates to domain-specific walkers.
-    method plan(RakuAST::Node $query, Mu $root --> Walker::Plan) {
-        # TODO: Implement plan method with handover detection and subplan embedding
-        # This will be fully implemented in WP05
-        # For now, detect handover and delegate planning
-        my $walker = self.detect-handover($query, $root);
-        if $walker {
-            # Delegate planning to domain-specific walker
-            return $walker.plan($query, $root);
+    #| Extract AST subtree from query for delegation.
+    #| For MVP, delegates entire query. Subtree extraction can be enhanced later.
+    method extract-subtree(RakuAST::Node $query --> RakuAST::Node) {
+        # For MVP, return entire query as subtree
+        # This can be enhanced later to extract specific subtrees
+        return $query;
+    }
+    
+    #| Delegate planning to domain-specific walker.
+    #| Calls walker's plan() method and handles exceptions.
+    method delegate-planning(Walker $walker, RakuAST::Node $subtree, Mu $root --> Walker::Plan) {
+        try {
+            return $walker.plan($subtree, $root);
+        } catch X::Qwiratry::UnknownQueryElement {
+            # Re-throw with context
+            .rethrow;
+        } catch {
+            # Wrap other exceptions
+            X::Qwiratry::UnknownQueryElement.new(
+                message => "Walker {$walker.^name} failed to plan: {.message}",
+                walker-type => $walker.^name,
+                query-ast => $subtree
+            ).throw;
         }
+    }
+    
+    #| Required: Create execution plan from query and root.
+    #| Detects handovers, delegates planning, and embeds subplans in CompositePlan.
+    method plan(RakuAST::Node $query, Mu $root --> Walker::Plan) {
+        # Detect if handover is needed
+        my $walker = self.detect-handover($query, $root);
+        
+        if $walker {
+            # Extract subtree for delegation (for MVP, entire query)
+            my $subtree = self.extract-subtree($query);
+            
+            # Delegate planning to domain-specific walker
+            my $subplan = self.delegate-planning($walker, $subtree, $root);
+            
+            # Create composite plan with original query AST and embedded subplan
+            return CompositePlan.new(
+                query-ast => $query,
+                subplans => [$subplan]
+            );
+        }
+        
         # No handover needed or no suitable walker found
         # For MVP, throw exception if no walker found
         X::Qwiratry::UnknownQueryElement.new(
