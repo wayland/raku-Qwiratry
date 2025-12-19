@@ -1,0 +1,37 @@
+{
+  "accept_commit": null,
+  "acceptance_history": [
+    {
+      "accepted_at": "2025-12-19T22:57:59Z",
+      "accepted_by": "cursor",
+      "accepted_from_commit": "dbdada806d90aa621104e64fc093cae8d1990d3b",
+      "branch": "004-composite-walker-handovers",
+      "mode": "local"
+    }
+  ],
+  "acceptance_mode": "local",
+  "accepted_at": "2025-12-19T22:57:59Z",
+  "accepted_by": "cursor",
+  "accepted_from_commit": "dbdada806d90aa621104e64fc093cae8d1990d3b",
+  "created_at": "2025-12-19T04:23:21Z",
+  "feature_number": "004",
+  "friendly_name": "Composite Walker Handovers",
+  "merge_history": [
+    {
+      "merge_commit": "727df7c9659a22dca4982234a327272e4233b1fc",
+      "merged_at": "2025-12-19T23:01:45Z",
+      "merged_by": "Tim Nelson",
+      "pushed": false,
+      "strategy": "merge",
+      "target": "master"
+    }
+  ],
+  "merged_at": "2025-12-19T23:01:45Z",
+  "merged_by": "Tim Nelson",
+  "merged_commit": "727df7c9659a22dca4982234a327272e4233b1fc",
+  "merged_into": "master",
+  "merged_push": false,
+  "merged_strategy": "merge",
+  "slug": "004-composite-walker-handovers",
+  "source_description": "-- we want to do the ticket at docs/tickets/composite-handover-shell.md"
+}
