@@ -13,10 +13,10 @@ subtasks:
   - "T058"
 title: "Integration Tests and Examples"
 phase: "Phase 3 - Polish"
-lane: "planned"
-assignee: ""
-agent: ""
-shell_pid: ""
+lane: "doing"
+assignee: "claude"
+agent: "claude"
+shell_pid: "28095"
 review_status: ""
 reviewed_by: ""
 history:
@@ -285,4 +285,5 @@ subtest 'User Story 6 - Fixed-Point Iteration', {
 ## Activity Log
 
 - 2024-12-19T09:45:00Z - system - lane=planned - Prompt created.
+- 2024-12-19T12:25:00Z - claude - shell_pid=28095 - lane=doing - Started implementation
 
