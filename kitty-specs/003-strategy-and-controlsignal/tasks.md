@@ -78,20 +78,20 @@
 
 ---
 
-## Work Package WP03: RewriteSpec and FinishResult Stub Types (Priority: P1)
+## Work Package WP03: RewriteSpec and FinishResult Stub Types (Priority: P1) ✅
 
 **Goal**: Implement stub types for RewriteSpec role and FinishResult class.
 **Independent Test**: Types can be instantiated and used as return types from hooks.
-**Prompt**: `tasks/planned/phase-1-foundational/WP03-stub-types.md`
+**Prompt**: `tasks/done/phase-1-foundational/WP03-stub-types.md` ✅
 
 ### Included Subtasks
-- [ ] T015 [P] Write unit tests for RewriteSpec role (tests-first)
-- [ ] T016 [P] Write unit tests for FinishResult class (tests-first)
-- [ ] T017 [P] Implement RewriteSpec as empty marker role
-- [ ] T018 [P] Implement FinishResult class with type and value attributes
-- [ ] T019 [P] Add gist method to FinishResult for human-readable output
-- [ ] T020 Add Rakudoc documentation for both types
-- [ ] T021 Verify all tests pass
+- [x] T015 [P] Write unit tests for RewriteSpec role (tests-first)
+- [x] T016 [P] Write unit tests for FinishResult class (tests-first)
+- [x] T017 [P] Implement RewriteSpec as empty marker role
+- [x] T018 [P] Implement FinishResult class with type and value attributes
+- [x] T019 [P] Add gist method to FinishResult for human-readable output
+- [x] T020 Add Rakudoc documentation for both types
+- [x] T021 Verify all tests pass
 
 ### Implementation Notes
 - RewriteSpec is intentionally minimal (stub for future feature)
