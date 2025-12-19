@@ -26,9 +26,9 @@
 **Prompt**: `/tasks/planned/WP01-setup-and-project-structure.md`
 
 ### Included Subtasks
-- [ ] T001 Create module structure: `lib/Qwiratry/Provides.rakumod`, `lib/Qwiratry/MasterWalker.rakumod`
-- [ ] T002 [P] Create test structure: `tests/unit/provides.rakutest`, `tests/unit/master-walker.rakutest`, `tests/integration/composite-handover.rakutest`
-- [ ] T003 Verify Walker core infrastructure (feature 002) is available and accessible
+- [x] T001 Create module structure: `lib/Qwiratry/Provides.rakumod`, `lib/Qwiratry/MasterWalker.rakumod`
+- [x] T002 [P] Create test structure: `tests/unit/provides.rakutest`, `tests/unit/master-walker.rakutest`, `tests/integration/composite-handover.rakutest`
+- [x] T003 Verify Walker core infrastructure (feature 002) is available and accessible
 
 ### Implementation Notes
 - Create module files with basic structure (unit module declarations, exports)
