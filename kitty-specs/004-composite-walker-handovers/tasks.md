@@ -85,13 +85,13 @@
 **Prompt**: `/tasks/planned/WP03-master-walker-discovery-and-registration.md`
 
 ### Included Subtasks
-- [ ] T011 Implement `Qwiratry::MasterWalker` class in `lib/Qwiratry/MasterWalker.rakumod` (basic structure, implements Walker role)
-- [ ] T012 Implement `discover-walkers()` method: scan loaded classes/types checking `$type.^does(Walker)`
-- [ ] T013 Implement lazy discovery caching (cache discovered walkers per instance)
-- [ ] T014 Implement constructor with optional `:@candidate-walkers` parameter (overrides discovery)
-- [ ] T015 [P] Unit tests: discovery mechanism finds walkers implementing Walker role in `tests/unit/master-walker.rakutest`
-- [ ] T016 [P] Unit tests: explicit registration overrides discovery
-- [ ] T017 [P] Unit tests: discovery caching (only runs once per instance)
+- [x] T011 Implement `Qwiratry::MasterWalker` class in `lib/Qwiratry/MasterWalker.rakumod` (basic structure, implements Walker role)
+- [x] T012 Implement `discover-walkers()` method: scan loaded classes/types checking `$type.^does(Walker)`
+- [x] T013 Implement lazy discovery caching (cache discovered walkers per instance)
+- [x] T014 Implement constructor with optional `:@candidate-walkers` parameter (overrides discovery)
+- [x] T015 [P] Unit tests: discovery mechanism finds walkers implementing Walker role in `tests/unit/master-walker.rakutest`
+- [x] T016 [P] Unit tests: explicit registration overrides discovery
+- [x] T017 [P] Unit tests: discovery caching (only runs once per instance)
 
 ### Implementation Notes
 - Master Walker must implement Walker role (plan, iterator methods)
