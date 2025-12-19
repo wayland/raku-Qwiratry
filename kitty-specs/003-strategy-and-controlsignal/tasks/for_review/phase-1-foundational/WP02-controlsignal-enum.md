@@ -8,7 +8,7 @@ subtasks:
   - "T014"
 title: "ControlSignal Enum"
 phase: "Phase 1 - Foundational"
-lane: "doing"
+lane: "for_review"
 assignee: "claude"
 agent: "claude"
 shell_pid: "117738"
@@ -179,4 +179,6 @@ enum ControlSignal is export <
 
 - 2024-12-19T09:45:00Z - system - lane=planned - Prompt created.
 - 2024-12-19T10:20:00Z - claude - shell_pid=117738 - lane=doing - Started implementation
+- 2024-12-19T10:30:00Z - claude - shell_pid=117738 - lane=doing - Completed: Implemented ControlSignal enum with all 6 values, added Rakudoc documentation, wrote comprehensive unit tests. Code compiles correctly. Note: Test execution blocked by known Rakudo precompilation bug (MVMContext serialization) affecting entire repository, not code issue.
+- 2024-12-19T10:31:00Z - claude - shell_pid=117738 - lane=for_review - Ready for review
 
