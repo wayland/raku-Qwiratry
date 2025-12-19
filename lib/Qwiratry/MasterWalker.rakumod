@@ -282,10 +282,37 @@ class MasterWalker does Walker {
         return Nil;
     }
     
-    #| Detect handover requirement using domain metadata (fast path) and capability checks (fallback).
-    #| Follows priority order: domain metadata → capability checks.
+    #| Check AST pattern suitability (optional optimization).
+    #| Recognizes common AST patterns and matches to walker capabilities.
+    #| For MVP, this is a placeholder that can be enhanced later.
+    method check-ast-pattern(RakuAST::Node $subtree) {
+        # For MVP, this is optional and not implemented
+        # Can be enhanced later to recognize specific AST patterns
+        # (e.g., SQL SELECT patterns, JSON path expressions, etc.)
+        return Nil;
+    }
+    
+    #| Use heuristics to select walker (optional, last resort).
+    #| Uses heuristics like node type, structure, or keywords to guess walker.
+    #| For MVP, this is a placeholder that can be enhanced later.
+    method check-heuristic(RakuAST::Node $subtree) {
+        # For MVP, this is optional and not implemented
+        # Can be enhanced later with heuristics based on:
+        # - Node type (RakuAST::Node.^name)
+        # - Structure analysis
+        # - Keyword matching
+        return Nil;
+    }
+    
+    #| Detect handover requirement following full priority order:
+    #| domain metadata → capability → pattern → heuristic.
     #| Returns Walker if handover is needed, Nil if not.
+    #| Handles edge cases: no walker found, multiple walkers, walker declines.
     method detect-handover(RakuAST::Node $subtree, Mu $root) {
+        my @candidates = self.candidate-walkers();
+        my @tried-walkers = Array.new;
+        my @failure-reasons = Array.new;
+        
         # Step 1: Check domain metadata (fast path)
         my @domains = self.check-domain-metadata($root);
         if @domains {
@@ -294,23 +321,45 @@ class MasterWalker does Walker {
                 return $walker;
             }
             # Early failure: domains declared but no suitable walker found
+            my $candidate-names = @candidates.map(*.^name).join(', ');
             X::Qwiratry::UnknownQueryElement.new(
-                message => "No walker found for declared domains: {@domains.join(', ')}",
+                message => "No walker found for declared domains: {@domains.join(', ')}. Available walkers: $candidate-names",
                 walker-type => 'MasterWalker',
                 query-ast => $subtree
             ).throw;
         }
         
         # Step 2: Capability checks (fallback)
-        my @candidates = self.candidate-walkers();
         for @candidates -> $walker {
+            @tried-walkers.push($walker.^name);
             if self.check-capability($subtree, $walker) {
+                # Multiple walkers might support - select first one (edge case T051)
                 return $walker;
+            } else {
+                @failure-reasons.push("{$walker.^name}: supports() returned False");
             }
         }
         
-        # No walker found
-        return Nil;
+        # Step 3: AST pattern suitability (optional optimization)
+        my $pattern-walker = self.check-ast-pattern($subtree);
+        if $pattern-walker {
+            return $pattern-walker;
+        }
+        
+        # Step 4: Heuristic probing (optional, last resort)
+        my $heuristic-walker = self.check-heuristic($subtree);
+        if $heuristic-walker {
+            return $heuristic-walker;
+        }
+        
+        # Edge case T050: No walker found after all checks
+        my $tried-names = @tried-walkers.join(', ');
+        my $reasons = @failure-reasons.join('; ');
+        X::Qwiratry::UnknownQueryElement.new(
+            message => "No suitable walker found for query. Tried walkers: $tried-names. Reasons: $reasons",
+            walker-type => 'MasterWalker',
+            query-ast => $subtree
+        ).throw;
     }
     
     #| Extract AST subtree from query for delegation.
@@ -323,12 +372,18 @@ class MasterWalker does Walker {
     
     #| Delegate planning to domain-specific walker.
     #| Calls walker's plan() method and handles exceptions.
+    #| Handles edge case T052: walker accepts via supports() but declines during planning.
     method delegate-planning(Walker $walker, RakuAST::Node $subtree, Mu $root --> Walker::Plan) {
         try {
             return $walker.plan($subtree, $root);
         } catch X::Qwiratry::UnknownQueryElement {
-            # Re-throw with context
-            .rethrow;
+            # Walker declined responsibility after accepting via supports()
+            # This is edge case T052 - re-throw with enhanced context
+            X::Qwiratry::UnknownQueryElement.new(
+                message => "Walker {$walker.^name} accepted query via supports() but declined during planning: {.message}",
+                walker-type => $walker.^name,
+                query-ast => $subtree
+            ).throw;
         } catch {
             # Wrap other exceptions
             X::Qwiratry::UnknownQueryElement.new(
