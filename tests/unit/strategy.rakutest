@@ -7,7 +7,7 @@ use Qwiratry::ControlSignal;
 use Qwiratry::FinishResult;
 use Qwiratry::RewriteSpec;
 
-plan 13;
+plan 14;
 
 subtest 'Strategy can be composed', {
     plan 1;
