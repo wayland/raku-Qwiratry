@@ -128,16 +128,33 @@ role Walker::Plan is export {
 #|   - capabilities() → Associative
 #|   - supports($query) → Bool
 #|
+#| Strategy Integration:
+#|   - Walker can be constructed with a Strategy: Walker.new(:$strategy)
+#|   - Strategy is stored in Context when creating iterators
+#|   - Concrete QueryIterator implementations should call Strategy hooks
+#|     during traversal via $ctx.strategy
+#|
 #| Example concrete implementation:
 #|   class TreeWalker does Walker {
 #|       method plan(RakuAST::Node $query, Mu:D $root --> Walker::Plan) {
 #|           TreePlan.new(query-ast => $query, root => $root);
 #|       }
 #|       method iterator(Walker::Plan $plan --> QueryIterator) {
-#|           $plan.iterator;
+#|           my $ctx = TreeContext.new(strategy => $.strategy);
+#|           TreeIterator.new(context => $ctx, plan => self);
 #|       }
 #|   }
 role Walker does Iterable is export {
+    #| The default Strategy for this Walker (may be undefined).
+    #|
+    #| Set via constructor: Walker.new(:$strategy)
+    #| If undefined, no Strategy hooks will be called during traversal.
+    #| The Strategy is copied to Context when creating iterators, allowing
+    #| QueryIterator implementations to access it via $ctx.strategy.
+    #|
+    #| Type: Should be Qwiratry::Strategy (left untyped to avoid circular dependency).
+    has $.strategy;
+    
     #| Analyse the Query AST and root data structure, produce an optimised execution plan.
     #|
     #| This method creates a Walker::Plan - a precomputed execution strategy.

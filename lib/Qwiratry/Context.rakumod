@@ -24,8 +24,20 @@ unit module Qwiratry::Context;
 
 #| Marker role for per-traversal mutable state.
 #| Concrete classes implementing this role define their own attributes.
+#|
+#| The Strategy instance for this traversal is stored in $.strategy.
+#| This allows Strategy hooks to access the same Context instance
+#| throughout the traversal, enabling state sharing between hooks.
 role Context is export {
-    # This is intentionally an empty marker role.
+    #| The Strategy instance for this traversal (may be undefined).
+    #|
+    #| Set by Walker when creating Context for a traversal.
+    #| If undefined, no Strategy hooks will be called during traversal.
+    #| The same Strategy instance is shared across all hooks in a single traversal.
+    #|
+    #| Type: Should be Qwiratry::Strategy (left untyped to avoid circular dependency).
+    has $.strategy;
+    
     # Concrete implementations define their own attributes for:
     # - Counters and accumulators
     # - Memoisation tables

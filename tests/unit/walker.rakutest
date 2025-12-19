@@ -9,9 +9,10 @@ use lib 'lib';
 use Qwiratry::Walker;
 use Qwiratry::QueryIterator;
 use Qwiratry::Context;
+use Qwiratry::Strategy;
 use Qwiratry::X;
 
-plan 16;
+plan 17;
 
 # =============================================================================
 # Helper classes for testing
@@ -44,7 +45,7 @@ my class TestPlan does Walker::Plan {
     has $.walker;
     
     method iterator(--> QueryIterator) {
-        my $ctx = TestContext.new;
+        my $ctx = TestContext.new(strategy => $!walker.strategy if $!walker.defined);
         $!walker.PRE-PASS($ctx) if $!walker.defined;
         my $iter = TestIterator.new(context => $ctx, items => @!data);
         $iter
@@ -347,6 +348,30 @@ subtest 'Full walker workflow' => {
     is @results.elems, 3, 'Got expected number of results';
     ok $iter.context.pre-pass-called, 'PRE-PASS was called during workflow';
     is $iter.context.operations, 3, 'Context tracked operations';
+}
+
+# =============================================================================
+# Strategy integration tests
+# =============================================================================
+
+subtest 'Walker strategy injection' => {
+    plan 4;
+    
+    my class TestStrategy does Strategy { }
+    my $strategy = TestStrategy.new;
+    
+    my $walker = TestWalker.new(strategy => $strategy);
+    
+    ok $walker.strategy.defined, 'Walker has strategy when provided';
+    ok $walker.strategy === $strategy, 'Walker.strategy returns injected strategy';
+    
+    my $walker2 = TestWalker.new;
+    ok !$walker2.strategy.defined, 'Walker without strategy has undefined $.strategy';
+    
+    # Verify backward compatibility - walker without strategy still functions
+    my $query = { type => 'select' };
+    my $plan = $walker2.plan($query, 'root');
+    ok $plan ~~ Walker::Plan, 'Walker without strategy still creates plans';
 }
 
 done-testing;
