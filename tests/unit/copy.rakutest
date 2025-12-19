@@ -1,0 +1,21 @@
+#| Unit tests for Copy service class
+#| Tests copy() and deepcopy() multi subs, shallow copy, deep copy, DAG handling, cycle detection
+use Test;
+use lib 'lib';
+
+use Qwiratry::Copy;
+
+plan *;
+
+# =============================================================================
+# Test structure placeholder
+# =============================================================================
+
+# Tests will be added in WP07
+# This file provides the basic test structure for Copy service tests.
+
+subtest "Module loading", {
+    ok True, "Copy module loads successfully";
+    done-testing;
+};
+

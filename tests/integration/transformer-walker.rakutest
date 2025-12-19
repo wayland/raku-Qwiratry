@@ -1,0 +1,22 @@
+#| Integration tests for Transformer-Walker integration
+#| Tests end-to-end transformations using transformers with walkers
+use Test;
+use lib 'lib';
+
+use Qwiratry::Transformer;
+use Qwiratry::Walker;
+
+plan *;
+
+# =============================================================================
+# Test structure placeholder
+# =============================================================================
+
+# Tests will be added in WP06 and WP10
+# This file provides the basic test structure for integration tests.
+
+subtest "Module loading", {
+    ok True, "Transformer and Walker modules load successfully";
+    done-testing;
+};
+

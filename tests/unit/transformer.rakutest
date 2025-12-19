@@ -1,0 +1,21 @@
+#| Unit tests for Transformer declarator and Transformer class
+#| Tests Transformer declarator, class structure, and basic behavior
+use Test;
+use lib 'lib';
+
+use Qwiratry::Transformer;
+
+plan *;
+
+# =============================================================================
+# Test structure placeholder
+# =============================================================================
+
+# Tests will be added in subsequent work packages (WP02, WP03, etc.)
+# This file provides the basic test structure for Transformer tests.
+
+subtest "Module loading", {
+    ok True, "Transformer module loads successfully";
+    done-testing;
+};
+

@@ -1,0 +1,21 @@
+#| Unit tests for Template class
+#| Tests Template declarator, component extraction, and storage
+use Test;
+use lib 'lib';
+
+use Qwiratry::Template;
+
+plan *;
+
+# =============================================================================
+# Test structure placeholder
+# =============================================================================
+
+# Tests will be added in subsequent work packages (WP03, WP04, etc.)
+# This file provides the basic test structure for Template tests.
+
+subtest "Module loading", {
+    ok True, "Template module loads successfully";
+    done-testing;
+};
+
