@@ -285,6 +285,8 @@ class MasterWalker does Walker {
     #| Check AST pattern suitability (optional optimization).
     #| Recognizes common AST patterns and matches to walker capabilities.
     #| For MVP, this is a placeholder that can be enhanced later.
+    #|
+    #| Returns Walker if pattern matches, Nil otherwise.
     method check-ast-pattern(RakuAST::Node $subtree) {
         # For MVP, this is optional and not implemented
         # Can be enhanced later to recognize specific AST patterns
@@ -295,6 +297,8 @@ class MasterWalker does Walker {
     #| Use heuristics to select walker (optional, last resort).
     #| Uses heuristics like node type, structure, or keywords to guess walker.
     #| For MVP, this is a placeholder that can be enhanced later.
+    #|
+    #| Returns Walker if heuristic matches, Nil otherwise.
     method check-heuristic(RakuAST::Node $subtree) {
         # For MVP, this is optional and not implemented
         # Can be enhanced later with heuristics based on:
@@ -424,11 +428,9 @@ class MasterWalker does Walker {
     }
     
     #| Required: Produce QueryIterator from plan.
-    #| Coordinates composite execution for multi-domain queries.
+    #| Delegates to the plan's iterator() method, which handles composite execution.
     method iterator(Walker::Plan $plan --> QueryIterator) {
-        # TODO: Implement iterator method
-        # This will be implemented in WP05-WP06
-        die "Not yet implemented"
+        return $plan.iterator();
     }
 }
 
