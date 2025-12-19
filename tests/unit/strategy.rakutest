@@ -2,45 +2,167 @@
 use Test;
 use lib 'lib';
 use Qwiratry::Strategy;
+use Qwiratry::Context;
+use Qwiratry::ControlSignal;
+use Qwiratry::FinishResult;
+use Qwiratry::RewriteSpec;
 
-plan *;
+plan 13;
 
-# Placeholder tests - implemented in WP04
-
-subtest 'Strategy role can be composed', {
+subtest 'Strategy can be composed', {
     plan 1;
-    pass 'Placeholder - composition tests will be added in WP04';
+    my class TestStrategy does Strategy { }
+    my $s = TestStrategy.new;
+    ok $s ~~ Strategy, 'Instance does Strategy role';
 }
 
-subtest 'before hook', {
-    plan 1;
-    pass 'Placeholder - before hook tests will be added in WP04';
+subtest 'before hook signature', {
+    plan 2;
+    my class TestStrategy does Strategy {
+        method before($element, Context $ctx) { NO_REWRITE }
+    }
+    my $s = TestStrategy.new;
+    my class TestContext does Context { }
+    my $ctx = TestContext.new;
+    my $result = $s.before('elem', $ctx);
+    ok $result ~~ ControlSignal, 'before returns ControlSignal';
+    is $result, NO_REWRITE, 'before returns expected value';
 }
 
-subtest 'on-match hook', {
-    plan 1;
-    pass 'Placeholder - on-match hook tests will be added in WP04';
+subtest 'on-match hook signature', {
+    plan 2;
+    my class TestStrategy does Strategy {
+        method on-match($element, Match $match, Context $ctx) { NO_REWRITE }
+    }
+    my $s = TestStrategy.new;
+    my class TestContext does Context { }
+    my $ctx = TestContext.new;
+    my $match = 'test'.match(/test/);
+    my $result = $s.on-match('elem', $match, $ctx);
+    ok $result ~~ ControlSignal, 'on-match returns ControlSignal';
+    is $result, NO_REWRITE, 'on-match returns expected value';
 }
 
-subtest 'should-follow hook', {
-    plan 1;
-    pass 'Placeholder - should-follow hook tests will be added in WP04';
+subtest 'should-follow hook signature', {
+    plan 2;
+    my class TestStrategy does Strategy {
+        method should-follow($origin, $relation, $target, Context $ctx) { True }
+    }
+    my $s = TestStrategy.new;
+    my class TestContext does Context { }
+    my $ctx = TestContext.new;
+    my $result = $s.should-follow('origin', 'rel', 'target', $ctx);
+    ok $result ~~ Bool, 'should-follow returns Bool';
+    ok $result, 'should-follow returns True';
 }
 
-subtest 'after hook', {
-    plan 1;
-    pass 'Placeholder - after hook tests will be added in WP04';
+subtest 'after hook signature', {
+    plan 2;
+    my class TestStrategy does Strategy {
+        method after($element, Context $ctx) { NO_REWRITE }
+    }
+    my $s = TestStrategy.new;
+    my class TestContext does Context { }
+    my $ctx = TestContext.new;
+    my $result = $s.after('elem', $ctx);
+    ok $result ~~ ControlSignal, 'after returns ControlSignal';
+    is $result, NO_REWRITE, 'after returns expected value';
 }
 
-subtest 'finish hook', {
-    plan 1;
-    pass 'Placeholder - finish hook tests will be added in WP04';
+subtest 'finish hook signature', {
+    plan 2;
+    my class TestStrategy does Strategy {
+        method finish($root, Context $ctx) { FinishResult.new(type => 'test') }
+    }
+    my $s = TestStrategy.new;
+    my class TestContext does Context { }
+    my $ctx = TestContext.new;
+    my $result = $s.finish('root', $ctx);
+    ok $result ~~ FinishResult, 'finish returns FinishResult';
+    is $result.type, 'test', 'finish returns expected value';
 }
 
-subtest 'should-continue hook', {
+subtest 'should-continue hook signature', {
+    plan 2;
+    my class TestStrategy does Strategy {
+        method should-continue($root, Context $ctx) { True }
+    }
+    my $s = TestStrategy.new;
+    my class TestContext does Context { }
+    my $ctx = TestContext.new;
+    my $result = $s.should-continue('root', $ctx);
+    ok $result ~~ Bool, 'should-continue returns Bool';
+    ok $result, 'should-continue returns True';
+}
+
+subtest 'Default before returns Nil', {
     plan 1;
-    pass 'Placeholder - should-continue hook tests will be added in WP04';
+    my class TestStrategy does Strategy { }
+    my $s = TestStrategy.new;
+    my class TestContext does Context { }
+    my $ctx = TestContext.new;
+    is $s.before('elem', $ctx), Nil, 'Default before returns Nil';
+}
+
+subtest 'Default on-match returns Nil', {
+    plan 1;
+    my class TestStrategy does Strategy { }
+    my $s = TestStrategy.new;
+    my class TestContext does Context { }
+    my $ctx = TestContext.new;
+    my $match = 'test'.match(/test/);
+    is $s.on-match('elem', $match, $ctx), Nil, 'Default on-match returns Nil';
+}
+
+subtest 'Default should-follow returns True', {
+    plan 1;
+    my class TestStrategy does Strategy { }
+    my $s = TestStrategy.new;
+    my class TestContext does Context { }
+    my $ctx = TestContext.new;
+    ok $s.should-follow('origin', 'rel', 'target', $ctx), 'Default should-follow returns True';
+}
+
+subtest 'Default after returns Nil', {
+    plan 1;
+    my class TestStrategy does Strategy { }
+    my $s = TestStrategy.new;
+    my class TestContext does Context { }
+    my $ctx = TestContext.new;
+    is $s.after('elem', $ctx), Nil, 'Default after returns Nil';
+}
+
+subtest 'Default finish returns FinishResult', {
+    plan 2;
+    my class TestStrategy does Strategy { }
+    my $s = TestStrategy.new;
+    my class TestContext does Context { }
+    my $ctx = TestContext.new;
+    my $result = $s.finish('root', $ctx);
+    ok $result ~~ FinishResult, 'Default finish returns FinishResult';
+    is $result.type, 'final-result', 'Default finish has type "final-result"';
+}
+
+subtest 'Default should-continue returns False', {
+    plan 1;
+    my class TestStrategy does Strategy { }
+    my $s = TestStrategy.new;
+    my class TestContext does Context { }
+    my $ctx = TestContext.new;
+    nok $s.should-continue('root', $ctx), 'Default should-continue returns False';
+}
+
+subtest 'on-match can return RewriteSpec', {
+    plan 1;
+    my class TestRewrite does RewriteSpec { }
+    my class TestStrategy does Strategy {
+        method on-match($element, Match $match, Context $ctx) { TestRewrite.new }
+    }
+    my $s = TestStrategy.new;
+    my class TestContext does Context { }
+    my $ctx = TestContext.new;
+    my $match = 'test'.match(/test/);
+    ok $s.on-match('elem', $match, $ctx) ~~ RewriteSpec, 'on-match can return RewriteSpec';
 }
 
 done-testing;
-
