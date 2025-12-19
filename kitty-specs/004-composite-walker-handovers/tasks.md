@@ -155,17 +155,17 @@
 **Prompt**: `/tasks/planned/WP05-plan-level-handover-with-subplans.md`
 
 ### Included Subtasks
-- [ ] T028 Implement `CompositePlan` class in `lib/Qwiratry/MasterWalker.rakumod` (or separate module) implementing `Walker::Plan` role
-- [ ] T029 Implement `CompositePlan` attributes: `$.query-ast`, `@.subplans`, execution metadata
-- [ ] T030 Implement `CompositePlan.subplans()` method: returns `Array[Walker::Plan]` of embedded subplans
-- [ ] T031 Implement `MasterWalker.plan()` method: detects handovers, delegates planning, embeds subplans
-- [ ] T032 Implement AST subtree extraction: extract relevant subtree from query for delegation
-- [ ] T033 Implement delegation: call `$walker.plan($subtree, $root)` and receive `Walker::Plan`
-- [ ] T034 Implement subplan embedding: add delegated plan to `CompositePlan.subplans` array
-- [ ] T035 [P] Unit tests: handover detection triggers delegation in `tests/unit/master-walker.rakutest`
-- [ ] T036 [P] Unit tests: composite plan contains embedded subplans
-- [ ] T037 [P] Unit tests: composite plan.query() returns original query AST (not modified)
-- [ ] T038 [P] Unit tests: plan immutability (subplans don't mutate original query AST)
+- [x] T028 Implement `CompositePlan` class in `lib/Qwiratry/MasterWalker.rakumod` (or separate module) implementing `Walker::Plan` role
+- [x] T029 Implement `CompositePlan` attributes: `$.query-ast`, `@.subplans`, execution metadata
+- [x] T030 Implement `CompositePlan.subplans()` method: returns `Array[Walker::Plan]` of embedded subplans
+- [x] T031 Implement `MasterWalker.plan()` method: detects handovers, delegates planning, embeds subplans
+- [x] T032 Implement AST subtree extraction: extract relevant subtree from query for delegation
+- [x] T033 Implement delegation: call `$walker.plan($subtree, $root)` and receive `Walker::Plan`
+- [x] T034 Implement subplan embedding: add delegated plan to `CompositePlan.subplans` array
+- [x] T035 [P] Unit tests: handover detection triggers delegation in `tests/unit/master-walker.rakutest`
+- [x] T036 [P] Unit tests: composite plan contains embedded subplans
+- [x] T037 [P] Unit tests: composite plan.query() returns original query AST (not modified)
+- [x] T038 [P] Unit tests: plan immutability (subplans don't mutate original query AST)
 
 ### Implementation Notes
 - CompositePlan implements Walker::Plan role with subplans array
