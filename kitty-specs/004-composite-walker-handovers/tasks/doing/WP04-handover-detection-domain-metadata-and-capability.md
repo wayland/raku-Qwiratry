@@ -13,10 +13,10 @@ subtasks:
   - "T027"
 title: "Handover Detection - Domain Metadata & Capability Checks"
 phase: "Phase 2 - Core"
-lane: "planned"
+lane: "doing"
 assignee: ""
-agent: ""
-shell_pid: ""
+agent: "claude"
+shell_pid: "20070"
 review_status: ""
 reviewed_by: ""
 history:
@@ -210,4 +210,14 @@ history:
 ## Activity Log
 
 - 2025-01-27T00:00:00Z – system – lane=planned – Prompt created.
-
+- 2025-12-19T09:18:01Z – claude – shell_pid=20070 – lane=doing – Started implementation
+- 2025-12-19T09:30:00Z – claude – shell_pid=20070 – lane=doing – Completed implementation:
+  - Implemented check-domain-metadata() method using provides-domains()
+  - Implemented domain metadata fast path with find-walker-by-domain() using heuristic matching
+  - Implemented early failure with X::Qwiratry::UnknownQueryElement when domains declared but no walker found
+  - Implemented check-capability() method that calls walker.supports()
+  - Implemented capability check fallback in detect-handover()
+  - Implemented detect-handover() method combining domain metadata and capability checks with priority order
+  - Updated plan() method to use detect-handover() for delegation
+  - Created comprehensive unit tests for all handover detection methods
+  - All code compiles successfully

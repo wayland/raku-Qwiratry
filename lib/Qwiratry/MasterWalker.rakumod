@@ -14,6 +14,7 @@ unit module Qwiratry::MasterWalker;
 
 use Qwiratry::Walker;
 use Qwiratry::Provides;
+use Qwiratry::X;
 
 #| Master Walker class that implements Walker role for composite handovers.
 #|
@@ -95,12 +96,103 @@ class MasterWalker does Walker {
         return @!discovered-walkers;
     }
     
+    #| Check provides trait on root object, return domain names or Nil.
+    #| Uses provides-domains() from Qwiratry::Provides to extract domain metadata.
+    method check-domain-metadata(Mu $root --> Array) {
+        my @domains = provides-domains($root);
+        return @domains if @domains;
+        return Nil;
+    }
+    
+    #| Query walker about capability via supports() method.
+    #| Returns True if walker supports the subtree, False otherwise.
+    method check-capability(RakuAST::Node $subtree, Walker $walker --> Bool) {
+        # Check if walker has supports() method and call it
+        if $walker.^can('supports') {
+            return $walker.supports($subtree);
+        }
+        # Default: walker doesn't support if no supports() method
+        return False;
+    }
+    
+    #| Find walker supporting at least one of the declared domains.
+    #| This is the fast path using domain metadata.
+    #| For MVP, we use a heuristic: check if walker type name contains domain name.
+    #| This can be enhanced later with explicit domain support methods.
+    method find-walker-by-domain(Array $domains --> Walker) {
+        my @candidates = self.candidate-walkers();
+        
+        # For each domain, try to find a walker that supports it
+        for @$domains -> $domain {
+            for @candidates -> $walker {
+                # Check if walker has domain support method (if available)
+                if $walker.^can('supports-domain') {
+                    if $walker.supports-domain($domain) {
+                        return $walker;
+                    }
+                } else {
+                    # Fallback heuristic: check if walker type name contains domain
+                    # This is a simple heuristic for MVP - can be enhanced later
+                    my $walker-name = $walker.^name.lc;
+                    if $walker-name.contains($domain.lc) {
+                        return $walker;
+                    }
+                }
+            }
+        }
+        
+        return Nil;
+    }
+    
+    #| Detect handover requirement using domain metadata (fast path) and capability checks (fallback).
+    #| Follows priority order: domain metadata → capability checks.
+    #| Returns Walker if handover is needed, Nil if not.
+    method detect-handover(RakuAST::Node $subtree, Mu $root) {
+        # Step 1: Check domain metadata (fast path)
+        my @domains = self.check-domain-metadata($root);
+        if @domains {
+            my $walker = self.find-walker-by-domain(@domains);
+            if $walker {
+                return $walker;
+            }
+            # Early failure: domains declared but no suitable walker found
+            X::Qwiratry::UnknownQueryElement.new(
+                message => "No walker found for declared domains: {@domains.join(', ')}",
+                walker-type => 'MasterWalker',
+                query-ast => $subtree
+            ).throw;
+        }
+        
+        # Step 2: Capability checks (fallback)
+        my @candidates = self.candidate-walkers();
+        for @candidates -> $walker {
+            if self.check-capability($subtree, $walker) {
+                return $walker;
+            }
+        }
+        
+        # No walker found
+        return Nil;
+    }
+    
     #| Required: Create execution plan from query and root.
     #| Detects handovers and delegates to domain-specific walkers.
     method plan(RakuAST::Node $query, Mu $root --> Walker::Plan) {
-        # TODO: Implement plan method with handover detection
-        # This will be implemented in WP04-WP05
-        die "Not yet implemented"
+        # TODO: Implement plan method with handover detection and subplan embedding
+        # This will be fully implemented in WP05
+        # For now, detect handover and delegate planning
+        my $walker = self.detect-handover($query, $root);
+        if $walker {
+            # Delegate planning to domain-specific walker
+            return $walker.plan($query, $root);
+        }
+        # No handover needed or no suitable walker found
+        # For MVP, throw exception if no walker found
+        X::Qwiratry::UnknownQueryElement.new(
+            message => "No suitable walker found for query",
+            walker-type => 'MasterWalker',
+            query-ast => $query
+        ).throw;
     }
     
     #| Required: Produce QueryIterator from plan.
