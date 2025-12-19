@@ -16,6 +16,7 @@ use Qwiratry::Walker;
 use Qwiratry::Provides;
 use Qwiratry::X;
 use Qwiratry::QueryIterator;
+use Qwiratry::Context;
 
 #| Composite Plan that implements Walker::Plan role with embedded subplans.
 #|
@@ -60,11 +61,96 @@ class CompositePlan does Walker::Plan {
         return "CompositePlan with $subplan-count subplan(s)";
     }
     
-    #| Produce QueryIterator for this composite plan
-    #| This will be fully implemented in WP06
+    #| Produce QueryIterator for this composite plan.
+    #| Creates a composite iterator that coordinates subplan iterators.
     method iterator(--> QueryIterator) {
-        # TODO: Implement composite iterator in WP06
-        die "CompositePlan.iterator() not yet implemented (WP06)";
+        # Create context for composite execution
+        my class CompositeContext does Context {
+            # Simple context for composite execution
+        }
+        my $ctx = CompositeContext.new;
+        
+        # Create composite iterator that coordinates subplan iterators
+        return CompositeIterator.new(
+            context => $ctx,
+            plan => self
+        );
+    }
+}
+
+#| Composite iterator that coordinates execution of multiple subplan iterators.
+#|
+#| For MVP, materializes results from each subplan and combines them.
+#| Execution follows the order specified in CompositePlan.execution-order,
+#| or sequential order if not specified.
+#|
+#| Example:
+#|   my $iter = CompositeIterator.new(context => $ctx, plan => $composite-plan);
+#|   my $result = $iter.pull-one();  # Returns first combined result
+class CompositeIterator does QueryIterator {
+    #| The composite plan this iterator executes
+    has CompositePlan $.plan is required;
+    
+    #| Materialized results from all subplans (lazy initialization)
+    has @!materialized-results;
+    
+    #| Current index in materialized results
+    has Int $!current-index = 0;
+    
+    #| Flag indicating if materialization has been performed
+    has Bool $!materialized = False;
+    
+    #| Constructor
+    submethod BUILD(:$!context, :$!plan) {
+        # Context and plan are set via attributes
+    }
+    
+    #| Materialize results from all subplans.
+    #| For MVP, collects all results before returning any.
+    method !materialize-results() {
+        return if $!materialized;
+        
+        my @all-results = Array.new;
+        
+        # Determine execution order
+        my @order = $!plan.execution-order;
+        if @order.elems == 0 {
+            # No explicit order - use sequential (0, 1, 2, ...)
+            @order = (0..^$!plan.subplans.elems).Array;
+        }
+        
+        # Execute subplans in order and materialize results
+        for @order -> $index {
+            my $subplan = $!plan.subplans[$index];
+            my $subplan-iter = $subplan.iterator;
+            
+            # Materialize all results from this subplan
+            my @subplan-results = Array.new;
+            loop {
+                my $result = $subplan-iter.pull-one();
+                last if $result === IterationEnd;
+                @subplan-results.push($result);
+            }
+            
+            # Combine results (for MVP, simple concatenation)
+            @all-results.append(@subplan-results);
+        }
+        
+        @!materialized-results = @all-results;
+        $!materialized = True;
+    }
+    
+    #| Return the next combined result, or IterationEnd if exhausted.
+    method pull-one(--> Mu) {
+        # Materialize results on first call
+        self!materialize-results();
+        
+        # Return next result or IterationEnd
+        if $!current-index >= @!materialized-results.elems {
+            return IterationEnd;
+        }
+        
+        return @!materialized-results[$!current-index++];
     }
 }
 
