@@ -110,23 +110,23 @@
 
 ---
 
-## Work Package WP04: Strategy Role (Priority: P1) 🎯 MVP Core
+## Work Package WP04: Strategy Role (Priority: P1) 🎯 MVP Core ✅
 
 **Goal**: Implement the Strategy role with all 6 hooks and default implementations.
 **Independent Test**: A class composing Strategy can override any hook; unimplemented hooks return defaults.
-**Prompt**: `tasks/planned/phase-2-core/WP04-strategy-role.md`
+**Prompt**: `tasks/done/phase-2-core/WP04-strategy-role.md` ✅
 
 ### Included Subtasks
-- [ ] T022 Write unit tests for Strategy role hook signatures (tests-first)
-- [ ] T023 Write unit tests for default hook behaviours
-- [ ] T024 Implement `before($element, Context $ctx)` hook returning ControlSignal|Nil
-- [ ] T025 Implement `on-match($element, Match $match, Context $ctx)` hook returning ControlSignal|RewriteSpec|Nil
-- [ ] T026 Implement `should-follow($origin, $relation, $target, Context $ctx)` hook returning Bool
-- [ ] T027 Implement `after($element, Context $ctx)` hook returning ControlSignal|RewriteSpec|Nil
-- [ ] T028 Implement `finish($root, Context $ctx)` hook returning FinishResult
-- [ ] T029 Implement `should-continue($root, Context $ctx)` hook returning Bool
-- [ ] T030 Add Rakudoc documentation for Strategy role and all hooks
-- [ ] T031 Verify all tests pass
+- [x] T022 Write unit tests for Strategy role hook signatures (tests-first)
+- [x] T023 Write unit tests for default hook behaviours
+- [x] T024 Implement `before($element, Context $ctx)` hook returning ControlSignal|Nil
+- [x] T025 Implement `on-match($element, Match $match, Context $ctx)` hook returning ControlSignal|RewriteSpec|Nil
+- [x] T026 Implement `should-follow($origin, $relation, $target, Context $ctx)` hook returning Bool
+- [x] T027 Implement `after($element, Context $ctx)` hook returning ControlSignal|RewriteSpec|Nil
+- [x] T028 Implement `finish($root, Context $ctx)` hook returning FinishResult
+- [x] T029 Implement `should-continue($root, Context $ctx)` hook returning Bool
+- [x] T030 Add Rakudoc documentation for Strategy role and all hooks
+- [x] T031 Verify all tests pass
 
 ### Implementation Notes
 - All hooks are optional with sensible defaults (per contracts/strategy-api.md)
@@ -147,30 +147,30 @@
 
 ---
 
-## Work Package WP05: Context and Walker Integration (Priority: P1) 🎯 MVP Integration
+## Work Package WP05: Context and Walker Integration (Priority: P1) 🎯 MVP Integration ✅
 
 **Goal**: Update Context and Walker to support Strategy injection and hook calling.
 **Independent Test**: Walker accepts Strategy in constructor; hooks are called at correct traversal points.
-**Prompt**: `tasks/planned/phase-2-core/WP05-walker-integration.md`
+**Prompt**: `tasks/done/phase-2-core/WP05-walker-integration.md` ✅
 
 ### Included Subtasks
-- [ ] T032 Write tests for Context strategy accessor
-- [ ] T033 Update Context role to add `$.strategy` attribute
-- [ ] T034 Write tests for Walker strategy injection
-- [ ] T035 Update Walker role to add `$.strategy` attribute
-- [ ] T036 Update Walker.iterator() to store Strategy in Context
-- [ ] T037 Write tests for Walker calling before hook
-- [ ] T038 Write tests for Walker calling on-match hook
-- [ ] T039 Write tests for Walker calling should-follow hook
-- [ ] T040 Write tests for Walker calling after hook
-- [ ] T041 Write tests for Walker calling finish hook
-- [ ] T042 Write tests for Walker respecting STOP_TRAVERSAL signal
-- [ ] T043 Write tests for Walker respecting SKIP_ELEMENT signal
-- [ ] T044 Implement hook calling in Walker traversal logic
-- [ ] T045 Implement ControlSignal handling (STOP_TRAVERSAL, SKIP_ELEMENT)
-- [ ] T046 Update Walker POST-PASS to call should-continue
-- [ ] T047 Add Rakudoc for updated Context and Walker
-- [ ] T048 Verify all tests pass
+- [x] T032 Write tests for Context strategy accessor
+- [x] T033 Update Context role to add `$.strategy` attribute
+- [x] T034 Write tests for Walker strategy injection
+- [x] T035 Update Walker role to add `$.strategy` attribute
+- [x] T036 Update Walker.iterator() to store Strategy in Context
+- [x] T037 Write tests for Walker calling before hook
+- [x] T038 Write tests for Walker calling on-match hook
+- [x] T039 Write tests for Walker calling should-follow hook
+- [x] T040 Write tests for Walker calling after hook
+- [x] T041 Write tests for Walker calling finish hook
+- [x] T042 Write tests for Walker respecting STOP_TRAVERSAL signal
+- [x] T043 Write tests for Walker respecting SKIP_ELEMENT signal
+- [x] T044 Implement hook calling in Walker traversal logic
+- [x] T045 Implement ControlSignal handling (STOP_TRAVERSAL, SKIP_ELEMENT)
+- [x] T046 Update Walker POST-PASS to call should-continue
+- [x] T047 Add Rakudoc for updated Context and Walker
+- [x] T048 Verify all tests pass
 
 ### Implementation Notes
 - Per research.md: Constructor injection + Context storage pattern
