@@ -144,4 +144,7 @@ history:
 ## Activity Log
 
 - 2025-01-27T23:45:00Z – system – lane=planned – Prompt created.
+- 2025-12-20T12:00:00Z – claude – shell_pid=93412 – lane=doing – Started implementation
+- 2025-12-20T12:30:00Z – claude – shell_pid=93412 – lane=doing – Completed T011: Created Template class with all required attributes (name, signature, when-block, do-block, priority, specificity, tie-breaker, streaming, returns-type). Template class compiles successfully. Added stub methods matches() and execute() for WP05.
+- 2025-12-20T12:45:00Z – claude – shell_pid=93412 – lane=doing – Progress on T009-T012: Added template collection infrastructure to Transformer class. Created !collect-templates-from-body() and !process-templates() methods as placeholders for HOW class integration. Added add-template() helper method for testing. Note: Full AST parsing requires custom HOW class (blocked by serialization issue from WP02). Structure is in place for when HOW class is implemented. Created basic unit tests for Template class (T013).
 
