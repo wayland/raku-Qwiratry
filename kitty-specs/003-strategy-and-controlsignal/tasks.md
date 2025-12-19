@@ -16,22 +16,22 @@
 
 ---
 
-## Work Package WP01: Setup and Project Structure (Priority: P0)
+## Work Package WP01: Setup and Project Structure (Priority: P0) ✅
 
 **Goal**: Create the file structure for new modules and tests.
 **Independent Test**: All new files exist with proper module declarations.
-**Prompt**: `tasks/planned/phase-0-setup/WP01-setup-and-project-structure.md`
+**Prompt**: `tasks/done/phase-0-setup/WP01-setup-and-project-structure.md` ✅
 
 ### Included Subtasks
-- [ ] T001 Create `lib/Qwiratry/ControlSignal.rakumod` with module declaration
-- [ ] T002 Create `lib/Qwiratry/RewriteSpec.rakumod` with module declaration
-- [ ] T003 Create `lib/Qwiratry/FinishResult.rakumod` with module declaration
-- [ ] T004 Create `lib/Qwiratry/Strategy.rakumod` with module declaration
-- [ ] T005 Create `tests/unit/control-signal.rakutest` test file skeleton
-- [ ] T006 Create `tests/unit/strategy.rakutest` test file skeleton
-- [ ] T007 Create `tests/unit/rewrite-spec.rakutest` test file skeleton
-- [ ] T008 Create `tests/unit/finish-result.rakutest` test file skeleton
-- [ ] T009 Create `tests/integration/walker-strategy.rakutest` test file skeleton
+- [x] T001 Create `lib/Qwiratry/ControlSignal.rakumod` with module declaration
+- [x] T002 Create `lib/Qwiratry/RewriteSpec.rakumod` with module declaration
+- [x] T003 Create `lib/Qwiratry/FinishResult.rakumod` with module declaration
+- [x] T004 Create `lib/Qwiratry/Strategy.rakumod` with module declaration
+- [x] T005 Create `tests/unit/control-signal.rakutest` test file skeleton
+- [x] T006 Create `tests/unit/strategy.rakutest` test file skeleton
+- [x] T007 Create `tests/unit/rewrite-spec.rakutest` test file skeleton
+- [x] T008 Create `tests/unit/finish-result.rakutest` test file skeleton
+- [x] T009 Create `tests/integration/walker-strategy.rakutest` test file skeleton
 
 ### Implementation Notes
 - Follow existing pattern from feature 002
