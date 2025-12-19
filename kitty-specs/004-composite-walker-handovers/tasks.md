@@ -118,16 +118,16 @@
 **Prompt**: `/tasks/planned/WP04-handover-detection-domain-metadata-and-capability.md`
 
 ### Included Subtasks
-- [ ] T018 Implement `check-domain-metadata(Mu $root --> Array[Str]?)` method: checks `provides` trait, returns domain names or Nil
-- [ ] T019 Implement domain metadata fast path: if domains declared, find walker supporting at least one domain
-- [ ] T020 Implement early failure: if domain metadata declares domains but no suitable walker exists, fail with diagnostic error
-- [ ] T021 Implement `check-capability(RakuAST::Node $subtree, Walker $walker --> Bool)` method: calls `$walker.supports($subtree)`
-- [ ] T022 Implement capability check fallback: query candidate walkers via `supports($subtree)`, delegate to first returning True
-- [ ] T023 Implement `detect-handover(RakuAST::Node $subtree, Mu $root --> Walker?)` method: combines domain metadata and capability checks
-- [ ] T024 [P] Unit tests: domain metadata check finds suitable walker in `tests/unit/master-walker.rakutest`
-- [ ] T025 [P] Unit tests: domain metadata check fails early when no suitable walker exists
-- [ ] T026 [P] Unit tests: capability check queries walkers via `supports()`
-- [ ] T027 [P] Unit tests: capability check delegates to first walker returning True
+- [x] T018 Implement `check-domain-metadata(Mu $root --> Array[Str]?)` method: checks `provides` trait, returns domain names or Nil
+- [x] T019 Implement domain metadata fast path: if domains declared, find walker supporting at least one domain
+- [x] T020 Implement early failure: if domain metadata declares domains but no suitable walker exists, fail with diagnostic error
+- [x] T021 Implement `check-capability(RakuAST::Node $subtree, Walker $walker --> Bool)` method: calls `$walker.supports($subtree)`
+- [x] T022 Implement capability check fallback: query candidate walkers via `supports($subtree)`, delegate to first returning True
+- [x] T023 Implement `detect-handover(RakuAST::Node $subtree, Mu $root --> Walker?)` method: combines domain metadata and capability checks
+- [x] T024 [P] Unit tests: domain metadata check finds suitable walker in `tests/unit/master-walker.rakutest`
+- [x] T025 [P] Unit tests: domain metadata check fails early when no suitable walker exists
+- [x] T026 [P] Unit tests: capability check queries walkers via `supports()`
+- [x] T027 [P] Unit tests: capability check delegates to first walker returning True
 
 ### Implementation Notes
 - Handover detection follows priority: domain metadata (fast path) → capability checks (fallback)
