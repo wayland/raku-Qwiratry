@@ -193,14 +193,14 @@
 **Prompt**: `/tasks/planned/WP06-composite-execution-coordination.md`
 
 ### Included Subtasks
-- [ ] T039 Implement `CompositePlan.iterator()` method: creates composite iterator
-- [ ] T040 Implement composite iterator: coordinates subplan iterators in execution order
-- [ ] T041 Implement execution ordering: determine order during planning (dependency analysis or explicit order)
-- [ ] T042 Implement data flow: materialize results from one subplan before feeding to next (for MVP)
-- [ ] T043 Implement result combination: combine results from subplans according to query structure
-- [ ] T044 [P] Integration tests: composite plan execution with multiple subplans in `tests/integration/composite-handover.rakutest`
-- [ ] T045 [P] Integration tests: execution ordering is correct
-- [ ] T046 [P] Integration tests: data flow between domains works correctly
+- [x] T039 Implement `CompositePlan.iterator()` method: creates composite iterator
+- [x] T040 Implement composite iterator: coordinates subplan iterators in execution order
+- [x] T041 Implement execution ordering: determine order during planning (dependency analysis or explicit order)
+- [x] T042 Implement data flow: materialize results from one subplan before feeding to next (for MVP)
+- [x] T043 Implement result combination: combine results from subplans according to query structure
+- [x] T044 [P] Integration tests: composite plan execution with multiple subplans in `tests/integration/composite-handover.rakutest`
+- [x] T045 [P] Integration tests: execution ordering is correct
+- [x] T046 [P] Integration tests: data flow between domains works correctly
 
 ### Implementation Notes
 - CompositePlan.iterator() creates composite iterator that coordinates subplan iterators
