@@ -49,18 +49,11 @@ Precedence levels in bold are standard Raku levels.  Those not in bold are level
 | **Junctive or**    | list | ∪ ⩂ ⊖ ∖ | |
 | **Chaining**       | chain | ∈ ∊ (elem) ∉ ∋ ∍ (cont) ∌ ⊂ (<) ⊄ ⊃ (>) ⊅ ⊆ (<=) ⊈ ⊇ (>=) ⊉ ≡ (==) ≢ | |
 
-**Note**: Tree Operators have a precedence level just below "Symbolic Unary". Anything other operators follow regular Raku precedence.
-
-### 2.2 Precedence Notes
-
-- Operators without dots ensure each row/tuple is unique; operators with dots accept duplicates
-- Tree axis operators are composable: `$node ⪪ ⪪` means "children of children"
-- Junctive operators (∩, ∪, etc.) can combine multiple query results
-- I/O operators take arguments on the right-hand side to specify format or location
-
 ## 3. Navigation Operators
 
-Navigation Operators provide axis-based navigation for tree-like structures (XML, JSON, ASTs, Match trees, etc.), but other structures, such as tables. These operators are inspired by XPath axes but stay idiomatically Raku.  All navigation operators are **binary operators** and require a right operand, except for the root operator (`⇤`) which is a **unary postfix operator**.  They may take additional operands as adverbs.  
+Navigation Operators provide axis-based navigation for tree-like structures (XML, JSON, ASTs, Match trees, etc.), but other structures, such as tables. These operators are inspired by XPath axes but stay idiomatically Raku.  All navigation operators require a right operand (which can be a Whatever `*`), except for the root operator (`⇤`) which is a **unary postfix operator**.  If a left operand is provided, they use that as input, otherwise, they use $_ as input.  They may take additional operands as adverbs.  
+
+Navigation operators can be chained: `$node ⪪ * ⪪ *` means "children of children"
 
 ### 3.1 Navigation Operators Reference
 
@@ -97,7 +90,7 @@ my @items = $root ⪪ <item>;
 # Select descendants matching a pattern
 my @divs = $root ⪪⪪ <div> σ { ⥷ <class> };
 
-# Navigate up the tree
+# Navigate up the tree or namespace
 my $parent = $node ⪫ *;
 
 # Get root (unary postfix operator)
@@ -107,8 +100,7 @@ my $root = $node ⇤;
 my @nodes = $root ⪪ * ∪ $root ⥷ <attr>;
 ```
 
-### 3.2 Table Usage
-
+### 3.2 Operators
 
 #### 3.2.1 Child Operator (⪪)
 
@@ -653,7 +645,17 @@ I/O and Transformation Operators handle parsing, rendering, and reading/writing 
 |----------|---------|-------------|
 | ↱ or ⮣ | | Parse input (JSON, XML, CSV, etc.) |
 
-The parse operator takes a format argument (e.g., `JSON`, `XML`, `CSV`). Possible values are any backend that can find a `Tree::Backend::Format::*` module.
+The parse operator takes a format argument (e.g., `JSON`, `XML`, `CSV`). Possible values are controlled by the existance of a `Qwiratry::IO::Parse::*` module.
+
+**Parse Examples**:
+
+```raku
+# Parse JSON
+my $json_root = ⮳ <data.json> ↱ <JSON>;
+
+# Parse XML
+my $xml_root = ⮳ <config.xml> ↱ <XML>;
+```
 
 ### 7.2 Render Operator
 
@@ -661,7 +663,32 @@ The parse operator takes a format argument (e.g., `JSON`, `XML`, `CSV`). Possibl
 |----------|---------|-------------|
 | ↴ or ⮧ | | Render output (JSON, XML, CSV, formatters) |
 
-The render operator takes a format argument specifying the output format.
+The render operator takes a format argument specifying the output format. It converts query results or tree structures into the specified serialization format.
+
+It takes a format argument (e.g., `JSON`, `XML`, `CSV`). Possible values are controlled by the existance of a `Qwiratry::IO::Render::*` module.
+
+**Format Options**: Some formats support additional options via adverbs or named arguments:
+
+```raku
+# Render with indentation
+my $json = $root ↴ <JSON> :pretty;
+
+# Render CSV with custom delimiter
+my $csv = $relation ↴ <CSV> :delimiter<;>;
+
+# Render XML with specific encoding
+my $xml = $root ↴ <XML> :encoding<UTF-8>;
+```
+
+**Render Examples**:
+
+```raku
+# Render to JSON
+my $json = $root ↴ <JSON>;
+
+# Pretty-printed JSON
+my $pretty_json = $root ↴ <JSON> :pretty;
+```
 
 ### 7.3 Source Operator
 
@@ -669,10 +696,41 @@ The render operator takes a format argument specifying the output format.
 |----------|---------|-------------|
 | ⮳ | | Read nodes from external sources (filesystem, web, commands) |
 
-The source operator accepts a location parameter:
-- If no `:` is found, it's assumed to be a filename
-- If a `:` is found, it's assumed to be a URL
-- To specify a file with `:` in the name, use `file://` protocol
+The source operator accepts a location parameter that specifies where to read data from. The location can be a file path, URL, or command.
+
+**Location Parameter Rules**:
+- If no `:` is found, it's assumed to be a filename (relative or absolute path)
+- If a `:` is found, it's assumed to be a URL or protocol-based location
+
+**Example Protocols and URL Schemes**:
+
+- **File System** (`file://` or no protocol):
+  - `⮳ <data.json>` - Relative file path
+  - `⮳ </absolute/path/data.json>` - Absolute file path
+
+- **HTTP/HTTPS** (`http://`, `https://`):
+  - `⮳ <https://example.com/data.json>` - HTTPS URL
+  - `⮳ <http://localhost:8080/api/data>` - HTTP URL with port
+
+Note that it's also possible to avoid the source operator:
+
+- Since Raku has shell quoting (`qx`), there's no need for shell execution
+- Since Raku has `$*IN`, there's no need for special STDIN-reading semantics
+- The `"filename.json".IO.lines` could also be used
+- Databases can be read by providing database-reading classes
+
+**Source Examples**:
+
+```raku
+# Local file
+my $local = ⮳ <data.json>;
+
+# Absolute path
+my $absolute = ⮳ </home/user/data.json>;
+
+# HTTP URL
+my $http = ⮳ <https://api.example.com/data.json>;
+```
 
 ### 7.4 Destination Operator
 
@@ -680,7 +738,33 @@ The source operator accepts a location parameter:
 |----------|---------|-------------|
 | ⮷ | | Write nodes to external destinations |
 
-The destination operator accepts a location parameter with the same rules as the source operator.
+The destination operator accepts a location parameter that specifies where to write data. It uses the same protocol and URL scheme rules as the source operator.
+
+**Supported Protocols and URL Schemes**:
+
+- **File System** (`file://` or no protocol):
+  - `⮷ <output.json>` - Write to relative file path
+  - `⮷ </absolute/path/output.json>` - Write to absolute file path
+
+- **HTTP/HTTPS** (`http://`, `https://`):
+  - `⮷ <https://api.example.com/upload>` - POST data to HTTPS endpoint
+  - `⮷ <http://localhost:8080/api/data>` - POST data to HTTP endpoint
+  - Typically uses POST or PUT methods depending on the endpoint
+
+See the Source operator for examples of other alternatives.  
+
+**Destination Examples**:
+
+```raku
+# Local file
+my $result = $data ↴ <JSON> ⮷ <output.json>;
+
+# Absolute path
+my $result = $data ↴ <XML> ⮷ </var/www/data.xml>;
+
+# HTTP POST
+my $result = $data ↴ <JSON> ⮷ <https://api.example.com/upload>;
+```
 
 ### 7.5 Usage Examples
 
@@ -696,6 +780,106 @@ my $xml_root = ⮳ <https://example.com/data.xml> ↱ <XML>;
 
 # Render to CSV
 my $csv = $relation ↴ <CSV> ⮷ <output.csv>;
+```
+
+### 7.6 I/O Operator Composition and Pipelines
+
+I/O operators are designed to be composed into data processing pipelines. They can be chained together with navigation, selection, and transformation operators to create complex data workflows.
+
+**Basic Pipeline Pattern**: The typical pattern is: **Source → Parse → Query → Render → Destination**
+
+```raku
+# Complete pipeline: read, parse, filter, transform, render, write
+my $result = ⮳ <data.json> ↱ <JSON> 
+              ⪪⪪ <item> 
+              σ { ⥷ <price> > 100 } 
+              ↴ <JSON> 
+              ⮷ <expensive-items.json>;
+```
+
+**Multi-Format Pipeline**: Convert between formats in a single pipeline:
+
+```raku
+# XML → JSON conversion
+my $json = ⮳ <data.xml> ↱ <XML> ↴ <JSON> ⮷ <data.json>;
+
+# CSV → YAML conversion with filtering
+my $yaml = ⮳ <data.csv> ↱ <CSV> 
+           σ { ⥷ <status> eq 'active' } 
+           ↴ <YAML> 
+           ⮷ <active-items.yaml>;
+```
+
+**Multi-Source Pipeline**: Combine data from multiple sources:
+
+```raku
+# Read from multiple sources and combine
+my $combined = (⮳ <data1.json> ↱ <JSON> ⪪ <items>) 
+               ∪ 
+               (⮳ <data2.json> ↱ <JSON> ⪪ <items>);
+
+# Write combined result
+my $result = $combined ↴ <JSON> ⮷ <combined.json>;
+```
+
+**HTTP Pipeline**: Fetch, process, and upload data:
+
+```raku
+# Fetch from API, process, upload to another endpoint
+my $result = ⮳ <https://api.example.com/data.json> ↱ <JSON>
+              ⪪ <records>
+              σ { ⥷ <date> > Date.today - 7 }
+              ↴ <JSON>
+              ⮷ <https://api.example.com/recent.json>;
+```
+
+**Streaming Pipeline**: Process data incrementally (Walker-dependent):
+
+```raku
+# Large file processing with streaming
+my $stream = ⮳ <large-data.json> ↱ <JSON>
+             ⪪⪪ <record>
+             σ { ⥷ <category> eq 'important' }
+             ↴ <JSON>
+             ⮷ <important-records.json>;
+# Walker may stream results without loading entire file into memory
+```
+
+**Conditional Pipeline**: Use selection to route data:
+
+```raku
+# Route data to different destinations based on criteria
+my $data = ⮳ <data.json> ↱ <JSON> ⪪ <items>;
+
+# Write active items to one file
+($data σ { ⥷ <status> eq 'active' }) ↴ <JSON> ⮷ <active.json>;
+
+# Write inactive items to another file
+($data σ { ⥷ <status> eq 'inactive' }) ↴ <JSON> ⮷ <inactive.json>;
+```
+
+**Format-Specific Pipeline Examples**:
+
+```raku
+# XML processing pipeline
+my $xml_result = ⮳ <catalog.xml> ↱ <XML>
+                 ⪪⪪ <product>
+                 σ { ⥷ <price> < 50 && ⥷ <in_stock> }
+                 ↴ <XML>
+                 ⮷ <cheap-products.xml>;
+
+# CSV processing pipeline
+my $csv_result = ⮳ <sales.csv> ↱ <CSV>
+                 σ { ⥷ <amount> > 1000 }
+                 ⇅ { ⥷ <date> }
+                 ↴ <CSV>
+                 ⮷ <large-sales.csv>;
+
+# YAML configuration processing
+my $config = ⮳ <config.yaml> ↱ <YAML>
+            ⪪ <settings>
+            ↴ <JSON>
+            ⮷ <settings.json>;
 ```
 
 ## 8. Operator Composition and Usage
@@ -753,7 +937,7 @@ Operators are interpreted by Walkers during the `plan()` phase:
 
 Different Walkers may interpret the same operator differently:
 - `Tree::Walker::DFS` interprets `⪪` as tree child navigation
-- `Table::Walker::Scan` may interpret `⪪` as row iteration or relation navigation
+- `Table::Walker::Scan` may interpret `⪪` as relation navigation
 - `Logic::Walker::Backward` may interpret operators as goal patterns
 
 #### 8.2.1 Default Tree Walker Traversal Behavior
@@ -776,29 +960,18 @@ Operators can be used in Transformer templates:
 
 ```raku
 transformer MyTransformer {
-    # Use operators in when clause
-    template item() when { $_ ⪪⪪ <item> } do {
+    # Use operators in when clause - uses $_ automatically
+    template item() when { ⪪⪪ <item> } do {
         make transform-item($_);
     }
     
-    # Combine with predicates
+    # Combine with predicates - uses $_ automatically
     template active-item() when { 
-        $_ ⪪ <item> σ { $_.active }
+        ⪪ <item> σ { .active }
     } do {
         make process-active($_);
     }
 }
-```
-
-### 8.4 Query Slang Integration
-
-Operators can be used in Query Slang expressions (when implemented):
-
-```raku
-# Hypothetical Query Slang syntax
-my $query = query {
-    $root ⪪⪪ <div> σ { ⥷ <class> eq 'container' }
-};
 ```
 
 ### 8.5 Domain-Specific Semantics
@@ -806,7 +979,7 @@ my $query = query {
 The same operator may have different semantics depending on the data model:
 
 - **Tree Model**: `⪪` navigates to child nodes
-- **Table Model**: `⪪` may iterate rows or navigate relations
+- **Table Model**: `⪪` may navigate relations
 - **Graph Model**: `⪪` may follow edges
 
 Walkers are responsible for interpreting operators according to their domain.
@@ -835,7 +1008,7 @@ my $optimized = $root ⪪⪪ * σ { $_.name eq 'item' && $_.value > 10 };
 
 Qwiratry operators provide a comprehensive set of tools for querying and transforming data:
 
-1. **Tree Navigation** - Axis-based traversal for hierarchical structures
+1. **Data Navigation** - Axis-based traversal for hierarchical structures
 2. **Relational Operations** - Set theory and relational algebra for tables/relations
 3. **Column Manipulation** - Projection, renaming, and joins
 4. **Aggregation** - Selection, sorting, mapping, and reduction
@@ -854,27 +1027,6 @@ This design enables a unified query interface that works across trees, tables, g
 
 The following items still need to be completed to finish this document:
 
-### 10.3 I/O Operator Details
-
-- Expand documentation on parse/render operators with more format examples
-- Document source/destination operator protocols and URL schemes
-- Add examples of I/O operator composition and pipelines
-
-### 10.5 Examples and Use Cases
-
-- Add more real-world examples showing operator composition
-- Include examples of complex queries combining multiple operator types
-- Add examples of domain-specific operator interpretations (graph, logic programming, etc.)
-
-### 10.6 Error Handling and Edge Cases
-
-- Document what happens when operators are used inappropriately (e.g., `⪪` on non-FK column)
-- Clarify error conditions and exception types
-- Document behavior with empty results, null values, etc.
-
-### 10.7 Integration Details
-
-- Expand on Query Slang integration (when implemented)
-- Add more details on how operators interact with Strategy hooks
-- Document operator introspection capabilities for debugging
-
+At the end:
+* Search for "Tree" and "Table", and ensure that we've covered both structures where possible
+* Ask it to ensure that the numbering of the headings is correct
