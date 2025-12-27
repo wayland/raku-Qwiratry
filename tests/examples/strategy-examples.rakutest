@@ -123,7 +123,7 @@ subtest 'DepthLimitStrategy - Limit Traversal Depth Pattern' => {
     
     class DepthLimitStrategy does Strategy {
         has Int $.max-depth = 2;
-        has Int $!current-depth is rw = 0;
+        has Int $!current-depth = 0;
         
         method before($element, Context $ctx) {
             $!current-depth++;

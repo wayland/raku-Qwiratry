@@ -130,7 +130,9 @@ class TestPlan does Walker::Plan {
     has Int $.pass-count = 0;
     
     method iterator(--> QueryIterator) {
-        my $ctx = TestContext.new(strategy => $!walker.strategy if $!walker.strategy.defined);
+        my $ctx = $!walker.strategy.defined
+            ?? TestContext.new(strategy => $!walker.strategy)
+            !! TestContext.new;
         TreeIterator.new(root => $!root, context => $ctx)
     }
     

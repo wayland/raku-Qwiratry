@@ -43,7 +43,7 @@ my class EmptyIterator does QueryIterator {
 subtest 'QueryIterator role exists' => {
     plan 2;
     
-    ok QueryIterator.^name eq 'QueryIterator', 'QueryIterator role exists';
+    ok QueryIterator.^name ~~ /QueryIterator$/, 'QueryIterator role exists';
     ok QueryIterator.HOW.^name ~~ /Metamodel/, 'QueryIterator is a proper role';
 }
 

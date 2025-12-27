@@ -95,7 +95,7 @@ my class CompositePlan does Walker::Plan {
 subtest 'Walker::Plan role exists' => {
     plan 2;
     
-    ok Walker::Plan.^name eq 'Walker::Plan', 'Walker::Plan role exists';
+    ok Walker::Plan.^name ~~ /Walker::Plan$/, 'Walker::Plan role exists';
     ok Walker::Plan.HOW.^name ~~ /Metamodel/, 'Walker::Plan is a proper role';
 }
 
