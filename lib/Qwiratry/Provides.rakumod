@@ -1,30 +1,42 @@
-#| Provides trait for domain metadata
-#|
-#| This module implements the `provides<domain-name>` compile-time trait
-#| that attaches advisory domain metadata to root objects, containers, or declarations.
-#| The metadata is discoverable at runtime via introspection and guides
-#| Walker selection and planning for multi-domain queries.
-#|
-#| Example usage:
-#|   my $table provides<sql> = SQL::Table.new(...);
-#|   my $hybrid provides<sql json> = ...;
+=begin pod
+
+Provides trait for domain metadata
+
+This module implements the `provides<domain-name>` compile-time trait
+that attaches advisory domain metadata to root objects, containers, or declarations.
+The metadata is discoverable at runtime via introspection and guides
+Walker selection and planning for multi-domain queries.
+
+Example usage:
+  my $table provides<sql> = SQL::Table.new(...);
+  my $hybrid provides<sql json> = ...;
+
+=end pod
 unit module Qwiratry::Provides;
 
-#| Module-level registry for provides trait metadata.
-#| Keyed by object identity (WHICH) for runtime discovery.
+=begin pod
+
+Module-level registry for provides trait metadata.
+Keyed by object identity (WHICH) for runtime discovery.
+
+=end pod
 our %PROVIDES-METADATA;
 
-#| Compile-time trait that attaches domain metadata to declarands.
-#| 
-#| Stores domain names (Array[Str]) in the declarand's meta-object
-#| for runtime discovery by Master Walkers and Slangs.
-#|
-#| The trait does not alter runtime semantics, method dispatch, or type identity.
-#| It exists solely to guide Walker selection and planning.
-#|
-#| Example:
-#|   my $table provides<sql> = SQL::Table.new(...);
-#|   my $hybrid provides<sql json> = ...;
+=begin pod
+
+Compile-time trait that attaches domain metadata to declarands.
+
+Stores domain names (Array[Str]) in the declarand's meta-object
+for runtime discovery by Master Walkers and Slangs.
+
+The trait does not alter runtime semantics, method dispatch, or type identity.
+It exists solely to guide Walker selection and planning.
+
+Example:
+  my $table provides<sql> = SQL::Table.new(...);
+  my $hybrid provides<sql json> = ...;
+
+=end pod
 sub trait_mod:<provides>($declarand, *@domains) is export {
     # Extract domain names from trait arguments
     # @domains contains the domain names as strings
@@ -36,17 +48,21 @@ sub trait_mod:<provides>($declarand, *@domains) is export {
     %PROVIDES-METADATA{$declarand.WHICH} = @domain-names;
 }
 
-#| Discover domain metadata from an object or variable at runtime.
-#|
-#| Returns Array[Str] of domain names if metadata exists, Nil otherwise.
-#| Uses the module-level registry to access stored metadata.
-#|
-#| For variables with provides trait, pass the variable itself (container).
-#| The function will also try to get the container from a value using .VAR.
-#|
-#| Example:
-#|   my $table provides<sql> = SQL::Table.new(...);
-#|   my @domains = provides-domains($table);  # Returns ['sql']
+=begin pod
+
+Discover domain metadata from an object or variable at runtime.
+
+Returns Array[Str] of domain names if metadata exists, Nil otherwise.
+Uses the module-level registry to access stored metadata.
+
+For variables with provides trait, pass the variable itself (container).
+The function will also try to get the container from a value using .VAR.
+
+Example:
+  my $table provides<sql> = SQL::Table.new(...);
+  my @domains = provides-domains($table);  # Returns ['sql']
+
+=end pod
 sub provides-domains(Mu $obj) is export {
     # First, try to get the container if this is a value
     # For variables, .VAR returns the Scalar container

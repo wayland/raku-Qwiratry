@@ -1,11 +1,19 @@
-#| Exception hierarchy for Qwiratry infrastructure
-#| This module provides exception classes for error handling in the
-#| Qwiratry infrastructure, including Walker-related exceptions and
-#| Transformer-related exceptions.
+=begin pod
+
+Exception hierarchy for Qwiratry infrastructure
+This module provides exception classes for error handling in the
+Qwiratry infrastructure, including Walker-related exceptions and
+Transformer-related exceptions.
+
+=end pod
 unit module Qwiratry::X;
 
-#| Base exception class for all Walker-related errors.
-#| Provides common attributes for error reporting and debugging.
+=begin pod
+
+Base exception class for all Walker-related errors.
+Provides common attributes for error reporting and debugging.
+
+=end pod
 class X::Qwiratry::Walker is Exception is export {
     #| Human-readable error message describing what went wrong
     has Str $.message is required;
@@ -19,9 +27,13 @@ class X::Qwiratry::Walker is Exception is export {
     }
 }
 
-#| Exception thrown when a Walker cannot interpret a Query AST element.
-#| This exception is thrown by Walker.plan() when it encounters a query
-#| element it does not know how to handle.
+=begin pod
+
+Exception thrown when a Walker cannot interpret a Query AST element.
+This exception is thrown by Walker.plan() when it encounters a query
+element it does not know how to handle.
+
+=end pod
 class X::Qwiratry::UnknownQueryElement is X::Qwiratry::Walker is export {
     #| The Query AST node that could not be interpreted
     has $.query-ast;
@@ -33,10 +45,14 @@ class X::Qwiratry::UnknownQueryElement is X::Qwiratry::Walker is export {
     }
 }
 
-#| Exception thrown when template ordering detects a conflict.
-#| This exception is thrown by Transformer.ORDER-TEMPLATES() when two or more
-#| templates have equal priority, specificity, and tie-breaker values and
-#| could potentially match the same node, making the ordering ambiguous.
+=begin pod
+
+Exception thrown when template ordering detects a conflict.
+This exception is thrown by Transformer.ORDER-TEMPLATES() when two or more
+templates have equal priority, specificity, and tie-breaker values and
+could potentially match the same node, making the ordering ambiguous.
+
+=end pod
 class X::Qwiratry::TemplateOrderingConflict is Exception is export {
     #| Human-readable error message describing the conflict
     has Str $.message is required;
@@ -61,10 +77,14 @@ class X::Qwiratry::TemplateOrderingConflict is Exception is export {
     }
 }
 
-#| Exception thrown when no Walker can be found for a given data type.
-#| This exception is thrown by Transformer.TRANSFORM() or WalkerFactory
-#| when attempting to transform data but no appropriate Walker is available
-#| for the data type.
+=begin pod
+
+Exception thrown when no Walker can be found for a given data type.
+This exception is thrown by Transformer.TRANSFORM() or WalkerFactory
+when attempting to transform data but no appropriate Walker is available
+for the data type.
+
+=end pod
 class X::Qwiratry::NoWalkerFound is Exception is export {
     #| Human-readable error message describing what went wrong
     has Str $.message is required;

@@ -1,15 +1,19 @@
-#| Master Walker for composite walker handovers
-#|
-#| This module implements the Master Walker class that detects when handovers
-#| are required between domain-specific walkers and delegates planning and
-#| execution to appropriate walkers. The Master Walker coordinates composite
-#| execution for multi-domain queries.
-#|
-#| The Master Walker:
-#| - Discovers candidate walkers via introspection (default) or accepts explicit registration
-#| - Detects handover requirements using domain metadata and capability checks
-#| - Delegates planning to domain-specific walkers and embeds resulting plans as subplans
-#| - Coordinates composite execution of multi-domain queries
+=begin pod
+
+Master Walker for composite walker handovers
+
+This module implements the Master Walker class that detects when handovers
+are required between domain-specific walkers and delegates planning and
+execution to appropriate walkers. The Master Walker coordinates composite
+execution for multi-domain queries.
+
+The Master Walker:
+- Discovers candidate walkers via introspection (default) or accepts explicit registration
+- Detects handover requirements using domain metadata and capability checks
+- Delegates planning to domain-specific walkers and embeds resulting plans as subplans
+- Coordinates composite execution of multi-domain queries
+
+=end pod
 unit module Qwiratry::MasterWalker;
 
 use Qwiratry::Walker;
@@ -18,17 +22,21 @@ use Qwiratry::X;
 use Qwiratry::QueryIterator;
 use Qwiratry::Context;
 
-#| Composite Plan that implements Walker::Plan role with embedded subplans.
-#|
-#| Represents a composite execution plan containing subplans from multiple
-#| domain-specific walkers. The composite plan maintains the original query AST
-#| and embeds subplans as an array.
-#|
-#| Example:
-#|   my $plan = CompositePlan.new(
-#|       query-ast => $query,
-#|       subplans => [$subplan1, $subplan2]
-#|   );
+=begin pod
+
+Composite Plan that implements Walker::Plan role with embedded subplans.
+
+Represents a composite execution plan containing subplans from multiple
+domain-specific walkers. The composite plan maintains the original query AST
+and embeds subplans as an array.
+
+Example:
+  my $plan = CompositePlan.new(
+      query-ast => $query,
+      subplans => [$subplan1, $subplan2]
+  )
+
+=end pod
 class CompositePlan does Walker::Plan {
     #| Original query AST (composite query, not modified)
     has RakuAST::Node $.query-ast is required;
@@ -78,15 +86,19 @@ class CompositePlan does Walker::Plan {
     }
 }
 
-#| Composite iterator that coordinates execution of multiple subplan iterators.
-#|
-#| For MVP, materializes results from each subplan and combines them.
-#| Execution follows the order specified in CompositePlan.execution-order,
-#| or sequential order if not specified.
-#|
-#| Example:
-#|   my $iter = CompositeIterator.new(context => $ctx, plan => $composite-plan);
-#|   my $result = $iter.pull-one();  # Returns first combined result
+=begin pod
+
+Composite iterator that coordinates execution of multiple subplan iterators.
+
+For MVP, materializes results from each subplan and combines them.
+Execution follows the order specified in CompositePlan.execution-order,
+or sequential order if not specified.
+
+Example:
+  my $iter = CompositeIterator.new(context => $ctx, plan => $composite-plan);
+  my $result = $iter.pull-one();  # Returns first combined result
+
+=end pod
 class CompositeIterator does QueryIterator {
     #| The composite plan this iterator executes
     has CompositePlan $.plan is required;
@@ -154,17 +166,21 @@ class CompositeIterator does QueryIterator {
     }
 }
 
-#| Master Walker class that implements Walker role for composite handovers.
-#|
-#| Responsible for detecting when handovers are required and delegating
-#| planning and execution to appropriate domain-specific Walkers.
-#|
-#| Constructor parameters:
-#|   :@candidate-walkers - Optional array of Walker instances (overrides discovery)
-#|
-#| Example:
-#|   my $master = MasterWalker.new;
-#|   my $master-with-walkers = MasterWalker.new(:candidate-walkers[@sql-walker, @json-walker]);
+=begin pod
+
+Master Walker class that implements Walker role for composite handovers.
+
+Responsible for detecting when handovers are required and delegating
+planning and execution to appropriate domain-specific Walkers.
+
+Constructor parameters:
+  :@candidate-walkers - Optional array of Walker instances (overrides discovery)
+
+Example:
+  my $master = MasterWalker.new;
+  my $master-with-walkers = MasterWalker.new(:candidate-walkers[@sql-walker, @json-walker]);
+
+=end pod
 class MasterWalker does Walker {
     #| Explicitly provided candidate walkers (overrides discovery if provided)
     has @.candidate-walkers;
@@ -192,9 +208,13 @@ class MasterWalker does Walker {
         return self.discover-walkers();
     }
     
-    #| Discover candidate walkers via introspection.
-    #| Scans loaded classes/types for those implementing Walker role.
-    #| Cached per instance to avoid repeated introspection.
+    =begin pod
+
+    Discover candidate walkers via introspection.
+    Scans loaded classes/types for those implementing Walker role.
+    Cached per instance to avoid repeated introspection.
+
+    =end pod
     method discover-walkers(--> Array) {
         # Return cached result if discovery already performed
         if $!discovery-performed {
@@ -282,11 +302,15 @@ class MasterWalker does Walker {
         return Nil;
     }
     
-    #| Check AST pattern suitability (optional optimization).
-    #| Recognizes common AST patterns and matches to walker capabilities.
-    #| For MVP, this is a placeholder that can be enhanced later.
-    #|
-    #| Returns Walker if pattern matches, Nil otherwise.
+    =begin pod
+
+    Check AST pattern suitability (optional optimization).
+    Recognizes common AST patterns and matches to walker capabilities.
+    For MVP, this is a placeholder that can be enhanced later.
+
+    Returns Walker if pattern matches, Nil otherwise.
+
+    =end pod
     method check-ast-pattern(RakuAST::Node $subtree) {
         # For MVP, this is optional and not implemented
         # Can be enhanced later to recognize specific AST patterns
@@ -294,11 +318,15 @@ class MasterWalker does Walker {
         return Nil;
     }
     
-    #| Use heuristics to select walker (optional, last resort).
-    #| Uses heuristics like node type, structure, or keywords to guess walker.
-    #| For MVP, this is a placeholder that can be enhanced later.
-    #|
-    #| Returns Walker if heuristic matches, Nil otherwise.
+    =begin pod
+
+    Use heuristics to select walker (optional, last resort).
+    Uses heuristics like node type, structure, or keywords to guess walker.
+    For MVP, this is a placeholder that can be enhanced later.
+
+    Returns Walker if heuristic matches, Nil otherwise.
+
+    =end pod
     method check-heuristic(RakuAST::Node $subtree) {
         # For MVP, this is optional and not implemented
         # Can be enhanced later with heuristics based on:
@@ -308,10 +336,14 @@ class MasterWalker does Walker {
         return Nil;
     }
     
-    #| Detect handover requirement following full priority order:
-    #| domain metadata → capability → pattern → heuristic.
-    #| Returns Walker if handover is needed, Nil if not.
-    #| Handles edge cases: no walker found, multiple walkers, walker declines.
+    =begin pod
+
+    Detect handover requirement following full priority order:
+    domain metadata → capability → pattern → heuristic.
+    Returns Walker if handover is needed, Nil if not.
+    Handles edge cases: no walker found, multiple walkers, walker declines.
+
+    =end pod
     method detect-handover(RakuAST::Node $subtree, Mu $root) {
         my @candidates = self.candidate-walkers();
         my @tried-walkers = Array.new;
@@ -374,9 +406,13 @@ class MasterWalker does Walker {
         return $query;
     }
     
-    #| Delegate planning to domain-specific walker.
-    #| Calls walker's plan() method and handles exceptions.
-    #| Handles edge case T052: walker accepts via supports() but declines during planning.
+    =begin pod
+
+    Delegate planning to domain-specific walker.
+    Calls walker's plan() method and handles exceptions.
+    Handles edge case T052: walker accepts via supports() but declines during planning.
+
+    =end pod
     method delegate-planning(Walker $walker, RakuAST::Node $subtree, Mu $root --> Walker::Plan) {
         try {
             return $walker.plan($subtree, $root);
@@ -398,8 +434,12 @@ class MasterWalker does Walker {
         }
     }
     
-    #| Required: Create execution plan from query and root.
-    #| Detects handovers, delegates planning, and embeds subplans in CompositePlan.
+    =begin pod
+
+    Required: Create execution plan from query and root.
+    Detects handovers, delegates planning, and embeds subplans in CompositePlan.
+
+    =end pod
     method plan(RakuAST::Node $query, Mu $root --> Walker::Plan) {
         # Detect if handover is needed
         my $walker = self.detect-handover($query, $root);
@@ -427,8 +467,12 @@ class MasterWalker does Walker {
         ).throw;
     }
     
-    #| Required: Produce QueryIterator from plan.
-    #| Delegates to the plan's iterator() method, which handles composite execution.
+    =begin pod
+
+    Required: Produce QueryIterator from plan.
+    Delegates to the plan's iterator() method, which handles composite execution.
+
+    =end pod
     method iterator(Walker::Plan $plan --> QueryIterator) {
         return $plan.iterator();
     }
