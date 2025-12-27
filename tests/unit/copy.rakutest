@@ -1,5 +1,9 @@
-#| Unit tests for Copy service class
-#| Tests copy() and deepcopy() multi subs, shallow copy, deep copy, DAG handling, cycle detection
+=begin pod
+
+Unit tests for Copy service class
+Tests copy() and deepcopy() multi subs, shallow copy, deep copy, DAG handling, cycle detection
+
+=end pod
 use Test;
 use lib 'lib';
 

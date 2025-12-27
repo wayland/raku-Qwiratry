@@ -47,59 +47,41 @@ class X::Qwiratry::UnknownQueryElement is X::Qwiratry::Walker is export {
 
 =begin pod
 
-Exception thrown when template ordering detects a conflict.
-This exception is thrown by Transformer.ORDER-TEMPLATES() when two or more
-templates have equal priority, specificity, and tie-breaker values and
-could potentially match the same node, making the ordering ambiguous.
+Exception thrown when template ordering cannot be resolved due to conflicts.
+This exception is thrown during template ordering when templates have
+equal priority, specificity, and tie-breaker values, making it impossible
+to determine a deterministic order.
 
 =end pod
-class X::Qwiratry::TemplateOrderingConflict is Exception is export {
-    #| Human-readable error message describing the conflict
-    has Str $.message is required;
-    
-    #| Names of the conflicting templates
+class X::Qwiratry::TemplateOrderingConflict is X::Qwiratry::Walker is export {
+    #| List of template names involved in the conflict
     has @.template-names is required;
     
-    #| Priority value that caused the conflict
-    has Int $.priority;
+    #| Additional context about why the conflict occurred
+    has Str $.conflict-details = '';
     
-    #| Specificity value that caused the conflict
-    has Int $.specificity;
-    
-    #| Tie-breaker value that caused the conflict
-    has Int $.tie-breaker;
-    
-    #| Override gist to provide informative string representation
+    #| Override gist to provide detailed conflict information
     method gist(--> Str) {
         my $templates = @.template-names.join(', ');
-        my $details = "priority=$.priority, specificity=$.specificity, tie-breaker=$.tie-breaker";
-        "X::Qwiratry::TemplateOrderingConflict: $.message (templates: $templates, $details)"
+        my $details = $.conflict-details ?? " ($.conflict-details)" !! '';
+        "X::Qwiratry::TemplateOrderingConflict: $.message (templates: $templates)$details"
     }
 }
 
 =begin pod
 
 Exception thrown when no Walker can be found for a given data type.
-This exception is thrown by Transformer.TRANSFORM() or WalkerFactory
-when attempting to transform data but no appropriate Walker is available
-for the data type.
+This exception is thrown when attempting to transform data but no
+appropriate Walker is available in the registry for the data's type.
 
 =end pod
-class X::Qwiratry::NoWalkerFound is Exception is export {
-    #| Human-readable error message describing what went wrong
-    has Str $.message is required;
+class X::Qwiratry::NoWalkerFound is X::Qwiratry::Walker is export {
+    #| The type of data for which no Walker was found
+    has Mu $.data-type is required;
     
-    #| The data type that could not be matched to a Walker
-    has Str $.data-type is required;
-    
-    #| Available Walker types (if known)
-    has @.available-walkers;
-    
-    #| Override gist to provide informative string representation
+    #| Override gist to include data type information
     method gist(--> Str) {
-        my $available = @.available-walkers.elems > 0 
-            ?? " (available: {@.available-walkers.join(', ')})"
-            !! "";
-        "X::Qwiratry::NoWalkerFound: $.message (data-type: $.data-type$available)"
+        my $type-name = $.data-type.^name;
+        "X::Qwiratry::NoWalkerFound: $.message (data-type: $type-name)"
     }
 }

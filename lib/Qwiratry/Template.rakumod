@@ -1,21 +1,29 @@
-#| Template class for pattern-matching transformation rules
-#|
-#| This module provides the Template class that represents individual
-#| transformation rules within a Transformer. Templates consist of
-#| a `when` block (matcher) and a `do` block (action), along with
-#| metadata for ordering (priority, specificity, tie-breaker).
+=begin pod
+
+Template class for pattern-matching transformation rules
+
+This module provides the Template class that represents individual
+transformation rules within a Transformer. Templates consist of
+a `when` block (matcher) and a `do` block (action), along with
+metadata for ordering (priority, specificity, tie-breaker).
+
+=end pod
 unit module Qwiratry::Template;
 
-#| Template class representing a match-and-action rule within a Transformer.
-#|
-#| Templates define how nodes are selected (via `when` block) and transformed
-#| (via `do` block). Templates are ordered by priority → specificity → tie-breaker
-#| to determine which template applies when multiple could match.
-#|
-#| Example:
-#|   template section() when { $_.name eq 'section' } do {
-#|       make Node.new(name => $_.name);
-#|   }
+=begin pod
+
+Template class representing a match-and-action rule within a Transformer.
+
+Templates define how nodes are selected (via `when` block) and transformed
+(via `do` block). Templates are ordered by priority → specificity → tie-breaker
+to determine which template applies when multiple could match.
+
+Example:
+  template section() when { $_.name eq 'section' } do {
+      make Node.new(name => $_.name);
+  }
+
+=end pod
 class Template {
     #| Optional template name (makes template callable as method on transformer)
     has Str $.name;
@@ -68,27 +76,35 @@ class Template {
         # All attributes set via BUILD parameters
     }
     
-    #| Evaluates `when` block against node, returns True if matches.
-    #|
-    #| This method will be implemented in WP05 (template execution).
-    #| For WP03, this is a stub that returns False.
-    #|
-    #| @param $node - Node to match against
-    #| @returns Bool - True if template matches node
+    =begin pod
+
+    Evaluates `when` block against node, returns True if matches.
+
+    This method will be implemented in WP05 (template execution).
+    For WP03, this is a stub that returns False.
+
+    @param $node - Node to match against
+    @returns Bool - True if template matches node
+
+    =end pod
     method matches($node --> Bool) {
         # Stub for WP03 - will be implemented in WP05
         # Will evaluate $.when-block with $node as $_
         False
     }
     
-    #| Executes `do` block with magic variables set, returns result.
-    #|
-    #| This method will be implemented in WP05 (template execution).
-    #| For WP03, this is a stub that returns Nil.
-    #|
-    #| @param $node - Node to transform
-    #| @param :$context - Optional context (defaults to $*CONTEXT)
-    #| @returns Iterator|Mu|List|Nil - Transformation result
+    =begin pod
+
+    Executes `do` block with magic variables set, returns result.
+
+    This method will be implemented in WP05 (template execution).
+    For WP03, this is a stub that returns Nil.
+
+    @param $node - Node to transform
+    @param :$context - Optional context (defaults to $*CONTEXT)
+    @returns Iterator|Mu|List|Nil - Transformation result
+
+    =end pod
     method execute($node, :$context --> Mu) {
         # Stub for WP03 - will be implemented in WP05
         # Will execute $.do-block with $*CONTEXT set to $node

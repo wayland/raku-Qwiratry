@@ -1,17 +1,25 @@
-#| Transformer declarator and Transformer class for declarative data transformations
-#|
-#| This module provides the custom `transformer` declarator and the Transformer class
-#| that enables pattern-matching transformations on various data structures using
-#| templates. Transformers integrate with the Walker and Strategy systems for
-#| flexible data transformation workflows.
+=begin pod
+
+Transformer declarator and Transformer class for declarative data transformations
+
+This module provides the custom `transformer` declarator and the Transformer class
+that enables pattern-matching transformations on various data structures using
+templates. Transformers integrate with the Walker and Strategy systems for
+flexible data transformation workflows.
+
+=end pod
 unit module Qwiratry::Transformer;
 
 use Qwiratry::Template;
 
-#| Export transformer declarator via EXPORTHOW::DECLARE
-#| For WP02, we use Metamodel::ClassHOW directly
-#| Custom behavior will be added via TWEAK and method addition in the transformer class
-#| In later work packages, we'll create a proper custom HOW class to process templates
+=begin pod
+
+Export transformer declarator via EXPORTHOW::DECLARE
+For WP02, we use Metamodel::ClassHOW directly
+Custom behavior will be added via TWEAK and method addition in the transformer class
+In later work packages, we'll create a proper custom HOW class to process templates
+
+=end pod
 package EXPORTHOW {
     package DECLARE {
         # Use ClassHOW directly - transformers will inherit from Transformer class
@@ -20,9 +28,13 @@ package EXPORTHOW {
     }
 }
 
-#| Base Transformer class
-#| Transformers declared with the `transformer` declarator should inherit from this
-#| Full implementation will be added in later work packages
+=begin pod
+
+Base Transformer class
+Transformers declared with the `transformer` declarator should inherit from this
+Full implementation will be added in later work packages
+
+=end pod
 class Transformer {
     #| Templates defined in transformer body (populated in WP03)
     has @.templates is rw;
@@ -48,16 +60,20 @@ class Transformer {
         self;
     }
     
-    #| Process transformer body AST to collect templates.
-    #|
-    #| This method will be called by the HOW class during transformer compilation
-    #| to parse template declarations from the transformer body.
-    #|
-    #| For WP03, this is a placeholder that will be enhanced when the custom HOW class
-    #| is implemented (currently blocked by serialization issues with extending ClassHOW).
-    #|
-    #| @param $body-ast - The RakuAST body of the transformer (not yet accessible)
-    #| @returns Array[Template] - Array of collected Template objects
+    =begin pod
+
+    Process transformer body AST to collect templates.
+
+    This method will be called by the HOW class during transformer compilation
+    to parse template declarations from the transformer body.
+
+    For WP03, this is a placeholder that will be enhanced when the custom HOW class
+    is implemented (currently blocked by serialization issues with extending ClassHOW).
+
+    @param $body-ast - The RakuAST body of the transformer (not yet accessible)
+    @returns Array[Template] - Array of collected Template objects
+
+    =end pod
     method !collect-templates-from-body($body-ast --> Array[Template]) {
         # Placeholder for WP03 - will be implemented when HOW class can access body AST
         # For now, return empty array
@@ -67,13 +83,17 @@ class Transformer {
         Array[Template].new
     }
     
-    #| Add a template to this transformer's template collection.
-    #|
-    #| This is a helper method for testing and manual template registration.
-    #| In the final implementation, templates will be collected automatically
-    #| during compilation by the HOW class.
-    #|
-    #| @param Template $template - The template to add
+    =begin pod
+
+    Add a template to this transformer's template collection.
+
+    This is a helper method for testing and manual template registration.
+    In the final implementation, templates will be collected automatically
+    during compilation by the HOW class.
+
+    @param Template $template - The template to add
+
+    =end pod
     method add-template(Template $template) {
         @!templates.push($template);
         
@@ -83,12 +103,16 @@ class Transformer {
         # TODO: Create callable method when HOW class is implemented
     }
     
-    #| Process templates from body AST and store them.
-    #|
-    #| This method will be called by the HOW class during compilation.
-    #| For WP03, this is a placeholder that can be enhanced later.
-    #|
-    #| @param $body-ast - The RakuAST body of the transformer
+    =begin pod
+
+    Process templates from body AST and store them.
+
+    This method will be called by the HOW class during compilation.
+    For WP03, this is a placeholder that can be enhanced later.
+
+    @param $body-ast - The RakuAST body of the transformer
+
+    =end pod
     method !process-templates($body-ast) {
         my @collected = self!collect-templates-from-body($body-ast);
         @!templates = @collected;
@@ -100,7 +124,11 @@ class Transformer {
     }
 }
 
-#| Trait to ensure transformer classes inherit from Transformer base class
-#| This will be applied automatically by the HOW class in a future work package
-#| For WP02, transformers should manually inherit: `transformer MyX is Transformer { }`
+=begin pod
+
+Trait to ensure transformer classes inherit from Transformer base class
+This will be applied automatically by the HOW class in a future work package
+For WP02, transformers should manually inherit: `transformer MyX is Transformer { }`
+
+=end pod
 

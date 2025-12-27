@@ -1,5 +1,9 @@
-#| Integration tests for Transformer-Walker integration
-#| Tests end-to-end transformations using transformers with walkers
+=begin pod
+
+Integration tests for Transformer-Walker integration
+Tests end-to-end transformations using transformers with walkers
+
+=end pod
 use Test;
 use lib 'lib';
 

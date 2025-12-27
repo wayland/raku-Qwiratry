@@ -1,5 +1,9 @@
-#| Unit tests for Transformer declarator and Transformer class
-#| Tests Transformer declarator, class structure, and basic behavior
+=begin pod
+
+Unit tests for Transformer declarator and Transformer class
+Tests Transformer declarator, class structure, and basic behavior
+
+=end pod
 use Test;
 use lib 'lib';
 
