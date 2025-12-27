@@ -1,28 +1,28 @@
 ---
-work_package_id: "WP07"
-subtasks:
-  - "T047"
-  - "T048"
-  - "T049"
-  - "T050"
-  - "T051"
-  - "T052"
-  - "T053"
-  - "T054"
-title: "Handover Detection Priority Order & Edge Cases"
-phase: "Phase 3 - Polish"
-lane: "done"
-assignee: "claude-reviewer"
-agent: "claude-reviewer"
-shell_pid: "37215"
-review_status: "approved without changes"
-reviewed_by: "claude-reviewer"
+work_package_id: WP07
+title: Handover Detection Priority Order & Edge Cases
+lane: done
 history:
-  - timestamp: "2025-01-27T00:00:00Z"
-    lane: "planned"
-    agent: "system"
-    shell_pid: ""
-    action: "Prompt generated via /spec-kitty.tasks"
+- timestamp: '2025-01-27T00:00:00Z'
+  lane: planned
+  agent: system
+  shell_pid: ''
+  action: Prompt generated via /spec-kitty.tasks
+agent: claude-reviewer
+assignee: claude-reviewer
+phase: Phase 3 - Polish
+review_status: approved without changes
+reviewed_by: claude-reviewer
+shell_pid: '37215'
+subtasks:
+- T047
+- T048
+- T049
+- T050
+- T051
+- T052
+- T053
+- T054
 ---
 
 # Work Package Prompt: WP07 – Handover Detection Priority Order & Edge Cases

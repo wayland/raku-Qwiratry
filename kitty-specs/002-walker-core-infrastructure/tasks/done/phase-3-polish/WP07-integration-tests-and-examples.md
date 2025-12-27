@@ -1,27 +1,27 @@
 ---
-work_package_id: "WP07"
-subtasks:
-  - "T051"
-  - "T052"
-  - "T053"
-  - "T054"
-  - "T055"
-  - "T056"
-  - "T057"
-title: "Integration Tests & Example Walker"
-phase: "Phase 3 - Polish"
-lane: "done"
-assignee: "claude"
-agent: "claude-reviewer"
-shell_pid: "89292"
-review_status: ""
-reviewed_by: ""
+work_package_id: WP07
+title: Integration Tests & Example Walker
+lane: done
 history:
-  - timestamp: "2025-12-17T11:41:34Z"
-    lane: "planned"
-    agent: "system"
-    shell_pid: ""
-    action: "Prompt generated via /spec-kitty.tasks"
+- timestamp: '2025-12-17T11:41:34Z'
+  lane: planned
+  agent: system
+  shell_pid: ''
+  action: Prompt generated via /spec-kitty.tasks
+agent: claude-reviewer
+assignee: claude
+phase: Phase 3 - Polish
+review_status: ''
+reviewed_by: ''
+shell_pid: '89292'
+subtasks:
+- T051
+- T052
+- T053
+- T054
+- T055
+- T056
+- T057
 ---
 
 # Work Package Prompt: WP07 – Integration Tests & Example Walker

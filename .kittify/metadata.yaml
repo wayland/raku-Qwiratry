@@ -3,12 +3,143 @@
 # DO NOT EDIT MANUALLY
 
 spec_kitty:
-  version: 0.7.3
+  version: 0.9.4
   initialized_at: '2025-12-16T23:23:55.078508'
-  last_upgraded_at: null
+  last_upgraded_at: '2025-12-27T18:04:34.669426'
 environment:
   python_version: 3.12.10
   platform: linux
   platform_version: Linux-6.14.5-100.fc40.x86_64-x86_64-with-glibc2.39
 migrations:
-  applied: []
+  applied:
+  - id: 0.8.0_remove_active_mission
+    applied_at: '2025-12-27T18:04:34.195109'
+    result: success
+    notes: Removed deprecated .kittify/active-mission;   -> Missions are now selected
+      per-feature during /spec-kitty.specify;   -> Existing features will use 'software-dev'
+      mission by default
+  - id: 0.8.0_worktree_agents_symlink
+    applied_at: '2025-12-27T18:04:34.200682'
+    result: skipped
+    notes: Not applicable
+  - id: 0.9.0_frontmatter_only_lanes
+    applied_at: '2025-12-27T18:04:34.234505'
+    result: success
+    notes: "[main] 002-walker-core-infrastructure:; [main] 003-strategy-and-controlsignal:;\
+      \ [main] 004-composite-walker-handovers:;   Moved: done/WP01-setup-and-project-structure.md\
+      \ \u2192 tasks/WP01-setup-and-project-structure.md;   Moved: done/WP02-provides-trait-implementation.md\
+      \ \u2192 tasks/WP02-provides-trait-implementation.md;   Moved: done/WP03-master-walker-discovery-and-registration.md\
+      \ \u2192 tasks/WP03-master-walker-discovery-and-registration.md;   Moved: done/WP04-handover-detection-domain-metadata-and-capability.md\
+      \ \u2192 tasks/WP04-handover-detection-domain-metadata-and-capability.md;  \
+      \ Moved: done/WP05-plan-level-handover-with-subplans.md \u2192 tasks/WP05-plan-level-handover-with-subplans.md;\
+      \   Moved: done/WP06-composite-execution-coordination.md \u2192 tasks/WP06-composite-execution-coordination.md;\
+      \   Moved: done/WP07-handover-detection-priority-and-edge-cases.md \u2192 tasks/WP07-handover-detection-priority-and-edge-cases.md;\
+      \   Moved: done/WP08-integration-tests-and-polish.md \u2192 tasks/WP08-integration-tests-and-polish.md;\
+      \   Removed empty: done/; [worktree:005-transformer-templates-system] 002-walker-core-infrastructure:;\
+      \ [worktree:005-transformer-templates-system] 003-strategy-and-controlsignal:;\
+      \ [worktree:005-transformer-templates-system] 005-transformer-templates-system:;\
+      \   Moved: planned/WP01-setup-and-project-structure.md \u2192 tasks/WP01-setup-and-project-structure.md;\
+      \   Moved: planned/WP02-transformer-declarator.md \u2192 tasks/WP02-transformer-declarator.md;\
+      \   Moved: planned/WP04-template-ordering-algorithm.md \u2192 tasks/WP04-template-ordering-algorithm.md;\
+      \   Moved: planned/WP05-magic-variables-and-template-execution.md \u2192 tasks/WP05-magic-variables-and-template-execution.md;\
+      \   Moved: planned/WP06-apply-and-transform-methods.md \u2192 tasks/WP06-apply-and-transform-methods.md;\
+      \   Moved: planned/WP07-copy-service-class.md \u2192 tasks/WP07-copy-service-class.md;\
+      \   Moved: planned/WP08-wrapper-system.md \u2192 tasks/WP08-wrapper-system.md;\
+      \   Moved: planned/WP09-traits-and-advanced-features.md \u2192 tasks/WP09-traits-and-advanced-features.md;\
+      \   Moved: planned/WP10-integration-and-polish.md \u2192 tasks/WP10-integration-and-polish.md;\
+      \   Removed empty: planned/;   Removed empty: done/; [worktree:006-qwiratry-operators-specification]\
+      \ 002-walker-core-infrastructure:; [worktree:006-qwiratry-operators-specification]\
+      \ 003-strategy-and-controlsignal:; [worktree:006-qwiratry-operators-specification]\
+      \ 004-composite-walker-handovers:;   Moved: done/WP01-setup-and-project-structure.md\
+      \ \u2192 tasks/WP01-setup-and-project-structure.md;   Moved: done/WP02-provides-trait-implementation.md\
+      \ \u2192 tasks/WP02-provides-trait-implementation.md;   Moved: done/WP03-master-walker-discovery-and-registration.md\
+      \ \u2192 tasks/WP03-master-walker-discovery-and-registration.md;   Moved: done/WP04-handover-detection-domain-metadata-and-capability.md\
+      \ \u2192 tasks/WP04-handover-detection-domain-metadata-and-capability.md;  \
+      \ Moved: done/WP05-plan-level-handover-with-subplans.md \u2192 tasks/WP05-plan-level-handover-with-subplans.md;\
+      \   Moved: done/WP06-composite-execution-coordination.md \u2192 tasks/WP06-composite-execution-coordination.md;\
+      \   Moved: done/WP07-handover-detection-priority-and-edge-cases.md \u2192 tasks/WP07-handover-detection-priority-and-edge-cases.md;\
+      \   Moved: done/WP08-integration-tests-and-polish.md \u2192 tasks/WP08-integration-tests-and-polish.md;\
+      \   Removed empty: done/; Migrated 25 WP files across 9 features"
+  - id: 0.9.1_complete_migration
+    applied_at: '2025-12-27T18:04:34.669408'
+    result: success
+    notes: '=== Part 1: Complete Lane Migration ===; [main] 002-walker-core-infrastructure:;
+      [main] 003-strategy-and-controlsignal:; [worktree:005-transformer-templates-system]
+      002-walker-core-infrastructure:; [worktree:005-transformer-templates-system]
+      003-strategy-and-controlsignal:; [worktree:005-transformer-templates-system]
+      005-transformer-templates-system:; [worktree:006-qwiratry-operators-specification]
+      002-walker-core-infrastructure:; [worktree:006-qwiratry-operators-specification]
+      003-strategy-and-controlsignal:; Migrated 0 files and removed 0 lane directories;
+      ; === Part 2: Worktree Cleanup ===; [005-transformer-templates-system] Removed
+      .cursor/commands/ (inherits from main); [005-transformer-templates-system] Removed
+      .kittify/scripts/ (inherits from main); [006-qwiratry-operators-specification]
+      Removed .cursor/commands/ (inherits from main); [006-qwiratry-operators-specification]
+      Removed .kittify/scripts/ (inherits from main); Cleaned up 2 worktrees; ; ===
+      Part 3: Normalize Frontmatter ===; Normalized: .worktrees/005-transformer-templates-system/kitty-specs/002-walker-core-infrastructure/tasks/done/phase-0-setup/WP01-setup-and-project-structure.md;
+      Normalized: .worktrees/005-transformer-templates-system/kitty-specs/002-walker-core-infrastructure/tasks/done/phase-1-foundational/WP02-exception-hierarchy.md;
+      Normalized: .worktrees/005-transformer-templates-system/kitty-specs/002-walker-core-infrastructure/tasks/done/phase-1-foundational/WP03-context-role.md;
+      Normalized: .worktrees/005-transformer-templates-system/kitty-specs/002-walker-core-infrastructure/tasks/done/phase-1-foundational/WP04-query-iterator-role.md;
+      Normalized: .worktrees/005-transformer-templates-system/kitty-specs/002-walker-core-infrastructure/tasks/done/phase-2-core/WP05-walker-plan-role.md;
+      Normalized: .worktrees/005-transformer-templates-system/kitty-specs/002-walker-core-infrastructure/tasks/done/phase-2-core/WP06-walker-role.md;
+      Normalized: .worktrees/005-transformer-templates-system/kitty-specs/002-walker-core-infrastructure/tasks/done/phase-3-polish/WP07-integration-tests-and-examples.md;
+      Normalized: .worktrees/005-transformer-templates-system/kitty-specs/003-strategy-and-controlsignal/tasks/done/phase-0-setup/WP01-setup-and-project-structure.md;
+      Normalized: .worktrees/005-transformer-templates-system/kitty-specs/003-strategy-and-controlsignal/tasks/done/phase-1-foundational/WP02-controlsignal-enum.md;
+      Normalized: .worktrees/005-transformer-templates-system/kitty-specs/003-strategy-and-controlsignal/tasks/done/phase-1-foundational/WP03-stub-types.md;
+      Normalized: .worktrees/005-transformer-templates-system/kitty-specs/003-strategy-and-controlsignal/tasks/done/phase-2-core/WP04-strategy-role.md;
+      Normalized: .worktrees/005-transformer-templates-system/kitty-specs/003-strategy-and-controlsignal/tasks/done/phase-2-core/WP05-walker-integration.md;
+      Normalized: .worktrees/005-transformer-templates-system/kitty-specs/003-strategy-and-controlsignal/tasks/done/phase-3-polish/WP06-integration-tests-and-examples.md;
+      Normalized: .worktrees/005-transformer-templates-system/kitty-specs/005-transformer-templates-system/tasks/WP01-setup-and-project-structure.md;
+      Normalized: .worktrees/005-transformer-templates-system/kitty-specs/005-transformer-templates-system/tasks/WP02-transformer-declarator.md;
+      Normalized: .worktrees/005-transformer-templates-system/kitty-specs/005-transformer-templates-system/tasks/WP04-template-ordering-algorithm.md;
+      Normalized: .worktrees/005-transformer-templates-system/kitty-specs/005-transformer-templates-system/tasks/WP05-magic-variables-and-template-execution.md;
+      Normalized: .worktrees/005-transformer-templates-system/kitty-specs/005-transformer-templates-system/tasks/WP06-apply-and-transform-methods.md;
+      Normalized: .worktrees/005-transformer-templates-system/kitty-specs/005-transformer-templates-system/tasks/WP07-copy-service-class.md;
+      Normalized: .worktrees/005-transformer-templates-system/kitty-specs/005-transformer-templates-system/tasks/WP08-wrapper-system.md;
+      Normalized: .worktrees/005-transformer-templates-system/kitty-specs/005-transformer-templates-system/tasks/WP09-traits-and-advanced-features.md;
+      Normalized: .worktrees/005-transformer-templates-system/kitty-specs/005-transformer-templates-system/tasks/WP10-integration-and-polish.md;
+      Normalized: .worktrees/005-transformer-templates-system/kitty-specs/005-transformer-templates-system/tasks/doing/phase-1-foundational/WP02-transformer-declarator.md;
+      Normalized: .worktrees/005-transformer-templates-system/kitty-specs/005-transformer-templates-system/tasks/doing/phase-1-foundational/WP03-template-declarator-and-collection.md;
+      Normalized: .worktrees/005-transformer-templates-system/kitty-specs/005-transformer-templates-system/tasks/for_review/phase-0-setup/WP01-setup-and-project-structure.md;
+      Normalized: .worktrees/006-qwiratry-operators-specification/kitty-specs/002-walker-core-infrastructure/tasks/done/phase-0-setup/WP01-setup-and-project-structure.md;
+      Normalized: .worktrees/006-qwiratry-operators-specification/kitty-specs/002-walker-core-infrastructure/tasks/done/phase-1-foundational/WP02-exception-hierarchy.md;
+      Normalized: .worktrees/006-qwiratry-operators-specification/kitty-specs/002-walker-core-infrastructure/tasks/done/phase-1-foundational/WP03-context-role.md;
+      Normalized: .worktrees/006-qwiratry-operators-specification/kitty-specs/002-walker-core-infrastructure/tasks/done/phase-1-foundational/WP04-query-iterator-role.md;
+      Normalized: .worktrees/006-qwiratry-operators-specification/kitty-specs/002-walker-core-infrastructure/tasks/done/phase-2-core/WP05-walker-plan-role.md;
+      Normalized: .worktrees/006-qwiratry-operators-specification/kitty-specs/002-walker-core-infrastructure/tasks/done/phase-2-core/WP06-walker-role.md;
+      Normalized: .worktrees/006-qwiratry-operators-specification/kitty-specs/002-walker-core-infrastructure/tasks/done/phase-3-polish/WP07-integration-tests-and-examples.md;
+      Normalized: .worktrees/006-qwiratry-operators-specification/kitty-specs/003-strategy-and-controlsignal/tasks/done/phase-0-setup/WP01-setup-and-project-structure.md;
+      Normalized: .worktrees/006-qwiratry-operators-specification/kitty-specs/003-strategy-and-controlsignal/tasks/done/phase-1-foundational/WP02-controlsignal-enum.md;
+      Normalized: .worktrees/006-qwiratry-operators-specification/kitty-specs/003-strategy-and-controlsignal/tasks/done/phase-1-foundational/WP03-stub-types.md;
+      Normalized: .worktrees/006-qwiratry-operators-specification/kitty-specs/003-strategy-and-controlsignal/tasks/done/phase-2-core/WP04-strategy-role.md;
+      Normalized: .worktrees/006-qwiratry-operators-specification/kitty-specs/003-strategy-and-controlsignal/tasks/done/phase-2-core/WP05-walker-integration.md;
+      Normalized: .worktrees/006-qwiratry-operators-specification/kitty-specs/003-strategy-and-controlsignal/tasks/done/phase-3-polish/WP06-integration-tests-and-examples.md;
+      Normalized: .worktrees/006-qwiratry-operators-specification/kitty-specs/004-composite-walker-handovers/tasks/WP01-setup-and-project-structure.md;
+      Normalized: .worktrees/006-qwiratry-operators-specification/kitty-specs/004-composite-walker-handovers/tasks/WP02-provides-trait-implementation.md;
+      Normalized: .worktrees/006-qwiratry-operators-specification/kitty-specs/004-composite-walker-handovers/tasks/WP03-master-walker-discovery-and-registration.md;
+      Normalized: .worktrees/006-qwiratry-operators-specification/kitty-specs/004-composite-walker-handovers/tasks/WP04-handover-detection-domain-metadata-and-capability.md;
+      Normalized: .worktrees/006-qwiratry-operators-specification/kitty-specs/004-composite-walker-handovers/tasks/WP05-plan-level-handover-with-subplans.md;
+      Normalized: .worktrees/006-qwiratry-operators-specification/kitty-specs/004-composite-walker-handovers/tasks/WP06-composite-execution-coordination.md;
+      Normalized: .worktrees/006-qwiratry-operators-specification/kitty-specs/004-composite-walker-handovers/tasks/WP07-handover-detection-priority-and-edge-cases.md;
+      Normalized: .worktrees/006-qwiratry-operators-specification/kitty-specs/004-composite-walker-handovers/tasks/WP08-integration-tests-and-polish.md;
+      Normalized: kitty-specs/002-walker-core-infrastructure/tasks/done/phase-0-setup/WP01-setup-and-project-structure.md;
+      Normalized: kitty-specs/002-walker-core-infrastructure/tasks/done/phase-1-foundational/WP02-exception-hierarchy.md;
+      Normalized: kitty-specs/002-walker-core-infrastructure/tasks/done/phase-1-foundational/WP03-context-role.md;
+      Normalized: kitty-specs/002-walker-core-infrastructure/tasks/done/phase-1-foundational/WP04-query-iterator-role.md;
+      Normalized: kitty-specs/002-walker-core-infrastructure/tasks/done/phase-2-core/WP05-walker-plan-role.md;
+      Normalized: kitty-specs/002-walker-core-infrastructure/tasks/done/phase-2-core/WP06-walker-role.md;
+      Normalized: kitty-specs/002-walker-core-infrastructure/tasks/done/phase-3-polish/WP07-integration-tests-and-examples.md;
+      Normalized: kitty-specs/003-strategy-and-controlsignal/tasks/done/phase-0-setup/WP01-setup-and-project-structure.md;
+      Normalized: kitty-specs/003-strategy-and-controlsignal/tasks/done/phase-1-foundational/WP02-controlsignal-enum.md;
+      Normalized: kitty-specs/003-strategy-and-controlsignal/tasks/done/phase-1-foundational/WP03-stub-types.md;
+      Normalized: kitty-specs/003-strategy-and-controlsignal/tasks/done/phase-2-core/WP04-strategy-role.md;
+      Normalized: kitty-specs/003-strategy-and-controlsignal/tasks/done/phase-2-core/WP05-walker-integration.md;
+      Normalized: kitty-specs/003-strategy-and-controlsignal/tasks/done/phase-3-polish/WP06-integration-tests-and-examples.md;
+      Normalized: kitty-specs/004-composite-walker-handovers/tasks/WP01-setup-and-project-structure.md;
+      Normalized: kitty-specs/004-composite-walker-handovers/tasks/WP02-provides-trait-implementation.md;
+      Normalized: kitty-specs/004-composite-walker-handovers/tasks/WP03-master-walker-discovery-and-registration.md;
+      Normalized: kitty-specs/004-composite-walker-handovers/tasks/WP04-handover-detection-domain-metadata-and-capability.md;
+      Normalized: kitty-specs/004-composite-walker-handovers/tasks/WP05-plan-level-handover-with-subplans.md;
+      Normalized: kitty-specs/004-composite-walker-handovers/tasks/WP06-composite-execution-coordination.md;
+      Normalized: kitty-specs/004-composite-walker-handovers/tasks/WP07-handover-detection-priority-and-edge-cases.md;
+      Normalized: kitty-specs/004-composite-walker-handovers/tasks/WP08-integration-tests-and-polish.md;
+      Normalized 67 files, skipped 0'

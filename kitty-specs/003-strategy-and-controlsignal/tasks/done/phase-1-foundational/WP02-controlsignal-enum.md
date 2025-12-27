@@ -1,25 +1,25 @@
 ---
-work_package_id: "WP02"
-subtasks:
-  - "T010"
-  - "T011"
-  - "T012"
-  - "T013"
-  - "T014"
-title: "ControlSignal Enum"
-phase: "Phase 1 - Foundational"
-lane: "done"
-assignee: "claude-reviewer"
-agent: "claude-reviewer"
-shell_pid: "23643"
-review_status: "approved without changes"
-reviewed_by: "claude-reviewer"
+work_package_id: WP02
+title: ControlSignal Enum
+lane: done
 history:
-  - timestamp: "2024-12-19T09:45:00Z"
-    lane: "planned"
-    agent: "system"
-    shell_pid: ""
-    action: "Prompt generated via /spec-kitty.tasks"
+- timestamp: '2024-12-19T09:45:00Z'
+  lane: planned
+  agent: system
+  shell_pid: ''
+  action: Prompt generated via /spec-kitty.tasks
+agent: claude-reviewer
+assignee: claude-reviewer
+phase: Phase 1 - Foundational
+review_status: approved without changes
+reviewed_by: claude-reviewer
+shell_pid: '23643'
+subtasks:
+- T010
+- T011
+- T012
+- T013
+- T014
 ---
 
 # Work Package Prompt: WP02 - ControlSignal Enum

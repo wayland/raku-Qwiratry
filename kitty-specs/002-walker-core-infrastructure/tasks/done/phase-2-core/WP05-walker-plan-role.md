@@ -1,31 +1,31 @@
 ---
-work_package_id: "WP05"
-subtasks:
-  - "T023"
-  - "T024"
-  - "T025"
-  - "T026"
-  - "T027"
-  - "T028"
-  - "T029"
-  - "T030"
-  - "T031"
-  - "T032"
-  - "T033"
-title: "Walker::Plan Role"
-phase: "Phase 2 - Core Infrastructure"
-lane: "done"
-assignee: "claude"
-agent: "claude-reviewer"
-shell_pid: "89292"
-review_status: ""
-reviewed_by: ""
+work_package_id: WP05
+title: Walker::Plan Role
+lane: done
 history:
-  - timestamp: "2025-12-17T11:41:34Z"
-    lane: "planned"
-    agent: "system"
-    shell_pid: ""
-    action: "Prompt generated via /spec-kitty.tasks"
+- timestamp: '2025-12-17T11:41:34Z'
+  lane: planned
+  agent: system
+  shell_pid: ''
+  action: Prompt generated via /spec-kitty.tasks
+agent: claude-reviewer
+assignee: claude
+phase: Phase 2 - Core Infrastructure
+review_status: ''
+reviewed_by: ''
+shell_pid: '89292'
+subtasks:
+- T023
+- T024
+- T025
+- T026
+- T027
+- T028
+- T029
+- T030
+- T031
+- T032
+- T033
 ---
 
 # Work Package Prompt: WP05 – Walker::Plan Role

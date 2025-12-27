@@ -1,27 +1,27 @@
 ---
-work_package_id: "WP03"
-subtasks:
-  - "T011"
-  - "T012"
-  - "T013"
-  - "T014"
-  - "T015"
-  - "T016"
-  - "T017"
-title: "Master Walker Discovery & Registration"
-phase: "Phase 1 - Foundational"
-lane: "done"
-assignee: "claude-reviewer"
-agent: "claude-reviewer"
-shell_pid: "37215"
-review_status: "approved without changes"
-reviewed_by: "claude-reviewer"
+work_package_id: WP03
+title: Master Walker Discovery & Registration
+lane: done
 history:
-  - timestamp: "2025-01-27T00:00:00Z"
-    lane: "planned"
-    agent: "system"
-    shell_pid: ""
-    action: "Prompt generated via /spec-kitty.tasks"
+- timestamp: '2025-01-27T00:00:00Z'
+  lane: planned
+  agent: system
+  shell_pid: ''
+  action: Prompt generated via /spec-kitty.tasks
+agent: claude-reviewer
+assignee: claude-reviewer
+phase: Phase 1 - Foundational
+review_status: approved without changes
+reviewed_by: claude-reviewer
+shell_pid: '37215'
+subtasks:
+- T011
+- T012
+- T013
+- T014
+- T015
+- T016
+- T017
 ---
 
 # Work Package Prompt: WP03 – Master Walker Discovery & Registration

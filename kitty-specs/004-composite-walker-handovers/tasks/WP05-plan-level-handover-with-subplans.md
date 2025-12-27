@@ -1,31 +1,31 @@
 ---
-work_package_id: "WP05"
-subtasks:
-  - "T028"
-  - "T029"
-  - "T030"
-  - "T031"
-  - "T032"
-  - "T033"
-  - "T034"
-  - "T035"
-  - "T036"
-  - "T037"
-  - "T038"
-title: "Plan-Level Handover with Embedded Subplans"
-phase: "Phase 2 - Core"
-lane: "done"
-assignee: "claude-reviewer"
-agent: "claude-reviewer"
-shell_pid: "37215"
-review_status: "approved without changes"
-reviewed_by: "claude-reviewer"
+work_package_id: WP05
+title: Plan-Level Handover with Embedded Subplans
+lane: done
 history:
-  - timestamp: "2025-01-27T00:00:00Z"
-    lane: "planned"
-    agent: "system"
-    shell_pid: ""
-    action: "Prompt generated via /spec-kitty.tasks"
+- timestamp: '2025-01-27T00:00:00Z'
+  lane: planned
+  agent: system
+  shell_pid: ''
+  action: Prompt generated via /spec-kitty.tasks
+agent: claude-reviewer
+assignee: claude-reviewer
+phase: Phase 2 - Core
+review_status: approved without changes
+reviewed_by: claude-reviewer
+shell_pid: '37215'
+subtasks:
+- T028
+- T029
+- T030
+- T031
+- T032
+- T033
+- T034
+- T035
+- T036
+- T037
+- T038
 ---
 
 # Work Package Prompt: WP05 – Plan-Level Handover with Embedded Subplans

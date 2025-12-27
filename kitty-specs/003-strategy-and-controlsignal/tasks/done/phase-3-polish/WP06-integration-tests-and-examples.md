@@ -1,30 +1,30 @@
 ---
-work_package_id: "WP06"
-subtasks:
-  - "T049"
-  - "T050"
-  - "T051"
-  - "T052"
-  - "T053"
-  - "T054"
-  - "T055"
-  - "T056"
-  - "T057"
-  - "T058"
-title: "Integration Tests and Examples"
-phase: "Phase 3 - Polish"
-lane: "done"
-assignee: "claude-reviewer"
-agent: "claude-reviewer"
-shell_pid: "31617"
-review_status: "approved without changes"
-reviewed_by: "claude-reviewer"
+work_package_id: WP06
+title: Integration Tests and Examples
+lane: done
 history:
-  - timestamp: "2024-12-19T09:45:00Z"
-    lane: "planned"
-    agent: "system"
-    shell_pid: ""
-    action: "Prompt generated via /spec-kitty.tasks"
+- timestamp: '2024-12-19T09:45:00Z'
+  lane: planned
+  agent: system
+  shell_pid: ''
+  action: Prompt generated via /spec-kitty.tasks
+agent: claude-reviewer
+assignee: claude-reviewer
+phase: Phase 3 - Polish
+review_status: approved without changes
+reviewed_by: claude-reviewer
+shell_pid: '31617'
+subtasks:
+- T049
+- T050
+- T051
+- T052
+- T053
+- T054
+- T055
+- T056
+- T057
+- T058
 ---
 
 # Work Package Prompt: WP06 - Integration Tests and Examples

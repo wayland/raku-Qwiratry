@@ -1,26 +1,26 @@
 ---
-work_package_id: "WP04"
-subtasks:
-  - "T017"
-  - "T018"
-  - "T019"
-  - "T020"
-  - "T021"
-  - "T022"
-title: "QueryIterator Role"
-phase: "Phase 1 - Foundational"
-lane: "done"
-assignee: "claude"
-agent: "claude-reviewer"
-shell_pid: "89292"
-review_status: ""
-reviewed_by: ""
+work_package_id: WP04
+title: QueryIterator Role
+lane: done
 history:
-  - timestamp: "2025-12-17T11:41:34Z"
-    lane: "planned"
-    agent: "system"
-    shell_pid: ""
-    action: "Prompt generated via /spec-kitty.tasks"
+- timestamp: '2025-12-17T11:41:34Z'
+  lane: planned
+  agent: system
+  shell_pid: ''
+  action: Prompt generated via /spec-kitty.tasks
+agent: claude-reviewer
+assignee: claude
+phase: Phase 1 - Foundational
+review_status: ''
+reviewed_by: ''
+shell_pid: '89292'
+subtasks:
+- T017
+- T018
+- T019
+- T020
+- T021
+- T022
 ---
 
 # Work Package Prompt: WP04 – QueryIterator Role

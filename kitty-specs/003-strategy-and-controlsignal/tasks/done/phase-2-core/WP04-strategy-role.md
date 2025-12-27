@@ -1,30 +1,30 @@
 ---
-work_package_id: "WP04"
-subtasks:
-  - "T022"
-  - "T023"
-  - "T024"
-  - "T025"
-  - "T026"
-  - "T027"
-  - "T028"
-  - "T029"
-  - "T030"
-  - "T031"
-title: "Strategy Role"
-phase: "Phase 2 - Core"
-lane: "done"
-assignee: "claude-reviewer"
-agent: "claude-reviewer"
-shell_pid: "23643"
-review_status: "approved without changes"
-reviewed_by: "claude-reviewer"
+work_package_id: WP04
+title: Strategy Role
+lane: done
 history:
-  - timestamp: "2024-12-19T09:45:00Z"
-    lane: "planned"
-    agent: "system"
-    shell_pid: ""
-    action: "Prompt generated via /spec-kitty.tasks"
+- timestamp: '2024-12-19T09:45:00Z'
+  lane: planned
+  agent: system
+  shell_pid: ''
+  action: Prompt generated via /spec-kitty.tasks
+agent: claude-reviewer
+assignee: claude-reviewer
+phase: Phase 2 - Core
+review_status: approved without changes
+reviewed_by: claude-reviewer
+shell_pid: '23643'
+subtasks:
+- T022
+- T023
+- T024
+- T025
+- T026
+- T027
+- T028
+- T029
+- T030
+- T031
 ---
 
 # Work Package Prompt: WP04 - Strategy Role

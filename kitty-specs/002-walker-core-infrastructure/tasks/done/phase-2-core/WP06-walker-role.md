@@ -1,37 +1,37 @@
 ---
-work_package_id: "WP06"
-subtasks:
-  - "T034"
-  - "T035"
-  - "T036"
-  - "T037"
-  - "T038"
-  - "T039"
-  - "T040"
-  - "T041"
-  - "T042"
-  - "T043"
-  - "T044"
-  - "T045"
-  - "T046"
-  - "T047"
-  - "T048"
-  - "T049"
-  - "T050"
-title: "Walker Role"
-phase: "Phase 2 - Core Infrastructure"
-lane: "done"
-assignee: "claude"
-agent: "claude-reviewer"
-shell_pid: "89292"
-review_status: ""
-reviewed_by: ""
+work_package_id: WP06
+title: Walker Role
+lane: done
 history:
-  - timestamp: "2025-12-17T11:41:34Z"
-    lane: "planned"
-    agent: "system"
-    shell_pid: ""
-    action: "Prompt generated via /spec-kitty.tasks"
+- timestamp: '2025-12-17T11:41:34Z'
+  lane: planned
+  agent: system
+  shell_pid: ''
+  action: Prompt generated via /spec-kitty.tasks
+agent: claude-reviewer
+assignee: claude
+phase: Phase 2 - Core Infrastructure
+review_status: ''
+reviewed_by: ''
+shell_pid: '89292'
+subtasks:
+- T034
+- T035
+- T036
+- T037
+- T038
+- T039
+- T040
+- T041
+- T042
+- T043
+- T044
+- T045
+- T046
+- T047
+- T048
+- T049
+- T050
 ---
 
 # Work Package Prompt: WP06 – Walker Role

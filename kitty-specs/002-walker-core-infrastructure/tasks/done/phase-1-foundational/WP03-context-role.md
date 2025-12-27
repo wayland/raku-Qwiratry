@@ -1,24 +1,24 @@
 ---
-work_package_id: "WP03"
-subtasks:
-  - "T013"
-  - "T014"
-  - "T015"
-  - "T016"
-title: "Context Role"
-phase: "Phase 1 - Foundational"
-lane: "done"
-assignee: "claude"
-agent: "claude-reviewer"
-shell_pid: "89292"
-review_status: ""
-reviewed_by: ""
+work_package_id: WP03
+title: Context Role
+lane: done
 history:
-  - timestamp: "2025-12-17T11:41:34Z"
-    lane: "planned"
-    agent: "system"
-    shell_pid: ""
-    action: "Prompt generated via /spec-kitty.tasks"
+- timestamp: '2025-12-17T11:41:34Z'
+  lane: planned
+  agent: system
+  shell_pid: ''
+  action: Prompt generated via /spec-kitty.tasks
+agent: claude-reviewer
+assignee: claude
+phase: Phase 1 - Foundational
+review_status: ''
+reviewed_by: ''
+shell_pid: '89292'
+subtasks:
+- T013
+- T014
+- T015
+- T016
 ---
 
 # Work Package Prompt: WP03 – Context Role

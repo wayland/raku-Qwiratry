@@ -1,28 +1,28 @@
 ---
-work_package_id: "WP01"
-subtasks:
-  - "T001"
-  - "T002"
-  - "T003"
-  - "T004"
-  - "T005"
-  - "T006"
-  - "T007"
-  - "T008"
-title: "Setup & Project Structure"
-phase: "Phase 0 - Setup"
-lane: "done"
-assignee: "claude"
-agent: "claude-reviewer"
-shell_pid: "89292"
-review_status: ""
-reviewed_by: ""
+work_package_id: WP01
+title: Setup & Project Structure
+lane: done
 history:
-  - timestamp: "2025-12-17T11:41:34Z"
-    lane: "planned"
-    agent: "system"
-    shell_pid: ""
-    action: "Prompt generated via /spec-kitty.tasks"
+- timestamp: '2025-12-17T11:41:34Z'
+  lane: planned
+  agent: system
+  shell_pid: ''
+  action: Prompt generated via /spec-kitty.tasks
+agent: claude-reviewer
+assignee: claude
+phase: Phase 0 - Setup
+review_status: ''
+reviewed_by: ''
+shell_pid: '89292'
+subtasks:
+- T001
+- T002
+- T003
+- T004
+- T005
+- T006
+- T007
+- T008
 ---
 
 # Work Package Prompt: WP01 – Setup & Project Structure

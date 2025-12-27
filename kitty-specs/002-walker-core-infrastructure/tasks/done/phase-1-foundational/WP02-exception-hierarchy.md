@@ -1,24 +1,24 @@
 ---
-work_package_id: "WP02"
-subtasks:
-  - "T009"
-  - "T010"
-  - "T011"
-  - "T012"
-title: "Exception Hierarchy"
-phase: "Phase 1 - Foundational"
-lane: "done"
-assignee: "claude"
-agent: "claude-reviewer"
-shell_pid: "89292"
-review_status: ""
-reviewed_by: ""
+work_package_id: WP02
+title: Exception Hierarchy
+lane: done
 history:
-  - timestamp: "2025-12-17T11:41:34Z"
-    lane: "planned"
-    agent: "system"
-    shell_pid: ""
-    action: "Prompt generated via /spec-kitty.tasks"
+- timestamp: '2025-12-17T11:41:34Z'
+  lane: planned
+  agent: system
+  shell_pid: ''
+  action: Prompt generated via /spec-kitty.tasks
+agent: claude-reviewer
+assignee: claude
+phase: Phase 1 - Foundational
+review_status: ''
+reviewed_by: ''
+shell_pid: '89292'
+subtasks:
+- T009
+- T010
+- T011
+- T012
 ---
 
 # Work Package Prompt: WP02 – Exception Hierarchy
