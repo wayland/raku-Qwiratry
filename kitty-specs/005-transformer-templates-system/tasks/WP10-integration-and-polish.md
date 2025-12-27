@@ -1,26 +1,26 @@
 ---
-work_package_id: "WP10"
-subtasks:
-  - "T061"
-  - "T062"
-  - "T063"
-  - "T064"
-  - "T065"
-  - "T066"
-title: "Integration & Polish"
-phase: "Phase 4 - Finalization"
-lane: "planned"
-assignee: ""
-agent: ""
-shell_pid: ""
-review_status: ""
-reviewed_by: ""
+work_package_id: WP10
+title: Integration & Polish
+lane: planned
 history:
-  - timestamp: "2025-01-27T23:45:00Z"
-    lane: "planned"
-    agent: "system"
-    shell_pid: ""
-    action: "Prompt generated via /spec-kitty.tasks"
+- timestamp: '2025-01-27T23:45:00Z'
+  lane: planned
+  agent: system
+  shell_pid: ''
+  action: Prompt generated via /spec-kitty.tasks
+agent: ''
+assignee: ''
+phase: Phase 4 - Finalization
+review_status: ''
+reviewed_by: ''
+shell_pid: ''
+subtasks:
+- T061
+- T062
+- T063
+- T064
+- T065
+- T066
 ---
 *Path: [templates/task-prompt-template.md](templates/task-prompt-template.md)*
 

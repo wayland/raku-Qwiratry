@@ -1,32 +1,32 @@
 ---
-work_package_id: "WP07"
-subtasks:
-  - "T033"
-  - "T034"
-  - "T035"
-  - "T036"
-  - "T037"
-  - "T038"
-  - "T039"
-  - "T040"
-  - "T041"
-  - "T042"
-  - "T043"
-  - "T044"
-title: "Copy Service Class"
-phase: "Phase 2 - Core"
-lane: "planned"
-assignee: ""
-agent: ""
-shell_pid: ""
-review_status: ""
-reviewed_by: ""
+work_package_id: WP07
+title: Copy Service Class
+lane: planned
 history:
-  - timestamp: "2025-01-27T23:45:00Z"
-    lane: "planned"
-    agent: "system"
-    shell_pid: ""
-    action: "Prompt generated via /spec-kitty.tasks"
+- timestamp: '2025-01-27T23:45:00Z'
+  lane: planned
+  agent: system
+  shell_pid: ''
+  action: Prompt generated via /spec-kitty.tasks
+agent: ''
+assignee: ''
+phase: Phase 2 - Core
+review_status: ''
+reviewed_by: ''
+shell_pid: ''
+subtasks:
+- T033
+- T034
+- T035
+- T036
+- T037
+- T038
+- T039
+- T040
+- T041
+- T042
+- T043
+- T044
 ---
 *Path: [templates/task-prompt-template.md](templates/task-prompt-template.md)*
 

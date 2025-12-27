@@ -1,25 +1,25 @@
 ---
-work_package_id: "WP02"
-subtasks:
-  - "T004"
-  - "T005"
-  - "T006"
-  - "T007"
-  - "T008"
-title: "Transformer Declarator Implementation"
-phase: "Phase 1 - Foundational"
-lane: "planned"
-assignee: ""
-agent: ""
-shell_pid: ""
-review_status: ""
-reviewed_by: ""
+work_package_id: WP02
+title: Transformer Declarator Implementation
+lane: planned
 history:
-  - timestamp: "2025-01-27T23:45:00Z"
-    lane: "planned"
-    agent: "system"
-    shell_pid: ""
-    action: "Prompt generated via /spec-kitty.tasks"
+- timestamp: '2025-01-27T23:45:00Z'
+  lane: planned
+  agent: system
+  shell_pid: ''
+  action: Prompt generated via /spec-kitty.tasks
+agent: ''
+assignee: ''
+phase: Phase 1 - Foundational
+review_status: ''
+reviewed_by: ''
+shell_pid: ''
+subtasks:
+- T004
+- T005
+- T006
+- T007
+- T008
 ---
 *Path: [templates/task-prompt-template.md](templates/task-prompt-template.md)*
 

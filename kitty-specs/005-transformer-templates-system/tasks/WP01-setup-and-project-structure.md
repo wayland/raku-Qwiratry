@@ -1,23 +1,23 @@
 ---
-work_package_id: "WP01"
-subtasks:
-  - "T001"
-  - "T002"
-  - "T003"
-title: "Setup & Project Structure"
-phase: "Phase 0 - Setup"
-lane: "planned"
-assignee: ""
-agent: ""
-shell_pid: ""
-review_status: ""
-reviewed_by: ""
+work_package_id: WP01
+title: Setup & Project Structure
+lane: planned
 history:
-  - timestamp: "2025-01-27T23:45:00Z"
-    lane: "planned"
-    agent: "system"
-    shell_pid: ""
-    action: "Prompt generated via /spec-kitty.tasks"
+- timestamp: '2025-01-27T23:45:00Z'
+  lane: planned
+  agent: system
+  shell_pid: ''
+  action: Prompt generated via /spec-kitty.tasks
+agent: ''
+assignee: ''
+phase: Phase 0 - Setup
+review_status: ''
+reviewed_by: ''
+shell_pid: ''
+subtasks:
+- T001
+- T002
+- T003
 ---
 *Path: [templates/task-prompt-template.md](templates/task-prompt-template.md)*
 

@@ -1,27 +1,27 @@
 ---
-work_package_id: "WP08"
-subtasks:
-  - "T045"
-  - "T046"
-  - "T047"
-  - "T048"
-  - "T049"
-  - "T050"
-  - "T051"
-title: "Wrapper System"
-phase: "Phase 3 - Polish"
-lane: "planned"
-assignee: ""
-agent: ""
-shell_pid: ""
-review_status: ""
-reviewed_by: ""
+work_package_id: WP08
+title: Wrapper System
+lane: planned
 history:
-  - timestamp: "2025-01-27T23:45:00Z"
-    lane: "planned"
-    agent: "system"
-    shell_pid: ""
-    action: "Prompt generated via /spec-kitty.tasks"
+- timestamp: '2025-01-27T23:45:00Z'
+  lane: planned
+  agent: system
+  shell_pid: ''
+  action: Prompt generated via /spec-kitty.tasks
+agent: ''
+assignee: ''
+phase: Phase 3 - Polish
+review_status: ''
+reviewed_by: ''
+shell_pid: ''
+subtasks:
+- T045
+- T046
+- T047
+- T048
+- T049
+- T050
+- T051
 ---
 *Path: [templates/task-prompt-template.md](templates/task-prompt-template.md)*
 

@@ -1,38 +1,38 @@
 ---
-work_package_id: "WP01"
-subtasks:
-  - "T001"
-  - "T002"
-  - "T003"
-title: "Setup & Project Structure"
-phase: "Phase 0 - Setup"
-lane: "for_review"
-assignee: "claude"
-agent: "claude"
-shell_pid: "85610"
-review_status: ""
-reviewed_by: ""
+work_package_id: WP01
+title: Setup & Project Structure
+lane: for_review
 history:
-  - timestamp: "2025-01-27T23:45:00Z"
-    lane: "planned"
-    agent: "system"
-    shell_pid: ""
-    action: "Prompt generated via /spec-kitty.tasks"
-  - timestamp: "2025-01-27T23:50:00Z"
-    lane: "doing"
-    agent: "claude"
-    shell_pid: "80649"
-    action: "Started implementation"
-  - timestamp: "2025-01-27T23:55:00Z"
-    lane: "doing"
-    agent: "claude"
-    shell_pid: "80649"
-    action: "Completed T001, T002, T003"
-  - timestamp: "2025-01-28T00:00:00Z"
-    lane: "for_review"
-    agent: "claude"
-    shell_pid: "85610"
-    action: "Completed all subtasks: modules, tests, exceptions. Ready for review"
+- timestamp: '2025-01-27T23:45:00Z'
+  lane: planned
+  agent: system
+  shell_pid: ''
+  action: Prompt generated via /spec-kitty.tasks
+- timestamp: '2025-01-27T23:50:00Z'
+  lane: doing
+  agent: claude
+  shell_pid: '80649'
+  action: Started implementation
+- timestamp: '2025-01-27T23:55:00Z'
+  lane: doing
+  agent: claude
+  shell_pid: '80649'
+  action: Completed T001, T002, T003
+- timestamp: '2025-01-28T00:00:00Z'
+  lane: for_review
+  agent: claude
+  shell_pid: '85610'
+  action: 'Completed all subtasks: modules, tests, exceptions. Ready for review'
+agent: claude
+assignee: claude
+phase: Phase 0 - Setup
+review_status: ''
+reviewed_by: ''
+shell_pid: '85610'
+subtasks:
+- T001
+- T002
+- T003
 ---
 *Path: [templates/task-prompt-template.md](templates/task-prompt-template.md)*
 

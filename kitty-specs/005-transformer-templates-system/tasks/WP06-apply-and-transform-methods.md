@@ -1,26 +1,26 @@
 ---
-work_package_id: "WP06"
-subtasks:
-  - "T027"
-  - "T028"
-  - "T029"
-  - "T030"
-  - "T031"
-  - "T032"
-title: "APPLY & TRANSFORM Methods"
-phase: "Phase 2 - Core"
-lane: "planned"
-assignee: ""
-agent: ""
-shell_pid: ""
-review_status: ""
-reviewed_by: ""
+work_package_id: WP06
+title: APPLY & TRANSFORM Methods
+lane: planned
 history:
-  - timestamp: "2025-01-27T23:45:00Z"
-    lane: "planned"
-    agent: "system"
-    shell_pid: ""
-    action: "Prompt generated via /spec-kitty.tasks"
+- timestamp: '2025-01-27T23:45:00Z'
+  lane: planned
+  agent: system
+  shell_pid: ''
+  action: Prompt generated via /spec-kitty.tasks
+agent: ''
+assignee: ''
+phase: Phase 2 - Core
+review_status: ''
+reviewed_by: ''
+shell_pid: ''
+subtasks:
+- T027
+- T028
+- T029
+- T030
+- T031
+- T032
 ---
 *Path: [templates/task-prompt-template.md](templates/task-prompt-template.md)*
 

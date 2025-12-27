@@ -1,27 +1,27 @@
 ---
-work_package_id: "WP04"
-subtasks:
-  - "T014"
-  - "T015"
-  - "T016"
-  - "T017"
-  - "T018"
-  - "T019"
-  - "T020"
-title: "Template Ordering Algorithm"
-phase: "Phase 1 - Foundational"
-lane: "planned"
-assignee: ""
-agent: ""
-shell_pid: ""
-review_status: ""
-reviewed_by: ""
+work_package_id: WP04
+title: Template Ordering Algorithm
+lane: planned
 history:
-  - timestamp: "2025-01-27T23:45:00Z"
-    lane: "planned"
-    agent: "system"
-    shell_pid: ""
-    action: "Prompt generated via /spec-kitty.tasks"
+- timestamp: '2025-01-27T23:45:00Z'
+  lane: planned
+  agent: system
+  shell_pid: ''
+  action: Prompt generated via /spec-kitty.tasks
+agent: ''
+assignee: ''
+phase: Phase 1 - Foundational
+review_status: ''
+reviewed_by: ''
+shell_pid: ''
+subtasks:
+- T014
+- T015
+- T016
+- T017
+- T018
+- T019
+- T020
 ---
 *Path: [templates/task-prompt-template.md](templates/task-prompt-template.md)*
 

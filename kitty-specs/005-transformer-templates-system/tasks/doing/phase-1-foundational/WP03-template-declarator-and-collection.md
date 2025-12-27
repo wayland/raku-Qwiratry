@@ -1,30 +1,30 @@
 ---
-work_package_id: "WP03"
-subtasks:
-  - "T009"
-  - "T010"
-  - "T011"
-  - "T012"
-  - "T013"
-title: "Template Declarator & Collection"
-phase: "Phase 1 - Foundational"
-lane: "doing"
-assignee: "claude"
-agent: "claude"
-shell_pid: "93412"
-review_status: ""
-reviewed_by: ""
+work_package_id: WP03
+title: Template Declarator & Collection
+lane: doing
 history:
-  - timestamp: "2025-01-27T23:45:00Z"
-    lane: "planned"
-    agent: "system"
-    shell_pid: ""
-    action: "Prompt generated via /spec-kitty.tasks"
-  - timestamp: "2025-12-20T12:00:00Z"
-    lane: "doing"
-    agent: "claude"
-    shell_pid: "93412"
-    action: "Started implementation"
+- timestamp: '2025-01-27T23:45:00Z'
+  lane: planned
+  agent: system
+  shell_pid: ''
+  action: Prompt generated via /spec-kitty.tasks
+- timestamp: '2025-12-20T12:00:00Z'
+  lane: doing
+  agent: claude
+  shell_pid: '93412'
+  action: Started implementation
+agent: claude
+assignee: claude
+phase: Phase 1 - Foundational
+review_status: ''
+reviewed_by: ''
+shell_pid: '93412'
+subtasks:
+- T009
+- T010
+- T011
+- T012
+- T013
 ---
 *Path: [templates/task-prompt-template.md](templates/task-prompt-template.md)*
 
