@@ -1,0 +1,19 @@
+#!/bin/bash
+
+command=$1
+
+case $command in
+	test)
+		# All unit tests
+		for test in tests/unit/*.rakutest; do raku -Ilib "$test"; done
+
+		# All integration tests
+		for test in tests/integration/*.rakutest; do raku -Ilib "$test"; done
+
+		# All example tests
+		for test in tests/examples/*.rakutest; do raku -Ilib "$test"; done
+		;;
+	*)
+		echo "Error: Unknown command '$command'" >&2
+		exit 1
+esac
