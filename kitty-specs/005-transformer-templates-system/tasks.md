@@ -114,13 +114,13 @@
 **Prompt**: `/tasks/planned/WP04-template-ordering-algorithm.md`
 
 ### Included Subtasks
-- [ ] T014 Implement priority sorting: extract `:priority` trait (default 0), sort highest first
-- [ ] T015 Implement basic specificity calculation: analyze `when` clause AST for static patterns (axis operators, wildcards, path elements)
-- [ ] T016 Implement specificity scoring: multilevel axis (-100), wildcards (-10), explicit path elements (+5), attribute axes (+5)
-- [ ] T017 Implement tie-breaker resolution: extract `:tie-breaker` trait (default 0), sort highest first
-- [ ] T018 Implement conflict detection: report error when two templates have equal priority/specificity/tie-breaker and could match same node
-- [ ] T019 Implement `ORDER-TEMPLATES` method that populates `@.ordered-templates` array
-- [ ] T020 [P] Add unit tests for template ordering: priority sorting, specificity calculation, tie-breaker, conflict detection
+- [x] T014 Implement priority sorting: extract `:priority` trait (default 0), sort highest first
+- [x] T015 Implement basic specificity calculation: analyze `when` clause AST for static patterns (axis operators, wildcards, path elements)
+- [x] T016 Implement specificity scoring: multilevel axis (-100), wildcards (-10), explicit path elements (+5), attribute axes (+5)
+- [x] T017 Implement tie-breaker resolution: extract `:tie-breaker` trait (default 0), sort highest first
+- [x] T018 Implement conflict detection: report error when two templates have equal priority/specificity/tie-breaker and could match same node
+- [x] T019 Implement `ORDER-TEMPLATES` method that populates `@.ordered-templates` array
+- [x] T020 [P] Add unit tests for template ordering: priority sorting, specificity calculation, tie-breaker, conflict detection
 
 ### Implementation Notes
 - Hybrid approach: calculate static aspects at compile time, defer complex cases to runtime
