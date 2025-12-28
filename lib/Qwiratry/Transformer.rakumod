@@ -10,7 +10,7 @@ flexible data transformation workflows.
 =end pod
 
 use Qwiratry::Template;
-use Qwiratry::TemplateSlang;  # For get-collected-templates() and clear-collected-templates()
+use Qwiratry::TemplateSlang;  # For get-collected-templates(), clear-collected-templates(), get-collected-wrappers(), clear-collected-wrappers()
 use Qwiratry::X;  # For X::Qwiratry::TemplateOrderingConflict
 use Qwiratry::WalkerFactory;  # For Walker selection
 use Qwiratry::Copy;  # For copy() and deepcopy() service functions (exported by default)
@@ -62,6 +62,27 @@ class MetamodelX::TransformerHOW is Metamodel::ClassHOW {
             }
         }
         
+        # T045: Collect wrappers that were parsed by the slang during compilation
+        # Wrappers are collected into @WRAPPERS during compilation when the slang processes wrapper declarations.
+        my @collected-wrappers = get-collected-wrappers();
+        
+        # T046: Create wrapper submethods for each wrapper type
+        if @collected-wrappers.elems > 0 {
+            for @collected-wrappers -> %wrapper {
+                my $wrapper-type = %wrapper<type>;
+                my $wrapper-block = %wrapper<block>;
+                
+                # Create corresponding submethod based on wrapper type
+                if $wrapper-type eq 'TRANSFORMER' {
+                    self!create-wrapper-submethod(type, 'WRAP_TRANSFORMER', $wrapper-block);
+                } elsif $wrapper-type eq 'TEMPLATE_MATCHER' {
+                    self!create-wrapper-submethod(type, 'WRAP_TEMPLATE_MATCHER', $wrapper-block);
+                } elsif $wrapper-type eq 'TEMPLATE_ACTION' {
+                    self!create-wrapper-submethod(type, 'WRAP_TEMPLATE_ACTION', $wrapper-block);
+                }
+            }
+        }
+        
         return type;
     }
     
@@ -106,6 +127,65 @@ class MetamodelX::TransformerHOW is Metamodel::ClassHOW {
             
             # Add the method to the type using HOW's add_method
             self.add_method(type, $template.name, $method);
+        }
+    }
+    
+    =begin pod
+
+    Create a submethod for a wrapper on the transformer class.
+    T046: Creates submethods WRAP_TRANSFORMER, WRAP_TEMPLATE_MATCHER, or WRAP_TEMPLATE_ACTION.
+
+    @param \type - The transformer class type
+    @param $submethod-name - The submethod name (WRAP_TRANSFORMER, etc.)
+    @param $wrapper-block - The wrapper code block
+
+    =end pod
+    method !create-wrapper-submethod(Mu \type, Str $submethod-name, $wrapper-block) {
+        # T046: Create a submethod that executes the wrapper's code block
+        # T047: Submethods enable hierarchy traversal via MRO
+        # The wrapper block will be called with appropriate parameters
+        
+        if $wrapper-block.defined {
+            # Create a submethod that calls the wrapper block
+            # The submethod signature depends on the wrapper type:
+            # - WRAP_TRANSFORMER: receives transformation result
+            # - WRAP_TEMPLATE_MATCHER: receives node and match result
+            # - WRAP_TEMPLATE_ACTION: receives node and action result
+            
+            # T047: Create a submethod that accepts any arguments and calls up hierarchy
+            # The submethod first calls the wrapper block, then calls next method in hierarchy
+            my $submethod = submethod (|c) {
+                # T047: Execute wrapper block first, then call next method in hierarchy
+                # This allows wrappers to modify results or perform side effects
+                # before/after calling parent wrappers
+                my $result;
+                if $wrapper-block.defined {
+                    # Execute wrapper block with provided arguments
+                    # The block receives the arguments passed to the submethod
+                    # The block should return the (possibly modified) result
+                    $result = $wrapper-block(|c);
+                } else {
+                    # No wrapper block - use first argument as result
+                    $result = c[0] if c.elems > 0;
+                }
+                
+                # T047: Call next method in hierarchy using callwith
+                # This traverses the MRO to find the next wrapper submethod
+                # If no next method exists, callwith returns the result unchanged
+                {
+                    # Try to call next method in hierarchy
+                    # If no next method exists, this will throw, which we catch
+                    my $next-result = callwith($result, |c[1..*]);
+                    return $next-result;
+                    CATCH {
+                        # No next method in hierarchy - return the result from this wrapper
+                        return $result;
+                    }
+                }
+            };
+            
+            # Add the submethod to the type using HOW's add_method
+            self.add_method(type, $submethod-name, $submethod);
         }
     }
 }
@@ -208,10 +288,23 @@ class Transformer is export {
         
         # Iterate through ordered templates
         for @ordered -> $template {
+            # T049: Check if template matches this node (with WRAP_TEMPLATE_MATCHER wrapper)
+            my $match-result;
+            if self.^find_method('WRAP_TEMPLATE_MATCHER', :no_fallback) {
+                # Call wrapper submethod - it will traverse hierarchy and execute all wrappers
+                # Wrapper receives node and match result, can modify match result
+                my $raw-match = $template.matches($node);
+                $match-result = self.WRAP_TEMPLATE_MATCHER($node, $raw-match);
+            } else {
+                # No wrapper - just check match directly
+                $match-result = $template.matches($node);
+            }
+            
             # Check if template matches this node
-            if $template.matches($node) {
+            if $match-result {
                 # First match wins - execute template and return result
                 # Pass self as transformer for self reference
+                # T050: WRAP_TEMPLATE_ACTION is called inside Template.execute()
                 return $template.execute($node, :transformer(self));
             }
         }
@@ -396,14 +489,25 @@ class Transformer is export {
         }
         
         # T029: Return results based on streaming trait
+        my $result;
         if $.streaming {
             # Return lazy iterator
-            return @results.iterator;
+            $result = @results.iterator;
         } else {
             # Return List (always return List for consistency, even if single element)
             # This makes the return type predictable
-            return @results.List;
+            $result = @results.List;
         }
+        
+        # T048: Execute WRAP_TRANSFORMER wrapper around entire transformation output
+        # The wrapper receives the transformation result and can modify it or perform side effects
+        # Wrappers are called as submethods, which automatically traverse the hierarchy via MRO
+        if self.^find_method('WRAP_TRANSFORMER', :no_fallback) {
+            # Call wrapper submethod - it will traverse hierarchy and execute all wrappers
+            $result = self.WRAP_TRANSFORMER($result);
+        }
+        
+        return $result;
     }
     
     =begin pod

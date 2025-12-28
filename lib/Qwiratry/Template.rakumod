@@ -194,6 +194,14 @@ class Template is export {
         # Support both make and return value patterns
         my $result = $!do-block($node);
         
+        # T050: Execute WRAP_TEMPLATE_ACTION wrapper around template action execution
+        # The wrapper receives node and action result, can modify action result or perform side effects
+        # Wrappers are called as submethods on the transformer, which automatically traverse the hierarchy via MRO
+        if $transformer.defined && $transformer.^find_method('WRAP_TEMPLATE_ACTION', :no_fallback) {
+            # Call wrapper submethod - it will traverse hierarchy and execute all wrappers
+            $result = $transformer.WRAP_TEMPLATE_ACTION($node, $result);
+        }
+        
         # If result is Nil, return Nil
         # Otherwise return the result (could be Iterator, List, single value)
         return $result;

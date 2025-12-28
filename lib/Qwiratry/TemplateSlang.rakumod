@@ -36,6 +36,15 @@ our @TEMPLATES;
 
 =begin pod
 
+Package-level storage for wrappers collected during slang parsing.
+This is accessed by the Transformer HOW class to retrieve wrappers
+that were parsed from the transformer body.
+
+=end pod
+our @WRAPPERS;
+
+=begin pod
+
 Grammar role that extends Raku grammar to recognize template declarations.
 Export this role for use with Slangify.
 The template declarator can appear in transformer bodies and has the syntax:
@@ -69,6 +78,32 @@ role TemplateGrammar is export {
             'when' <.ws> <block> <.ws>
         ]?
         'do' <.ws> <block>
+    }
+    
+    =begin pod
+
+    Token for wrapper declarator.
+    Matches: wrapper TRANSFORMER { ... }
+             wrapper TEMPLATE_MATCHER { ... }
+             wrapper TEMPLATE_ACTION { ... }
+    
+    Wrapper syntax is simpler than templates - just keyword, type name, and block.
+
+    =end pod
+    token declarator:sym<wrapper> {
+        'wrapper' <.ws>
+        <wrapper-type> <.ws>
+        <block>
+    }
+    
+    =begin pod
+
+    Token for wrapper type identifier.
+    Matches: TRANSFORMER, TEMPLATE_MATCHER, TEMPLATE_ACTION
+
+    =end pod
+    token wrapper-type {
+        'TRANSFORMER' | 'TEMPLATE_MATCHER' | 'TEMPLATE_ACTION'
     }
 }
 
@@ -195,6 +230,38 @@ role TemplateActions is export {
         # In Raku actions, we can use make to set what the rule produces
         # For a declarator, we typically don't need to produce anything
         # The template registration happens at compile time via @TEMPLATES
+        make Nil;
+    }
+    
+    =begin pod
+
+    Action method for wrapper declarator.
+    Processes the parsed wrapper declaration and stores wrapper metadata.
+
+    =end pod
+    method declarator:sym<wrapper>($/) {
+        # Extract wrapper type
+        my $wrapper-type = $<wrapper-type>.Str;
+        
+        # Extract wrapper body (code block)
+        my $wrapper-block = Nil;
+        if $<block> {
+            $wrapper-block = self!compile-block($<block>);
+        }
+        
+        # Store wrapper metadata for collection by HOW class
+        # Structure: { type => $wrapper-type, block => $wrapper-block }
+        my %wrapper = (
+            type => $wrapper-type,
+            block => $wrapper-block
+        );
+        
+        # Store wrapper for collection by HOW class
+        # This will be accessed by the Transformer HOW class during compose()
+        @WRAPPERS.push(%wrapper);
+        
+        # Make the wrapper declaration compile to a statement that does nothing at runtime
+        # The wrapper is already registered in @WRAPPERS during compilation
         make Nil;
     }
     
@@ -399,5 +466,28 @@ Called by the Transformer HOW class before processing a new transformer body.
 =end pod
 sub clear-collected-templates() is export {
     @TEMPLATES = [];
+}
+
+=begin pod
+
+Get wrappers collected during slang parsing.
+Returns array of wrapper hashes with 'type' and 'block' keys.
+Clears the collection after retrieval (one-time use per compilation).
+
+=end pod
+sub get-collected-wrappers() is export {
+    my @wrappers = @WRAPPERS;
+    @WRAPPERS = [];
+    @wrappers
+}
+
+=begin pod
+
+Clear collected wrappers.
+Used to reset the wrapper collection between compilations.
+
+=end pod
+sub clear-collected-wrappers() is export {
+    @WRAPPERS = [];
 }
 
