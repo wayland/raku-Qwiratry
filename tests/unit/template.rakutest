@@ -76,5 +76,6 @@ subtest 'Template methods (stubs)' => {
     my $execute-result = $template.execute("test");
     
     ok $matches-result.defined, 'matches method can be called';
-    ok !$execute-result.defined, 'execute method can be called (returns Nil for stub)';
+    # execute method now returns the result of the do-block, not Nil
+    ok $execute-result.defined, 'execute method can be called (returns do-block result)';
 }

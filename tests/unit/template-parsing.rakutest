@@ -66,7 +66,7 @@ subtest "Named template method creation" => {
     clear-collected-templates();
     
     transformer TestNamedTransform is Transformer {
-        template my-template() do {
+        template my-template do {
             return "result";
         }
     }

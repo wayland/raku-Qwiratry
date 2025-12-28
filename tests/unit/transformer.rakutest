@@ -83,8 +83,9 @@ subtest "Transformer callable behavior" => {
     ok $t ~~ Transformer, "Transformer can be instantiated";
     
     # Test callable syntax (CALL-ME method)
+    # CALL-ME now delegates to transform() method
     my $result = $t('test-data');
-    ok $result === $t, "Transformer CALL-ME returns self (stub implementation)";
+    ok $result.defined, "Transformer CALL-ME works (delegates to transform)";
 }
 
 # =============================================================================

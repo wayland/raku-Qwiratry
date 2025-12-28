@@ -117,11 +117,12 @@ subtest "Template execute method" => {
     
     my $template = Template.new(
         when-block => Nil,
-        do-block => -> { "result" }
+        do-block => -> $node { "result" }
     );
     
-    # Execute is a stub that returns Nil
-    my $result = $template.execute(Nil);
-    ok !$result.defined, "Execute stub returns Nil (implementation pending)";
+    # Execute method requires node parameter
+    my $result = $template.execute(42);
+    ok $result.defined, "Execute method returns do-block result";
+    is $result, "result", "Execute method returns correct value";
 }
 
