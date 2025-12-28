@@ -155,17 +155,15 @@ subtasks:
 
 ## Definition of Done Checklist
 
-- [x] Wrapper declarations can be parsed
-- [x] Wrapper submethods created correctly
-- [x] Wrapper call mechanism implemented (hierarchy traversal)
-- [x] All three wrapper types execute at appropriate points
-- [ ] Unit tests pass (tests created, need debugging)
-- [x] Wrappers can modify results or perform side effects
+- [ ] Wrapper declarations can be parsed
+- [ ] Wrapper submethods created correctly
+- [ ] Wrapper call mechanism implemented (hierarchy traversal)
+- [ ] All three wrapper types execute at appropriate points
+- [ ] Unit tests pass
+- [ ] Wrappers can modify results or perform side effects
 - [ ] `tasks.md` updated with status change
 
 ## Activity Log
 
 - 2025-01-27T23:45:00Z – system – lane=planned – Prompt created.
-- 2025-01-28T11:45:00Z – claude – shell_pid=72642 – lane=doing – Started implementation: Implementing wrapper system with T045-T050.
-- 2025-01-28T12:30:00Z – claude – shell_pid=72642 – lane=doing – Completed T045-T050: Extended TemplateSlang to parse wrapper declarations. Created wrapper submethods (WRAP_TRANSFORMER, WRAP_TEMPLATE_MATCHER, WRAP_TEMPLATE_ACTION) with hierarchy traversal via callwith. Integrated wrapper execution into TRANSFORM, APPLY, and Template.execute() methods. Added unit tests (T051) - tests need debugging for slang parsing.
 
