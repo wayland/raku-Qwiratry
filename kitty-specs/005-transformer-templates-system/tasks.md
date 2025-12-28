@@ -248,13 +248,13 @@
 **Prompt**: `/tasks/planned/WP08-wrapper-system.md`
 
 ### Included Subtasks
-- [ ] T045 Parse `wrapper` declarations in transformer body (similar to template parsing)
-- [ ] T046 Create submethods: `WRAP_TRANSFORMER`, `WRAP_TEMPLATE_MATCHER`, `WRAP_TEMPLATE_ACTION`
-- [ ] T047 Implement wrapper call mechanism: call up transformer hierarchy (like `TWEAK`)
-- [ ] T048 Implement `WRAP_TRANSFORMER` execution: wrap entire `TRANSFORM` method output
-- [ ] T049 Implement `WRAP_TEMPLATE_MATCHER` execution: wrap template `when` block evaluation
-- [ ] T050 Implement `WRAP_TEMPLATE_ACTION` execution: wrap template `do` block execution
-- [ ] T051 [P] Add unit tests for wrapper system: all three wrapper types, hierarchy traversal
+- [x] T045 Parse `wrapper` declarations in transformer body (similar to template parsing)
+- [x] T046 Create submethods: `WRAP_TRANSFORMER`, `WRAP_TEMPLATE_MATCHER`, `WRAP_TEMPLATE_ACTION`
+- [x] T047 Implement wrapper call mechanism: call up transformer hierarchy (like `TWEAK`)
+- [x] T048 Implement `WRAP_TRANSFORMER` execution: wrap entire `TRANSFORM` method output
+- [x] T049 Implement `WRAP_TEMPLATE_MATCHER` execution: wrap template `when` block evaluation
+- [x] T050 Implement `WRAP_TEMPLATE_ACTION` execution: wrap template `do` block execution
+- [x] T051 [P] Add unit tests for wrapper system: all three wrapper types, hierarchy traversal (5/6 subtests working, 1 has slang activation limitation)
 
 ### Implementation Notes
 - Wrappers are submethods, called via MRO traversal
