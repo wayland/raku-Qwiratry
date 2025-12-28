@@ -146,12 +146,12 @@
 **Prompt**: `/tasks/planned/WP05-magic-variables-and-template-execution.md`
 
 ### Included Subtasks
-- [ ] T021 Implement `$*CONTEXT` and `$_` setup: set to current node before template execution
-- [ ] T022 Implement `$*CAPTURE` and `$/` setup: set to template signature parameters if template has signature
-- [ ] T023 Ensure `self` refers to Transformer object (automatic in Raku methods/blocks)
-- [ ] T024 Implement `Template.matches($node --> Bool)` method: evaluate `when` block with magic variables set
-- [ ] T025 Implement `Template.execute($node, :$context --> Iterator|Mu|List|Nil)` method: execute `do` block with magic variables set
-- [ ] T026 [P] Add unit tests for magic variables: `$*CONTEXT`, `$*CAPTURE`, `self` availability and correctness
+- [x] T021 Implement `$*CONTEXT` and `$_` setup: set to current node before template execution
+- [x] T022 Implement `$*CAPTURE` and `$/` setup: set to template signature parameters if template has signature
+- [x] T023 Ensure `self` refers to Transformer object (automatic in Raku methods/blocks)
+- [x] T024 Implement `Template.matches($node --> Bool)` method: evaluate `when` block with magic variables set
+- [x] T025 Implement `Template.execute($node, :$context --> Iterator|Mu|List|Nil)` method: execute `do` block with magic variables set
+- [x] T026 [P] Add unit tests for magic variables: `$*CONTEXT`, `$*CAPTURE`, `self` availability and correctness
 
 ### Implementation Notes
 - Use Raku dynamic variables (twigil `*`) for `$*CONTEXT` and `$*CAPTURE`

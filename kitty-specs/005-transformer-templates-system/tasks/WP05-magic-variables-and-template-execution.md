@@ -147,14 +147,14 @@ subtasks:
 
 ## Definition of Done Checklist
 
-- [ ] `$*CONTEXT` and `$_` set correctly before template execution
-- [ ] `$*CAPTURE` and `$/` set correctly for templates with signatures
-- [ ] `self` refers to Transformer object
-- [ ] `Template.matches()` method implemented and tested
-- [ ] `Template.execute()` method implemented and tested
-- [ ] Magic variables don't leak between templates
-- [ ] Unit tests pass
-- [ ] `tasks.md` updated with status change
+- [x] `$*CONTEXT` and `$_` set correctly before template execution
+- [x] `$*CAPTURE` and `$/` set correctly for templates with signatures
+- [x] `self` refers to Transformer object
+- [x] `Template.matches()` method implemented and tested
+- [x] `Template.execute()` method implemented and tested
+- [x] Magic variables don't leak between templates
+- [x] Unit tests pass
+- [x] `tasks.md` updated with status change
 
 ## Activity Log
 
