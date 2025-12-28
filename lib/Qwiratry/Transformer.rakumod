@@ -8,24 +8,117 @@ templates. Transformers integrate with the Walker and Strategy systems for
 flexible data transformation workflows.
 
 =end pod
-unit module Qwiratry::Transformer;
 
 use Qwiratry::Template;
+use Qwiratry::TemplateSlang;  # For get-collected-templates() and clear-collected-templates()
+# Note: Template slang activation is handled by main Qwiratry.rakumod
+# Users should `use Qwiratry` to get slang activation automatically
+
+=begin pod
+
+Package-level registry for templates collected during transformer compilation.
+Keyed by transformer type identity (WHICH) for runtime access.
+
+=end pod
+our %TRANSFORMER-TEMPLATES;
+
+=begin pod
+
+Custom HOW class for transformer declarator.
+Extends Metamodel::ClassHOW to process transformer body AST
+and collect templates and wrappers during compilation.
+
+=end pod
+class MetamodelX::TransformerHOW is Metamodel::ClassHOW {
+    =begin pod
+
+    Override compose to process transformer body and collect templates/wrappers.
+    This is called during class composition, allowing us to access the body AST.
+
+    =end pod
+    method compose(Mu \type) {
+        # Call parent compose first to set up the class
+        callsame;
+        
+        # Collect templates that were parsed by the slang during compilation
+        # The slang must be activated in the user's code (via `use Slangify`)
+        # before declaring transformers. Templates are collected into @TEMPLATES
+        # during compilation when the slang processes template declarations.
+        my @collected-templates = get-collected-templates();
+        
+        # Store templates in the class-level registry keyed by type identity
+        # This allows instances to access templates via the @.templates attribute
+        if @collected-templates.elems > 0 {
+            %TRANSFORMER-TEMPLATES{type.WHICH} = @collected-templates;
+            
+            # Create callable methods for named templates
+            for @collected-templates -> $template {
+                if $template.name.defined {
+                    self!create-template-method(type, $template);
+                }
+            }
+        }
+        
+        return type;
+    }
+    
+    
+    =begin pod
+
+    Create a callable method for a named template on the transformer class.
+
+    @param \type - The transformer class type
+    @param $template - The Template object with a name
+
+    =end pod
+    method !create-template-method(Mu \type, $template) {
+        # Create a method on the type that calls the template
+        # The method should execute the template's do block when called
+        
+        if $template.name.defined {
+            # Get the template from the registry (it's stored there)
+            # We need to capture the template in the closure
+            my $template-copy = $template;
+            
+            # Create a method that executes the template
+            # The method signature should match the template's signature (if any)
+            # For now, we create a method that accepts any arguments
+            # We capture the type identity in the closure
+            my $type-identity = type.WHICH;
+            my $method = method (|c) {
+                # Get templates from the registry for this type
+                my @templates = %TRANSFORMER-TEMPLATES{$type-identity} // [];
+                
+                # Find the template by name
+                my $found-template = @templates.first(*.name eq $template-copy.name);
+                
+                if $found-template {
+                    # Execute template's do block with magic variables set
+                    # This will be fully implemented in WP05 (template execution)
+                    # For now, this is a basic implementation
+                    $found-template.execute(c[0] // $*CONTEXT // $_);
+                } else {
+                    die "Template '{$template-copy.name}' not found";
+                }
+            };
+            
+            # Add the method to the type using HOW's add_method
+            self.add_method(type, $template.name, $method);
+        }
+    }
+}
 
 =begin pod
 
 Export transformer declarator via EXPORTHOW::DECLARE
-For WP02, we use Metamodel::ClassHOW directly
-Custom behavior will be added via TWEAK and method addition in the transformer class
-In later work packages, we'll create a proper custom HOW class to process templates
+Using global package (not lexical) so declarator is available globally
 
 =end pod
 package EXPORTHOW {
-    package DECLARE {
-        # Use ClassHOW directly - transformers will inherit from Transformer class
-        # which provides the necessary structure and CALL-ME method
-        constant transformer = Metamodel::ClassHOW;
-    }
+	package DECLARE {
+		# Use custom TransformerHOW class to process transformer body
+		constant transformer = MetamodelX::TransformerHOW;
+	}
 }
 
 =begin pod
@@ -35,25 +128,48 @@ Transformers declared with the `transformer` declarator should inherit from this
 Full implementation will be added in later work packages
 
 =end pod
-class Transformer {
-    #| Templates defined in transformer body (populated in WP03)
+class Transformer is export {
+    =begin pod
+
+    Templates defined in transformer body (populated in WP03).
+    Initialized from class-level registry when instance is created.
+
+    =end pod
     has @.templates is rw;
     
-    #| Wrappers defined in transformer body (will be populated in WP08)
+    =begin pod
+
+    Initialize templates from class-level registry when instance is created.
+
+    =end pod
+    submethod TWEAK() {
+        # Get templates from class-level registry
+        # Use the type object's WHICH for lookup
+        my $type-identity = self.WHAT.WHICH;
+        if %TRANSFORMER-TEMPLATES{$type-identity}:exists {
+            @!templates = %TRANSFORMER-TEMPLATES{$type-identity}.List;
+        }
+    }
+    
+    # Wrappers defined in transformer body (will be populated in WP08)
     has @.wrappers;
     
-    #| Whether transformer has :streaming trait
+    # Whether transformer has :streaming trait
     has Bool $.streaming = False;
     
-    #| Whether transformer can mutate input (from does TreeRewrite)
+    # Whether transformer can mutate input (from does TreeRewrite)
     has Bool $.mutates-input = False;
     
-    #| Transformation mode
+    # Transformation mode
     has Str $.mode = 'output-only';
     
-    #| Make Transformer callable: MyTransform($data) syntax
-    #| This will call TRANSFORM when it's implemented in WP06
-    #| For WP02, this is a stub that returns self
+    =begin pod
+    
+    Make Transformer callable: MyTransform($data) syntax.
+    This will call TRANSFORM when it's implemented in WP06.
+    For WP02, this is a stub that returns self.
+    
+    =end pod
     method CALL-ME(*@args, *%named) {
         # TRANSFORM will be implemented in WP06
         # For now, just return self to verify callable works

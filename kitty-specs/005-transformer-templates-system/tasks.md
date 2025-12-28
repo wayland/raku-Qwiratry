@@ -26,9 +26,9 @@
 **Prompt**: `/tasks/planned/WP01-setup-and-project-structure.md`
 
 ### Included Subtasks
-- [ ] T001 Create module structure: `lib/Qwiratry/Transformer.rakumod`, `lib/Qwiratry/Template.rakumod`, `lib/Qwiratry/Copy.rakumod`
-- [ ] T002 [P] Create test structure: `tests/unit/transformer.rakutest`, `tests/unit/template.rakutest`, `tests/unit/copy.rakutest`, `tests/integration/transformer-walker.rakutest`
-- [ ] T003 [P] Create exception classes for transformer-specific errors (template ordering conflicts, etc.) in `lib/Qwiratry/X.rakumod`
+- [x] T001 Create module structure: `lib/Qwiratry/Transformer.rakumod`, `lib/Qwiratry/Template.rakumod`, `lib/Qwiratry/Copy.rakumod`
+- [x] T002 [P] Create test structure: `tests/unit/transformer.rakutest`, `tests/unit/template.rakutest`, `tests/unit/copy.rakutest`, `tests/integration/transformer-walker.rakutest`
+- [x] T003 [P] Create exception classes for transformer-specific errors (template ordering conflicts, etc.) in `lib/Qwiratry/X.rakumod`
 
 ### Implementation Notes
 - Set up basic module files with unit module declarations
@@ -53,11 +53,11 @@
 **Prompt**: `/tasks/planned/WP02-transformer-declarator.md`
 
 ### Included Subtasks
-- [ ] T004 Create `MetamodelX::TransformerHOW` class extending `Metamodel::ClassHOW` in `lib/Qwiratry/Transformer.rakumod`
-- [ ] T005 Implement `EXPORTHOW::DECLARE` export: `my package EXPORTHOW { package DECLARE { constant transformer = MetamodelX::TransformerHOW; } }`
-- [ ] T006 Implement HOW class to process transformer body and collect templates/wrappers during compilation
-- [ ] T007 Create callable sub/method with transformer name that invokes `TRANSFORM` method
-- [ ] T008 [P] Add unit tests for transformer declarator: declaration, basic structure, callable behavior
+- [x] T004 Create `MetamodelX::TransformerHOW` class extending `Metamodel::ClassHOW` in `lib/Qwiratry/Transformer.rakumod`
+- [x] T005 Implement `EXPORTHOW::DECLARE` export: `package EXPORTHOW { package DECLARE { constant transformer = MetamodelX::TransformerHOW; } }`
+- [x] T006 Implement HOW class to process transformer body and collect templates/wrappers during compilation (structure in place, parsing deferred to WP03)
+- [x] T007 Create callable sub/method with transformer name that invokes `TRANSFORM` method
+- [x] T008 [P] Add unit tests for transformer declarator: declaration, basic structure, callable behavior
 
 ### Implementation Notes
 - Follow Red ORM pattern for `EXPORTHOW::DECLARE` implementation

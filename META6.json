@@ -1,0 +1,18 @@
+{
+  "auth": "zef:wayland",
+  "build-depends": [
+  ],
+  "depends": [
+    "Slangify"
+  ],
+  "description": "A brand new and very nice module",
+  "name": "Qwiratry",
+  "provides": {
+    "Qwiratry": "lib/Qwiratry.rakumod"
+  },
+  "resources": [
+  ],
+  "test-depends": [
+  ],
+  "version": "0.0.1"
+}

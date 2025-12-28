@@ -15,13 +15,13 @@ Provides common attributes for error reporting and debugging.
 
 =end pod
 class X::Qwiratry::Walker is Exception is export {
-    #| Human-readable error message describing what went wrong
+    # Human-readable error message describing what went wrong
     has Str $.message is required;
     
-    #| Type identifier of the walker that threw this exception
+    # Type identifier of the walker that threw this exception
     has Str $.walker-type = 'Unknown';
     
-    #| Override gist to provide informative string representation
+    # Override gist to provide informative string representation
     method gist(--> Str) {
         "X::Qwiratry::Walker: $.message (walker-type: $.walker-type)"
     }
@@ -35,10 +35,10 @@ element it does not know how to handle.
 
 =end pod
 class X::Qwiratry::UnknownQueryElement is X::Qwiratry::Walker is export {
-    #| The Query AST node that could not be interpreted
+    # The Query AST node that could not be interpreted
     has $.query-ast;
     
-    #| Override gist to include query AST information
+    # Override gist to include query AST information
     method gist(--> Str) {
         my $ast-info = $.query-ast.defined ?? $.query-ast.^name !! 'undefined';
         "X::Qwiratry::UnknownQueryElement: $.message (walker-type: $.walker-type, query-ast: $ast-info)"
@@ -54,13 +54,13 @@ to determine a deterministic order.
 
 =end pod
 class X::Qwiratry::TemplateOrderingConflict is X::Qwiratry::Walker is export {
-    #| List of template names involved in the conflict
+    # List of template names involved in the conflict
     has @.template-names is required;
     
-    #| Additional context about why the conflict occurred
+    # Additional context about why the conflict occurred
     has Str $.conflict-details = '';
     
-    #| Override gist to provide detailed conflict information
+    # Override gist to provide detailed conflict information
     method gist(--> Str) {
         my $templates = @.template-names.join(', ');
         my $details = $.conflict-details ?? " ($.conflict-details)" !! '';
@@ -76,10 +76,10 @@ appropriate Walker is available in the registry for the data's type.
 
 =end pod
 class X::Qwiratry::NoWalkerFound is X::Qwiratry::Walker is export {
-    #| The type of data for which no Walker was found
+    # The type of data for which no Walker was found
     has Mu $.data-type is required;
     
-    #| Override gist to include data type information
+    # Override gist to include data type information
     method gist(--> Str) {
         my $type-name = $.data-type.^name;
         "X::Qwiratry::NoWalkerFound: $.message (data-type: $type-name)"

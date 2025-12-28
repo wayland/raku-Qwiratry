@@ -24,56 +24,87 @@ Example:
   }
 
 =end pod
-class Template {
-    #| Optional template name (makes template callable as method on transformer)
+class Template is export {
+    # Optional template name (makes template callable as method on transformer)
     has Str $.name;
     
-    #| Optional template signature (for parameters)
+    # Optional template signature (for parameters)
     has Signature $.signature;
     
-    #| Code block for matching nodes (template matcher)
-    #| Evaluated against each node during transformation
-    #| Returns True if template should apply to this node
+    =begin pod
+    
+    Code block for matching nodes (template matcher).
+    Evaluated against each node during transformation.
+    Returns True if template should apply to this node.
+    
+    =end pod
     has Block $.when-block;
     
-    #| Code block for producing output (template action)
-    #| Executed when template matches a node
-    #| Produces output via `make` or return value
+    =begin pod
+    
+    Code block for producing output (template action).
+    Executed when template matches a node.
+    Produces output via `make` or return value.
+    
+    =end pod
     has Block $.do-block;
     
-    #| Template priority (from `:priority` trait, default 0)
-    #| Higher priority templates are tried first
+    =begin pod
+    
+    Template priority (from `:priority` trait, default 0).
+    Higher priority templates are tried first.
+    
+    =end pod
     has Int $.priority = 0;
     
-    #| Calculated specificity score (cached after calculation)
-    #| Higher specificity templates are tried first when priority is equal
+    =begin pod
+    
+    Calculated specificity score (cached after calculation).
+    Higher specificity templates are tried first when priority is equal.
+    
+    =end pod
     has Int $.specificity;
     
-    #| Tie-breaker value (from `:tie-breaker` trait, default 0)
-    #| Used to break ties when priority and specificity are equal
+    =begin pod
+    
+    Tie-breaker value (from `:tie-breaker` trait, default 0).
+    Used to break ties when priority and specificity are equal.
+    
+    =end pod
     has Int $.tie-breaker = 0;
     
-    #| Whether template has `:streaming` trait
-    #| Streaming templates can produce lazy iterators
+    =begin pod
+    
+    Whether template has `:streaming` trait.
+    Streaming templates can produce lazy iterators.
+    
+    =end pod
     has Bool $.streaming = False;
     
-    #| Output type constraint (from `returns(Type)` trait)
-    #| Enforces the type of output returned by template
+    =begin pod
+    
+    Output type constraint (from `returns(Type)` trait).
+    Enforces the type of output returned by template.
+    
+    =end pod
     has Mu $.returns-type;
     
-    #| Constructor
+    # Constructor
     submethod BUILD(
-        :$!name,
-        :$!signature,
+        :$name,
+        :$signature,
         :$!when-block!,
         :$!do-block!,
         :$!priority = 0,
-        :$!specificity,
+        :$specificity,
         :$!tie-breaker = 0,
         :$!streaming = False,
-        :$!returns-type
+        :$returns-type
     ) {
-        # All attributes set via BUILD parameters
+        $!name = $name if $name.defined;
+        $!signature = $signature if $signature.defined;
+        $!specificity = $specificity if $specificity.defined;
+        $!returns-type = $returns-type if $returns-type.defined;
     }
     
     =begin pod
