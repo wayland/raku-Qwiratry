@@ -95,9 +95,8 @@ class MetamodelX::TransformerHOW is Metamodel::ClassHOW {
                 
                 if $found-template {
                     # Execute template's do block with magic variables set
-                    # This will be fully implemented in WP05 (template execution)
-                    # For now, this is a basic implementation
-                    $found-template.execute(c[0] // $*CONTEXT // $_);
+                    # Pass the transformer instance for self reference
+                    $found-template.execute(c[0] // $*CONTEXT // $_, :transformer(type));
                 } else {
                     die "Template '{$template-copy.name}' not found";
                 }

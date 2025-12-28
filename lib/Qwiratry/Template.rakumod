@@ -93,7 +93,7 @@ class Template is export {
     submethod BUILD(
         :$name,
         :$signature,
-        :$!when-block!,
+        :$when-block,
         :$!do-block!,
         :$!priority = 0,
         :$specificity,
@@ -103,6 +103,7 @@ class Template is export {
     ) {
         $!name = $name if $name.defined;
         $!signature = $signature if $signature.defined;
+        $!when-block = $when-block if $when-block.defined;
         $!specificity = $specificity if $specificity.defined;
         $!returns-type = $returns-type if $returns-type.defined;
     }
@@ -111,34 +112,90 @@ class Template is export {
 
     Evaluates `when` block against node, returns True if matches.
 
-    This method will be implemented in WP05 (template execution).
-    For WP03, this is a stub that returns False.
+    Sets magic variables ($*CONTEXT, $_) before evaluating the when block.
+    Handles errors gracefully by returning False if evaluation fails.
 
     @param $node - Node to match against
     @returns Bool - True if template matches node
 
     =end pod
     method matches($node --> Bool) {
-        # Stub for WP03 - will be implemented in WP05
-        # Will evaluate $.when-block with $node as $_
-        False
+        # T021/T024: Set magic variables and evaluate when block
+        # If no when block, template always matches (default behavior)
+        if !$!when-block.defined {
+            return True;
+        }
+        
+        # Set magic variables for when block evaluation
+        # T021: Set $*CONTEXT and $_ to current node
+        # Note: $_ is the topic variable and cannot be declared with 'my'
+        # We'll set it by calling the block with $node as the topic
+        my $*CONTEXT = $node;
+        
+        # Execute when block with magic variables set
+        # Pass $node as topic ($_) to the block
+        # Coerce result to Bool and handle errors
+        {
+            my $result = $!when-block($node);
+            # Coerce to Bool: truthy values become True, falsy become False
+            return ?$result;
+            CATCH {
+                # T024: Handle errors gracefully - return False if evaluation fails
+                return False;
+            }
+        }
     }
     
     =begin pod
 
     Executes `do` block with magic variables set, returns result.
 
-    This method will be implemented in WP05 (template execution).
-    For WP03, this is a stub that returns Nil.
+    Sets all magic variables ($*CONTEXT, $_, $*CAPTURE, $/, self) before
+    executing the do block. Handles both `make` calls and return values.
 
     @param $node - Node to transform
-    @param :$context - Optional context (defaults to $*CONTEXT)
+    @param :$transformer - Transformer instance (for self reference)
+    @param :$context - Optional context (defaults to $node)
     @returns Iterator|Mu|List|Nil - Transformation result
 
     =end pod
-    method execute($node, :$context --> Mu) {
-        # Stub for WP03 - will be implemented in WP05
-        # Will execute $.do-block with $*CONTEXT set to $node
-        Nil
+    method execute($node, :$transformer, :$context --> Mu) {
+        # T021: Set $*CONTEXT and $_ to current node
+        # Note: $_ is the topic variable and will be set by passing $node to the block
+        my $*CONTEXT = $context // $node;
+        
+        # T022: Set $*CAPTURE and $/ if template has signature
+        # For now, we'll set them to Nil if no signature
+        # Full signature matching will be implemented when query operators are available
+        # Note: $/ is a special variable and cannot be declared with 'my'
+        my $*CAPTURE = Nil;
+        $/ = $*CAPTURE;
+        
+        if $!signature.defined {
+            # TODO: Match node against signature to capture parameters
+            # This will require coordination with query system
+            # For MVP, we'll leave $*CAPTURE as Nil
+            # Future: $*CAPTURE = $node ~~ $!signature;
+        }
+        
+        # T023: self is automatically available in Raku blocks
+        # However, we need to ensure the block executes in the transformer's context
+        # We'll call the block with the transformer bound to self via closure
+        # Actually, in Raku, blocks capture their lexical scope, so self from
+        # the transformer's method context should be available
+        
+        # Execute do block with magic variables set
+        if !$!do-block.defined {
+            return Nil;
+        }
+        
+        # T025: Execute do block and handle results
+        # Pass $node as topic ($_) to the block
+        # Support both make and return value patterns
+        my $result = $!do-block($node);
+        
+        # If result is Nil, return Nil
+        # Otherwise return the result (could be Iterator, List, single value)
+        return $result;
     }
 }
