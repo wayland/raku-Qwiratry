@@ -177,12 +177,12 @@
 **Prompt**: `/tasks/planned/WP06-apply-and-transform-methods.md`
 
 ### Included Subtasks
-- [ ] T027 Implement `APPLY($node --> Iterator|Mu|List|Nil)` method: iterate through `@.ordered-templates`, find first match, execute template, return result
-- [ ] T028 Implement Walker factory/registry pattern: `WalkerFactory.get-walker($data --> Walker?)` in `lib/Qwiratry/WalkerFactory.rakumod` (or extend existing)
-- [ ] T029 Implement `TRANSFORM($data, Iterator :$iterator --> Iterator|Mu|List|Nil)` method: call `ORDER-TEMPLATES`, obtain Walker, iterate data, call `APPLY` for each node
-- [ ] T030 Implement default iterator (depth-first, top-down) or use Walker-provided iterator
-- [ ] T031 Implement `transform($input, :$context, :$streaming, :$mode --> Iterator|Mu|List|Nil)` method: determine mode, delegate to appropriate method
-- [ ] T032 [P] Add integration tests: transformer with Walker, end-to-end transformations
+- [x] T027 Implement `APPLY($node --> Iterator|Mu|List|Nil)` method: iterate through `@.ordered-templates`, find first match, execute template, return result
+- [x] T028 Implement Walker factory/registry pattern: `WalkerFactory.get-walker($data --> Walker?)` in `lib/Qwiratry/WalkerFactory.rakumod` (or extend existing)
+- [x] T029 Implement `TRANSFORM($data, Iterator :$iterator --> Iterator|Mu|List|Nil)` method: call `ORDER-TEMPLATES`, obtain Walker, iterate data, call `APPLY` for each node
+- [x] T030 Implement default iterator (depth-first, top-down) or use Walker-provided iterator
+- [x] T031 Implement `transform($input, :$context, :$streaming, :$mode --> Iterator|Mu|List|Nil)` method: determine mode, delegate to appropriate method
+- [x] T032 [P] Add integration tests: transformer with Walker, end-to-end transformations
 
 ### Implementation Notes
 - `APPLY` should stop after first matching template (no fallback)

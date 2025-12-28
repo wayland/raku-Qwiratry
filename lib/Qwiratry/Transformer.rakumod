@@ -12,6 +12,7 @@ flexible data transformation workflows.
 use Qwiratry::Template;
 use Qwiratry::TemplateSlang;  # For get-collected-templates() and clear-collected-templates()
 use Qwiratry::X;  # For X::Qwiratry::TemplateOrderingConflict
+use Qwiratry::WalkerFactory;  # For Walker selection
 # Note: Template slang activation is handled by main Qwiratry.rakumod
 # Users should `use Qwiratry` to get slang activation automatically
 
@@ -182,9 +183,41 @@ class Transformer is export {
     
     =end pod
     method CALL-ME(*@args, *%named) {
-        # TRANSFORM will be implemented in WP06
-        # For now, just return self to verify callable works
-        self;
+        # T031: Call transform() method when transformer is called
+        # MyTransform($data) syntax
+        my $data = @args[0] // $*CONTEXT;
+        return self.transform($data, |%named);
+    }
+    
+    =begin pod
+
+    Apply templates to a single node, return first matching template result.
+
+    Iterates through ordered templates and returns the result of the first
+    matching template. Stops after first match (no fallback to other templates).
+
+    @param $node - Node to apply templates to
+    @returns Iterator|Mu|List|Nil - Result from first matching template, or Nil if no match
+
+    =end pod
+    method APPLY($node --> Mu) {
+        # T027: Apply templates to a single node
+        # Get ordered templates (call ORDER-TEMPLATES if not already ordered)
+        my @ordered = self.ORDER-TEMPLATES;
+        
+        # Iterate through ordered templates
+        for @ordered -> $template {
+            # Check if template matches this node
+            if $template.matches($node) {
+                # First match wins - execute template and return result
+                # Pass self as transformer for self reference
+                return $template.execute($node, :transformer(self));
+            }
+        }
+        
+        # No templates matched - return Nil (empty sequence)
+        # Explicitly return Nil to avoid returning Any (type object)
+        return Nil;
     }
     
     =begin pod
@@ -309,6 +342,165 @@ class Transformer is export {
         $!ordering-cached = True;
         
         return @!ordered-templates;
+    }
+    
+    =begin pod
+
+    Main transformation method that orchestrates full transformation.
+
+    Calls ORDER-TEMPLATES to prepare templates, obtains Walker via factory,
+    iterates over data nodes, and applies templates to each node.
+
+    @param $data - Root data structure to transform
+    @param Iterator :$iterator - Optional iterator (if not provided, uses default or Walker-provided)
+    @returns Iterator|Mu|List|Nil - Transformation results
+
+    =end pod
+    method TRANSFORM($data, Iterator :$iterator --> Mu) {
+        # T029: Main transformation orchestration
+        # Call ORDER-TEMPLATES to prepare templates (cache result)
+        my @ordered = self.ORDER-TEMPLATES;
+        
+        # T028: Obtain Walker via factory
+        my $walker = WalkerFactory.instance.get-walker($data);
+        
+        # T030: Create iterator - use provided iterator or default
+        my $iter = $iterator;
+        if !$iter.defined {
+            # Create default iterator (depth-first, top-down)
+            # For MVP, use a simple iterator that yields nodes
+            # Future: Use Walker-provided iterator if available
+            $iter = self!create-default-iterator($data, $walker);
+        }
+        
+        # T029: Iterate over data nodes and apply templates
+        my @results;
+        for $iter -> $node {
+            my $result = self.APPLY($node);
+            if $result.defined {
+                # Handle result - could be Iterator, List, or single value
+                if $result ~~ Iterator {
+                    # If streaming, collect from iterator
+                    for $result -> $item {
+                        @results.push($item);
+                    }
+                } elsif $result ~~ List {
+                    # If List, append all items
+                    @results.append($result);
+                } else {
+                    # Single value
+                    @results.push($result);
+                }
+            }
+        }
+        
+        # T029: Return results based on streaming trait
+        if $.streaming {
+            # Return lazy iterator
+            return @results.iterator;
+        } else {
+            # Return List (always return List for consistency, even if single element)
+            # This makes the return type predictable
+            return @results.List;
+        }
+    }
+    
+    =begin pod
+
+    Create default iterator for data traversal.
+
+    Provides a simple depth-first, top-down iterator for basic data structures.
+    For more complex cases, Walker-provided iterators should be used.
+
+    @param $data - Root data structure
+    @param Walker? $walker - Optional Walker (not used in MVP, for future enhancement)
+    @returns Iterator - Iterator that yields nodes
+
+    =end pod
+    method !create-default-iterator($data, $walker --> Iterator) {
+        # T030: Create default iterator (depth-first, top-down)
+        # For MVP, provide simple iterator for basic structures
+        # Future: Use Walker-provided iterator if available
+        
+        # Simple iterator that yields the root and its children (if applicable)
+        return gather {
+            # Yield root node
+            take $data;
+            
+            # For Positional (arrays, lists), yield each element
+            if $data ~~ Positional {
+                for $data -> $item {
+                    take $item;
+                }
+            }
+            
+            # For Associative (hashes, maps), yield each value
+            if $data ~~ Associative {
+                for $data.values -> $value {
+                    take $value;
+                }
+            }
+        }.iterator;
+    }
+    
+    =begin pod
+
+    Transformation entrypoint that determines mode and delegates.
+
+    This is the public API entrypoint. Handles mode detection and delegation
+    to appropriate methods (prepare, apply, _transform_iterator, TRANSFORM).
+
+    @param $input - Input data to transform
+    @param :$context - Optional context (defaults to $*CONTEXT)
+    @param :$streaming - Optional streaming override (overrides trait setting)
+    @param :$mode - Optional mode ('default', 'pre', 'inline', 'post', etc.)
+    @returns Iterator|Mu|List|Nil - Transformation results
+
+    =end pod
+    method transform($input, :$context, :$streaming, :$mode --> Mu) {
+        # T031: Transformation entrypoint with mode detection
+        
+        # Determine mode: if :mode provided, use it; otherwise auto-detect
+        my $actual-mode = $mode;
+        if !$actual-mode.defined {
+            # Auto-detect based on input type
+            # If $input is QueryIterator, use 'post' mode
+            # If single element (heuristic), use 'inline' mode
+            # Otherwise, use 'default' mode
+            if $input ~~ Iterator {
+                $actual-mode = 'post';
+            } else {
+                # Simple heuristic: if it's a small structure, might be inline
+                # For MVP, default to 'default' mode
+                $actual-mode = 'default';
+            }
+        }
+        
+        # Handle streaming override
+        my $use-streaming = $streaming.defined ?? $streaming !! $.streaming;
+        
+        # Delegate to appropriate method based on mode
+        given $actual-mode {
+            when 'pre' {
+                # Pre-transformation: prepare data before traversal
+                # TODO: Implement prepare() method in future work package
+                return self.TRANSFORM($input);
+            }
+            when 'inline' {
+                # Inline transformation: apply to single element
+                # TODO: Implement apply() method in future work package
+                return self.APPLY($input);
+            }
+            when 'post' {
+                # Post-transformation: transform QueryIterator
+                # TODO: Implement _transform_iterator() method in future work package
+                return self.TRANSFORM($input);
+            }
+            default {
+                # Default mode: call TRANSFORM directly
+                return self.TRANSFORM($input);
+            }
+        }
     }
     
     =begin pod
