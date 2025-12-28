@@ -317,53 +317,55 @@ class Transformer is export {
     Calculate specificity score for a template based on its when clause.
     Implements basic specificity calculation for static patterns.
 
-    Scoring rules:
-    - Multilevel axis: -100
-    - Wildcards: -10
+    **MVP Implementation (WP04)**:
+    This is a basic implementation that provides a default specificity value
+    for templates with when blocks. Full AST analysis will be implemented when
+    query operators are available.
+
+    **Future Enhancement**:
+    When query operators (⪪, ⪪⪪, etc.) are available, this method should analyze
+    the when-block AST to calculate specificity based on:
+    - Multilevel axis (⪪⪪): -100
+    - Wildcards (*): -10
     - Explicit path elements: +5
     - Attribute axes: +5
+    - Union queries: calculate each branch, take max
 
-    For complex queries, this may return a default value and defer
-    to runtime evaluation.
+    For complex queries with dynamic predicates, specificity calculation may
+    need to be deferred to runtime evaluation.
 
     @param Template $template - Template to calculate specificity for
     @returns Int - Specificity score (higher is more specific)
 
     =end pod
     method !calculate-specificity(Template $template --> Int) {
-        # For WP04, we implement basic specificity calculation
-        # Complex queries will need runtime evaluation (deferred to later)
+        # MVP Implementation (WP04): Basic specificity calculation
+        # 
+        # This provides a minimal implementation that:
+        # 1. Returns 0 for templates without when blocks
+        # 2. Returns 1 for templates with when blocks (base specificity)
+        #
+        # Full AST analysis will be implemented when query operators are available.
+        # At that time, we'll analyze the when-block AST to detect:
+        # - Axis operators (⪪, ⪪⪪, etc.) - multilevel axes reduce specificity
+        # - Wildcards (*) - reduce specificity
+        # - Explicit path elements - increase specificity
+        # - Attribute axes - increase specificity
+        #
+        # For now, templates with when blocks get a base specificity of 1,
+        # which allows ordering to work correctly when priority is equal.
+        # Users can use explicit :tie-breaker values to fine-tune ordering
+        # until full specificity calculation is available.
         
         # If template has no when block, default specificity is 0
         if !$template.when-block.defined {
             return 0;
         }
         
-        # Basic approach: analyze the when block's AST if possible
-        # For now, we'll use a simple heuristic based on the block's structure
-        # More sophisticated analysis can be added later
-        
-        # Default specificity for templates with when blocks
-        # This is a placeholder - full AST analysis will be implemented
-        # when query operators are available
-        my Int $specificity = 0;
-        
-        # Try to analyze the when block
-        # For MVP, we'll use a simple approach: templates with when blocks
-        # get a base specificity, which can be refined later
-        if $template.when-block.defined {
-            # Base specificity for templates with when clauses
-            $specificity = 1;
-            
-            # TODO: Analyze when-block AST for:
-            # - Axis operators (multilevel: -100, single-level: 0)
-            # - Wildcards (-10)
-            # - Explicit path elements (+5)
-            # - Attribute axes (+5)
-            # This will require access to query AST structure
-        }
-        
-        return $specificity;
+        # Base specificity for templates with when clauses
+        # This ensures templates with when blocks are ordered correctly
+        # when priority is equal, even without full AST analysis
+        return 1;
     }
     
     =begin pod
