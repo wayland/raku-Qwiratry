@@ -84,11 +84,11 @@
 **Prompt**: `/tasks/planned/WP03-template-declarator-and-collection.md`
 
 ### Included Subtasks
-- [ ] T009 Implement template parsing in HOW class: identify `template` declarations in transformer body AST
-- [ ] T010 Extract template components: name, signature, traits, `when` block, `do` block
-- [ ] T011 Create `Template` class in `lib/Qwiratry/Template.rakumod` with attributes: name, signature, when-block, do-block, priority, specificity, tie-breaker, streaming, returns-type
-- [ ] T012 Store templates in transformer's `@.templates` array during compilation
-- [ ] T013 [P] Add unit tests for template declarator: declaration, component extraction, storage
+- [x] T009 Implement template parsing in HOW class: identify `template` declarations in transformer body AST
+- [x] T010 Extract template components: name, signature, traits, `when` block, `do` block
+- [x] T011 Create `Template` class in `lib/Qwiratry/Template.rakumod` with attributes: name, signature, when-block, do-block, priority, specificity, tie-breaker, streaming, returns-type
+- [x] T012 Store templates in transformer's `@.templates` array during compilation
+- [x] T013 [P] Add unit tests for template declarator: declaration, component extraction, storage
 
 ### Implementation Notes
 - Manual AST traversal to find template declarations
