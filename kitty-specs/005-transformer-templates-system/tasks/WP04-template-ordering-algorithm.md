@@ -1,19 +1,29 @@
 ---
 work_package_id: WP04
 title: Template Ordering Algorithm
-lane: planned
+lane: for_review
 history:
 - timestamp: '2025-01-27T23:45:00Z'
   lane: planned
   agent: system
   shell_pid: ''
   action: Prompt generated via /spec-kitty.tasks
-agent: ''
-assignee: ''
+- timestamp: '2025-01-28T07:15:00Z'
+  lane: doing
+  agent: claude
+  shell_pid: '24046'
+  action: Started implementation
+- timestamp: '2025-01-28T07:45:00Z'
+  lane: for_review
+  agent: claude
+  shell_pid: '24046'
+  action: 'WP04 implementation complete: All subtasks (T014-T020) implemented. ORDER-TEMPLATES method with priority → specificity → tie-breaker sorting, conflict detection, caching. All unit tests passing (6/6).'
+agent: claude
+assignee: claude
 phase: Phase 1 - Foundational
 review_status: ''
 reviewed_by: ''
-shell_pid: ''
+shell_pid: '24046'
 subtasks:
 - T014
 - T015
@@ -146,16 +156,19 @@ subtasks:
 
 ## Definition of Done Checklist
 
-- [ ] Priority sorting implemented and tested
-- [ ] Specificity calculation implemented (basic cases)
-- [ ] Tie-breaker resolution implemented
-- [ ] Conflict detection implemented with clear error messages
-- [ ] ORDER-TEMPLATES method populates @.ordered-templates
-- [ ] Ordering is deterministic
-- [ ] Unit tests pass
-- [ ] `tasks.md` updated with status change
+- [x] Priority sorting implemented and tested
+- [x] Specificity calculation implemented (basic cases)
+- [x] Tie-breaker resolution implemented
+- [x] Conflict detection implemented with clear error messages
+- [x] ORDER-TEMPLATES method populates @.ordered-templates
+- [x] Ordering is deterministic
+- [x] Unit tests pass
+- [x] `tasks.md` updated with status change
 
 ## Activity Log
 
 - 2025-01-27T23:45:00Z – system – lane=planned – Prompt created.
+- 2025-01-28T07:15:00Z – claude – shell_pid=24046 – lane=doing – Started implementation: Implementing ORDER-TEMPLATES method with priority sorting, specificity calculation, tie-breaker resolution, and conflict detection.
+- 2025-01-28T07:30:00Z – claude – shell_pid=24046 – lane=doing – Completed T014-T019: Implemented ORDER-TEMPLATES method with priority → specificity → tie-breaker sorting. Added @.ordered-templates attribute and caching. Implemented basic specificity calculation (placeholder for complex queries). Conflict detection throws X::Qwiratry::TemplateOrderingConflict. All core functionality complete.
+- 2025-01-28T07:45:00Z – claude – shell_pid=24046 – lane=doing – Completed T020: Added comprehensive unit tests for template ordering. All tests passing (6/6 subtests). Tests cover priority sorting, specificity/tie-breaker sorting, conflict detection, deterministic ordering, caching, and empty templates. Ready for review.
 
