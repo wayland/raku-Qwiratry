@@ -209,18 +209,18 @@
 **Prompt**: `/tasks/planned/WP07-copy-service-class.md`
 
 ### Included Subtasks
-- [ ] T033 Create `Qwiratry::Copy` module in `lib/Qwiratry/Copy.rakumod`
-- [ ] T034 Implement `multi sub copy(Mu $x --> Mu)`: default identity
-- [ ] T035 Implement `multi sub copy(Positional $p --> Positional)`: shallow copy via `clone`
-- [ ] T036 Implement `multi sub copy(Associative $a --> Associative)`: shallow copy via `clone`
-- [ ] T037 Implement `multi sub deepcopy(Mu $x --> Mu)`: default identity (atoms, objects with identity)
-- [ ] T038 Implement `multi sub deepcopy(Positional $p --> Positional)`: recursive deep copy via `map`
-- [ ] T039 Implement `multi sub deepcopy(Associative $a --> Associative)`: recursive deep copy via `map` with cycle detection
-- [ ] T040 Implement cycle detection for `deepcopy`: maintain "visited" hash keyed by object identity
-- [ ] T041 Implement DAG preservation: single clone per unique node regardless of parent count
-- [ ] T042 Check for custom `.copy()` method on nodes before using default implementation
-- [ ] T043 Attach `copy()` and `deepcopy()` methods to Transformer object (delegate to service functions)
-- [ ] T044 [P] Add unit tests for Copy service: shallow copy, deep copy, DAG handling, cycle detection, custom method detection
+- [x] T033 Create `Qwiratry::Copy` module in `lib/Qwiratry/Copy.rakumod`
+- [x] T034 Implement `multi sub copy(Mu $x --> Mu)`: default identity
+- [x] T035 Implement `multi sub copy(Positional $p --> Positional)`: shallow copy via `clone`
+- [x] T036 Implement `multi sub copy(Associative $a --> Associative)`: shallow copy via `clone`
+- [x] T037 Implement `multi sub deepcopy(Mu $x --> Mu)`: default identity (atoms, objects with identity)
+- [x] T038 Implement `multi sub deepcopy(Positional $p --> Positional)`: recursive deep copy via `map`
+- [x] T039 Implement `multi sub deepcopy(Associative $a --> Associative)`: recursive deep copy via `map` with cycle detection
+- [x] T040 Implement cycle detection for `deepcopy`: maintain "visited" hash keyed by object identity
+- [x] T041 Implement DAG preservation: single clone per unique node regardless of parent count
+- [x] T042 Check for custom `.copy()` method on nodes before using default implementation
+- [x] T043 Attach `copy()` and `deepcopy()` methods to Transformer object (delegate to service functions)
+- [x] T044 [P] Add unit tests for Copy service: shallow copy, deep copy, DAG handling, cycle detection, custom method detection
 
 ### Implementation Notes
 - Follow spec section 3.3.6 exactly

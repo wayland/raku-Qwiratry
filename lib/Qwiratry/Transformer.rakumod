@@ -13,6 +13,7 @@ use Qwiratry::Template;
 use Qwiratry::TemplateSlang;  # For get-collected-templates() and clear-collected-templates()
 use Qwiratry::X;  # For X::Qwiratry::TemplateOrderingConflict
 use Qwiratry::WalkerFactory;  # For Walker selection
+use Qwiratry::Copy;  # For copy() and deepcopy() service functions (exported by default)
 # Note: Template slang activation is handled by main Qwiratry.rakumod
 # Users should `use Qwiratry` to get slang activation automatically
 
@@ -599,6 +600,42 @@ class Transformer is export {
                 }
             }
         }
+    }
+    
+    =begin pod
+
+    Shallow copy a node.
+
+    Delegates to Qwiratry::Copy::copy() service function.
+    Provides convenient access: $transformer.copy($node)
+
+    @param $node - Node to copy
+    @returns Mu - Shallow copy of node
+
+    =end pod
+    # T043: Attach copy() method to Transformer
+    method copy($node --> Mu) {
+        # Delegate to Qwiratry::Copy::copy() service function
+        # copy() is imported from Qwiratry::Copy
+        copy($node);
+    }
+    
+    =begin pod
+
+    Deep copy a node.
+
+    Delegates to Qwiratry::Copy::deepcopy() service function.
+    Provides convenient access: $transformer.deepcopy($node)
+
+    @param $node - Node to deep copy
+    @returns Mu - Deep copy of node
+
+    =end pod
+    # T043: Attach deepcopy() method to Transformer
+    method deepcopy($node --> Mu) {
+        # Delegate to Qwiratry::Copy::deepcopy() service function
+        # deepcopy() is imported from Qwiratry::Copy
+        deepcopy($node);
     }
 }
 
