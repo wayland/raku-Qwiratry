@@ -1,19 +1,24 @@
 ---
 work_package_id: WP06
 title: APPLY & TRANSFORM Methods
-lane: planned
+lane: doing
 history:
 - timestamp: '2025-01-27T23:45:00Z'
   lane: planned
   agent: system
   shell_pid: ''
   action: Prompt generated via /spec-kitty.tasks
-agent: ''
-assignee: ''
+- timestamp: '2025-01-28T09:30:00Z'
+  lane: doing
+  agent: claude
+  shell_pid: '60476'
+  action: Started implementation
+agent: claude
+assignee: claude
 phase: Phase 2 - Core
 review_status: ''
 reviewed_by: ''
-shell_pid: ''
+shell_pid: '60476'
 subtasks:
 - T027
 - T028
