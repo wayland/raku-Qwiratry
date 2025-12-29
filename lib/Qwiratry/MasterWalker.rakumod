@@ -38,39 +38,39 @@ Example:
 
 =end pod
 class CompositePlan does Walker::Plan {
-    #| Original query AST (composite query, not modified)
+    # Original query AST (composite query, not modified)
     has RakuAST::Node $.query-ast is required;
     
-    #| Embedded subplans from delegated walkers
+    # Embedded subplans from delegated walkers
     has @.subplans;
     
-    #| Execution order for subplans (optional, for future use)
+    # Execution order for subplans (optional, for future use)
     has @.execution-order;
     
-    #| Constructor
+    # Constructor
     submethod BUILD(:$!query-ast, :@subplans, :@execution-order) {
         @!subplans = @subplans // Array.new;
         @!execution-order = @execution-order // Array.new;
     }
     
-    #| Return array of embedded subplans
+    # Return array of embedded subplans
     method subplans(--> Array) {
         return @!subplans;
     }
     
-    #| Return original query AST (not modified)
+    # Return original query AST (not modified)
     method query(--> RakuAST::Node) {
         return $!query-ast;
     }
     
-    #| Describe the composite plan
+    # Describe the composite plan
     method describe(--> Str) {
         my $subplan-count = @!subplans.elems;
         return "CompositePlan with $subplan-count subplan(s)";
     }
     
-    #| Produce QueryIterator for this composite plan.
-    #| Creates a composite iterator that coordinates subplan iterators.
+    # Produce QueryIterator for this composite plan.
+    # Creates a composite iterator that coordinates subplan iterators.
     method iterator(--> QueryIterator) {
         # Create context for composite execution
         my class CompositeContext does Context {
@@ -100,25 +100,25 @@ Example:
 
 =end pod
 class CompositeIterator does QueryIterator {
-    #| The composite plan this iterator executes
+    # The composite plan this iterator executes
     has CompositePlan $.plan is required;
     
-    #| Materialized results from all subplans (lazy initialization)
+    # Materialized results from all subplans (lazy initialization)
     has @!materialized-results;
     
-    #| Current index in materialized results
+    # Current index in materialized results
     has Int $!current-index = 0;
     
-    #| Flag indicating if materialization has been performed
+    # Flag indicating if materialization has been performed
     has Bool $!materialized = False;
     
-    #| Constructor
+    # Constructor
     submethod BUILD(:$!context, :$!plan) {
         # Context and plan are set via attributes
     }
     
-    #| Materialize results from all subplans.
-    #| For MVP, collects all results before returning any.
+    # Materialize results from all subplans.
+    # For MVP, collects all results before returning any.
     method !materialize-results() {
         return if $!materialized;
         
@@ -152,7 +152,7 @@ class CompositeIterator does QueryIterator {
         $!materialized = True;
     }
     
-    #| Return the next combined result, or IterationEnd if exhausted.
+    # Return the next combined result, or IterationEnd if exhausted.
     method pull-one(--> Mu) {
         # Materialize results on first call
         self!materialize-results();
@@ -182,25 +182,25 @@ Example:
 
 =end pod
 class MasterWalker does Walker {
-    #| Explicitly provided candidate walkers (overrides discovery if provided)
+    # Explicitly provided candidate walkers (overrides discovery if provided)
     has @.candidate-walkers;
     
-    #| Cached discovered walkers (lazy initialization)
+    # Cached discovered walkers (lazy initialization)
     has @!discovered-walkers;
     
-    #| Flag indicating if discovery has been performed
+    # Flag indicating if discovery has been performed
     has Bool $!discovery-performed = False;
     
-    #| Constructor accepts optional candidate walkers
-    #| If provided, discovery is skipped and explicit list is used
+    # Constructor accepts optional candidate walkers
+    # If provided, discovery is skipped and explicit list is used
     submethod BUILD(:@candidate-walkers) {
         if @candidate-walkers {
             @!candidate-walkers = @candidate-walkers;
         }
     }
     
-    #| Get candidate walkers (explicit list or discovered)
-    #| Returns explicit list if provided, otherwise discovers walkers
+    # Get candidate walkers (explicit list or discovered)
+    # Returns explicit list if provided, otherwise discovers walkers
     method candidate-walkers(--> Array) {
         if @!candidate-walkers {
             return @!candidate-walkers;
@@ -254,16 +254,16 @@ class MasterWalker does Walker {
         return @!discovered-walkers;
     }
     
-    #| Check provides trait on root object, return domain names or Nil.
-    #| Uses provides-domains() from Qwiratry::Provides to extract domain metadata.
+    # Check provides trait on root object, return domain names or Nil.
+    # Uses provides-domains() from Qwiratry::Provides to extract domain metadata.
     method check-domain-metadata(Mu $root --> Array) {
         my @domains = provides-domains($root);
         return @domains if @domains;
         return Nil;
     }
     
-    #| Query walker about capability via supports() method.
-    #| Returns True if walker supports the subtree, False otherwise.
+    # Query walker about capability via supports() method.
+    # Returns True if walker supports the subtree, False otherwise.
     method check-capability(RakuAST::Node $subtree, Walker $walker --> Bool) {
         # Check if walker has supports() method and call it
         if $walker.^can('supports') {
@@ -273,10 +273,10 @@ class MasterWalker does Walker {
         return False;
     }
     
-    #| Find walker supporting at least one of the declared domains.
-    #| This is the fast path using domain metadata.
-    #| For MVP, we use a heuristic: check if walker type name contains domain name.
-    #| This can be enhanced later with explicit domain support methods.
+    # Find walker supporting at least one of the declared domains.
+    # This is the fast path using domain metadata.
+    # For MVP, we use a heuristic: check if walker type name contains domain name.
+    # This can be enhanced later with explicit domain support methods.
     method find-walker-by-domain(Array $domains --> Walker) {
         my @candidates = self.candidate-walkers();
         
@@ -398,8 +398,8 @@ class MasterWalker does Walker {
         ).throw;
     }
     
-    #| Extract AST subtree from query for delegation.
-    #| For MVP, delegates entire query. Subtree extraction can be enhanced later.
+    # Extract AST subtree from query for delegation.
+    # For MVP, delegates entire query. Subtree extraction can be enhanced later.
     method extract-subtree(RakuAST::Node $query --> RakuAST::Node) {
         # For MVP, return entire query as subtree
         # This can be enhanced later to extract specific subtrees

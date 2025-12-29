@@ -1,0 +1,802 @@
+1..11
+# Subtest: Context role exists and can be composed
+    1..2
+    ok 1 - Context role exists
+    ok 2 - Context is a proper role
+ok 1 - Context role exists and can be composed
+# Subtest: Concrete class can compose Context
+    1..3
+    ok 1 - Concrete class can be instantiated
+    ok 2 - Instance does Context role
+    ok 3 - Concrete attribute accessible
+ok 2 - Concrete class can compose Context
+# Subtest: Context concrete class with mutable state
+    1..4
+    ok 1 - Initial value correct
+    ok 2 - Mutable attribute can be changed
+    ok 3 - Array attribute can accumulate
+    ok 4 - Array contents preserved
+ok 3 - Context concrete class with mutable state
+# Subtest: Multiple Context instances are independent
+    1..4
+    ok 1 - First context has correct value
+    ok 2 - Second context has correct value
+    ok 3 - First context incremented
+    ok 4 - Second context unchanged
+ok 4 - Multiple Context instances are independent
+# Subtest: Fresh Context per traversal simulation
+    1..3
+    ok 1 - First traversal count correct
+    ok 2 - Second traversal count correct
+    ok 3 - Traversals have independent state
+ok 5 - Fresh Context per traversal simulation
+# Subtest: Context does not share state across instances
+    1..2
+    ok 1 - First context has key
+    ok 2 - Second context does not have key
+ok 6 - Context does not share state across instances
+# Subtest: State persists across operations
+    1..4
+    ok 1 - Operations accumulated
+    ok 2 - Total tracked
+    ok 3 - First operation preserved
+    ok 4 - Last operation preserved
+ok 7 - State persists across operations
+# Subtest: Complex state management
+    1..5
+    ok 1 - Depth tracked
+    ok 2 - Stack has entries
+    ok 3 - Root memoized
+    ok 4 - Child memoized
+    ok 5 - Depth decremented
+ok 8 - Complex state management
+# Subtest: Context can be used as type constraint
+    1..2
+    ok 1 - Context passes type constraint
+    ok 2 - No exception with Context type
+ok 9 - Context can be used as type constraint
+# Subtest: Multiple classes can implement Context
+    1..4
+    ok 1 - ContextA does Context
+    ok 2 - ContextB does Context
+    ok 3 - ContextA has own attributes
+    ok 4 - ContextB has own attributes
+ok 10 - Multiple classes can implement Context
+# Subtest: Context strategy accessor
+    1..3
+    ok 1 - strategy accessor returns defined value
+    ok 2 - strategy accessor returns injected strategy
+    ok 3 - strategy undefined when not provided
+ok 11 - Context strategy accessor
+1..4
+# Subtest: All enum values exist
+    1..6
+    ok 1 - NO_REWRITE exists
+    ok 2 - REWRITE_IMMEDIATE exists
+    ok 3 - REWRITE_DEFERRED exists
+    ok 4 - SKIP_ELEMENT exists
+    ok 5 - STOP_TRAVERSAL exists
+    ok 6 - FINAL_RESULT exists
+ok 1 - All enum values exist
+# Subtest: Values are distinct
+    1..5
+    ok 1 - NO_REWRITE != SKIP_ELEMENT
+    ok 2 - STOP_TRAVERSAL != SKIP_ELEMENT
+    ok 3 - REWRITE_IMMEDIATE != REWRITE_DEFERRED
+    ok 4 - NO_REWRITE != FINAL_RESULT
+    ok 5 - STOP_TRAVERSAL != FINAL_RESULT
+ok 2 - Values are distinct
+# Subtest: Enum usable in signatures
+    1..3
+    ok 1 - Can pass NO_REWRITE to typed parameter
+    ok 2 - Can pass STOP_TRAVERSAL to typed parameter
+    ok 3 - Can pass SKIP_ELEMENT to typed parameter
+ok 3 - Enum usable in signatures
+# Subtest: Stringification
+    1..6
+    ok 1 - NO_REWRITE stringifies correctly
+    ok 2 - REWRITE_IMMEDIATE stringifies correctly
+    ok 3 - REWRITE_DEFERRED stringifies correctly
+    ok 4 - SKIP_ELEMENT stringifies correctly
+    ok 5 - STOP_TRAVERSAL stringifies correctly
+    ok 6 - FINAL_RESULT stringifies correctly
+ok 4 - Stringification
+1..10
+# Subtest: copy() - shallow copy
+    1..7
+    ok 1 - copy(Mu) returns identity for immutable primitives
+    ok 2 - copy(Positional) returns Positional
+    ok 3 - copy(Positional) creates new object
+    ok 4 - copy(Positional) shares children (shallow copy)
+    ok 5 - copy(Associative) returns Associative
+    ok 6 - copy(Associative) creates new object
+    ok 7 - copy(Associative) shares children (shallow copy)
+ok 1 - copy() - shallow copy
+# Subtest: deepcopy() - recursive deep copy
+    1..7
+    ok 1 - deepcopy(Mu) returns identity for immutable primitives
+    ok 2 - deepcopy(Positional) returns Positional
+    ok 3 - deepcopy(Positional) creates new object
+    ok 4 - deepcopy(Positional) recursively copies children
+    ok 5 - deepcopy(Associative) returns Associative
+    ok 6 - deepcopy(Associative) creates new object
+    ok 7 - deepcopy(Associative) recursively copies values
+ok 2 - deepcopy() - recursive deep copy
+# Subtest: Cycle detection
+    1..2
+    ok 1 - deepcopy handles cycles without infinite recursion
+    ok 2 - deepcopy preserves cycle structure
+ok 3 - Cycle detection
+# Subtest: DAG preservation
+    1..2
+    ok 1 - DAG: deepcopy preserves structure
+    ok 2 - DAG: deepcopy preserves structure for second parent
+ok 4 - DAG preservation
+# Subtest: Custom .copy() method
+    1..2
+    ok 1 - Custom .copy() method is called
+    ok 2 - Custom .copy() method result is used
+ok 5 - Custom .copy() method
+# Subtest: Transformer copy() and deepcopy() methods
+    1..4
+    ok 1 - Transformer.copy() works
+    ok 2 - Transformer.copy() creates new object
+    ok 3 - Transformer.deepcopy() works
+    ok 4 - Transformer.deepcopy() recursively copies
+ok 6 - Transformer copy() and deepcopy() methods
+# Subtest: Performance - copy is O(1)
+    1..1
+    ok 1 - copy() is O(1) - completes quickly even for large arrays
+ok 7 - Performance - copy is O(1)
+# Subtest: Edge cases
+    1..3
+    ok 1 - copy() handles empty arrays
+    ok 2 - copy() handles empty hashes
+    ok 3 - deepcopy() handles nested structures
+ok 8 - Edge cases
+# Subtest: Immutable primitives
+    1..4
+    ok 1 - copy() returns identity for strings
+    ok 2 - deepcopy() returns identity for strings
+    ok 3 - copy() returns identity for numbers
+    ok 4 - deepcopy() returns identity for numbers
+ok 9 - Immutable primitives
+# Subtest: Complex structures
+    1..2
+    ok 1 - deepcopy() handles complex structures
+    ok 2 - deepcopy() recursively copies nested structures
+ok 10 - Complex structures
+1..16
+# Subtest: X::Qwiratry::Walker basic construction
+    1..4
+    ok 1 - Exception can be created
+    ok 2 - Message attribute accessible
+    ok 3 - Default walker-type is Unknown
+    ok 4 - Exception does Exception role
+ok 1 - X::Qwiratry::Walker basic construction
+# Subtest: X::Qwiratry::Walker with custom walker-type
+    1..2
+    ok 1 - Message attribute accessible
+    ok 2 - Custom walker-type set correctly
+ok 2 - X::Qwiratry::Walker with custom walker-type
+# Subtest: X::Qwiratry::Walker gist formatting
+    1..1
+    ok 1 - Gist contains exception name
+ok 3 - X::Qwiratry::Walker gist formatting
+# Subtest: X::Qwiratry::Walker can be thrown and caught
+    1..2
+    ok 1 - Exception can be caught
+    ok 2 - Caught exception has correct message
+ok 4 - X::Qwiratry::Walker can be thrown and caught
+# Subtest: X::Qwiratry::Walker in die context
+    1..1
+    ok 1 - Exception works with die
+ok 5 - X::Qwiratry::Walker in die context
+# Subtest: X::Qwiratry::UnknownQueryElement basic construction
+    1..5
+    ok 1 - Exception can be created
+    ok 2 - Message attribute accessible
+    ok 3 - Default walker-type inherited
+    ok 4 - Query-ast attribute accessible
+    ok 5 - Extends X::Qwiratry::Walker
+ok 6 - X::Qwiratry::UnknownQueryElement basic construction
+# Subtest: X::Qwiratry::UnknownQueryElement with all attributes
+    1..3
+    ok 1 - Message correct
+    ok 2 - Walker-type correct
+    ok 3 - Query-ast correct
+ok 7 - X::Qwiratry::UnknownQueryElement with all attributes
+# Subtest: X::Qwiratry::UnknownQueryElement gist formatting
+    1..2
+    ok 1 - Gist contains exception name
+    ok 2 - Gist contains query-ast info
+ok 8 - X::Qwiratry::UnknownQueryElement gist formatting
+# Subtest: X::Qwiratry::UnknownQueryElement with undefined query-ast
+    1..2
+    ok 1 - Query-ast can be undefined
+    ok 2 - Gist shows undefined for missing AST
+ok 9 - X::Qwiratry::UnknownQueryElement with undefined query-ast
+# Subtest: X::Qwiratry::UnknownQueryElement can be thrown and caught
+    1..3
+    ok 1 - Exception can be caught by specific type
+    ok 2 - Query-ast preserved through throw/catch
+    ok 3 - Can be caught as base X::Qwiratry::Walker type
+ok 10 - X::Qwiratry::UnknownQueryElement can be thrown and caught
+# Subtest: X::Qwiratry::UnknownQueryElement inherits Exception behavior
+    1..2
+    ok 1 - Is an Exception
+    ok 2 - Has throw method from Exception
+ok 11 - X::Qwiratry::UnknownQueryElement inherits Exception behavior
+# Subtest: Exception hierarchy relationships
+    1..3
+    ok 1 - Base is Exception
+    ok 2 - Specific is Exception
+    ok 3 - Specific is X::Qwiratry::Walker
+ok 12 - Exception hierarchy relationships
+# Subtest: CATCH block type discrimination
+    1..2
+    ok 1 - Specific type caught first
+    ok 2 - Base type not reached when specific matches
+ok 13 - CATCH block type discrimination
+# Subtest: Exception message non-empty
+    1..2
+    ok 1 - Base message is non-empty
+    ok 2 - Specific message is non-empty
+ok 14 - Exception message non-empty
+# Subtest: Exception attributes for debugging
+    1..4
+    ok 1 - Message is defined
+    ok 2 - Walker-type is defined
+    ok 3 - Query-ast is defined
+    ok 4 - Gist is defined
+ok 15 - Exception attributes for debugging
+# Subtest: Exception stringification
+    1..2
+    ok 1 - Gist returns Str
+    ok 2 - Gist is non-empty
+ok 16 - Exception stringification
+1..4
+# Subtest: Construction with type only
+    1..2
+    ok 1 - type attribute set
+    ok 2 - value is undefined by default
+ok 1 - Construction with type only
+# Subtest: Construction with type and value
+    1..2
+    ok 1 - type attribute set
+    ok 2 - value attribute set
+ok 2 - Construction with type and value
+# Subtest: Type is required
+    1..2
+    ok 1 - Dies without type parameter
+    ok 2 - Dies with only value
+ok 3 - Type is required
+# Subtest: Gist output
+    1..2
+    ok 1 - gist contains class name
+    ok 2 - gist contains type
+ok 4 - Gist output
+1..7
+# Subtest: $*CONTEXT and topic variable setup
+    1..2
+    ok 1 - $*CONTEXT is set in when block
+    ok 2 - $*CONTEXT and $_ are set in do block
+ok 1 - $*CONTEXT and topic variable setup
+# Subtest: $*CAPTURE and $/ setup
+    1..2
+    ok 1 - $*CAPTURE infrastructure in place (MVP: accessible in template)
+    ok 2 - $*CAPTURE is accessible when template has signature
+ok 2 - $*CAPTURE and $/ setup
+# Subtest: self reference
+    1..1
+    ok 1 - Template execution completes (self infrastructure ready)
+ok 3 - self reference
+# Subtest: Template.matches() method
+    1..4
+    ok 1 - Template matches when when block returns True
+    ok 2 - Template doesn't match when when block returns False
+    ok 3 - Template without when block always matches
+    ok 4 - Template.matches() returns False when when block throws exception
+ok 4 - Template.matches() method
+# Subtest: Template.execute() method
+    1..3
+    ok 1 - Template.execute() returns do block result
+    ok 2 - Template.execute() returns Nil/Any when do block returns Nil
+    ok 3 - Template.execute() returns Nil when template has no do block (tested in execute method)
+ok 5 - Template.execute() method
+# Subtest: Magic variables don't leak between templates
+    1..2
+    ok 1 - First template captures correct node
+    ok 2 - Second template captures correct node (no leakage)
+ok 6 - Magic variables don't leak between templates
+# Subtest: Magic variables are Nil/undefined outside template execution
+    1..2
+    ok 1 - $*CONTEXT is defined inside template execution
+    ok 2 - Magic variables are scoped to template execution (lexical scoping)
+ok 7 - Magic variables are Nil/undefined outside template execution
+===SORRY!=== Error while compiling 
+Redeclaration of symbol 'Walker'.
+at line 
+Use of uninitialized value element of type Any in numeric context
+
+Use of uninitialized value element of type Any in string context.
+Methods .^name, .raku, .gist, or .say can be used to stringify it to something meaningful.
+
+Potential difficulties:
+    Missing declarand for leading declarator doc
+    at line 
+1..5
+ok 1 - # SKIP provides trait syntax needs fix - see TODO
+ok 2 - # SKIP provides trait syntax needs fix - see TODO
+ok 3 - # SKIP provides trait syntax needs fix - see TODO
+ok 4 - # SKIP provides trait syntax needs fix - see TODO
+ok 5 - # SKIP provides trait syntax needs fix - see TODO
+ok 6 - # SKIP provides trait syntax needs fix - see TODO
+# You planned 5 tests, but ran 6
+1..11
+# Subtest: QueryIterator role exists
+    1..2
+    ok 1 - QueryIterator role exists
+    ok 2 - QueryIterator is a proper role
+ok 1 - QueryIterator role exists
+# Subtest: QueryIterator extends Iterator
+    1..2
+    ok 1 - QueryIterator does Iterator role
+    ok 2 - Instance does QueryIterator role
+ok 2 - QueryIterator extends Iterator
+# Subtest: Concrete class can compose QueryIterator
+    1..3
+    ok 1 - Concrete class can be instantiated
+    ok 2 - Instance does QueryIterator role
+    ok 3 - Instance does Iterator role
+ok 3 - Concrete class can compose QueryIterator
+# Subtest: QueryIterator receives Context via constructor
+    1..3
+    ok 1 - Context attribute is set
+    ok 2 - Context is correct type
+    ok 3 - Context is the same object passed to constructor
+ok 4 - QueryIterator receives Context via constructor
+# Subtest: Context is accessible during iteration
+    1..3
+    ok 1 - Initial count is 0
+    ok 2 - Context state updated during iteration
+    ok 3 - Can access Context via iterator
+ok 5 - Context is accessible during iteration
+# Subtest: Context required for construction
+    1..1
+    ok 1 - Constructor fails without Context
+ok 6 - Context required for construction
+# Subtest: pull-one() returns values then IterationEnd
+    1..4
+    ok 1 - First value returned
+    ok 2 - Second value returned
+    ok 3 - IterationEnd returned when exhausted
+    ok 4 - IterationEnd returned consistently
+ok 7 - pull-one() returns values then IterationEnd
+# Subtest: Empty iterator returns IterationEnd immediately
+    1..2
+    ok 1 - First pull-one returns IterationEnd
+    ok 2 - Subsequent calls return IterationEnd
+ok 8 - Empty iterator returns IterationEnd immediately
+# Subtest: Multiple calls after exhaustion return IterationEnd
+    1..4
+    ok 1 - First exhaustion check
+    ok 2 - Second exhaustion check
+    ok 3 - Third exhaustion check
+    ok 4 - Fourth exhaustion check
+ok 9 - Multiple calls after exhaustion return IterationEnd
+# Subtest: Multiple iterators from same data are independent
+    1..4
+    ok 1 - iter2 starts at beginning
+    ok 2 - iter1 continues from its position
+    ok 3 - ctx1 tracks iter1 progress
+    ok 4 - ctx2 tracks iter2 progress
+ok 10 - Multiple iterators from same data are independent
+# Subtest: Iterator can be used with for loop
+    1..2
+    ok 1 - All items collected
+    ok 2 - Items in correct order
+ok 11 - Iterator can be used with for loop
+1..2
+# Subtest: RewriteSpec can be composed
+    1..2
+    ok 1 - Can create instance of class doing RewriteSpec
+    ok 2 - Instance does RewriteSpec role
+ok 1 - RewriteSpec can be composed
+# Subtest: Type checking works
+    1..1
+    ok 1 - Can pass to typed parameter
+ok 2 - Type checking works
+1..14
+# Subtest: Strategy can be composed
+    1..1
+    ok 1 - Instance does Strategy role
+ok 1 - Strategy can be composed
+# Subtest: before hook signature
+    1..2
+    ok 1 - before returns ControlSignal
+    ok 2 - before returns expected value
+ok 2 - before hook signature
+# Subtest: on-match hook signature
+    1..2
+    ok 1 - on-match returns ControlSignal
+    ok 2 - on-match returns expected value
+ok 3 - on-match hook signature
+# Subtest: should-follow hook signature
+    1..2
+    ok 1 - should-follow returns Bool
+    ok 2 - should-follow returns True
+ok 4 - should-follow hook signature
+# Subtest: after hook signature
+    1..2
+    ok 1 - after returns ControlSignal
+    ok 2 - after returns expected value
+ok 5 - after hook signature
+# Subtest: finish hook signature
+    1..2
+    ok 1 - finish returns FinishResult
+    ok 2 - finish returns expected value
+ok 6 - finish hook signature
+# Subtest: should-continue hook signature
+    1..2
+    ok 1 - should-continue returns Bool
+    ok 2 - should-continue returns True
+ok 7 - should-continue hook signature
+# Subtest: Default before returns Nil
+    1..1
+    ok 1 - Default before returns Nil
+ok 8 - Default before returns Nil
+# Subtest: Default on-match returns Nil
+    1..1
+    ok 1 - Default on-match returns Nil
+ok 9 - Default on-match returns Nil
+# Subtest: Default should-follow returns True
+    1..1
+    ok 1 - Default should-follow returns True
+ok 10 - Default should-follow returns True
+# Subtest: Default after returns Nil
+    1..1
+    ok 1 - Default after returns Nil
+ok 11 - Default after returns Nil
+# Subtest: Default finish returns FinishResult
+    1..2
+    ok 1 - Default finish returns FinishResult
+    ok 2 - Default finish has type "final-result"
+ok 12 - Default finish returns FinishResult
+# Subtest: Default should-continue returns False
+    1..1
+    ok 1 - Default should-continue returns False
+ok 13 - Default should-continue returns False
+# Subtest: on-match can return RewriteSpec
+    1..1
+    ok 1 - on-match can return RewriteSpec
+ok 14 - on-match can return RewriteSpec
+1..6
+# Subtest: Priority sorting
+    1..3
+    ok 1 - All templates ordered
+    ok 2 - Highest priority template first
+    ok 3 - Lowest priority template last
+ok 1 - Priority sorting
+# Subtest: Specificity and tie-breaker sorting
+    1..4
+    ok 1 - Highest specificity template first (when priority equal)
+    ok 2 - Two templates with specificity 5
+    ok 3 - Higher tie-breaker comes first (when priority/specificity equal)
+    ok 4 - Lower tie-breaker comes last
+ok 2 - Specificity and tie-breaker sorting
+# Subtest: Conflict detection
+    1..2
+    # Subtest: Conflict exception thrown for equal templates
+        1..2
+        ok 1 - code dies
+        ok 2 - right exception type (Qwiratry::X::X::Qwiratry::TemplateOrderingConflict)
+    ok 1 - Conflict exception thrown for equal templates
+    ok 2 - Exception message mentions tie-breaker
+ok 3 - Conflict detection
+# Subtest: Deterministic ordering
+    1..1
+    ok 1 - Ordering is deterministic
+ok 4 - Deterministic ordering
+# Subtest: Ordering caching
+    1..2
+    ok 1 - First call returns ordered templates
+    ok 2 - Second call returns cached result
+ok 5 - Ordering caching
+# Subtest: Empty templates array
+    1..1
+    ok 1 - Empty templates array returns empty ordered array
+ok 6 - Empty templates array
+===SORRY!=== Error while compiling tests/unit/template-parsing.rakutest
+Undeclared routines:
+    TOP used at line 30. Did you mean ''?
+    TestNamedTransform used at line 74. Did you mean ''?
+    TestTransform used at line 40. Did you mean ''?
+    Transformer used at line 104. Did you mean ''?
+    clear-collected-templates used at line 92
+    my-template used at line 69
+    template used at line 69
+    transformer used at line 68
+
+1..4
+# Subtest: Template class structure
+    1..5
+    ok 1 - Template object created
+    ok 2 - when-block stored correctly
+    ok 3 - do-block stored correctly
+    ok 4 - Default priority is 0
+    ok 5 - Default tie-breaker is 0
+ok 1 - Template class structure
+# Subtest: Template with name and signature
+    1..3
+    ok 1 - Template name stored correctly
+    ok 2 - Template signature stored correctly
+    ok 3 - Signature has one parameter
+ok 2 - Template with name and signature
+# Subtest: Template with traits
+    1..4
+    ok 1 - Priority trait stored correctly
+    ok 2 - Tie-breaker trait stored correctly
+    ok 3 - Streaming trait stored correctly
+    ok 4 - Specificity is undefined by default
+ok 3 - Template with traits
+# Subtest: Template methods (stubs)
+    1..4
+    ok 1 - matches method exists
+    ok 2 - execute method exists
+    ok 3 - matches method can be called
+    ok 4 - execute method can be called (returns do-block result)
+ok 4 - Template methods (stubs)
+1..6
+# Subtest: TemplateSlang components exist
+    1..2
+    ok 1 - TemplateGrammar role exists
+    ok 2 - TemplateActions role exists
+ok 1 - TemplateSlang components exist
+# Subtest: Template collection functions
+    1..2
+    ok 1 - Collection starts empty after clear
+    ok 2 - clear-collected-templates can be called multiple times
+ok 2 - Template collection functions
+# Subtest: Template creation - minimal
+    1..3
+    ok 1 - Template can be created with minimal parameters
+    ok 2 - Template has do-block
+    ok 3 - Template name is optional
+ok 3 - Template creation - minimal
+# Subtest: Template creation - full parameters
+    1..6
+    ok 1 - Template name is set
+    ok 2 - Template signature is set
+    ok 3 - Template when-block is set
+    ok 4 - Template do-block is set
+    ok 5 - Template priority is set
+    ok 6 - Template streaming is set
+ok 4 - Template creation - full parameters
+# Subtest: Template default values
+    1..4
+    ok 1 - Priority defaults to 0
+    ok 2 - Tie-breaker defaults to 0
+    ok 3 - Streaming defaults to False
+    ok 4 - Returns-type defaults to Nil
+ok 5 - Template default values
+# Subtest: Template execute method
+    1..1
+    ok 1 - Execute method returns do-block result
+    ok 2 - Execute method returns correct value
+    # You planned 1 test, but ran 2
+not ok 6 - Template execute method
+# Failed test 'Template execute method'
+# at tests/unit/template-slang.rakutest line 115
+# You failed 1 test of 6
+1..7
+# Subtest: EXPORTHOW::DECLARE export
+    1..1
+    ok 1 - EXPORTHOW::DECLARE mechanism is set up in Transformer.rakumod (verified by module loading)
+ok 1 - EXPORTHOW::DECLARE export
+# Subtest: Transformer base class structure
+    1..4
+    ok 1 - Transformer has templates attribute
+    ok 2 - Templates array is empty initially
+    ok 3 - Transformer has streaming attribute
+    ok 4 - Streaming defaults to False
+ok 2 - Transformer base class structure
+# Subtest: Template collection methods (placeholder)
+    1..1
+    ok 1 - Transformer has add-template method for manual template registration
+ok 3 - Template collection methods (placeholder)
+# Subtest: Transformer declarator - basic declaration
+    1..3
+    ok 1 - Transformer creates class with correct name
+    ok 2 - Transformer inherits from Transformer base class
+    ok 3 - Transformer has CALL-ME method
+ok 4 - Transformer declarator - basic declaration
+# Subtest: Transformer callable behavior
+    1..2
+    ok 1 - Transformer can be instantiated
+    ok 2 - Transformer CALL-ME works (delegates to transform)
+ok 5 - Transformer callable behavior
+# Subtest: Template storage infrastructure
+    1..3
+    ok 1 - Templates array is defined
+    ok 2 - Templates array starts empty
+    ok 3 - Template storage infrastructure is ready (automatic collection pending)
+ok 6 - Template storage infrastructure
+# Subtest: Template collection mechanism
+    1..2
+    ok 1 - get-collected-templates function exists
+    ok 2 - clear-collected-templates function exists
+ok 7 - Template collection mechanism
+===SORRY!=== Error while compiling /home/wayland/src/raku/Tims/DataOrientedProgramming/raku-Qwiratry/.worktrees/005-transformer-templates-system/tests/unit/walker-plan.rakutest
+:: not yet implemented
+at /home/wayland/src/raku/Tims/DataOrientedProgramming/raku-Qwiratry/.worktrees/005-transformer-templates-system/tests/unit/walker-plan.rakutest:98
+------>     ok Walker::Plan.^name ~~ /Walker::<HERE>Plan$/, 'Walker::Plan role exists';
+===SORRY!=== Error while compiling 
+Redeclaration of symbol 'Walker'.
+at line 
+===SORRY!=== Error while compiling tests/unit/wrapper-system.rakutest
+Undeclared routines:
+    TEMPLATE_ACTION used at line 155. Did you mean ''?
+    TEMPLATE_MATCHER used at line 146. Did you mean ''?
+    TOP used at line 164. Did you mean ''?
+    TRANSFORMER used at line 121. Did you mean ''?
+    template used at line 164
+    wrapper used at line 155
+
+===SORRY!=== Error while compiling 
+Redeclaration of symbol 'Walker'.
+at line 
+1..5
+# Subtest: APPLY method
+    1..3
+    ok 1 - APPLY returns result from first matching template
+    ok 2 - APPLY returns result from matching template
+    ok 3 - APPLY returns Nil/Any when no templates match
+ok 1 - APPLY method
+# Subtest: Walker factory
+    1..2
+    ok 1 - Walker factory returns Nil/Any for unknown types (MVP)
+    ok 2 - Walker factory infrastructure in place (registration and discovery ready)
+ok 2 - Walker factory
+# Subtest: TRANSFORM method
+    1..3
+    ok 1 - TRANSFORM returns result
+    ok 2 - TRANSFORM returns List/Positional
+    ok 3 - TRANSFORM processes at least one node
+ok 3 - TRANSFORM method
+# Subtest: Default iterator
+    1..2
+    ok 1 - Default iterator works for Positional data
+    ok 2 - Default iterator works for simple values
+ok 4 - Default iterator
+# Subtest: transform method (entrypoint)
+    1..3
+    ok 1 - transform() works in default mode
+    ok 2 - transform() works with explicit mode
+    ok 3 - Transformer callable syntax works
+ok 5 - transform method (entrypoint)
+===SORRY!=== Error while compiling 
+Redeclaration of symbol 'Walker'.
+at line 
+1..20
+# Subtest: User Story 1 - Basic Traversal Control (STOP_TRAVERSAL)
+    1..4
+    ok 1 - Target element found
+    ok 2 - Found correct target element
+    not ok 3 - Target was visited
+    # Failed test 'Target was visited'
+    # at tests/integration/walker-strategy.rakutest line 199
+    ok 4 - Element after target not visited (STOP_TRAVERSAL worked)
+    # You failed 1 test of 4
+not ok 1 - User Story 1 - Basic Traversal Control (STOP_TRAVERSAL)
+# Failed test 'User Story 1 - Basic Traversal Control (STOP_TRAVERSAL)'
+# at tests/integration/walker-strategy.rakutest line 166
+# Subtest: User Story 2 - Element Skipping and Pruning
+    1..4
+    ok 1 - Content branch visited
+    not ok 2 - Metadata node visited (but not its children)
+    # Failed test 'Metadata node visited (but not its children)'
+    # at tests/integration/walker-strategy.rakutest line 233
+    ok 3 - Metadata branch was pruned
+    not ok 4 - Content visited after skipping comment
+    # Failed test 'Content visited after skipping comment'
+    # at tests/integration/walker-strategy.rakutest line 263
+    # You failed 2 tests of 4
+not ok 2 - User Story 2 - Element Skipping and Pruning
+# Failed test 'User Story 2 - Element Skipping and Pruning'
+# at tests/integration/walker-strategy.rakutest line 203
+# Subtest: User Story 3 - Match Processing
+    1..3
+    ok 1 - All matching elements collected
+    ok 2 - match1 collected
+    ok 3 - root also collected
+ok 3 - User Story 3 - Match Processing
+# Subtest: User Story 4 - Pre/Post Visit Processing
+    1..3
+    not ok 1 - Maximum depth tracked correctly
+    # Failed test 'Maximum depth tracked correctly'
+    # at tests/integration/walker-strategy.rakutest line 328
+    # expected: '3'
+    #      got: '1'
+    ok 2 - Depth tracking worked
+    ok 3 - before and after calls balanced
+    # You failed 1 test of 3
+not ok 4 - User Story 4 - Pre/Post Visit Processing
+# Failed test 'User Story 4 - Pre/Post Visit Processing'
+# at tests/integration/walker-strategy.rakutest line 295
+# Subtest: User Story 5 - Traversal Completion
+    1..4
+    not ok 1 - finish hook was called
+    # Failed test 'finish hook was called'
+    # at tests/integration/walker-strategy.rakutest line 365
+No such method 'type' for invocant of type 'Any'. Did you mean any of
+these: 'take', 'tree'?
+  in block <unit> at tests/integration/walker-strategy.rakutest line 366
+
+    # You planned 4 tests, but ran 1
+    # You failed 1 test of 1
+1..6
+# Subtest: Quickstart: Basic Strategy Creation
+    1..3
+    ok 1 - on-match returns NO_REWRITE
+    ok 2 - finish returns FinishResult
+    ok 3 - finish result has correct type
+ok 1 - Quickstart: Basic Strategy Creation
+# Subtest: Quickstart: Early Termination Pattern
+    1..2
+    ok 1 - Returns STOP_TRAVERSAL
+    ok 2 - Found element stored
+ok 2 - Quickstart: Early Termination Pattern
+# Subtest: Quickstart: Branch Pruning Pattern
+    1..2
+    ok 1 - Returns False for metadata
+    ok 2 - Returns True for content
+ok 3 - Quickstart: Branch Pruning Pattern
+# Subtest: Quickstart: Element Filtering Pattern
+    1..2
+    ok 1 - Returns SKIP_ELEMENT for comments
+    ok 2 - Returns Nil (continue) for non-comments
+ok 4 - Quickstart: Element Filtering Pattern
+# Subtest: Quickstart: Depth Tracking Pattern
+    1..2
+    ok 1 - before increments depth
+    ok 2 - after decrements depth
+ok 5 - Quickstart: Depth Tracking Pattern
+# Subtest: Quickstart: Fixed-Point Iteration Pattern
+    1..3
+    ok 1 - Returns REWRITE_IMMEDIATE for optimizable
+    ok 2 - Changes tracked in context
+    ok 3 - should-continue returns True when changes occurred
+ok 6 - Quickstart: Fixed-Point Iteration Pattern
+===SORRY!=== Error while compiling 
+Redeclaration of symbol 'Walker'.
+at line 
+1..5
+# Subtest: FindFirstStrategy - Early Termination Pattern
+    1..3
+    ok 1 - Returns STOP_TRAVERSAL when target found
+    ok 2 - Found element stored
+    ok 3 - Correct element found
+ok 1 - FindFirstStrategy - Early Termination Pattern
+# Subtest: CollectAllStrategy - Gather All Matches Pattern
+    1..3
+    ok 1 - All matches collected
+    ok 2 - First match collected
+    ok 3 - Finish result contains all matches
+ok 2 - CollectAllStrategy - Gather All Matches Pattern
+# Subtest: PruningStrategy - Skip Branches Pattern
+    1..2
+    ok 1 - should-follow returns False for metadata
+    ok 2 - should-follow returns True for content
+ok 3 - PruningStrategy - Skip Branches Pattern
+# Subtest: DepthLimitStrategy - Limit Traversal Depth Pattern
+    1..3
+    ok 1 - Level 1 allowed (depth 1)
+    ok 2 - Level 2 allowed (depth 2)
+    ok 3 - Level 3 skipped (depth 3 > max-depth 2)
+ok 4 - DepthLimitStrategy - Limit Traversal Depth Pattern
+# Subtest: TransformingStrategy - Rewrite Pattern (Stub)
+    1..2
+    ok 1 - Returns NO_REWRITE (rewrite not yet implemented)
+    ok 2 - Strategy role composed correctly
+ok 5 - TransformingStrategy - Rewrite Pattern (Stub)

@@ -1,0 +1,81 @@
+use Test;
+use lib 'lib';
+
+use Qwiratry::Template;
+
+plan 4;
+
+# Test T011: Template class creation
+subtest 'Template class structure' => {
+    plan 5;
+    
+    my $when-block = { True };
+    my $do-block = { "result" };
+    
+    my $template = Template.new(
+        when-block => $when-block,
+        do-block => $do-block
+    );
+    
+    ok $template ~~ Template, 'Template object created';
+    ok $template.when-block === $when-block, 'when-block stored correctly';
+    ok $template.do-block === $do-block, 'do-block stored correctly';
+    is $template.priority, 0, 'Default priority is 0';
+    is $template.tie-breaker, 0, 'Default tie-breaker is 0';
+}
+
+# Test T011: Template with name and signature
+subtest 'Template with name and signature' => {
+    plan 3;
+    
+    my $template = Template.new(
+        name => 'section',
+        signature => :(Str $name),
+        when-block => { True },
+        do-block => { "result" }
+    );
+    
+    is $template.name, 'section', 'Template name stored correctly';
+    ok $template.signature.defined, 'Template signature stored correctly';
+    is $template.signature.params.elems, 1, 'Signature has one parameter';
+}
+
+# Test T011: Template with traits
+subtest 'Template with traits' => {
+    plan 4;
+    
+    my $template = Template.new(
+        when-block => { True },
+        do-block => { "result" },
+        priority => 10,
+        tie-breaker => 5,
+        streaming => True
+    );
+    
+    is $template.priority, 10, 'Priority trait stored correctly';
+    is $template.tie-breaker, 5, 'Tie-breaker trait stored correctly';
+    ok $template.streaming, 'Streaming trait stored correctly';
+    ok !$template.specificity.defined, 'Specificity is undefined by default';
+}
+
+# Test T011: Template methods (stubs for WP03)
+subtest 'Template methods (stubs)' => {
+    plan 4;
+    
+    my $template = Template.new(
+        when-block => { True },
+        do-block => { "result" }
+    );
+    
+    ok $template.^can('matches'), 'matches method exists';
+    ok $template.^can('execute'), 'execute method exists';
+    
+    # Methods are stubs for WP03, will be implemented in WP05
+    # Just verify they exist and can be called
+    my $matches-result = $template.matches("test");
+    my $execute-result = $template.execute("test");
+    
+    ok $matches-result.defined, 'matches method can be called';
+    # execute method now returns the result of the do-block, not Nil
+    ok $execute-result.defined, 'execute method can be called (returns do-block result)';
+}

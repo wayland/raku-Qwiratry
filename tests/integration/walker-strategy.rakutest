@@ -31,7 +31,7 @@ class TestContext does Context {
     has @.on-match-calls;
     has @.should-follow-calls;
     has @.after-calls;
-    has $.finish-result;
+    has $.finish-result is rw;
     has Int $.should-continue-calls = 0;
     has Bool $.should-continue-result = False;
     has @.matches;
