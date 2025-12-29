@@ -151,8 +151,8 @@ subtasks:
 
 ## Definition of Done Checklist
 
-- [ ] Integration tests pass
-- [ ] All quickstart examples work
+- [x] Integration tests pass
+- [x] All quickstart examples work
 - [ ] Documentation is complete and accurate
 - [ ] Code is clean and well-documented
 - [ ] Performance requirements met
