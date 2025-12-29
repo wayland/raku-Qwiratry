@@ -397,11 +397,8 @@ class Transformer is export {
 
     =end pod
     method !collect-templates-from-body($body-ast --> Array[Template]) {
-        # Placeholder for WP03 - will be implemented when HOW class can access body AST
-        # For now, return empty array
-        # TODO: Implement AST traversal to find template declarations
-        # TODO: Extract template components (name, signature, traits, when/do blocks)
-        # TODO: Create Template objects and return them
+        # Templates are now collected automatically by the HOW class during compose()
+        # via the slang system. This method is kept for compatibility.
         Array[Template].new
     }
     
@@ -420,9 +417,7 @@ class Transformer is export {
         @!templates.push($template);
         
         # If template has a name, create a callable method on this transformer
-        # Note: Method creation will be handled by HOW class during compilation
-        # For WP03, we just store the template
-        # TODO: Create callable method when HOW class is implemented
+        # Method creation is handled by HOW class during compilation via !create-template-method()
     }
     
     =begin pod
@@ -440,9 +435,7 @@ class Transformer is export {
         @!templates = @collected;
         
         # Create callable methods for named templates
-        # Note: This will be handled by HOW class during compilation
-        # For WP03, we just store the templates
-        # TODO: Create callable methods when HOW class is implemented
+        # Method creation is handled by HOW class during compilation via !create-template-method()
     }
     
     =begin pod
@@ -582,7 +575,7 @@ class Transformer is export {
                 die X::Qwiratry::TypeCheck.new(
                     expected => $.returns-type,
                     got => $result.WHAT,
-                    message => "Transformer result does not match returns type constraint"
+                    message => "Transformer '{self.^name}' has returns({$.returns-type.^name}) trait but result is of type {$result.WHAT.^name}. Ensure templates return values conforming to the specified type."
                 );
             }
         }
@@ -883,7 +876,7 @@ class Transformer is export {
             } elsif $mode eq 'rewrite-mandatory' && !$result.defined {
                 # Mandatory rewrite requires a result
                 die X::Qwiratry::Walker.new(
-                    message => "rewrite-mandatory mode requires a transformation result",
+                    message => "Transformer '{self.^name}' in rewrite-mandatory mode requires a transformation result, but no template matched the element. Add a template that matches this element or use rewrite-optional mode instead.",
                     walker-type => self.^name
                 );
             }

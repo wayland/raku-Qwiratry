@@ -64,7 +64,9 @@ class X::Qwiratry::TemplateOrderingConflict is X::Qwiratry::Walker is export {
     method gist(--> Str) {
         my $templates = @.template-names.join(', ');
         my $details = $.conflict-details ?? " ($.conflict-details)" !! '';
-        "X::Qwiratry::TemplateOrderingConflict: $.message (templates: $templates)$details"
+        "X::Qwiratry::TemplateOrderingConflict: $.message\n" ~
+        "  Templates: $templates\n" ~
+        "  Solution: Set explicit :tie-breaker values on conflicting templates to resolve the ordering ambiguity.$details"
     }
 }
 
