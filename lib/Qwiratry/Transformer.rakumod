@@ -27,6 +27,15 @@ our %TRANSFORMER-TEMPLATES;
 
 =begin pod
 
+Package-level registry for trait metadata collected during transformer compilation.
+Keyed by transformer type identity (WHICH) for runtime access.
+Stores streaming, returns-type, and tree-rewrite flags.
+
+=end pod
+our %TRANSFORMER-TRAITS;
+
+=begin pod
+
 Custom HOW class for transformer declarator.
 Extends Metamodel::ClassHOW to process transformer body AST
 and collect templates and wrappers during compilation.
@@ -42,6 +51,53 @@ class MetamodelX::TransformerHOW is Metamodel::ClassHOW {
     method compose(Mu \type) {
         # Call parent compose first to set up the class
         callsame;
+        
+        # T052: Detect traits on transformer declaration
+        # Check for :streaming, returns(Type), and does TreeRewrite traits
+        my Bool $has-streaming = False;
+        my Mu $returns-type = Nil;
+        my Bool $has-tree-rewrite = False;
+        
+        # Check for :streaming trait
+        try {
+            my @traits = type.^traits;
+            for @traits -> $trait {
+                # Check for :streaming trait (colon trait)
+                if $trait.^name eq 'streaming' || $trait.Str eq ':streaming' {
+                    $has-streaming = True;
+                }
+                # Check for returns(Type) trait
+                elsif $trait.^name eq 'returns' {
+                    # Extract type from trait arguments
+                    try {
+                        my @args = $trait.arguments;
+                        if @args.elems > 0 {
+                            $returns-type = @args[0];
+                        }
+                    }
+                }
+            }
+        }
+        
+        # T054: Check for TreeRewrite role composition
+        # Check if type does TreeRewrite role
+        try {
+            # Use string-based role check to avoid import issues during compose
+            my @roles = type.^roles;
+            for @roles -> $role {
+                if $role.^name eq 'TreeRewrite' {
+                    $has-tree-rewrite = True;
+                    last;
+                }
+            }
+        }
+        
+        # Store trait metadata in class-level registry for instance initialization
+        %TRANSFORMER-TRAITS{type.WHICH} = {
+            streaming => $has-streaming,
+            returns-type => $returns-type,
+            tree-rewrite => $has-tree-rewrite
+        };
         
         # Collect templates that were parsed by the slang during compilation
         # The slang must be activated in the user's code (via `use Slangify`)
@@ -231,6 +287,15 @@ class Transformer is export {
         if %TRANSFORMER-TEMPLATES{$type-identity}:exists {
             @!templates = %TRANSFORMER-TEMPLATES{$type-identity}.List;
         }
+        
+        # T052, T053, T054: Get trait metadata from class-level registry
+        # Set instance attributes based on traits detected during compose
+        if %TRANSFORMER-TRAITS{$type-identity}:exists {
+            my %traits = %TRANSFORMER-TRAITS{$type-identity};
+            $!streaming = %traits<streaming> // False;
+            $!returns-type = %traits<returns-type> // Nil;
+            $!mutates-input = %traits<tree-rewrite> // False;
+        }
     }
     
     =begin pod
@@ -247,14 +312,17 @@ class Transformer is export {
     # Wrappers defined in transformer body (will be populated in WP08)
     has @.wrappers;
     
-    # Whether transformer has :streaming trait
+    # T052: Whether transformer has :streaming trait
     has Bool $.streaming = False;
     
-    # Whether transformer can mutate input (from does TreeRewrite)
+    # T053: Output type constraint (from returns(Type) trait)
+    has Mu $.returns-type;
+    
+    # T054: Whether transformer can mutate input (from does TreeRewrite)
     has Bool $.mutates-input = False;
     
-    # Transformation mode
-    has Str $.mode = 'output-only';
+    # Transformation mode (pre, inline, post, default, rewrite-optional, rewrite-mandatory)
+    has Str $.mode = 'default';
     
     =begin pod
     
@@ -507,6 +575,18 @@ class Transformer is export {
             $result = self.WRAP_TRANSFORMER($result);
         }
         
+        # T053: Check returns(Type) trait if present
+        if $.returns-type.defined {
+            # Check if result conforms to the specified type
+            unless $result ~~ $.returns-type {
+                die X::Qwiratry::TypeCheck.new(
+                    expected => $.returns-type,
+                    got => $result.WHAT,
+                    message => "Transformer result does not match returns type constraint"
+                );
+            }
+        }
+        
         return $result;
     }
     
@@ -584,22 +664,29 @@ class Transformer is export {
         # Handle streaming override
         my $use-streaming = $streaming.defined ?? $streaming !! $.streaming;
         
-        # Delegate to appropriate method based on mode
+        # T057: Delegate to appropriate method based on mode
         given $actual-mode {
             when 'pre' {
-                # Pre-transformation: prepare data before traversal
-                # TODO: Implement prepare() method in future work package
-                return self.TRANSFORM($input);
+                # T055: Pre-transformation: prepare data before traversal
+                return self.prepare($input, :$context);
             }
             when 'inline' {
-                # Inline transformation: apply to single element
-                # TODO: Implement apply() method in future work package
-                return self.APPLY($input);
+                # T056: Inline transformation: apply to single element
+                return self.apply($input, :$context, :mode($actual-mode));
             }
             when 'post' {
                 # Post-transformation: transform QueryIterator
-                # TODO: Implement _transform_iterator() method in future work package
-                return self.TRANSFORM($input);
+                # For post mode, consume the iterator and transform each element
+                if $input ~~ Iterator {
+                    return self._transform_iterator($input, :$context, :$use-streaming);
+                } else {
+                    # Not an iterator, fall back to TRANSFORM
+                    return self.TRANSFORM($input);
+                }
+            }
+            when 'rewrite-optional' | 'rewrite-mandatory' {
+                # T058: Rewrite modes - allow optional or mandatory mutation
+                return self.apply($input, :$context, :mode($actual-mode));
             }
             default {
                 # Default mode: call TRANSFORM directly
@@ -740,6 +827,116 @@ class Transformer is export {
         # Delegate to Qwiratry::Copy::deepcopy() service function
         # deepcopy() is imported from Qwiratry::Copy
         deepcopy($node);
+    }
+    
+    =begin pod
+    
+    T055: Pre-transformation stage (before traversal).
+    
+    Called when transform is called with :mode<pre>.
+    Operates on whole data structure before traversal.
+    Can modify or annotate structure.
+    
+    @param $data - Root data structure to prepare
+    @param :$context - Optional context
+    @returns Mu - Potentially modified structure
+    
+    =end pod
+    method prepare($data, :$context --> Mu) {
+        # T055: Pre-transformation stage
+        # For MVP, just return the data unchanged
+        # Future: Can add preprocessing logic here (validation, annotation, etc.)
+        # After preparation, typically call TRANSFORM on the prepared data
+        my $prepared = $data;
+        
+        # If context is provided, can use it for preparation
+        # For now, just return the data
+        return $prepared;
+    }
+    
+    =begin pod
+    
+    T056: Inline transformation stage (during traversal).
+    
+    Called when transform is called with :mode<inline> or rewrite modes.
+    Operates on each element during traversal.
+    Can mutate in-place if $.mutates-input is true.
+    
+    @param $element - Element to transform
+    @param :$context - Optional context
+    @param :$mode - Transformation mode (inline, rewrite-optional, rewrite-mandatory)
+    @returns Mu - Transformed element
+    
+    =end pod
+    method apply($element, :$context, :$mode --> Mu) {
+        # T056: Inline transformation stage
+        # For inline mode, apply templates to the element
+        my $result = self.APPLY($element);
+        
+        # T058: Handle rewrite modes
+        if $mode eq 'rewrite-optional' || $mode eq 'rewrite-mandatory' {
+            # In rewrite modes, if mutation is allowed and result is defined, use it
+            if $.mutates-input && $result.defined {
+                # For rewrite modes, the result replaces the element
+                # This is handled by the caller (Walker or transformation logic)
+                return $result;
+            } elsif $mode eq 'rewrite-mandatory' && !$result.defined {
+                # Mandatory rewrite requires a result
+                die X::Qwiratry::Walker.new(
+                    message => "rewrite-mandatory mode requires a transformation result",
+                    walker-type => self.^name
+                );
+            }
+        }
+        
+        # If no result, return element unchanged (or Nil if appropriate)
+        return $result // $element;
+    }
+    
+    =begin pod
+    
+    Transform an iterator (post mode).
+    
+    Consumes a QueryIterator or Iterator and transforms each element.
+    
+    @param Iterator $iterator - Iterator to transform
+    @param :$context - Optional context
+    @param :$streaming - Whether to return streaming results
+    @returns Iterator|List - Transformation results
+    
+    =end pod
+    method _transform_iterator(Iterator $iterator, :$context, :$streaming = False --> Mu) {
+        # Post mode: transform each element from iterator
+        my @results;
+        for $iterator -> $element {
+            my $result = self.APPLY($element);
+            if $result.defined {
+                @results.push($result);
+            }
+        }
+        
+        # Return based on streaming flag
+        if $streaming {
+            return @results.iterator;
+        } else {
+            return @results.List;
+        }
+    }
+    
+    =begin pod
+    
+    Heuristic to determine if input is a single element (not a collection).
+    
+    Used for mode auto-detection.
+    
+    @param $input - Input to check
+    @returns Bool - True if appears to be single element
+    
+    =end pod
+    method _is-single-element($input --> Bool) {
+        # Heuristic: if it's not Positional, Associative, or Iterator, treat as single element
+        # This is conservative - collections are Positional or Associative
+        return !($input ~~ Positional || $input ~~ Associative || $input ~~ Iterator);
     }
 }
 

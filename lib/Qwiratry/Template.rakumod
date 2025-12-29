@@ -10,6 +10,8 @@ metadata for ordering (priority, specificity, tie-breaker).
 =end pod
 unit module Qwiratry::Template;
 
+use Qwiratry::X;  # For X::Qwiratry::TypeCheck
+
 =begin pod
 
 Template class representing a match-and-action rule within a Transformer.
@@ -200,6 +202,18 @@ class Template is export {
         if $transformer.defined && $transformer.^find_method('WRAP_TEMPLATE_ACTION', :no_fallback) {
             # Call wrapper submethod - it will traverse hierarchy and execute all wrappers
             $result = $transformer.WRAP_TEMPLATE_ACTION($node, $result);
+        }
+        
+        # T053: Check returns(Type) trait if present on template
+        if $!returns-type.defined {
+            # Check if result conforms to the specified type
+            unless $result ~~ $!returns-type {
+                die X::Qwiratry::TypeCheck.new(
+                    expected => $!returns-type,
+                    got => $result.WHAT,
+                    message => "Template result does not match returns type constraint"
+                );
+            }
         }
         
         # If result is Nil, return Nil

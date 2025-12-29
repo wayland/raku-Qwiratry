@@ -85,3 +85,25 @@ class X::Qwiratry::NoWalkerFound is X::Qwiratry::Walker is export {
         "X::Qwiratry::NoWalkerFound: $.message (data-type: $type-name)"
     }
 }
+
+=begin pod
+
+Exception thrown when a transformation result does not match the returns(Type) trait constraint.
+This exception is thrown when a transformer or template has a returns(Type) trait
+but the actual result does not conform to the specified type.
+
+=end pod
+class X::Qwiratry::TypeCheck is X::Qwiratry::Walker is export {
+    # The expected type from returns(Type) trait
+    has Mu $.expected is required;
+    
+    # The actual type of the result
+    has Mu $.got is required;
+    
+    # Override gist to include type information
+    method gist(--> Str) {
+        my $expected-name = $.expected.^name;
+        my $got-name = $.got.^name;
+        "X::Qwiratry::TypeCheck: $.message (expected: $expected-name, got: $got-name)"
+    }
+}
