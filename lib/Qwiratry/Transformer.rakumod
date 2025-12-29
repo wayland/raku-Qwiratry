@@ -454,7 +454,8 @@ class Transformer is export {
 
     =end pod
     method ORDER-TEMPLATES(--> Array) {
-        # Return cached result if available
+        # Performance: O(n log n) sorting with caching to avoid recalculation
+        # Returns cached result if available (O(1) after first call)
         if $!ordering-cached && @!ordered-templates.elems > 0 {
             return @!ordered-templates;
         }
@@ -468,6 +469,7 @@ class Transformer is export {
         # Complex queries will be deferred to runtime evaluation
         # Note: Specificity is read-only, so we calculate it but can't store it
         # For templates without specificity, we'll use the calculated value in sorting
+        # Performance: O(n) specificity calculation
         my %specificity-cache;
         for @!templates -> $template {
             if !$template.specificity.defined {
@@ -477,6 +479,7 @@ class Transformer is export {
         
         # T014/T016/T017: Sort templates by priority → specificity → tie-breaker
         # Priority and tie-breaker are already stored in template attributes
+        # Performance: O(n log n) - Raku's sort uses efficient algorithm
         my @sorted = @!templates.sort({
             # Primary sort: priority (descending - highest first)
             -$^a.priority <=> -$^b.priority
