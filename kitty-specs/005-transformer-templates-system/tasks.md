@@ -281,15 +281,15 @@
 **Prompt**: `/tasks/planned/WP09-traits-and-advanced-features.md`
 
 ### Included Subtasks
-- [ ] T052 Implement `:streaming` trait: enable lazy iterator-based output using `gather/take`
-- [ ] T053 Implement `returns(Type)` trait: enforce output type checking for transformers and templates
-- [ ] T054 Implement `does TreeRewrite` role: override `APPLY` method for in-place rewriting
-- [ ] T055 Implement `prepare($data, :$ctx)` method: pre-transformation stage
-- [ ] T056 Implement `apply($element, :$ctx, :$mode)` method: inline transformation stage
-- [ ] T057 Implement transformation mode detection: auto-detect based on input type in `transform` method
-- [ ] T058 Implement `rewrite-optional` and `rewrite-mandatory` modes
-- [ ] T059 [P] Add unit tests for traits: streaming, returns, TreeRewrite
-- [ ] T060 [P] Add unit tests for transformation modes: pre, inline, post, rewrite modes
+- [x] T052 Implement `:streaming` trait: enable lazy iterator-based output using `gather/take`
+- [x] T053 Implement `returns(Type)` trait: enforce output type checking for transformers and templates
+- [x] T054 Implement `does TreeRewrite` role: override `APPLY` method for in-place rewriting
+- [x] T055 Implement `prepare($data, :$ctx)` method: pre-transformation stage
+- [x] T056 Implement `apply($element, :$ctx, :$mode)` method: inline transformation stage
+- [x] T057 Implement transformation mode detection: auto-detect based on input type in `transform` method
+- [x] T058 Implement `rewrite-optional` and `rewrite-mandatory` modes
+- [x] T059 [P] Add unit tests for traits: streaming, returns, TreeRewrite
+- [x] T060 [P] Add unit tests for transformation modes: pre, inline, post, rewrite modes
 
 ### Implementation Notes
 - Traits applied at compile-time, inspectable at runtime
@@ -317,12 +317,12 @@
 **Prompt**: `/tasks/planned/WP10-integration-and-polish.md`
 
 ### Included Subtasks
-- [ ] T061 [P] Add integration tests: transformer with Strategy system, multi-phase transformations
-- [ ] T062 [P] Validate quickstart.md examples: ensure all examples work correctly
-- [ ] T063 [P] Update documentation: ensure all features are documented
-- [ ] T064 [P] Code cleanup and refactoring: improve code quality, remove dead code
-- [ ] T065 [P] Performance optimization: ensure template ordering is efficient, streaming works correctly
-- [ ] T066 [P] Error message improvements: ensure diagnostic messages are clear and actionable
+- [x] T061 [P] Add integration tests: transformer with Strategy system, multi-phase transformations
+- [x] T062 [P] Validate quickstart.md examples: ensure all examples work correctly
+- [x] T063 [P] Update documentation: ensure all features are documented
+- [x] T064 [P] Code cleanup and refactoring: improve code quality, remove dead code
+- [x] T065 [P] Performance optimization: ensure template ordering is efficient, streaming works correctly
+- [x] T066 [P] Error message improvements: ensure diagnostic messages are clear and actionable
 
 ### Implementation Notes
 - Focus on end-to-end scenarios
