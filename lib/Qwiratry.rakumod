@@ -22,8 +22,8 @@ unit module Qwiratry;
 # Activate template slang FIRST so it's available when other modules load
 # This must be done at the module level so it's active when users
 # declare transformers in their code
-use Qwiratry::TemplateSlang;
-use Slangify Qwiratry::TemplateSlang::TemplateGrammar, Qwiratry::TemplateSlang::TemplateActions;
+use Qwiratry::Template::Slang;
+use Slangify Qwiratry::Template::Slang::TemplateGrammar, Qwiratry::Template::Slang::TemplateActions;
 
 # Import transformer-related modules - these are the essential ones for transformers
 use Qwiratry::Template;
@@ -35,9 +35,9 @@ use Qwiratry::Transformer;
 # use Qwiratry::QueryIterator;
 # use Qwiratry::Walker;
 # use Qwiratry::Strategy;
-# use Qwiratry::ControlSignal;
-# use Qwiratry::Provides;
-# use Qwiratry::FinishResult;
-# use Qwiratry::Copy;
-# use Qwiratry::X;
+# use Qwiratry::Strategy::ControlSignal;
+# use Qwiratry::Walker::Provides;
+# use Qwiratry::Strategy::FinishResult;
+# use Qwiratry::Transformer::Copy;
+# use X::Qwiratry;
 

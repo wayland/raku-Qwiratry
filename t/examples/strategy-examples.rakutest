@@ -1,0 +1,180 @@
+#!/usr/bin/env raku
+use Test;
+use lib 'lib';
+use Qwiratry::Strategy;
+use Qwiratry::Context;
+use Qwiratry::Strategy::ControlSignal;
+use Qwiratry::Strategy::FinishResult;
+
+plan 5;
+
+# =============================================================================
+# Example Strategy Implementations
+# =============================================================================
+
+# Example 1: FindFirstStrategy - Early Termination
+subtest 'FindFirstStrategy - Early Termination Pattern' => {
+    plan 3;
+    
+    class FindFirstStrategy does Strategy {
+        has $.found;
+        
+        method on-match($element, Match $match, Context $ctx) {
+            if $element<name> eq 'target' {
+                $!found = $element;
+                STOP_TRAVERSAL
+            } else {
+                NO_REWRITE
+            }
+        }
+        
+        method finish($root, Context $ctx --> FinishResult) {
+            FinishResult.new(type => 'found', value => $.found)
+        }
+    }
+    
+    my $strategy = FindFirstStrategy.new;
+    my $test-data = { name => 'root', children => [
+        { name => 'a' },
+        { name => 'target' },
+        { name => 'b' }
+    ]};
+    
+    # Simulate finding target
+    my $match = 'target'.match(/target/);
+    my class TestContext does Context { }
+    my $ctx = TestContext.new;
+    
+    my $result = $strategy.on-match($test-data<children>[1], $match, $ctx);
+    is $result, STOP_TRAVERSAL, 'Returns STOP_TRAVERSAL when target found';
+    ok $strategy.found.defined, 'Found element stored';
+    is $strategy.found<name>, 'target', 'Correct element found';
+}
+
+# Example 2: CollectAllStrategy - Gather All Matches
+subtest 'CollectAllStrategy - Gather All Matches Pattern' => {
+    plan 3;
+    
+    class CollectAllStrategy does Strategy {
+        has @.matches;
+        
+        method on-match($element, Match $match, Context $ctx) {
+            @!matches.push($element);
+            NO_REWRITE
+        }
+        
+        method finish($root, Context $ctx --> FinishResult) {
+            FinishResult.new(type => 'collected', value => @!matches)
+        }
+    }
+    
+    my $strategy = CollectAllStrategy.new;
+    my class TestContext does Context { }
+    my $ctx = TestContext.new;
+    my $match = 'test'.match(/test/);
+    
+    $strategy.on-match({ name => 'match1' }, $match, $ctx);
+    $strategy.on-match({ name => 'match2' }, $match, $ctx);
+    $strategy.on-match({ name => 'match3' }, $match, $ctx);
+    
+    is $strategy.matches.elems, 3, 'All matches collected';
+    is $strategy.matches[0]<name>, 'match1', 'First match collected';
+    
+    my $result = $strategy.finish({}, $ctx);
+    is $result.value.elems, 3, 'Finish result contains all matches';
+}
+
+# Example 3: PruningStrategy - Skip Branches
+subtest 'PruningStrategy - Skip Branches Pattern' => {
+    plan 2;
+    
+    class PruningStrategy does Strategy {
+        method should-follow($origin, $relation, $target, Context $ctx --> Bool) {
+            # Don't traverse into metadata nodes
+            return False if $target<name> eq 'metadata';
+            True
+        }
+    }
+    
+    my $strategy = PruningStrategy.new;
+    my class TestContext does Context { }
+    my $ctx = TestContext.new;
+    
+    my $should-follow = $strategy.should-follow(
+        { name => 'root' },
+        'child',
+        { name => 'metadata' },
+        $ctx
+    );
+    nok $should-follow, 'should-follow returns False for metadata';
+    
+    $should-follow = $strategy.should-follow(
+        { name => 'root' },
+        'child',
+        { name => 'content' },
+        $ctx
+    );
+    ok $should-follow, 'should-follow returns True for content';
+}
+
+# Example 4: DepthLimitStrategy - Limit Traversal Depth
+subtest 'DepthLimitStrategy - Limit Traversal Depth Pattern' => {
+    plan 3;
+    
+    class DepthLimitStrategy does Strategy {
+        has Int $.max-depth = 2;
+        has Int $!current-depth = 0;
+        
+        method before($element, Context $ctx) {
+            $!current-depth++;
+            if $!current-depth > $.max-depth {
+                $!current-depth--;  # Don't count skipped element
+                return SKIP_ELEMENT;
+            }
+            NO_REWRITE
+        }
+        
+        method after($element, Context $ctx) {
+            $!current-depth--;
+            NO_REWRITE
+        }
+    }
+    
+    my $strategy = DepthLimitStrategy.new;
+    my class TestContext does Context { }
+    my $ctx = TestContext.new;
+    
+    my $signal1 = $strategy.before({ name => 'level1' }, $ctx);
+    is $signal1, NO_REWRITE, 'Level 1 allowed (depth 1)';
+    
+    my $signal2 = $strategy.before({ name => 'level2' }, $ctx);
+    is $signal2, NO_REWRITE, 'Level 2 allowed (depth 2)';
+    
+    my $signal3 = $strategy.before({ name => 'level3' }, $ctx);
+    is $signal3, SKIP_ELEMENT, 'Level 3 skipped (depth 3 > max-depth 2)';
+}
+
+# Example 5: TransformingStrategy - Rewrite Pattern (Stub)
+subtest 'TransformingStrategy - Rewrite Pattern (Stub)' => {
+    plan 2;
+    
+    class TransformingStrategy does Strategy {
+        method on-match($element, Match $match, Context $ctx) {
+            # In future feature, this would return RewriteSpec
+            # For now, just demonstrate the pattern
+            NO_REWRITE
+        }
+    }
+    
+    my $strategy = TransformingStrategy.new;
+    my class TestContext does Context { }
+    my $ctx = TestContext.new;
+    my $match = 'test'.match(/test/);
+    
+    my $result = $strategy.on-match({ name => 'test' }, $match, $ctx);
+    is $result, NO_REWRITE, 'Returns NO_REWRITE (rewrite not yet implemented)';
+    ok $strategy ~~ Strategy, 'Strategy role composed correctly';
+}
+
+done-testing;
+

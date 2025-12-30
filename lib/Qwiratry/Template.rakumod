@@ -10,7 +10,7 @@ metadata for ordering (priority, specificity, tie-breaker).
 =end pod
 unit module Qwiratry::Template;
 
-use Qwiratry::X;  # For X::Qwiratry::TypeCheck
+use X::Qwiratry;  # For X::Qwiratry::TypeCheck
 
 =begin pod
 

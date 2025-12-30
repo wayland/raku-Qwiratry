@@ -3,7 +3,7 @@
 Test Walker for discovery mechanism testing.
 
 This is a minimal Walker implementation used solely for testing
-the WalkerFactory discovery mechanism.
+the Qwiratry::Walker::Factory discovery mechanism.
 
 =end pod
 unit class Qwiratry::Walker::TestWalker;

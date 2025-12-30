@@ -21,9 +21,9 @@ Hook Call Order:
 unit module Qwiratry::Strategy;
 
 use Qwiratry::Context;
-use Qwiratry::ControlSignal;
-use Qwiratry::RewriteSpec;
-use Qwiratry::FinishResult;
+use Qwiratry::Strategy::ControlSignal;
+use Qwiratry::Strategy::RewriteSpec;
+use Qwiratry::Strategy::FinishResult;
 
 =begin pod
 
