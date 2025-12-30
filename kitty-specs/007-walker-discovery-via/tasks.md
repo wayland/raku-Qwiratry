@@ -95,18 +95,18 @@ description: "Work package task list template for feature implementation"
 
 **Goal**: Comprehensive test coverage for discovery mechanism including caching, refresh, and error handling.
 **Independent Test**: All test cases pass, covering discovery, caching, refresh, and error scenarios.
-**Prompt**: `/tasks/planned/WP03-testing-and-validation.md`
+**Prompt**: `/tasks/done/WP03-testing-and-validation.md` ✅ **COMPLETE**
 
 ### Included Subtasks
-- [ ] T013 [P] Create test file `tests/unit/walker-factory.rakutest` (or extend existing)
-- [ ] T014 [P] Test discovery finds matching Walker classes in `Qwiratry::Walker::*` namespace
-- [ ] T015 [P] Test discovery returns empty array when no matching classes exist
-- [ ] T016 [P] Test caching: second call returns cached results without re-discovery
-- [ ] T017 [P] Test refresh parameter forces re-discovery and updates cache
-- [ ] T018 [P] Test discovered classes are type objects (not instances)
-- [ ] T019 [P] Test error handling when Implementation::Loader unavailable (mock or skip)
-- [ ] T020 [P] Test error handling when Implementation::Loader version incompatible
-- [ ] T021 [P] Integration test: verify discovery works with actual Walker classes
+- [x] T013 [P] Create test file `tests/unit/walker-factory.rakutest` (or extend existing)
+- [x] T014 [P] Test discovery finds matching Walker classes in `Qwiratry::Walker::*` namespace
+- [x] T015 [P] Test discovery returns empty array when no matching classes exist
+- [x] T016 [P] Test caching: second call returns cached results without re-discovery
+- [x] T017 [P] Test refresh parameter forces re-discovery and updates cache
+- [x] T018 [P] Test discovered classes are type objects (not instances)
+- [x] T019 [P] Test error handling when Implementation::Loader unavailable (mock or skip)
+- [x] T020 [P] Test error handling when Implementation::Loader version incompatible
+- [x] T021 [P] Integration test: verify discovery works with actual Walker classes
 
 ### Implementation Notes
 - Create test Walker classes in `Qwiratry::Walker::*` namespace for discovery tests

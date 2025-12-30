@@ -13,7 +13,7 @@ subtasks:
 title: "Discovery Implementation"
 phase: "Phase 2 - Core Implementation"
 lane: "done"
-assignee: ""
+assignee: "claude-reviewer"
 agent: "claude-reviewer"
 shell_pid: "$$"
 review_status: "approved without changes"

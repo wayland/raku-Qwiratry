@@ -7,7 +7,7 @@ subtasks:
 title: "Setup & Dependency"
 phase: "Phase 1 - Setup"
 lane: "done"
-assignee: ""
+assignee: "claude-reviewer"
 agent: "claude-reviewer"
 shell_pid: "$$"
 review_status: "approved without changes"

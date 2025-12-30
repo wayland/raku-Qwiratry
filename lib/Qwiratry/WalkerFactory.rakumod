@@ -132,9 +132,6 @@ class WalkerFactory is export {
             return @!discovered-walkers;
         }
         
-        # Perform discovery
-        my @found = Array.new;
-        
         # Load Implementation::Loader with error handling
         # Use require for runtime loading (use is compile-time only)
         my $loader-module = try {
