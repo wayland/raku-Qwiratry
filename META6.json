@@ -3,7 +3,8 @@
   "build-depends": [
   ],
   "depends": [
-    "Slangify"
+    "Slangify",
+    "Implementation::Loader:ver<0.0.7+>"
   ],
   "description": "A brand new and very nice module",
   "name": "Qwiratry",

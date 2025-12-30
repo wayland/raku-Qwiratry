@@ -13,6 +13,14 @@ case $command in
 		# All example tests
 		for test in tests/examples/*.rakutest; do raku -Ilib "$test"; done
 		;;
+	check)
+#		echo "=== Run tests ==="
+#		./project test
+		echo "=== Check for broken rakudoc ==="
+		fgrep -Rl '#|' lib
+		echo "=== Check for TODOs ==="
+		ack TODO lib
+		;;
 	*)
 		echo "Error: Unknown command '$command'" >&2
 		exit 1
