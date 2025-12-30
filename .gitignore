@@ -17,3 +17,4 @@ __pycache__
 .kittify/.dashboard
 .kittify/active-mission
 .kittify/templates/
+.fez
