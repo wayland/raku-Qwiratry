@@ -10,6 +10,7 @@ Walker selection while maintaining flexibility for explicit registration.
 unit module Qwiratry::WalkerFactory;
 
 use Qwiratry::Walker;
+use Qwiratry::X;
 
 =begin pod
 
@@ -22,6 +23,12 @@ Supports automatic discovery and explicit registration.
 class WalkerFactory is export {
     # Registry of Walker types keyed by data type/role
     has %!walker-registry;
+    
+    # Cached discovered walkers (lazy initialization)
+    has @!discovered-walkers;
+    
+    # Flag indicating if discovery has been performed
+    has Bool $!discovery-performed = False;
     
     # Singleton instance (optional - can also instantiate directly)
     my $instance;
@@ -106,26 +113,61 @@ class WalkerFactory is export {
     
     =begin pod
 
-    Discover available Walkers via introspection (optional).
+    Discover available Walkers via Implementation::Loader.
 
-    Scans loaded classes/types for those implementing Walker role.
-    Similar to MasterWalker discovery mechanism.
+    Scans for classes matching the Qwiratry::Walker::* pattern in the specified
+    directories using Implementation::Loader. Results are cached for performance.
+    Discovered classes are assumed to implement Walker role without runtime
+    verification.
 
-    @returns Array[Walker] - Array of discovered Walker types
+    @param :@paths - List of directory paths to scan (default: ['lib'])
+    @param :$refresh - If True, forces re-discovery and updates cache. If False,
+                      returns cached results if available.
+    @returns Array[Walker] - Array of discovered Walker type objects (not instances)
 
     =end pod
-    method discover-walkers(--> Array) {
-        # T028: Discover Walkers via introspection
-        # For MVP, return empty array - discovery can be enhanced later
-        # Similar to MasterWalker.discover-walkers() implementation
-        my @found = Array.new;
+    method discover-walkers(:@paths = ['lib'], Bool :$refresh = False --> Array) {
+        # Return cached result if discovery already performed and refresh not requested
+        if $!discovery-performed && !$refresh {
+            return @!discovered-walkers;
+        }
         
-        # TODO: Implement discovery mechanism
-        # - Scan loaded modules/classes
-        # - Check if type does Walker role
-        # - Collect into array
+        # Load Implementation::Loader with error handling
+        # Use require for runtime loading (use is compile-time only)
+        my $loader-module = try {
+            require ::('Implementation::Loader');
+        }
         
-        return @found;
+        if !$loader-module {
+            # Implementation::Loader unavailable
+            X::Qwiratry::Walker.new(
+                message => "Implementation::Loader is required for discovery but is not available. Version 0.0.7 or higher is required.",
+                walker-type => 'WalkerFactory'
+            ).throw;
+        }
+        
+        try {
+            # Use Implementation::Loader to discover classes matching pattern
+            # Pattern: Qwiratry::Walker::* in specified directories
+            my $discoverer = ::('Implementation::Loader').new;
+            
+            # load-module-pattern accepts :globs and :paths as arrays
+            # It will search all paths for classes matching the glob pattern
+            # Cache results
+            @!discovered-walkers = $discoverer.load-module-pattern(
+                :globs(['Qwiratry::Walker::*']),
+                :paths(@paths)
+            );
+            $!discovery-performed = True;
+        } catch {
+            # Implementation::Loader API error or incompatible version
+            X::Qwiratry::Walker.new(
+                message => "Implementation::Loader discovery failed. Version 0.0.7 or higher is required. Error: {.message}",
+                walker-type => 'WalkerFactory'
+            ).throw;
+        }
+        
+        return @!discovered-walkers;
     }
 }
 
