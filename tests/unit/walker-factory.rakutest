@@ -4,6 +4,7 @@
 #| caching behavior, refresh parameter, and error handling.
 use Test;
 use lib 'lib';
+use lib 't/lib';
 
 use Qwiratry::WalkerFactory;
 use Qwiratry::Walker;
@@ -14,8 +15,8 @@ use Qwiratry::X;
 # Helper classes for testing
 # =============================================================================
 
-# Test Walker classes are in lib/Qwiratry/Walker/TestWalker.rakumod
-# and lib/Qwiratry/Walker/TestWalker2.rakumod so they can be discovered
+# Test Walker classes are in t/lib/Qwiratry/Walker/TestWalker.rakumod
+# and t/lib/Qwiratry/Walker/TestWalker2.rakumod so they can be discovered
 # by Implementation::Loader
 
 # =============================================================================
@@ -26,7 +27,7 @@ subtest 'WalkerFactory.discover-walkers() - Discovery finds matching classes (T0
     plan 3;
     
     my $factory = WalkerFactory.new;
-    my @walkers = $factory.discover-walkers();
+    my @walkers = $factory.discover-walkers(:paths(['t/lib']));
     
     ok @walkers ~~ Array, 'discover-walkers returns Array';
     
@@ -49,7 +50,7 @@ subtest 'WalkerFactory.discover-walkers() - Empty result when no matches (T015)'
     my $factory = WalkerFactory.new;
     
     # If discovery returns empty, that's valid per FR-005
-    my @walkers = $factory.discover-walkers();
+    my @walkers = $factory.discover-walkers(:paths(['t/lib']));
     ok @walkers ~~ Array, 'Returns Array type even when empty';
     ok @walkers.elems >= 0, 'Empty array is valid result (not error)';
 }
@@ -60,15 +61,15 @@ subtest 'WalkerFactory.discover-walkers() - Caching behavior (T016)' => {
     my $factory = WalkerFactory.new;
     
     # First call - performs discovery
-    my @first = $factory.discover-walkers();
+    my @first = $factory.discover-walkers(:paths(['t/lib']));
     ok @first ~~ Array, 'First call returns Array';
     
     # Second call - should return cached results
-    my @cached = $factory.discover-walkers();
+    my @cached = $factory.discover-walkers(:paths(['t/lib']));
     is-deeply @cached, @first, 'Second call returns cached results';
     
     # Third call - should also return cached
-    my @cached2 = $factory.discover-walkers();
+    my @cached2 = $factory.discover-walkers(:paths(['t/lib']));
     is-deeply @cached2, @first, 'Third call also returns cached results';
 }
 
@@ -78,17 +79,17 @@ subtest 'WalkerFactory.discover-walkers() - Refresh parameter (T017)' => {
     my $factory = WalkerFactory.new;
     
     # First call - cache results
-    my @first = $factory.discover-walkers();
+    my @first = $factory.discover-walkers(:paths(['t/lib']));
     
     # Call with refresh - should force re-discovery
-    my @refreshed = $factory.discover-walkers(:refresh);
+    my @refreshed = $factory.discover-walkers(:paths(['t/lib']), :refresh);
     ok @refreshed ~~ Array, 'Refresh returns Array';
     
     # Results should be same (no new classes added)
     is-deeply @refreshed, @first, 'Refresh returns same results (no new classes)';
     
     # After refresh, subsequent call should use updated cache
-    my @after-refresh = $factory.discover-walkers();
+    my @after-refresh = $factory.discover-walkers(:paths(['t/lib']));
     is-deeply @after-refresh, @refreshed, 'After refresh, cache contains refreshed results';
 }
 
@@ -96,7 +97,7 @@ subtest 'WalkerFactory.discover-walkers() - Type objects returned (T018)' => {
     plan 4;
     
     my $factory = WalkerFactory.new;
-    my @walkers = $factory.discover-walkers();
+    my @walkers = $factory.discover-walkers(:paths(['t/lib']));
     
     if @walkers.elems > 0 {
         my $walker-type = @walkers[0];
@@ -128,7 +129,7 @@ subtest 'WalkerFactory.discover-walkers() - Error handling unavailable (T019)' =
     my $factory = WalkerFactory.new;
     
     try {
-        my @walkers = $factory.discover-walkers();
+        my @walkers = $factory.discover-walkers(:paths(['t/lib']));
         # If successful, Implementation::Loader is available - test error message structure instead
         ok True, 'Implementation::Loader is available (cannot test unavailability scenario)';
         
@@ -155,7 +156,7 @@ subtest 'WalkerFactory.discover-walkers() - Error handling incompatible version 
     my $factory = WalkerFactory.new;
     
     try {
-        my @walkers = $factory.discover-walkers();
+        my @walkers = $factory.discover-walkers(:paths(['t/lib']));
         # If successful, version is compatible
         ok True, 'Implementation::Loader version is compatible (cannot test incompatible scenario)';
         ok True, 'Version error handling code exists (verified in implementation)';
@@ -173,7 +174,7 @@ subtest 'WalkerFactory.discover-walkers() - Integration test (T021)' => {
     plan 4;
     
     my $factory = WalkerFactory.new;
-    my @walkers = $factory.discover-walkers();
+    my @walkers = $factory.discover-walkers(:paths(['t/lib']));
     
     ok @walkers ~~ Array, 'discover-walkers returns Array';
     
@@ -208,8 +209,8 @@ subtest 'WalkerFactory instance isolation' => {
     my $factory1 = WalkerFactory.new;
     my $factory2 = WalkerFactory.new;
     
-    my @walkers1 = $factory1.discover-walkers();
-    my @walkers2 = $factory2.discover-walkers();
+    my @walkers1 = $factory1.discover-walkers(:paths(['t/lib']));
+    my @walkers2 = $factory2.discover-walkers(:paths(['t/lib']));
     
     # Both should work independently
     ok @walkers1 ~~ Array, 'First factory instance works';

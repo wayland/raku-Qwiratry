@@ -115,17 +115,18 @@ class WalkerFactory is export {
 
     Discover available Walkers via Implementation::Loader.
 
-    Scans for classes matching the Qwiratry::Walker::* pattern in the lib
-    directory using Implementation::Loader. Results are cached for performance.
+    Scans for classes matching the Qwiratry::Walker::* pattern in the specified
+    directories using Implementation::Loader. Results are cached for performance.
     Discovered classes are assumed to implement Walker role without runtime
     verification.
 
+    @param :@paths - List of directory paths to scan (default: ['lib'])
     @param :$refresh - If True, forces re-discovery and updates cache. If False,
                       returns cached results if available.
     @returns Array[Walker] - Array of discovered Walker type objects (not instances)
 
     =end pod
-    method discover-walkers(Bool :$refresh = False --> Array) {
+    method discover-walkers(:@paths = ['lib'], Bool :$refresh = False --> Array) {
         # Return cached result if discovery already performed and refresh not requested
         if $!discovery-performed && !$refresh {
             return @!discovered-walkers;
@@ -150,17 +151,17 @@ class WalkerFactory is export {
         
         try {
             # Use Implementation::Loader to discover classes matching pattern
-            # Pattern: Qwiratry::Walker::* in lib directory
+            # Pattern: Qwiratry::Walker::* in specified directories
             my $discoverer = ::('Implementation::Loader').new;
-            my @discovered = $discoverer.load-implementations(
-                'Qwiratry::Walker::*',
-                :path('lib')
-            );
             
-            # Collect type objects (assume they implement Walker)
-            for @discovered -> $class {
-                @found.push($class);
-            }
+            # load-module-pattern accepts :globs and :paths as arrays
+            # It will search all paths for classes matching the glob pattern
+            # Cache results
+            @!discovered-walkers = $discoverer.load-module-pattern(
+                :globs(['Qwiratry::Walker::*']),
+                :paths(@paths)
+            );
+            $!discovery-performed = True;
         } catch {
             # Implementation::Loader API error or incompatible version
             X::Qwiratry::Walker.new(
@@ -168,10 +169,6 @@ class WalkerFactory is export {
                 walker-type => 'WalkerFactory'
             ).throw;
         }
-        
-        # Cache results
-        @!discovered-walkers = @found;
-        $!discovery-performed = True;
         
         return @!discovered-walkers;
     }
