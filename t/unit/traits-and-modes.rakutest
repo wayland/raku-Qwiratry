@@ -1,9 +1,8 @@
 use Test;
 use lib 'lib';
 
-# Activate slang explicitly - must be done at file level
-use Qwiratry::Template::Slang;
-use Slangify Qwiratry::Template::Slang::TemplateGrammar, Qwiratry::Template::Slang::TemplateActions;
+# Use Qwiratry which activates the slang automatically
+use Qwiratry;
 
 use Qwiratry::Transformer::TreeRewrite;
 use X::Qwiratry;

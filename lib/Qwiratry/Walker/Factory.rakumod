@@ -132,20 +132,6 @@ class Qwiratry::Walker::Factory {
             return @!discovered-walkers;
         }
         
-        # Load Implementation::Loader with error handling
-        # Use require for runtime loading (use is compile-time only)
-        my $loader-module = try {
-            require ::('Implementation::Loader');
-        }
-        
-        if !$loader-module {
-            # Implementation::Loader unavailable
-            X::Qwiratry::Walker.new(
-                message => "Implementation::Loader is required for discovery but is not available. Version 0.0.7 or higher is required.",
-                walker-type => 'Qwiratry::Walker::Factory'
-            ).throw;
-        }
-        
         {
             # Use Implementation::Loader to discover classes matching pattern
             # Pattern: Qwiratry::Walker::Implementation::* in specified directories

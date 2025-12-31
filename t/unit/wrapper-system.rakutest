@@ -7,12 +7,8 @@ Tests all three wrapper types, hierarchy traversal, parameter passing, and multi
 use Test;
 use lib 'lib';
 
-# Activate slang explicitly - must be done at file level
-use Qwiratry::Template::Slang;
-use Slangify Qwiratry::Template::Slang::TemplateGrammar, Qwiratry::Template::Slang::TemplateActions;
-
-# Import transformer classes
-use Qwiratry::Transformer;
+# Use Qwiratry which activates the slang automatically
+use Qwiratry;
 
 plan 5;  # Temporarily reduced - last subtest has slang activation issue
 

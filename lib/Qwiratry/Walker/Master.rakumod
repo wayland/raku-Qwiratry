@@ -16,11 +16,15 @@ The Master Walker:
 =end pod
 unit module Qwiratry::Walker::Master;
 
+use experimental :rakuast;
 use Qwiratry::Walker;
 use Qwiratry::Walker::Provides;
 use X::Qwiratry;
 use Qwiratry::QueryIterator;
 use Qwiratry::Context;
+
+# Forward declaration
+class CompositeIterator { ... }
 
 =begin pod
 
