@@ -1,5 +1,5 @@
-#| Unit tests for Walker role
-#| Tests Walker role contract, method signatures, and behavior
+#| Unit tests for Qwiratry::Walker role
+#| Tests Qwiratry::Walker role contract, method signatures, and behavior
 #|
 #| Note: The spec requires RakuAST::Node for query parameters, but for testing
 #| we use Hash mock objects. Production code should use actual RakuAST::Node types.
@@ -37,15 +37,15 @@ my class TestIterator does QueryIterator {
     }
 }
 
-# Concrete Walker::Plan implementation for testing
+# Concrete Qwiratry::Walker::Plan implementation for testing
 # Note: query() returns Mu for testing flexibility; spec requires RakuAST::Node
-my class TestPlan does Walker::Plan {
+my class TestPlan does Qwiratry::Walker::Plan {
     has $.query-ast;
     has @.data;
     has $.walker;
     
     method iterator(--> QueryIterator) {
-        my $ctx = TestContext.new(strategy => $!walker.strategy if $!walker.defined);
+        my $ctx = TestContext.new(strategy => ($!walker.strategy if $!walker.defined));
         $!walker.PRE-PASS($ctx) if $!walker.defined;
         my $iter = TestIterator.new(context => $ctx, items => @!data);
         $iter
@@ -56,15 +56,15 @@ my class TestPlan does Walker::Plan {
     method describe(--> Str) { "TestPlan" }
 }
 
-# Concrete Walker implementation for testing
+# Concrete Qwiratry::Walker implementation for testing
 # Uses Mu for query type in tests; spec requires RakuAST::Node
-my class TestWalker does Walker {
+my class TestWalker does Qwiratry::Walker {
     has $.root;
     has @.supported-queries = <select filter>;
     
-    # Spec: plan(RakuAST::Node $query, Mu:D $root --> Walker::Plan)
+    # Spec: plan(RakuAST::Node $query, Mu:D $root --> Qwiratry::Walker::Plan)
     # Test uses Mu for flexibility
-    method plan($query, $root --> Walker::Plan) {
+    method plan($query, $root --> Qwiratry::Walker::Plan) {
         # Simulate checking if query is interpretable
         if $query ~~ Hash && $query<type> eq 'unknown' {
             X::Qwiratry::UnknownQueryElement.new(
@@ -76,8 +76,8 @@ my class TestWalker does Walker {
         TestPlan.new(query-ast => $query, data => [1, 2, 3], walker => self);
     }
     
-    # Spec: iterator(Walker::Plan $plan --> QueryIterator)
-    method iterator(Walker::Plan $plan --> QueryIterator) {
+    # Spec: iterator(Qwiratry::Walker::Plan $plan --> QueryIterator)
+    method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
         $plan.iterator;
     }
     
@@ -101,51 +101,51 @@ my class TestWalker does Walker {
     }
 }
 
-# Walker that uses default implementations
-my class MinimalWalker does Walker {
+# Qwiratry::Walker that uses default implementations
+my class MinimalWalker does Qwiratry::Walker {
     has $.root;
     
-    method plan($query, $root --> Walker::Plan) {
+    method plan($query, $root --> Qwiratry::Walker::Plan) {
         TestPlan.new(query-ast => $query, data => [$root], walker => self);
     }
     
-    method iterator(Walker::Plan $plan --> QueryIterator) {
+    method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
         $plan.iterator;
     }
 }
 
 # =============================================================================
-# Walker role basic tests
+# Qwiratry::Walker role basic tests
 # =============================================================================
 
-subtest 'Walker role exists' => {
+subtest 'Qwiratry::Walker role exists' => {
     plan 2;
     
-    ok Walker.^name eq 'Walker', 'Walker role exists';
-    ok Walker.HOW.^name ~~ /Metamodel/, 'Walker is a proper role';
+    ok Qwiratry::Walker.^name eq 'Qwiratry::Walker', 'Qwiratry::Walker role exists';
+    ok Qwiratry::Walker.HOW.^name ~~ /Metamodel/, 'Qwiratry::Walker is a proper role';
 }
 
-subtest 'Walker does Iterable' => {
+subtest 'Qwiratry::Walker does Iterable' => {
     plan 1;
     
     my $walker = TestWalker.new(root => [1, 2, 3]);
-    ok $walker ~~ Iterable, 'Walker does Iterable role';
+    ok $walker ~~ Iterable, 'Qwiratry::Walker does Iterable role';
 }
 
-subtest 'Concrete class can compose Walker' => {
+subtest 'Concrete class can compose Qwiratry::Walker' => {
     plan 2;
     
     my $walker = TestWalker.new(root => [1, 2, 3]);
     
     ok $walker.defined, 'Concrete class can be instantiated';
-    ok $walker ~~ Walker, 'Instance does Walker role';
+    ok $walker ~~ Qwiratry::Walker, 'Instance does Qwiratry::Walker role';
 }
 
 # =============================================================================
 # Required method tests
 # =============================================================================
 
-subtest 'plan() creates Walker::Plan' => {
+subtest 'plan() creates Qwiratry::Walker::Plan' => {
     plan 3;
     
     my $walker = TestWalker.new(root => 'root-data');
@@ -154,11 +154,11 @@ subtest 'plan() creates Walker::Plan' => {
     my $plan = $walker.plan($query, 'root');
     
     ok $plan.defined, 'plan() returns defined value';
-    ok $plan ~~ Walker::Plan, 'plan() returns Walker::Plan';
+    ok $plan ~~ Qwiratry::Walker::Plan, 'plan() returns Qwiratry::Walker::Plan';
     is $plan.query, $query, 'Plan contains query AST';
 }
 
-subtest 'iterator() takes Walker::Plan and returns QueryIterator' => {
+subtest 'iterator() takes Qwiratry::Walker::Plan and returns QueryIterator' => {
     plan 3;
     
     my $walker = TestWalker.new(root => 'data');
@@ -331,7 +331,7 @@ subtest 'Full walker workflow' => {
     
     # Create plan
     my $plan = $walker.plan($query, 'root');
-    ok $plan ~~ Walker::Plan, 'Got Walker::Plan';
+    ok $plan ~~ Qwiratry::Walker::Plan, 'Got Qwiratry::Walker::Plan';
     
     # Get iterator from plan via walker
     my $iter = $walker.iterator($plan);
@@ -371,7 +371,7 @@ subtest 'Walker strategy injection' => {
     # Verify backward compatibility - walker without strategy still functions
     my $query = { type => 'select' };
     my $plan = $walker2.plan($query, 'root');
-    ok $plan ~~ Walker::Plan, 'Walker without strategy still creates plans';
+    ok $plan ~~ Qwiratry::Walker::Plan, 'Qwiratry::Walker without strategy still creates plans';
 }
 
 done-testing;

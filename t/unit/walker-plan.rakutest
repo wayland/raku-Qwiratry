@@ -1,5 +1,5 @@
-#| Unit tests for Walker::Plan role
-#| Tests Walker::Plan role contract, method signatures, and behavior
+#| Unit tests for Qwiratry::Walker::Plan role
+#| Tests Qwiratry::Walker::Plan role contract, method signatures, and behavior
 #|
 #| Note: The spec requires query() to return RakuAST::Node, but for testing
 #| we use Mu for flexibility. Production code should use actual RakuAST::Node types.
@@ -33,9 +33,9 @@ my class TestIterator does QueryIterator {
     }
 }
 
-# Concrete Walker::Plan implementation for testing
+# Concrete Qwiratry::Walker::Plan implementation for testing
 # Note: query() returns Mu for testing flexibility; spec requires RakuAST::Node
-my class TestPlan does Walker::Plan {
+my class TestPlan does Qwiratry::Walker::Plan {
     has $.query-ast;
     has @.data;
     has Bool $.cloned = False;
@@ -59,9 +59,9 @@ my class TestPlan does Walker::Plan {
         modification(self)
     }
     
-    method subplans(--> Array[Walker::Plan]) {
+    method subplans(--> Array[Qwiratry::Walker::Plan]) {
         # Return empty array (non-composite)
-        Array[Walker::Plan].new
+        Array[Qwiratry::Walker::Plan].new
     }
     
     method capabilities(--> Associative) {
@@ -70,7 +70,7 @@ my class TestPlan does Walker::Plan {
 }
 
 # Plan with subplans for composite testing
-my class CompositePlan does Walker::Plan {
+my class CompositePlan does Qwiratry::Walker::Plan {
     has @.child-plans;
     has $.query-ast;
     
@@ -82,30 +82,30 @@ my class CompositePlan does Walker::Plan {
     method query(--> Mu) { $!query-ast }
     method describe(--> Str) { "CompositePlan with {+@!child-plans} subplans" }
     
-    method subplans(--> Array[Walker::Plan]) { 
-        my Walker::Plan @result = @!child-plans;
+    method subplans(--> Array[Qwiratry::Walker::Plan]) { 
+        my Qwiratry::Walker::Plan @result = @!child-plans;
         @result
     }
 }
 
 # =============================================================================
-# Walker::Plan role basic tests
+# Qwiratry::Walker::Plan role basic tests
 # =============================================================================
 
-subtest 'Walker::Plan role exists' => {
+subtest 'Qwiratry::Walker::Plan role exists' => {
     plan 2;
     
-    ok Walker::Plan.^name ~~ /Walker::Plan$/, 'Walker::Plan role exists';
-    ok Walker::Plan.HOW.^name ~~ /Metamodel/, 'Walker::Plan is a proper role';
+    ok Qwiratry::Walker::Plan.^name ~~ /Qwiratry '::' Walker '::' Plan$/, 'Qwiratry::Walker::Plan role exists';
+    ok Qwiratry::Walker::Plan.HOW.^name ~~ /Metamodel/, 'Qwiratry::Walker::Plan is a proper role';
 }
 
-subtest 'Concrete class can compose Walker::Plan' => {
+subtest 'Concrete class can compose Qwiratry::Walker::Plan' => {
     plan 2;
     
     my $plan = TestPlan.new(query-ast => 'test-query', data => [1, 2, 3]);
     
     ok $plan.defined, 'Concrete class can be instantiated';
-    ok $plan ~~ Walker::Plan, 'Instance does Walker::Plan role';
+    ok $plan ~~ Qwiratry::Walker::Plan, 'Instance does Qwiratry::Walker::Plan role';
 }
 
 # =============================================================================
@@ -154,7 +154,7 @@ subtest 'optimise() with callback' => {
     my $callback-called = False;
     my $received-plan;
     
-    my $result = $plan.optimise(-> Walker::Plan $p {
+    my $result = $plan.optimise(-> Qwiratry::Walker::Plan $p {
         $callback-called = True;
         $received-plan = $p;
         # Return a new plan (modified version)
@@ -163,10 +163,10 @@ subtest 'optimise() with callback' => {
     
     ok $callback-called, 'Callback was called';
     ok $received-plan === $plan, 'Callback received original plan';
-    ok $result ~~ Walker::Plan, 'Result is Walker::Plan';
+    ok $result ~~ Qwiratry::Walker::Plan, 'Result is Qwiratry::Walker::Plan';
 }
 
-subtest 'subplans() returns Array[Walker::Plan]' => {
+subtest 'subplans() returns Array[Qwiratry::Walker::Plan]' => {
     plan 3;
     
     my $simple-plan = TestPlan.new(query-ast => 'q', data => []);
@@ -184,7 +184,7 @@ subtest 'subplans() returns Array[Walker::Plan]' => {
     
     my @subplans = $composite.subplans;
     is @subplans.elems, 2, 'Composite plan has 2 subplans';
-    ok @subplans[0] ~~ Walker::Plan, 'Subplans are Walker::Plan';
+    ok @subplans[0] ~~ Qwiratry::Walker::Plan, 'Subplans are Qwiratry::Walker::Plan';
 }
 
 subtest 'capabilities() returns Associative' => {
@@ -287,7 +287,7 @@ subtest 'Default optimise returns self' => {
     plan 2;
     
     # Create a minimal plan that uses default optimise
-    my class MinimalPlan does Walker::Plan {
+    my class MinimalPlan does Qwiratry::Walker::Plan {
         method iterator(--> QueryIterator) {
             TestIterator.new(context => TestContext.new, items => []);
         }
@@ -301,13 +301,13 @@ subtest 'Default optimise returns self' => {
     
     # Default optimise returns self, ignoring callback
     ok $result === $plan, 'Default optimise returns self';
-    ok $result ~~ Walker::Plan, 'Result is still Walker::Plan';
+    ok $result ~~ Qwiratry::Walker::Plan, 'Result is still Qwiratry::Walker::Plan';
 }
 
 subtest 'Default subplans returns empty array' => {
     plan 2;
     
-    my class MinimalPlan does Walker::Plan {
+    my class MinimalPlan does Qwiratry::Walker::Plan {
         method iterator(--> QueryIterator) {
             TestIterator.new(context => TestContext.new, items => []);
         }

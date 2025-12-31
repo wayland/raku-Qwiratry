@@ -10,15 +10,14 @@ unit class Qwiratry::Walker::TestWalker2;
 
 use Qwiratry::Walker;
 use Qwiratry::QueryIterator;
-use Qwiratry::Walker::Plan;
 
-does Walker;
+does Qwiratry::Walker;
 
-method plan($query, $root --> Walker::Plan) {
+method plan($query, $root --> Qwiratry::Walker::Plan) {
     die "TestWalker2.plan() not implemented for testing";
 }
 
-method iterator(Walker::Plan $plan --> QueryIterator) {
+method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
     die "TestWalker2.iterator() not implemented for testing";
 }
 

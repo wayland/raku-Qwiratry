@@ -7,7 +7,6 @@ use lib 'lib';
 
 use Qwiratry::Walker::Master;
 use Qwiratry::Walker;
-use Qwiratry::Walker::Plan;
 use Qwiratry::QueryIterator;
 use Qwiratry::Context;
 
@@ -18,20 +17,20 @@ plan 30;
 # =============================================================================
 
 # Mock Walker implementations for testing discovery
-my class MockWalker1 does Walker {
-    method plan($query, $root --> Walker::Plan) {
+my class MockWalker1 does Qwiratry::Walker {
+    method plan($query, $root --> Qwiratry::Walker::Plan) {
         die "Not implemented for testing";
     }
-    method iterator(Walker::Plan $plan --> QueryIterator) {
+    method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
         die "Not implemented for testing";
     }
 }
 
-my class MockWalker2 does Walker {
-    method plan($query, $root --> Walker::Plan) {
+my class MockWalker2 does Qwiratry::Walker {
+    method plan($query, $root --> Qwiratry::Walker::Plan) {
         die "Not implemented for testing";
     }
-    method iterator(Walker::Plan $plan --> QueryIterator) {
+    method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
         die "Not implemented for testing";
     }
 }
@@ -44,7 +43,7 @@ subtest 'MasterWalker class structure' => {
     plan 3;
     
     my $master = MasterWalker.new;
-    ok $master ~~ Walker, 'MasterWalker implements Walker role';
+    ok $master ~~ Qwiratry::Walker, 'MasterWalker implements Qwiratry::Walker role';
     ok $master ~~ MasterWalker, 'Instance is MasterWalker';
     ok $master.^can('discover-walkers'), 'discover-walkers method exists';
 }
@@ -145,11 +144,11 @@ subtest 'Domain metadata fast path (T019, T024)' => {
     use Qwiratry::Walker::Provides;
     
     # Create walker with SQL in name (for domain matching heuristic)
-    my class SQLWalker does Walker {
-        method plan($query, $root --> Walker::Plan) {
+    my class SQLWalker does Qwiratry::Walker {
+        method plan($query, $root --> Qwiratry::Walker::Plan) {
             die "Not implemented";
         }
-        method iterator(Walker::Plan $plan --> QueryIterator) {
+        method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
             die "Not implemented";
         }
     }
@@ -188,11 +187,11 @@ subtest 'Early failure for missing walkers (T020, T025)' => {
     use X::Qwiratry;
     
     # Create walker that doesn't match domain
-    my class JSONWalker does Walker {
-        method plan($query, $root --> Walker::Plan) {
+    my class JSONWalker does Qwiratry::Walker {
+        method plan($query, $root --> Qwiratry::Walker::Plan) {
             die "Not implemented";
         }
-        method iterator(Walker::Plan $plan --> QueryIterator) {
+        method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
             die "Not implemented";
         }
     }
@@ -220,13 +219,13 @@ subtest 'Capability check (T021, T026)' => {
     plan 4;
     
     # Create walker with supports() method
-    my class CapableWalker does Walker {
+    my class CapableWalker does Qwiratry::Walker {
         has $.supports-query = False;
         
-        method plan($query, $root --> Walker::Plan) {
+        method plan($query, $root --> Qwiratry::Walker::Plan) {
             die "Not implemented";
         }
-        method iterator(Walker::Plan $plan --> QueryIterator) {
+        method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
             die "Not implemented";
         }
         method supports($query --> Bool) {
@@ -256,11 +255,11 @@ subtest 'Capability delegation (T022, T027)' => {
     plan 3;
     
     # Create multiple walkers that all support
-    my class SupportingWalker does Walker {
-        method plan($query, $root --> Walker::Plan) {
+    my class SupportingWalker does Qwiratry::Walker {
+        method plan($query, $root --> Qwiratry::Walker::Plan) {
             die "Not implemented";
         }
-        method iterator(Walker::Plan $plan --> QueryIterator) {
+        method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
             die "Not implemented";
         }
         method supports($query --> Bool) {
@@ -295,7 +294,7 @@ subtest 'CompositePlan class structure (T028)' => {
     # Create CompositePlan
     my $plan = CompositePlan.new(query-ast => $mock-query);
     
-    ok $plan ~~ Walker::Plan, 'CompositePlan implements Walker::Plan role';
+    ok $plan ~~ Qwiratry::Walker::Plan, 'CompositePlan implements Qwiratry::Walker::Plan role';
     ok $plan.^can('subplans'), 'CompositePlan has subplans() method';
     ok $plan.^can('query'), 'CompositePlan has query() method';
     ok $plan.^can('describe'), 'CompositePlan has describe() method';
@@ -310,7 +309,7 @@ subtest 'CompositePlan attributes (T029)' => {
     my $mock-query = class { method ^name { 'MockQuery' } };
     
     # Create mock subplan
-    my class MockPlan does Walker::Plan {
+    my class MockPlan does Qwiratry::Walker::Plan {
         has $.query-ast;
         method iterator { die "Not implemented" }
         method query { $!query-ast }
@@ -338,7 +337,7 @@ subtest 'CompositePlan.subplans() method (T030, T036)' => {
     
     my $mock-query = class { method ^name { 'MockQuery' } };
     
-    my class MockPlan does Walker::Plan {
+    my class MockPlan does Qwiratry::Walker::Plan {
         has $.query-ast;
         method iterator { die "Not implemented" }
         method query { $!query-ast }
@@ -357,8 +356,8 @@ subtest 'CompositePlan.subplans() method (T030, T036)' => {
     my @returned = $plan.subplans();
     ok @returned ~~ Array, 'subplans() returns Array';
     is @returned.elems, 2, 'subplans() returns correct count';
-    ok @returned[0] ~~ Walker::Plan, 'Subplan implements Walker::Plan';
-    ok @returned[1] ~~ Walker::Plan, 'Second subplan implements Walker::Plan';
+    ok @returned[0] ~~ Qwiratry::Walker::Plan, 'Subplan implements Qwiratry::Walker::Plan';
+    ok @returned[1] ~~ Qwiratry::Walker::Plan, 'Second subplan implements Qwiratry::Walker::Plan';
 }
 
 subtest 'CompositePlan.query() method (T037)' => {
@@ -385,18 +384,18 @@ subtest 'MasterWalker.plan() with handover delegation (T031, T035)' => {
     use Qwiratry::Walker;
     
     # Create walker that will be selected
-    my class DelegatedWalker does Walker {
+    my class DelegatedWalker does Qwiratry::Walker {
         has Bool $.plan-called = False;
         has $.plan-query;
         has $.plan-root;
         
-        method plan($query, $root --> Walker::Plan) {
+        method plan($query, $root --> Qwiratry::Walker::Plan) {
             $!plan-called = True;
             $!plan-query = $query;
             $!plan-root = $root;
             
             # Return a mock plan
-            my class MockPlan does Walker::Plan {
+            my class MockPlan does Qwiratry::Walker::Plan {
                 has $.query-ast;
                 method iterator { die "Not implemented" }
                 method query { $!query-ast }
@@ -405,7 +404,7 @@ subtest 'MasterWalker.plan() with handover delegation (T031, T035)' => {
             MockPlan.new(query-ast => $query);
         }
         
-        method iterator(Walker::Plan $plan --> QueryIterator) {
+        method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
             die "Not implemented";
         }
         
@@ -438,9 +437,9 @@ subtest 'Plan immutability (T038)' => {
     use Qwiratry::Walker;
     
     # Create walker that returns a plan
-    my class ImmutableWalker does Walker {
-        method plan($query, $root --> Walker::Plan) {
-            my class MockPlan does Walker::Plan {
+    my class ImmutableWalker does Qwiratry::Walker {
+        method plan($query, $root --> Qwiratry::Walker::Plan) {
+            my class MockPlan does Qwiratry::Walker::Plan {
                 has $.query-ast;
                 method iterator { die "Not implemented" }
                 method query { $!query-ast }
@@ -449,7 +448,7 @@ subtest 'Plan immutability (T038)' => {
             MockPlan.new(query-ast => $query);
         }
         
-        method iterator(Walker::Plan $plan --> QueryIterator) {
+        method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
             die "Not implemented";
         }
         

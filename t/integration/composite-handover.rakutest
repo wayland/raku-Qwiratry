@@ -8,7 +8,6 @@ use lib 'lib';
 use Qwiratry::Walker::Master;
 use Qwiratry::Walker::Provides;
 use Qwiratry::Walker;
-use Qwiratry::Walker::Plan;
 use Qwiratry::QueryIterator;
 use Qwiratry::Context;
 
@@ -36,7 +35,7 @@ my class TestIterator does QueryIterator {
 }
 
 # Simple Plan for testing
-my class TestPlan does Walker::Plan {
+my class TestPlan does Qwiratry::Walker::Plan {
     has $.query-ast;
     has @.data;
     
@@ -50,14 +49,14 @@ my class TestPlan does Walker::Plan {
 }
 
 # Walker that returns test plans
-my class TestWalker does Walker {
+my class TestWalker does Qwiratry::Walker {
     has @.data;
     
-    method plan($query, $root --> Walker::Plan) {
+    method plan($query, $root --> Qwiratry::Walker::Plan) {
         TestPlan.new(query-ast => $query, data => @!data);
     }
     
-    method iterator(Walker::Plan $plan --> QueryIterator) {
+    method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
         $plan.iterator;
     }
     
@@ -251,11 +250,11 @@ subtest 'Priority order: domain metadata checked first (T049, T053)' => {
     use Qwiratry::Walker::Provides;
     
     # Create walkers - one matches domain, one matches capability
-    my class DomainWalker does Walker {
-        method plan($query, $root --> Walker::Plan) {
+    my class DomainWalker does Qwiratry::Walker {
+        method plan($query, $root --> Qwiratry::Walker::Plan) {
             TestPlan.new(query-ast => $query, data => ['domain']);
         }
-        method iterator(Walker::Plan $plan --> QueryIterator) {
+        method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
             $plan.iterator;
         }
         method supports($query --> Bool) {
@@ -263,11 +262,11 @@ subtest 'Priority order: domain metadata checked first (T049, T053)' => {
         }
     }
     
-    my class CapabilityWalker does Walker {
-        method plan($query, $root --> Walker::Plan) {
+    my class CapabilityWalker does Qwiratry::Walker {
+        method plan($query, $root --> Qwiratry::Walker::Plan) {
             TestPlan.new(query-ast => $query, data => ['capability']);
         }
-        method iterator(Walker::Plan $plan --> QueryIterator) {
+        method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
             $plan.iterator;
         }
         method supports($query --> Bool) {
@@ -298,11 +297,11 @@ subtest 'Edge case: no walker found (T050, T054)' => {
     use X::Qwiratry;
     
     # Create walker that doesn't support anything
-    my class NonSupportingWalker does Walker {
-        method plan($query, $root --> Walker::Plan) {
+    my class NonSupportingWalker does Qwiratry::Walker {
+        method plan($query, $root --> Qwiratry::Walker::Plan) {
             die "Not implemented";
         }
-        method iterator(Walker::Plan $plan --> QueryIterator) {
+        method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
             die "Not implemented";
         }
         method supports($query --> Bool) {
@@ -342,11 +341,11 @@ subtest 'Edge case: multiple walkers support subtree (T051, T054)' => {
     use Qwiratry::Walker::Master;
     
     # Create multiple walkers that all support
-    my class SupportingWalker1 does Walker {
-        method plan($query, $root --> Walker::Plan) {
+    my class SupportingWalker1 does Qwiratry::Walker {
+        method plan($query, $root --> Qwiratry::Walker::Plan) {
             TestPlan.new(query-ast => $query, data => ['walker1']);
         }
-        method iterator(Walker::Plan $plan --> QueryIterator) {
+        method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
             $plan.iterator;
         }
         method supports($query --> Bool) {
@@ -354,11 +353,11 @@ subtest 'Edge case: multiple walkers support subtree (T051, T054)' => {
         }
     }
     
-    my class SupportingWalker2 does Walker {
-        method plan($query, $root --> Walker::Plan) {
+    my class SupportingWalker2 does Qwiratry::Walker {
+        method plan($query, $root --> Qwiratry::Walker::Plan) {
             TestPlan.new(query-ast => $query, data => ['walker2']);
         }
-        method iterator(Walker::Plan $plan --> QueryIterator) {
+        method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
             $plan.iterator;
         }
         method supports($query --> Bool) {
@@ -387,8 +386,8 @@ subtest 'Edge case: walker declines after accepting (T052, T054)' => {
     use X::Qwiratry;
     
     # Create walker that accepts via supports() but declines during planning
-    my class DecliningWalker does Walker {
-        method plan($query, $root --> Walker::Plan) {
+    my class DecliningWalker does Qwiratry::Walker {
+        method plan($query, $root --> Qwiratry::Walker::Plan) {
             # Decline during planning
             X::Qwiratry::UnknownQueryElement.new(
                 message => "Cannot handle this query",
@@ -396,7 +395,7 @@ subtest 'Edge case: walker declines after accepting (T052, T054)' => {
                 query-ast => $query
             ).throw;
         }
-        method iterator(Walker::Plan $plan --> QueryIterator) {
+        method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
             die "Not implemented";
         }
         method supports($query --> Bool) {
@@ -441,11 +440,11 @@ subtest 'End-to-end multi-domain query planning and execution (T055)' => {
     use Qwiratry::Walker::Provides;
     
     # Create domain-specific walkers
-    my class SQLWalker does Walker {
-        method plan($query, $root --> Walker::Plan) {
+    my class SQLWalker does Qwiratry::Walker {
+        method plan($query, $root --> Qwiratry::Walker::Plan) {
             TestPlan.new(query-ast => $query, data => ['sql-result-1', 'sql-result-2']);
         }
-        method iterator(Walker::Plan $plan --> QueryIterator) {
+        method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
             $plan.iterator;
         }
         method supports($query --> Bool) {
@@ -453,11 +452,11 @@ subtest 'End-to-end multi-domain query planning and execution (T055)' => {
         }
     }
     
-    my class JSONWalker does Walker {
-        method plan($query, $root --> Walker::Plan) {
+    my class JSONWalker does Qwiratry::Walker {
+        method plan($query, $root --> Qwiratry::Walker::Plan) {
             TestPlan.new(query-ast => $query, data => ['json-result-1']);
         }
-        method iterator(Walker::Plan $plan --> QueryIterator) {
+        method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
             $plan.iterator;
         }
         method supports($query --> Bool) {
@@ -499,11 +498,11 @@ subtest 'Composite execution with different walkers (T056)' => {
     use Qwiratry::Walker::Master;
     
     # Create walkers for different domains
-    my class Domain1Walker does Walker {
-        method plan($query, $root --> Walker::Plan) {
+    my class Domain1Walker does Qwiratry::Walker {
+        method plan($query, $root --> Qwiratry::Walker::Plan) {
             TestPlan.new(query-ast => $query, data => ['domain1-a', 'domain1-b']);
         }
-        method iterator(Walker::Plan $plan --> QueryIterator) {
+        method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
             $plan.iterator;
         }
         method supports($query --> Bool) {
@@ -511,11 +510,11 @@ subtest 'Composite execution with different walkers (T056)' => {
         }
     }
     
-    my class Domain2Walker does Walker {
-        method plan($query, $root --> Walker::Plan) {
+    my class Domain2Walker does Qwiratry::Walker {
+        method plan($query, $root --> Qwiratry::Walker::Plan) {
             TestPlan.new(query-ast => $query, data => ['domain2-x', 'domain2-y', 'domain2-z']);
         }
-        method iterator(Walker::Plan $plan --> QueryIterator) {
+        method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
             $plan.iterator;
         }
         method supports($query --> Bool) {
@@ -558,11 +557,11 @@ subtest 'Handover detection with realistic walkers (T057)' => {
     use Qwiratry::Walker::Provides;
     
     # Create realistic mock walkers (simulating real domain walkers)
-    my class RealisticSQLWalker does Walker {
-        method plan($query, $root --> Walker::Plan) {
+    my class RealisticSQLWalker does Qwiratry::Walker {
+        method plan($query, $root --> Qwiratry::Walker::Plan) {
             TestPlan.new(query-ast => $query, data => ['real-sql-1']);
         }
-        method iterator(Walker::Plan $plan --> QueryIterator) {
+        method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
             $plan.iterator;
         }
         method supports($query --> Bool) {
@@ -571,11 +570,11 @@ subtest 'Handover detection with realistic walkers (T057)' => {
         }
     }
     
-    my class RealisticJSONWalker does Walker {
-        method plan($query, $root --> Walker::Plan) {
+    my class RealisticJSONWalker does Qwiratry::Walker {
+        method plan($query, $root --> Qwiratry::Walker::Plan) {
             TestPlan.new(query-ast => $query, data => ['real-json-1', 'real-json-2']);
         }
-        method iterator(Walker::Plan $plan --> QueryIterator) {
+        method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
             $plan.iterator;
         }
         method supports($query --> Bool) {

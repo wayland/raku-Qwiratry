@@ -124,7 +124,7 @@ class TreeIterator does QueryIterator {
 }
 
 # Simple Walker::Plan for testing
-class TestPlan does Walker::Plan {
+class TestPlan does Qwiratry::Walker::Plan {
     has TreeNode $.root;
     has $.walker;
     has Int $.pass-count = 0;
@@ -141,12 +141,12 @@ class TestPlan does Walker::Plan {
 }
 
 # Simple Walker for testing
-class TestTreeWalker does Walker {
-    method plan($query, $root --> Walker::Plan) {
+class TestTreeWalker does Qwiratry::Walker {
+    method plan($query, $root --> Qwiratry::Walker::Plan) {
         TestPlan.new(root => $root, walker => self)
     }
     
-    method iterator(Walker::Plan $plan --> QueryIterator) {
+    method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
         $plan.iterator
     }
     

@@ -187,7 +187,7 @@ subtest "Edge cases" => {
     ok $copy1 ~~ Positional, "copy() handles empty arrays";
     
     # Empty hash
-    my %empty = {};
+    my %empty;
     my $copy2 = copy(%empty);
     ok $copy2 ~~ Associative, "copy() handles empty hashes";
     

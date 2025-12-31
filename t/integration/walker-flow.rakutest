@@ -37,7 +37,7 @@ my class SimpleIterator does QueryIterator {
 }
 
 #| Simple Walker::Plan that produces iterators over stored data
-my class SimplePlan does Walker::Plan {
+my class SimplePlan does Qwiratry::Walker::Plan {
     has $.query-ast;
     has @.data;
     has $.walker;
@@ -58,11 +58,11 @@ my class SimplePlan does Walker::Plan {
 
 #| Simple Walker that creates plans for queries over data
 #| Note: Uses Mu for query type in tests; spec requires RakuAST::Node
-my class SimpleWalker does Walker {
+my class SimpleWalker does Qwiratry::Walker {
     has $.root;
     
-    # Spec: plan(RakuAST::Node $query, Mu:D $root --> Walker::Plan)
-    method plan($query, $root --> Walker::Plan) {
+    # Spec: plan(RakuAST::Node $query, Mu:D $root --> Qwiratry::Walker::Plan)
+    method plan($query, $root --> Qwiratry::Walker::Plan) {
         # Check if query is "supported"
         if $query ~~ Hash && $query<type> eq 'unsupported' {
             X::Qwiratry::UnknownQueryElement.new(
@@ -77,8 +77,8 @@ my class SimpleWalker does Walker {
         SimplePlan.new(query-ast => $query, data => @data, walker => self);
     }
     
-    # Spec: iterator(Walker::Plan $plan --> QueryIterator)
-    method iterator(Walker::Plan $plan --> QueryIterator) {
+    # Spec: iterator(Qwiratry::Walker::Plan $plan --> QueryIterator)
+    method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
         $plan.iterator;
     }
     
@@ -112,7 +112,7 @@ subtest 'Basic plan → iterator → results flow' => {
     
     # Step 1: Create plan
     my $plan = $walker.plan($query, [10, 20, 30]);
-    ok $plan ~~ Walker::Plan, 'plan() returns Walker::Plan';
+    ok $plan ~~ Qwiratry::Walker::Plan, 'plan() returns Walker::Plan';
     
     # Step 2: Get query from plan
     is $plan.query, $query, 'Plan contains original query';

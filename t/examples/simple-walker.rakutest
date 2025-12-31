@@ -50,7 +50,7 @@ my class SimpleIterator does QueryIterator {
 }
 
 #| Example Walker::Plan implementation
-my class SimplePlan does Walker::Plan {
+my class SimplePlan does Qwiratry::Walker::Plan {
     has $.query-ast;
     has @.data;
     has $.parent-walker;
@@ -77,11 +77,11 @@ my class SimplePlan does Walker::Plan {
 
 #| Example Walker implementation demonstrating all features
 #| Note: Uses Mu for query type in tests; spec requires RakuAST::Node
-my class SimpleWalker does Walker {
+my class SimpleWalker does Qwiratry::Walker {
     has $.default-root;
     
-    # Spec: plan(RakuAST::Node $query, Mu:D $root --> Walker::Plan)
-    method plan($query, $root --> Walker::Plan) {
+    # Spec: plan(RakuAST::Node $query, Mu:D $root --> Qwiratry::Walker::Plan)
+    method plan($query, $root --> Qwiratry::Walker::Plan) {
         # Validate query
         unless $query ~~ Hash {
             X::Qwiratry::UnknownQueryElement.new(
@@ -104,8 +104,8 @@ my class SimpleWalker does Walker {
         SimplePlan.new(query-ast => $query, data => @data, parent-walker => self);
     }
     
-    # Spec: iterator(Walker::Plan $plan --> QueryIterator)
-    method iterator(Walker::Plan $plan --> QueryIterator) {
+    # Spec: iterator(Qwiratry::Walker::Plan $plan --> QueryIterator)
+    method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
         $plan.iterator;
     }
     
@@ -142,7 +142,7 @@ subtest 'SimpleWalker can be instantiated' => {
     my $walker = SimpleWalker.new(default-root => [1, 2, 3]);
     
     ok $walker.defined, 'Walker created';
-    ok $walker ~~ Walker, 'Walker does Walker role';
+    ok $walker ~~ Qwiratry::Walker, 'Walker does Qwiratry::Walker role';
     ok $walker ~~ Iterable, 'Walker does Iterable role';
 }
 
@@ -155,7 +155,7 @@ subtest 'SimpleWalker creates valid plans' => {
     
     my $plan = $walker.plan($query, $root);
     
-    ok $plan ~~ Walker::Plan, 'plan() returns Walker::Plan';
+    ok $plan ~~ Qwiratry::Walker::Plan, 'plan() returns Walker::Plan';
     is $plan.query, $query, 'Plan contains query';
     ok $plan.describe ~~ Str, 'describe() returns string';
     like $plan.describe, /select/, 'Description includes query type';
@@ -340,7 +340,7 @@ subtest 'End-to-end query execution scenario' => {
     
     # Create plan
     my $plan = $walker.plan($query, @records);
-    ok $plan ~~ Walker::Plan, 'Plan created';
+    ok $plan ~~ Qwiratry::Walker::Plan, 'Plan created';
     
     # Describe the plan
     my $desc = $plan.describe;
