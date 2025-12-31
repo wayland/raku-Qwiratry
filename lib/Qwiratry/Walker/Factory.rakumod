@@ -54,7 +54,7 @@ class Qwiratry::Walker::Factory {
     3. Return Nil if no Walker found
 
     @param $data - Data structure to get Walker for
-    @returns Walker? - Walker instance or Nil if none found
+    @returns Qwiratry::Walker? - Walker instance or Nil if none found
 
     =end pod
     method get-walker($data --> Mu) {
@@ -102,7 +102,7 @@ class Qwiratry::Walker::Factory {
     Register a Walker type for a specific data type or role.
 
     @param $type - Type or role to register Walker for (can be type object or string name)
-    @param $walker-type - Walker type (class that does Walker role)
+    @param $walker-type - Walker type (class that does Qwiratry::Walker role)
 
     =end pod
     method register-walker($type, $walker-type) {
@@ -117,13 +117,13 @@ class Qwiratry::Walker::Factory {
 
     Scans for classes matching the Qwiratry::Walker::Implementation::* pattern in the specified
     directories using Implementation::Loader. Results are cached for performance.
-    Discovered classes are assumed to implement Walker role without runtime
+    Discovered classes are assumed to implement Qwiratry::Walker role without runtime
     verification.
 
     @param :@paths - List of directory paths to scan (default: ['lib'])
     @param :$refresh - If True, forces re-discovery and updates cache. If False,
                       returns cached results if available.
-    @returns Array[Walker] - Array of discovered Walker type objects (not instances)
+    @returns Array[Qwiratry::Walker] - Array of discovered Walker type objects (not instances)
 
     =end pod
     method discover-walkers(:@paths = ['lib'], Bool :$refresh = False --> Array) {

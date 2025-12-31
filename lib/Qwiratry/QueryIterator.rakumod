@@ -5,10 +5,10 @@ QueryIterator role extending Iterator for incremental result streaming
 This role extends Raku's Iterator role and provides the contract for
 producing query results incrementally via the pull-one() method.
 QueryIterator receives a Context via constructor for per-traversal
-state management, enabling coordination between Walker, Query, and Strategy.
+state management, enabling coordination between Qwiratry::Walker, Query, and Strategy.
 
 Lifecycle:
-  - Created by Walker::Plan.iterator() or Walker.iterator()
+  - Created by Qwiratry::Walker::Plan.iterator() or Qwiratry::Walker.iterator()
   - One instance per traversal/result stream
   - Independent instances from same plan do not share mutable state
   - Exhausted when pull-one() returns IterationEnd
@@ -19,7 +19,7 @@ Comparison with regular Raku Iterator:
   | Underlying state        | Internal closure | Shared Context |
   | Backtracking support    | No               | Yes            |
   | Multi-phase execution   | No               | Yes            |
-  | Integration             | Standalone       | Walker/Query/Strategy |
+  | Integration             | Standalone       | Qwiratry::Walker/Query/Strategy |
 
 Usage:
   Concrete classes implementing QueryIterator must:
@@ -55,7 +55,7 @@ role QueryIterator does Iterator is export {
 
     The Context object for this traversal, containing mutable per-traversal state.
     Must be provided via constructor. Enables coordination between
-    Walker, Strategy hooks, and the iterator during traversal.
+    Qwiratry::Walker, Strategy hooks, and the iterator during traversal.
 
     =end pod
     has Context $.context is required;
@@ -72,7 +72,7 @@ role QueryIterator does Iterator is export {
       - After returning IterationEnd once, must consistently return IterationEnd
       - Should support lazy evaluation when possible
       - May coordinate with Context for state management
-      - May support backtracking per Walker logic
+      - May support backtracking per Qwiratry::Walker logic
 
     @returns Mu - Next result value, or IterationEnd if no more results
 

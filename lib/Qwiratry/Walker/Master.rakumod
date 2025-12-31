@@ -28,7 +28,7 @@ class CompositeIterator { ... }
 
 =begin pod
 
-Composite Plan that implements Walker::Plan role with embedded subplans.
+Composite Plan that implements Qwiratry::Walker::Plan role with embedded subplans.
 
 Represents a composite execution plan containing subplans from multiple
 domain-specific walkers. The composite plan maintains the original query AST
@@ -41,7 +41,7 @@ Example:
   )
 
 =end pod
-class CompositePlan does Walker::Plan {
+class CompositePlan does Qwiratry::Walker::Plan {
     # Original query AST (composite query, not modified)
     has RakuAST::Node $.query-ast is required;
     
@@ -172,7 +172,7 @@ class CompositeIterator does QueryIterator {
 
 =begin pod
 
-Master Walker class that implements Walker role for composite handovers.
+Master Walker class that implements Qwiratry::Walker role for composite handovers.
 
 Responsible for detecting when handovers are required and delegating
 planning and execution to appropriate domain-specific Walkers.
@@ -185,7 +185,7 @@ Example:
   my $master-with-walkers = MasterWalker.new(:candidate-walkers[@sql-walker, @json-walker]);
 
 =end pod
-class MasterWalker does Walker {
+class MasterWalker does Qwiratry::Walker {
     # Explicitly provided candidate walkers (overrides discovery if provided)
     has @.candidate-walkers;
     
@@ -226,10 +226,10 @@ class MasterWalker does Walker {
         }
         
         # Perform discovery
-        my @found = Array[Walker].new;
+        my @found = Array[Qwiratry::Walker].new;
         
         # Scan through all loaded classes/types using Metamodel
-        # Check each class to see if it does Walker role
+            # Check each class to see if it does Qwiratry::Walker role
         try {
             # Use Metamodel::ClassHOW to iterate through all classes
             # This is a basic discovery mechanism that can be enhanced
@@ -242,7 +242,7 @@ class MasterWalker does Walker {
             # by iterating through known class hierarchies
             
             # Try to find classes that do Walker role
-            # We check if a class does Walker by using .^does(Walker)
+            # We check if a class does Qwiratry::Walker by using .^does(Qwiratry::Walker)
             # However, we need to get a list of all classes first
             
             # For now, return empty array - discovery can be enhanced later
@@ -268,7 +268,7 @@ class MasterWalker does Walker {
     
     # Query walker about capability via supports() method.
     # Returns True if walker supports the subtree, False otherwise.
-    method check-capability(RakuAST::Node $subtree, Walker $walker --> Bool) {
+    method check-capability(RakuAST::Node $subtree, Qwiratry::Walker $walker --> Bool) {
         # Check if walker has supports() method and call it
         if $walker.^can('supports') {
             return $walker.supports($subtree);
@@ -281,7 +281,7 @@ class MasterWalker does Walker {
     # This is the fast path using domain metadata.
     # For MVP, we use a heuristic: check if walker type name contains domain name.
     # This can be enhanced later with explicit domain support methods.
-    method find-walker-by-domain(Array $domains --> Walker) {
+    method find-walker-by-domain(Array $domains --> Qwiratry::Walker) {
         my @candidates = self.candidate-walkers();
         
         # For each domain, try to find a walker that supports it
@@ -312,7 +312,7 @@ class MasterWalker does Walker {
     Recognizes common AST patterns and matches to walker capabilities.
     For MVP, this is a placeholder that can be enhanced later.
 
-    Returns Walker if pattern matches, Nil otherwise.
+    Returns Qwiratry::Walker if pattern matches, Nil otherwise.
 
     =end pod
     method check-ast-pattern(RakuAST::Node $subtree) {
@@ -328,7 +328,7 @@ class MasterWalker does Walker {
     Uses heuristics like node type, structure, or keywords to guess walker.
     For MVP, this is a placeholder that can be enhanced later.
 
-    Returns Walker if heuristic matches, Nil otherwise.
+    Returns Qwiratry::Walker if heuristic matches, Nil otherwise.
 
     =end pod
     method check-heuristic(RakuAST::Node $subtree) {
@@ -344,7 +344,7 @@ class MasterWalker does Walker {
 
     Detect handover requirement following full priority order:
     domain metadata → capability → pattern → heuristic.
-    Returns Walker if handover is needed, Nil if not.
+    Returns Qwiratry::Walker if handover is needed, Nil if not.
     Handles edge cases: no walker found, multiple walkers, walker declines.
 
     =end pod
@@ -417,7 +417,7 @@ class MasterWalker does Walker {
     Handles edge case T052: walker accepts via supports() but declines during planning.
 
     =end pod
-    method delegate-planning(Walker $walker, RakuAST::Node $subtree, Mu $root --> Walker::Plan) {
+    method delegate-planning(Qwiratry::Walker $walker, RakuAST::Node $subtree, Mu $root --> Qwiratry::Walker::Plan) {
         {
             return $walker.plan($subtree, $root);
             CATCH {
@@ -448,7 +448,7 @@ class MasterWalker does Walker {
     Detects handovers, delegates planning, and embeds subplans in CompositePlan.
 
     =end pod
-    method plan(RakuAST::Node $query, Mu $root --> Walker::Plan) {
+    method plan(RakuAST::Node $query, Mu $root --> Qwiratry::Walker::Plan) {
         # Detect if handover is needed
         my $walker = self.detect-handover($query, $root);
         
@@ -481,7 +481,7 @@ class MasterWalker does Walker {
     Delegates to the plan's iterator() method, which handles composite execution.
 
     =end pod
-    method iterator(Walker::Plan $plan --> QueryIterator) {
+    method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
         return $plan.iterator();
     }
 }

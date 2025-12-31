@@ -8,7 +8,7 @@ state container.
 
 Lifecycle:
   - Created fresh for each traversal pass
-  - Shared between Walker and Strategy hooks within a single traversal
+  - Shared between Qwiratry::Walker and Strategy hooks within a single traversal
   - Not shared across separate traversals or iterators
   - May be reused for multi-phase walkers (if design requires)
 
@@ -41,7 +41,7 @@ role Context is export {
 
     The Strategy instance for this traversal (may be undefined).
 
-    Set by Walker when creating Context for a traversal.
+    Set by Qwiratry::Walker when creating Context for a traversal.
     If undefined, no Strategy hooks will be called during traversal.
     The same Strategy instance is shared across all hooks in a single traversal.
 

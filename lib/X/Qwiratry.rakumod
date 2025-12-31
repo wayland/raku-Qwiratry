@@ -2,14 +2,14 @@
 
 Exception hierarchy for Qwiratry infrastructure
 This module provides exception classes for error handling in the
-Qwiratry infrastructure, including Walker-related exceptions and
+Qwiratry infrastructure, including Qwiratry::Walker-related exceptions and
 Transformer-related exceptions.
 
 =end pod
 
 =begin pod
 
-Base exception class for all Walker-related errors.
+Base exception class for all Qwiratry::Walker-related errors.
 Provides common attributes for error reporting and debugging.
 
 =end pod
@@ -28,8 +28,8 @@ class X::Qwiratry::Walker is Exception {
 
 =begin pod
 
-Exception thrown when a Walker cannot interpret a Query AST element.
-This exception is thrown by Walker.plan() when it encounters a query
+Exception thrown when a Qwiratry::Walker cannot interpret a Query AST element.
+This exception is thrown by Qwiratry::Walker.plan() when it encounters a query
 element it does not know how to handle.
 
 =end pod
@@ -71,9 +71,9 @@ class X::Qwiratry::TemplateOrderingConflict is X::Qwiratry::Walker {
 
 =begin pod
 
-Exception thrown when no Walker can be found for a given data type.
+Exception thrown when no Qwiratry::Walker can be found for a given data type.
 This exception is thrown when attempting to transform data but no
-appropriate Walker is available in the registry for the data's type.
+appropriate Qwiratry::Walker is available in the registry for the data's type.
 
 =end pod
 class X::Qwiratry::NoWalkerFound is X::Qwiratry::Walker {

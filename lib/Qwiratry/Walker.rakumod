@@ -1,27 +1,25 @@
 =begin pod
 
-Walker role and Walker::Plan role for query execution planning
+Qwiratry::Walker role and Qwiratry::Walker::Plan role for query execution planning
 
 This module provides the core infrastructure roles for query execution:
-  - Walker::Plan: Represents a precomputed execution strategy
-  - Walker: Encapsulates how a query is executed over a data structure
+  - Qwiratry::Walker::Plan: Represents a precomputed execution strategy
+  - Qwiratry::Walker: Encapsulates how a query is executed over a data structure
 
 Lifecycle:
-  Walker creates Walker::Plan via plan() method
-  Walker creates QueryIterator from Walker::Plan via iterator() method
+  Qwiratry::Walker creates Qwiratry::Walker::Plan via plan() method
+  Qwiratry::Walker creates QueryIterator from Qwiratry::Walker::Plan via iterator() method
   QueryIterator produces results incrementally via next()
 
 =end pod
-unit module Qwiratry::Walker;
-
 use Qwiratry::Context;
 use Qwiratry::QueryIterator;
 
 =begin pod
 
-Walker::Plan role - precomputed execution strategy for a specific query and root.
+Qwiratry::Walker::Plan role - precomputed execution strategy for a specific query and root.
 
-Represents an execution plan created by Walker.plan(). Plans are reusable
+Represents an execution plan created by Qwiratry::Walker.plan(). Plans are reusable
 and can produce multiple independent QueryIterator instances. Plans must
 not mutate the original Query AST.
 
@@ -31,12 +29,12 @@ Required methods (must be implemented by concrete classes):
   - describe() → Str
 
 Optional methods (have default implementations):
-  - optimise(&modification) → Walker::Plan
-  - subplans() → Array[Walker::Plan]
+  - optimise(&modification) → Qwiratry::Walker::Plan
+  - subplans() → Array[Qwiratry::Walker::Plan]
   - capabilities() → Associative
 
 Example concrete implementation:
-  class MyPlan does Walker::Plan {
+  class MyPlan does Qwiratry::Walker::Plan {
       has RakuAST::Node $.query-ast;
       has $.root;
       
@@ -49,7 +47,7 @@ Example concrete implementation:
   }
 
 =end pod
-role Walker::Plan is export {
+role Qwiratry::Walker::Plan {
     =begin pod
 
     Produce a QueryIterator for this plan.
@@ -95,8 +93,8 @@ role Walker::Plan is export {
 
     Default implementation returns self unchanged.
 
-    @param &modification - Callback: Walker::Plan → Walker::Plan
-    @returns Walker::Plan - The optimized plan (may be same or new instance)
+    @param &modification - Callback: Qwiratry::Walker::Plan → Qwiratry::Walker::Plan
+    @returns Qwiratry::Walker::Plan - The optimized plan (may be same or new instance)
 
     =end pod
     method optimise(&modification) {
@@ -114,12 +112,12 @@ role Walker::Plan is export {
 
     Default implementation returns empty array (non-composite plan).
 
-    @returns Array[Walker::Plan] - Array of Walker::Plan instances (empty for simple plans)
+    @returns Array[Qwiratry::Walker::Plan] - Array of Qwiratry::Walker::Plan instances (empty for simple plans)
 
     =end pod
-    method subplans(--> Array[Walker::Plan]) {
+    method subplans(--> Array[Qwiratry::Walker::Plan]) {
         # Default: no subplans (simple, non-composite plan)
-        Array[Walker::Plan].new
+        Array[Qwiratry::Walker::Plan].new
     }
     
     =begin pod
@@ -146,14 +144,14 @@ role Walker::Plan is export {
 
 =begin pod
 
-Walker role - encapsulates how a query is executed over a data structure.
+Qwiratry::Walker role - encapsulates how a query is executed over a data structure.
 
-Walker is the main entry point for query execution. It creates execution
+Qwiratry::Walker is the main entry point for query execution. It creates execution
 plans via plan() and can produce iterators via iterator() or start().
 
 Required methods (must be implemented by concrete classes):
-  - plan(RakuAST::Node $query, Mu $root) → Walker::Plan
-  - iterator(Walker::Plan $plan) → QueryIterator
+  - plan(RakuAST::Node $query, Mu $root) → Qwiratry::Walker::Plan
+  - iterator(Qwiratry::Walker::Plan $plan) → QueryIterator
 
 Optional methods (have default implementations):
   - start($query, $root) → QueryIterator (convenience: plan + iterator)
@@ -163,29 +161,29 @@ Optional methods (have default implementations):
   - supports($query) → Bool
 
 Strategy Integration:
-  - Walker can be constructed with a Strategy: Walker.new(:$strategy)
+  - Qwiratry::Walker can be constructed with a Strategy: Qwiratry::Walker.new(:$strategy)
   - Strategy is stored in Context when creating iterators
   - Concrete QueryIterator implementations should call Strategy hooks
     during traversal via $ctx.strategy
 
 Example concrete implementation:
-  class TreeWalker does Walker {
-      method plan(RakuAST::Node $query, Mu:D $root --> Walker::Plan) {
+  class TreeWalker does Qwiratry::Walker {
+      method plan(RakuAST::Node $query, Mu:D $root --> Qwiratry::Walker::Plan) {
           TreePlan.new(query-ast => $query, root => $root);
       }
-      method iterator(Walker::Plan $plan --> QueryIterator) {
+      method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
           my $ctx = TreeContext.new(strategy => $.strategy);
           TreeIterator.new(context => $ctx, plan => self);
       }
   }
 
 =end pod
-role Walker does Iterable is export {
+role Qwiratry::Walker does Iterable {
     =begin pod
 
     The default Strategy for this Walker (may be undefined).
 
-    Set via constructor: Walker.new(:$strategy)
+    Set via constructor: Qwiratry::Walker.new(:$strategy)
     If undefined, no Strategy hooks will be called during traversal.
     The Strategy is copied to Context when creating iterators, allowing
     QueryIterator implementations to access it via $ctx.strategy.
@@ -199,7 +197,7 @@ role Walker does Iterable is export {
 
     Analyse the Query AST and root data structure, produce an optimised execution plan.
 
-    This method creates a Walker::Plan - a precomputed execution strategy.
+    This method creates a Qwiratry::Walker::Plan - a precomputed execution strategy.
     The plan can then produce multiple independent QueryIterator instances
     via plan.iterator() or walker.iterator(plan).
 
@@ -212,16 +210,16 @@ role Walker does Iterable is export {
     Constraints:
       - MUST NOT mutate the shared Query AST in observable ways
       - MAY copy or rewrite AST fragments into the Plan
-      - MUST return a reusable Walker::Plan
+      - MUST return a reusable Qwiratry::Walker::Plan
       - MUST throw X::Qwiratry::UnknownQueryElement if query cannot be interpreted
 
     @param $query - The Query AST (RakuAST::Node)
     @param $root - The root data structure to query
-    @returns Walker::Plan - Precomputed execution strategy for the query
+    @returns Qwiratry::Walker::Plan - Precomputed execution strategy for the query
     @throws X::Qwiratry::UnknownQueryElement if query cannot be interpreted
 
     =end pod
-    method plan(RakuAST::Node $query, Mu:D $root --> Walker::Plan) { ... }
+    method plan(RakuAST::Node $query, Mu:D $root --> Qwiratry::Walker::Plan) { ... }
     
     =begin pod
 
@@ -237,7 +235,7 @@ role Walker does Iterable is export {
     @returns QueryIterator - Ready to produce results
 
     =end pod
-    method iterator(Walker::Plan $plan --> QueryIterator) { ... }
+    method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) { ... }
     
     =begin pod
 

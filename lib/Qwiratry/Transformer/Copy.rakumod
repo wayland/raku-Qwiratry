@@ -3,7 +3,7 @@
 Copy service class for shallow and deep copying of transformable nodes
 
 This module provides `copy()` and `deepcopy()` multi subs as service functions
-for copying transformable nodes. Transformable nodes are those that have a Walker
+for copying transformable nodes. Transformable nodes are those that have a Qwiratry::Walker
 with the `supports-rewrite` capability.
 
 Follows spec section 3.3.6 exactly.

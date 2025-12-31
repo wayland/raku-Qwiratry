@@ -4,7 +4,7 @@ Transformer declarator and Transformer class for declarative data transformation
 
 This module provides the custom `transformer` declarator and the Transformer class
 that enables pattern-matching transformations on various data structures using
-templates. Transformers integrate with the Walker and Strategy systems for
+templates. Transformers integrate with the Qwiratry::Walker and Strategy systems for
 flexible data transformation workflows.
 
 =end pod
@@ -12,7 +12,7 @@ flexible data transformation workflows.
 use Qwiratry::Template;
 use Qwiratry::Template::Slang;  # For get-collected-templates(), clear-collected-templates(), get-collected-wrappers(), clear-collected-wrappers()
 use X::Qwiratry;  # For X::Qwiratry::TemplateOrderingConflict
-use Qwiratry::Walker::Factory;  # For Walker selection
+use Qwiratry::Walker::Factory;  # For Qwiratry::Walker selection
 use Qwiratry::Transformer::Copy;  # For copy() and deepcopy() service functions (exported by default)
 # Note: Template slang activation is handled by main Qwiratry.rakumod
 # Users should `use Qwiratry` to get slang activation automatically
@@ -506,11 +506,11 @@ class Transformer is export {
 
     Main transformation method that orchestrates full transformation.
 
-    Calls ORDER-TEMPLATES to prepare templates, obtains Walker via factory,
+    Calls ORDER-TEMPLATES to prepare templates, obtains Qwiratry::Walker via factory,
     iterates over data nodes, and applies templates to each node.
 
     @param $data - Root data structure to transform
-    @param Iterator :$iterator - Optional iterator (if not provided, uses default or Walker-provided)
+    @param Iterator :$iterator - Optional iterator (if not provided, uses default or Qwiratry::Walker-provided)
     @returns Iterator|Mu|List|Nil - Transformation results
 
     =end pod
@@ -519,7 +519,7 @@ class Transformer is export {
         # Call ORDER-TEMPLATES to prepare templates (cache result)
         my @ordered = self.ORDER-TEMPLATES;
         
-        # T028: Obtain Walker via factory
+        # T028: Obtain Qwiratry::Walker via factory
         my $walker = Qwiratry::Walker::Factory.instance.get-walker($data);
         
         # T030: Create iterator - use provided iterator or default
@@ -527,7 +527,7 @@ class Transformer is export {
         if !$iter.defined {
             # Create default iterator (depth-first, top-down)
             # For MVP, use a simple iterator that yields nodes
-            # Future: Use Walker-provided iterator if available
+            # Future: Use Qwiratry::Walker-provided iterator if available
             $iter = self!create-default-iterator($data, $walker);
         }
         
@@ -591,17 +591,17 @@ class Transformer is export {
     Create default iterator for data traversal.
 
     Provides a simple depth-first, top-down iterator for basic data structures.
-    For more complex cases, Walker-provided iterators should be used.
+    For more complex cases, Qwiratry::Walker-provided iterators should be used.
 
     @param $data - Root data structure
-    @param Walker? $walker - Optional Walker (not used in MVP, for future enhancement)
+    @param Qwiratry::Walker? $walker - Optional Walker (not used in MVP, for future enhancement)
     @returns Iterator - Iterator that yields nodes
 
     =end pod
     method !create-default-iterator($data, $walker --> Iterator) {
         # T030: Create default iterator (depth-first, top-down)
         # For MVP, provide simple iterator for basic structures
-        # Future: Use Walker-provided iterator if available
+        # Future: Use Qwiratry::Walker-provided iterator if available
         
         # Simple iterator that yields the root and its children (if applicable)
         return gather {
@@ -874,7 +874,7 @@ class Transformer is export {
             # In rewrite modes, if mutation is allowed and result is defined, use it
             if $.mutates-input && $result.defined {
                 # For rewrite modes, the result replaces the element
-                # This is handled by the caller (Walker or transformation logic)
+                # This is handled by the caller (Qwiratry::Walker or transformation logic)
                 return $result;
             } elsif $mode eq 'rewrite-mandatory' && !$result.defined {
                 # Mandatory rewrite requires a result
