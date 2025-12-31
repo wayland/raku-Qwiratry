@@ -17,9 +17,9 @@ case $command in
 #		echo "=== Run tests ==="
 #		./project test
 		echo "=== Check for broken rakudoc ==="
-		fgrep -Rl '#|' lib
+		grep -FRl '#|' lib/ t/
 		echo "=== Check for TODOs ==="
-		ack TODO lib
+		ack TODO lib/ t/
 		;;
 	*)
 		echo "Error: Unknown command '$command'" >&2

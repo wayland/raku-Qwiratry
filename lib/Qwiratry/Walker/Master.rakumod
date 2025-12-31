@@ -17,7 +17,7 @@ The Master Walker:
 
 use experimental :rakuast;
 use Qwiratry::Walker;
-use Qwiratry::Walker::Provides;
+use Qwiratry::Walker::Providing;
 use X::Qwiratry;
 use Qwiratry::QueryIterator;
 use Qwiratry::Context;
@@ -257,10 +257,10 @@ class Qwiratry::Walker::Master does Qwiratry::Walker {
         return @!discovered-walkers;
     }
     
-    # Check provides trait on root object, return domain names or Nil.
-    # Uses provides-domains() from Qwiratry::Walker::Provides to extract domain metadata.
+    # Check "providing" trait on root object, return domain names or Nil.
+    # Uses providing-domains() from Qwiratry::Walker::Providing to extract domain metadata.
     method check-domain-metadata(Mu $root --> Array) {
-        my @domains = provides-domains($root);
+        my @domains = providing-domains($root);
         return @domains if @domains;
         return Nil;
     }

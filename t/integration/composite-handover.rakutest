@@ -6,7 +6,7 @@ use Test;
 use lib 'lib';
 
 use Qwiratry::Walker::Master;
-use Qwiratry::Walker::Provides;
+use Qwiratry::Walker::Providing;
 use Qwiratry::Walker;
 use Qwiratry::QueryIterator;
 use Qwiratry::Context;
@@ -247,7 +247,7 @@ subtest 'Priority order: domain metadata checked first (T049, T053)' => {
     plan 3;
     
     use Qwiratry::Walker::Master;
-    use Qwiratry::Walker::Provides;
+    use Qwiratry::Walker::Providing;
     
     # Create walkers - one matches domain, one matches capability
     my class DomainWalker does Qwiratry::Walker {
@@ -278,10 +278,8 @@ subtest 'Priority order: domain metadata checked first (T049, T053)' => {
     my $capability-walker = CapabilityWalker.new;
     my $master = Qwiratry::Walker::Master.new(:candidate-walkers([$domain-walker, $capability-walker]));
     
-    # Create root with provides<domain> trait
-    # TODO: Fix provides trait syntax
-    # my $root provides<domain> = "test";
-    my $root = "test";  # Placeholder - provides trait syntax not working yet
+    # Create root with providing<domain> trait
+    my $root is providing<domain> = "test";
     my $mock-query = class { method ^name { 'MockQuery' } };
     
     # Test that domain metadata is checked first
@@ -295,7 +293,7 @@ subtest 'Edge case: no walker found (T050, T054)' => {
     plan 4;
     
     use Qwiratry::Walker::Master;
-    use Qwiratry::Walker::Provides;
+    use Qwiratry::Walker::Providing;
     use X::Qwiratry;
     
     # Create walker that doesn't support anything
@@ -439,7 +437,7 @@ subtest 'End-to-end multi-domain query planning and execution (T055)' => {
     plan 6;
     
     use Qwiratry::Walker::Master;
-    use Qwiratry::Walker::Provides;
+    use Qwiratry::Walker::Providing;
     
     # Create domain-specific walkers
     my class SQLWalker does Qwiratry::Walker {
@@ -470,10 +468,8 @@ subtest 'End-to-end multi-domain query planning and execution (T055)' => {
     my $json-walker = JSONWalker.new;
     my $master = Qwiratry::Walker::Master.new(:candidate-walkers([$sql-walker, $json-walker]));
     
-    # Create root with provides<sql> trait
-    # TODO: Fix provides trait syntax
-    # my $root provides<sql> = "test";
-    my $root = "test";  # Placeholder - provides trait syntax not working yet
+    # Create root with providing<sql> trait
+    my $root is providing<sql> = "test";
     my $mock-query = class { method ^name { 'MockQuery' } };
     
     # Test end-to-end: plan() → iterator() → results
@@ -558,7 +554,7 @@ subtest 'Handover detection with realistic walkers (T057)' => {
     plan 4;
     
     use Qwiratry::Walker::Master;
-    use Qwiratry::Walker::Provides;
+    use Qwiratry::Walker::Providing;
     
     # Create realistic mock walkers (simulating real domain walkers)
     my class RealisticSQLWalker does Qwiratry::Walker {
@@ -590,10 +586,8 @@ subtest 'Handover detection with realistic walkers (T057)' => {
     my $json-walker = RealisticJSONWalker.new;
     my $master = Qwiratry::Walker::Master.new(:candidate-walkers([$sql-walker, $json-walker]));
     
-    # Test with provides trait
-    # TODO: Fix provides trait syntax
-    # my $root provides<sql> = "test";
-    my $root = "test";  # Placeholder - provides trait syntax not working yet
+    # Test with providing trait
+    my $root is providing<sql> = "test";
     my $mock-query = class { method ^name { 'MockQuery' } };
     
     # Verify handover detection works
@@ -606,27 +600,23 @@ subtest 'Handover detection with realistic walkers (T057)' => {
 subtest 'Performance: trait metadata discovery (T061)' => {
     plan 3;
     
-    use Qwiratry::Walker::Provides;
+    use Qwiratry::Walker::Providing;
     
-    # Test that provides-domains() is efficient (O(1) lookup)
-    # TODO: Fix provides trait syntax
-    # my $root1 provides<sql> = "test1";
-    # my $root2 provides<json> = "test2";
-    # my $root3 provides<xml> = "test3";
-    my $root1 = "test1";
-    my $root2 = "test2";
-    my $root3 = "test3";
+    # Test that providing-domains() is efficient (O(1) lookup)
+    my $root1 is providing<sql> = "test1";
+    my $root2 is providing<json> = "test2";
+    my $root3 is providing<xml> = "test3";
     
     my $start = now;
     for ^1000 {
-        my @d1 = provides-domains($root1);
-        my @d2 = provides-domains($root2);
-        my @d3 = provides-domains($root3);
+        my @d1 = providing-domains($root1);
+        my @d2 = providing-domains($root2);
+        my @d3 = providing-domains($root3);
     }
     my $elapsed = now - $start;
     
     ok $elapsed < 1.0, 'Trait metadata discovery is efficient (< 1s for 3000 lookups)';
-    ok True, 'provides-domains() performance validated';
+    ok True, 'providing-domains() performance validated';
     ok True, 'Trait metadata discovery meets O(1) or O(n) goal';
 }
 
