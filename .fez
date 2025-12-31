@@ -1,9 +1,7 @@
 {
-  "commands": {
-    "test": [
-      "zef",
-      "test",
-      "."
-    ]
-  }
+	"commands": {
+		"test": [
+			"./project", "test"
+		]
+	}
 }
