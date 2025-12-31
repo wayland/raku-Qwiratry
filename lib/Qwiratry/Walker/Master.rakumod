@@ -14,7 +14,6 @@ The Master Walker:
 - Coordinates composite execution of multi-domain queries
 
 =end pod
-unit module Qwiratry::Walker::Master;
 
 use experimental :rakuast;
 use Qwiratry::Walker;
@@ -24,7 +23,7 @@ use Qwiratry::QueryIterator;
 use Qwiratry::Context;
 
 # Forward declaration
-class CompositeIterator { ... }
+class Qwiratry::Walker::Master::Iterator { ... }
 
 =begin pod
 
@@ -35,13 +34,13 @@ domain-specific walkers. The composite plan maintains the original query AST
 and embeds subplans as an array.
 
 Example:
-  my $plan = CompositePlan.new(
+  my $plan = Qwiratry::Walker::Master::Plan.new(
       query-ast => $query,
       subplans => [$subplan1, $subplan2]
   )
 
 =end pod
-class CompositePlan does Qwiratry::Walker::Plan {
+class Qwiratry::Walker::Master::Plan does Qwiratry::Walker::Plan {
     # Original query AST (composite query, not modified)
     has RakuAST::Node $.query-ast is required;
     
@@ -70,7 +69,7 @@ class CompositePlan does Qwiratry::Walker::Plan {
     # Describe the composite plan
     method describe(--> Str) {
         my $subplan-count = @!subplans.elems;
-        return "CompositePlan with $subplan-count subplan(s)";
+        return "Qwiratry::Walker::Master::Plan with $subplan-count subplan(s)";
     }
     
     # Produce QueryIterator for this composite plan.
@@ -83,7 +82,7 @@ class CompositePlan does Qwiratry::Walker::Plan {
         my $ctx = CompositeContext.new;
         
         # Create composite iterator that coordinates subplan iterators
-        return CompositeIterator.new(
+        return Qwiratry::Walker::Master::Iterator.new(
             context => $ctx,
             plan => self
         );
@@ -95,17 +94,17 @@ class CompositePlan does Qwiratry::Walker::Plan {
 Composite iterator that coordinates execution of multiple subplan iterators.
 
 For MVP, materializes results from each subplan and combines them.
-Execution follows the order specified in CompositePlan.execution-order,
+Execution follows the order specified in Qwiratry::Walker::Master::Plan.execution-order,
 or sequential order if not specified.
 
 Example:
-  my $iter = CompositeIterator.new(context => $ctx, plan => $composite-plan);
+  my $iter = Iterator.new(context => $ctx, plan => $composite-plan);
   my $result = $iter.pull-one();  # Returns first combined result
 
 =end pod
-class CompositeIterator does QueryIterator {
+class Qwiratry::Walker::Master::Iterator does QueryIterator {
     # The composite plan this iterator executes
-    has CompositePlan $.plan is required;
+    has Qwiratry::Walker::Master::Plan $.plan is required;
     
     # Materialized results from all subplans (lazy initialization)
     has @!materialized-results;
@@ -181,11 +180,11 @@ Constructor parameters:
   :@candidate-walkers - Optional array of Walker instances (overrides discovery)
 
 Example:
-  my $master = MasterWalker.new;
-  my $master-with-walkers = MasterWalker.new(:candidate-walkers[@sql-walker, @json-walker]);
+  my $master = Qwiratry::Walker::Master.new;
+  my $master-with-walkers = Qwiratry::Walker::Master.new(:candidate-walkers[@sql-walker, @json-walker]);
 
 =end pod
-class MasterWalker does Qwiratry::Walker {
+class Qwiratry::Walker::Master does Qwiratry::Walker {
     # Explicitly provided candidate walkers (overrides discovery if provided)
     has @.candidate-walkers;
     
@@ -364,7 +363,7 @@ class MasterWalker does Qwiratry::Walker {
             my $candidate-names = @candidates.map(*.^name).join(', ');
             X::Qwiratry::UnknownQueryElement.new(
                 message => "No walker found for declared domains: {@domains.join(', ')}. Available walkers: $candidate-names",
-                walker-type => 'MasterWalker',
+                walker-type => 'Qwiratry::Walker::Master',
                 query-ast => $subtree
             ).throw;
         }
@@ -397,7 +396,7 @@ class MasterWalker does Qwiratry::Walker {
         my $reasons = @failure-reasons.join('; ');
         X::Qwiratry::UnknownQueryElement.new(
             message => "No suitable walker found for query. Tried walkers: $tried-names. Reasons: $reasons",
-            walker-type => 'MasterWalker',
+                walker-type => 'Qwiratry::Walker::Master',
             query-ast => $subtree
         ).throw;
     }
@@ -445,7 +444,7 @@ class MasterWalker does Qwiratry::Walker {
     =begin pod
 
     Required: Create execution plan from query and root.
-    Detects handovers, delegates planning, and embeds subplans in CompositePlan.
+    Detects handovers, delegates planning, and embeds subplans in Qwiratry::Walker::Master::Plan.
 
     =end pod
     method plan(RakuAST::Node $query, Mu $root --> Qwiratry::Walker::Plan) {
@@ -460,7 +459,7 @@ class MasterWalker does Qwiratry::Walker {
             my $subplan = self.delegate-planning($walker, $subtree, $root);
             
             # Create composite plan with original query AST and embedded subplan
-            return CompositePlan.new(
+            return Qwiratry::Walker::Master::Plan.new(
                 query-ast => $query,
                 subplans => [$subplan]
             );
@@ -470,7 +469,7 @@ class MasterWalker does Qwiratry::Walker {
         # For MVP, throw exception if no walker found
         X::Qwiratry::UnknownQueryElement.new(
             message => "No suitable walker found for query",
-            walker-type => 'MasterWalker',
+                walker-type => 'Qwiratry::Walker::Master',
             query-ast => $query
         ).throw;
     }

@@ -112,7 +112,7 @@ subtest 'Qwiratry::Walker::Factory.discover-walkers() - Type objects returned (T
         {
             my $instance = $walker-type.new;
             ok $instance, 'Can instantiate discovered type object';
-            ok $instance ~~ Walker, 'Instance implements Walker role';
+            ok $instance ~~ Qwiratry::Walker, 'Instance implements Qwiratry::Walker role';
             CATCH {
                 default {
                     skip 'Instantiation failed (may be expected for test walkers)';
@@ -194,7 +194,7 @@ subtest 'Qwiratry::Walker::Factory.discover-walkers() - Integration test (T021)'
         {
             my $instance = $walker-type.new;
             ok $instance, 'Discovered walker can be instantiated';
-            ok $instance ~~ Walker, 'Discovered walker implements Walker role';
+            ok $instance ~~ Qwiratry::Walker, 'Discovered walker implements Qwiratry::Walker role';
             
             # Verify it's actually a Walker
             ok $instance.^can('plan'), 'Instance has plan method';
