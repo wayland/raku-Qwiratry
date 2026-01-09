@@ -5,13 +5,16 @@ command=$1
 case $command in
 	test)
 		# All unit tests
-		for test in t/unit/*.rakutest; do raku -Ilib "$test"; done
+		echo "=== Unit Tests ==="
+		for test in t/unit/*.rakutest; do echo "==> $test" ; raku -Ilib "$test"; done
 
 		# All integration tests
-		for test in t/integration/*.rakutest; do raku -Ilib "$test"; done
+		echo "=== Integration Tests ==="
+		for test in t/integration/*.rakutest; do echo "==> $test" ; raku -Ilib "$test"; done
 
 		# All example tests
-		for test in t/examples/*.rakutest; do raku -Ilib "$test"; done
+		echo "=== Example Tests ==="
+		for test in t/examples/*.rakutest; do echo "==> $test" ; raku -Ilib "$test"; done
 		;;
 	check)
 #		echo "=== Run tests ==="

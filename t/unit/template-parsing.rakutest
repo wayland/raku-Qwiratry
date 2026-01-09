@@ -8,7 +8,11 @@ use Test;
 use lib 'lib';
 
 # Use main Qwiratry module - it activates the slang automatically
+# Note: Slang activation is not yet implemented (Slangify module doesn't exist)
+# So we'll test the infrastructure using Template class directly
 use Qwiratry;
+use Qwiratry::Template;
+use Qwiratry::Transformer;
 
 plan 3;
 
