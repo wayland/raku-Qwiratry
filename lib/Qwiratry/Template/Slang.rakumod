@@ -21,8 +21,10 @@ transformer bodies.
 
 =end pod
 
-unit module Qwiratry::Template::Slang;
 use	MONKEY-SEE-NO-EVAL;
+use	nqp;
+BEGIN { say "Loading Slang"; }
+say "Loading Slang 2";
 
 use Qwiratry::Template;
 
@@ -52,60 +54,96 @@ The template declarator can appear in transformer bodies and has the syntax:
   template [name] [signature] [traits] when { ... } do { ... }
 
 =end pod
-role TemplateGrammar is export {
-    =begin pod
+role Qwiratry::Template::Slang::TemplateGrammar {
+	=begin pod
 
-    Token for template declarator.
-    Matches: template [name] [signature] [traits] when { ... } do { ... }
-    
-    Uses Raku's existing grammar rules:
-    - <deflongname> for the identifier (like routine-def)
-    - <signature> for parameter lists (like routine-def)
-    - <trait> for traits (like routine-def)
-    - <block> for code blocks (like routine-def)
-    
-    Unlike routine-def which has one block, template has two:
-    - Optional 'when' block (matcher)
-    - Required 'do' block (action)
+	Token for template declarator.
+	Matches: template [name] [signature] [traits] when { ... } do { ... }
 
-    =end pod
-    token declarator:sym<template> {
-        'template' <.ws>
-        [
-            | <deflongname> <signature>? <trait>*
-            | <signature>? <trait>*
-        ]
-        [
-            'when' <.ws> <block> <.ws>
-        ]?
-        'do' <.ws> <block>
-    }
-    
-    =begin pod
+	Uses Raku's existing grammar rules:
+	- <deflongname> for the identifier (like routine-def)
+	- <signature> for parameter lists (like routine-def)
+	- <trait> for traits (like routine-def)
+	- <block> for code blocks (like routine-def)
 
-    Token for wrapper declarator.
-    Matches: wrapper TRANSFORMER { ... }
-             wrapper TEMPLATE_MATCHER { ... }
-             wrapper TEMPLATE_ACTION { ... }
-    
-    Wrapper syntax is simpler than templates - just keyword, type name, and block.
+	Unlike routine-def which has one block, template has two:
+	- Optional 'when' block (matcher)
+	- Required 'do' block (action)
 
-    =end pod
-    token declarator:sym<wrapper> {
-        'wrapper' <.ws>
-        <wrapper-type> <.ws>
-        <block>
-    }
-    
-    =begin pod
+	=end pod
+	# cf. routine-method in the grammar
+	token routine-template { template}
+	# cf. routine-declarator:sym<method> in the grammar
+	token routine-declarator:sym<template> {
+{ say "enter routing-declarator for template";}
+		<.routine-template>
+		<.end-keyword>
+		<.template-def=.key-origin('template-def', 'template')>
+	}
+	# cf. method-def in the grammar
+	token template-def($declarator) {
+{say "enter template-def";}
+		:my $*BORG := {};		# Used to track declarations
+		:my $*IN-DECL := $declarator;	# tracks what kind of declaration we're currently in
+		:my $*BLOCK;			# Will eventually hold the `do` Block object
+		# TODO: :my $*WHEN-BLOCK (and following modifications -- or might be able to avoid this because of 'when' block rewrites
+		<.enter-block-scope(nqp::tclc($declarator))>	# Creates the block and sets $*BLOCK
+		$<specials>=[<[ ! ^ ]>?]<deflongname('has')>?	# Optional name
+		{ # Checks whether it's a parse-time block (eg. BEGIN)
+			if nqp::istype($*BLOCK, self.actions.r('ParseTime')) {
+				$*BLOCK.to-parse-time($*R, $*CU.context);
+			}
+		}
+		{
+			# Declare self early for attribute parameters
+			$*R.declare-lexical($/.actions.r('VarDeclaration', 'Implicit', 'Self').new)
+		}
+		# The '1' indicates this is a method context
+		[ '(' <signature(1, :ON-ROUTINE(1))> ')' ]?
+		<trait($*BLOCK)>* :!s
+		{ if $<signature> { $*BLOCK.replace-signature($<signature>.ast); } }
+		{ $*R.create-scope-implicits(); }
+		# TODO: Set up any template magic variables that aren't already set
+		{ $*IN-DECL := ''; }
+		# TODO: compare the next part with method-def
+		'when' <block>
+		# <.blockshare($declarator, 'when')>?
+		<.blockshare($declarator, 'do')>
+		<.leave-block-scope>
+	}
 
-    Token for wrapper type identifier.
-    Matches: TRANSFORMER, TEMPLATE_MATCHER, TEMPLATE_ACTION
+	rule blockshare($declarator, $sub-declarator) {
+		$sub-declarator [
+			|| <onlystar>
+			|| <blockoid>
+		]
+	}
 
-    =end pod
-    token wrapper-type {
-        'TRANSFORMER' | 'TEMPLATE_MATCHER' | 'TEMPLATE_ACTION'
-    }
+	=begin pod
+
+	Token for wrapper declarator.
+	Matches: wrapper TRANSFORMER { ... }
+	wrapper TEMPLATE_MATCHER { ... }
+	wrapper TEMPLATE_ACTION { ... }
+
+	Wrapper syntax is simpler than templates - just keyword, type name, and block.
+
+	=end pod
+	token declarator:sym<wrapper> {
+		'wrapper' <.ws>
+		<wrapper-type> <.ws>
+		<block>
+	}
+
+	=begin pod
+
+	Token for wrapper type identifier.
+	Matches: TRANSFORMER, TEMPLATE_MATCHER, TEMPLATE_ACTION
+
+	=end pod
+	token wrapper-type {
+		'TRANSFORMER' | 'TEMPLATE_MATCHER' | 'TEMPLATE_ACTION'
+	}
 }
 
 =begin pod
@@ -116,7 +154,43 @@ The actions convert parsed template syntax into Template instances that can be
 collected by the Transformer HOW class.
 
 =end pod
-role TemplateActions is export {
+role Qwiratry::Template::Slang::TemplateActions {
+	##### The following are based on Raku's code (adjusted by Tim)
+	method routine-declarator:sym<method>($/) {
+		self.attach: $/, $<method-def>.ast;
+	}
+
+	method method-def($/) {
+		my $template := $*BLOCK;
+
+		# Handle localizations for BUILD, TWEAK, ACCEPTS, etc
+		if $template.name.simple-identifier -> $name {
+			my $sys-name := $/.system2str($name);
+			$template.replace-name(Nodify('Name').from-identifier($sys-name))
+				unless $sys-name eq $name;
+		}
+
+		if $<specials> {
+			my $specials := ~$<specials>;
+			if $specials eq '^' {
+				$template.set-meta(1);
+			}
+			elsif $specials eq '!' {
+				$template.set-private(1);
+			}
+		}
+		$template.replace-body($<onlystar>
+			?? Nodify('OnlyStar').new
+			!! $<blockoid>.ast
+		);
+		# Entering scope again to ensure implicits are attached to the method
+		$*R.enter-scope($template);
+		self.attach: $/, $template;
+		$*R.leave-scope;
+	}
+
+# The following are by AI
+
     =begin pod
 
     Delegate signature parsing to Raku's actions.
@@ -445,6 +519,7 @@ role TemplateActions is export {
     }
 }
 
+#unit module Qwiratry::Template::Slang;
 
 =begin pod
 
