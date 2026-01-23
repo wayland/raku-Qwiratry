@@ -39,9 +39,9 @@ $LANG.define_slang('MAIN',
             ?? $LANG.slang_grammar('MAIN')
             !! $LANG.slang_grammar('MAIN').^mixin($grammar<>),
             $LANG.slang_actions('MAIN')
-#          $actions<> =:= Mu
-#            ?? $LANG.slang_actions('MAIN')
-#            !! $LANG.slang_actions('MAIN').^mixin($actions<>)
+          $actions<> =:= Mu
+            ?? $LANG.slang_actions('MAIN')
+            !! $LANG.slang_actions('MAIN').^mixin($actions<>)
         );
 say "post-load";
 #}

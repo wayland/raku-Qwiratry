@@ -96,7 +96,8 @@ role Qwiratry::Template::Slang::TemplateGrammar {
 		}
 		{
 			# Declare self early for attribute parameters
-			$*R.declare-lexical($/.actions.r('VarDeclaration', 'Implicit', 'Self').new)
+			# TODO: Fix Self resolution issue - temporarily commented out
+			# $*R.declare-lexical(Nodify('VarDeclaration', 'Implicit', 'Self').new)
 		}
 		# The '1' indicates this is a method context
 		[ '(' <signature(1, :ON-ROUTINE(1))> ')' ]?
@@ -156,11 +157,11 @@ collected by the Transformer HOW class.
 =end pod
 role Qwiratry::Template::Slang::TemplateActions {
 	##### The following are based on Raku's code (adjusted by Tim)
-	method routine-declarator:sym<method>($/) {
-		self.attach: $/, $<method-def>.ast;
+	method routine-declarator:sym<template>($/) {
+		self.attach: $/, $<template-def>.ast;
 	}
 
-	method method-def($/) {
+	method template-def($/) {
 		my $template := $*BLOCK;
 
 		# Handle localizations for BUILD, TWEAK, ACCEPTS, etc
@@ -183,130 +184,13 @@ role Qwiratry::Template::Slang::TemplateActions {
 			?? Nodify('OnlyStar').new
 			!! $<blockoid>.ast
 		);
-		# Entering scope again to ensure implicits are attached to the method
+		# Entering scope again to ensure implicits are attached to the template
 		$*R.enter-scope($template);
 		self.attach: $/, $template;
 		$*R.leave-scope;
 	}
 
 # The following are by AI
-
-    =begin pod
-
-    Delegate signature parsing to Raku's actions.
-    This ensures Raku's actions process the signature and create a Signature object.
-
-    =end pod
-    method signature($/) {
-        # Call parent actions to process signature
-        # This will create a Signature object and set .made
-        callsame;
-    }
-    
-    =begin pod
-
-    Delegate trait parsing to Raku's actions.
-    This ensures Raku's actions process the trait.
-
-    =end pod
-    method trait($/) {
-        # Call parent actions to process trait
-        # This will process the trait and set .made
-        callsame;
-    }
-    
-    =begin pod
-
-    Action method for template declarator.
-    Processes the parsed template declaration and creates a Template object.
-
-    =end pod
-    method declarator:sym<template>($/) {
-        # Extract template components using Raku's existing grammar rules
-        # <deflongname> is used for the identifier (like routine-def)
-        my $name = $<deflongname> ?? $<deflongname>.Str !! Nil;
-        
-        # <signature> is already parsed by Raku's grammar and actions
-        # Raku's actions should have already created a Signature object
-        # Try to access it via .made, or fall back to parsing
-        my $signature = Nil;
-        if $<signature> {
-            # First try to get the already-parsed Signature object
-            # Raku's actions may have set .made on the signature node
-            $signature = $<signature>.made;
-            
-            # If not available, try to parse it ourselves
-            if !$signature.defined {
-                $signature = self!parse-signature($<signature>);
-            }
-        }
-        
-        # <trait> is already parsed by Raku's grammar and actions
-        # Raku's actions should have already processed traits
-        # We need to extract the trait information from the parsed nodes
-        my @traits = [];
-        if $<trait> {
-            @traits = $<trait>.map({ self!parse-trait($_) }).grep(*.defined);
-        }
-        
-        # Extract blocks - when block is first (if present), do block is last
-        # <block> is already parsed by Raku's grammar
-        my $when-block = Nil;
-        my $do-block = Nil;
-        if $<block> {
-            my @blocks = $<block>.List;
-            if @blocks.elems == 2 {
-                # First block is 'when', second is 'do'
-                $when-block = self!compile-block(@blocks[0]);
-                $do-block = self!compile-block(@blocks[1]);
-            } elsif @blocks.elems == 1 {
-                # Only 'do' block present
-                $do-block = self!compile-block(@blocks[0]);
-            }
-        }
-        
-        # Extract trait values
-        my $priority = 0;
-        my $tie-breaker = 0;
-        my $streaming = False;
-        my $returns-type = Nil;
-        
-        for @traits -> $trait {
-            if $trait<name> eq 'priority' {
-                $priority = $trait<value>.Int;
-            } elsif $trait<name> eq 'tie-breaker' {
-                $tie-breaker = $trait<value>.Int;
-            } elsif $trait<name> eq 'streaming' {
-                $streaming = True;
-            } elsif $trait<name> eq 'returns' {
-                $returns-type = self!resolve-type($trait<value>);
-            }
-        }
-        
-        # Create Template object
-        my $template = Template.new(
-            name => $name,
-            signature => $signature,
-            when-block => $when-block,
-            do-block => $do-block,
-            priority => $priority,
-            tie-breaker => $tie-breaker,
-            streaming => $streaming,
-            returns-type => $returns-type
-        );
-        
-        # Store template for collection by HOW class
-        # This will be accessed by the Transformer HOW class during compose()
-        @TEMPLATES.push($template);
-        
-        # Make the template declaration compile to a statement that does nothing at runtime
-        # The template is already registered in @TEMPLATES during compilation
-        # We create a simple statement that evaluates to Nil
-        # In Raku actions, we can use make to set what the rule produces
-        # For a declarator, we typically don't need to produce anything
-        # The template registration happens at compile time via @TEMPLATES
-        make Nil;
-    }
     
     =begin pod
 

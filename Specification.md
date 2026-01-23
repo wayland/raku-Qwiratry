@@ -1150,4 +1150,34 @@ These three are all from Arabic قِيرَاط (qīrāṭ, “husk”), from Anc
 
 From Ancient Greek carob seeds to Arabic units of weight and Catalan carats, the etymology mirrors the idea of measuring, traversing, and transforming data.
 
+# Appendix B: Raku Compilation Phases with RakuAST
 
+The items below are according to AI.  
+
+* Parsing Phase (--target=parse)
+	* Lexical analysis and tokenization
+	* Grammar parsing into a parse tree
+	* BEGIN blocks execute during this phase
+	* This is why you see "Loading Slang" with --target=parse
+AST Generation Phase (--target=ast)
+	* Parse tree → RakuAST
+	* Actions fire during this phase
+	* Semantic analysis begins
+	* Type resolution and symbol table building
+	* CHECK blocks execute after AST generation
+Optimization Phase (--target=optimize)
+	* AST optimizations
+	* Constant folding, dead code elimination, etc.
+Code Generation Phase (--target=mbc or default)
+	* RakuAST → MoarVM bytecode
+	* Final type checking and resolution
+	* INIT blocks execute before main execution
+	* START blocks execute at program start
+start
+parse
+syntaxcheck
+ast
+optimize
+mast
+mbc
+moar
