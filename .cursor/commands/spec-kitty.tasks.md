@@ -1,9 +1,9 @@
 ---
 description: Generate grouped work packages with actionable subtasks and matching prompt files for the feature in one pass.
+scripts:
+  sh: scripts/bash/check-prerequisites.sh --json --include-tasks
+  ps: scripts/powershell/check-prerequisites.ps1 -Json -IncludeTasks
 ---
-
-*Path: [.kittify/templates/commands/tasks.md](.kittify/templates/commands/tasks.md)*
-
 
 ## User Input
 
@@ -33,14 +33,11 @@ If you're on the `main` branch:
 3. Verify you're in the right place: `git branch --show-current` should show the feature branch
 4. Then re-run this command
 
-The script will fail if you're not in a feature worktree.
-**Path reference rule:** When you mention directories or files, provide either the absolute path or a path relative to the project root (for example, `kitty-specs/<feature>/tasks/`). Never refer to a folder by name alone.
-
-This is intentional - worktrees provide isolation for parallel feature development.
+The script will fail if you're not in a feature worktree. This is intentional - worktrees provide isolation for parallel feature development.
 
 ## Outline
 
-1. **Setup**: Run `.kittify/scripts/bash/check-prerequisites.sh --json --include-tasks` from repo root and capture `FEATURE_DIR` plus `AVAILABLE_DOCS`. All paths must be absolute.
+1. **Setup**: Run `{SCRIPT}` from repo root and capture `FEATURE_DIR` plus `AVAILABLE_DOCS`. All paths must be absolute.
 
    **CRITICAL**: The script returns JSON with `FEATURE_DIR` as an ABSOLUTE path (e.g., `/Users/robert/Code/new_specify/kitty-specs/001-feature-name`).
 
@@ -107,7 +104,7 @@ This is intentional - worktrees provide isolation for parallel feature developme
   - Prompt generation stats (files written, directory structure, any skipped items with rationale)
    - Next suggested command (e.g., `/spec-kitty.analyze` or `/spec-kitty.implement`)
 
-Context for work-package planning: $ARGUMENTS
+Context for work-package planning: {ARGS}
 
 The combination of `tasks.md` and the bundled prompt files must enable a new engineer to pick up any work package and deliver it end-to-end without further specification spelunking.
 

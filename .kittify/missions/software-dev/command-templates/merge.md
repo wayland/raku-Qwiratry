@@ -1,9 +1,5 @@
 ---
 description: Merge a completed feature into the main branch and clean up worktree
-scripts:
-  sh: ".kittify/scripts/bash/merge-feature.sh"
-  ps: ".kittify/scripts/powershell/Merge-Feature.ps1"
----
 
 # Merge Feature Branch
 
@@ -14,7 +10,7 @@ This command merges a completed feature branch into the main/target branch and h
 Before running this command:
 
 1. ✅ Feature must pass `/spec-kitty.accept` checks
-2. ✅ All work packages must be in `tasks/done/`
+2. ✅ All work packages must be in `tasks/`
 3. ✅ Working directory must be clean (no uncommitted changes)
 4. ✅ You must be on the feature branch (or in its worktree)
 
@@ -23,14 +19,6 @@ Before running this command:
 Before merging, verify you are in the correct working directory by running the shared pre-flight validation:
 
 ```python
-from specify_cli.guards import validate_worktree_location
-
-# Validate location
-result = validate_worktree_location()
-if not result.is_valid:
-    print(result.format_error())
-    print("\nThis command MUST run from a feature worktree, not the main repository.")
-    exit(1)
 ```
 
 **What this validates**:

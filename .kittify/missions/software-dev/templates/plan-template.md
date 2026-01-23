@@ -22,26 +22,21 @@ The planner will not begin until all planning questions have been answered—cap
   Organization" section below showing the dependency graph and agent assignments.
 -->
 
-**Language/Version**: Raku 6.e (with RakuAST)
-**Primary Dependencies**: N/A
-**Storage**: N/A
-**Testing**: The built-in Test module
-**Target Platform**: Everything that Raku targets
-**Project Type**: Raku module for use by other modules
-**Performance Goals**: None yet
-**Constraints**: N/A
-**Scale/Scope**: N/A
+**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]
+**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]
+**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]
+**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]
+**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
+**Project Type**: [single/web/mobile - determines source structure]
+**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]
+**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]
+**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-- **Tests-first**: List the automated tests that will be written before code (unit + integration/contract where boundaries exist).
-- **Data contracts**: Identify schemas/validation at each boundary; note compatibility or migration needs.
-- **CLI and observability**: Define the CLI entry point, expected text/JSON outputs, and required logs/metrics/traces.
-- **Security/privacy**: Call out authZ/authN, secrets handling, dependency health checks, and any data minimization requirements.
-- **Simplicity/operability**: State how scope is sliced into small, reversible increments and what runbooks/rollbacks are needed.
-- Flag any exceptions with explicit rationale and compensating controls; unresolved items block progression.
+[Gates determined based on constitution file]
 
 ## Project Structure
 
