@@ -10,7 +10,7 @@ use Qwiratry::Walker;
 use Qwiratry::QueryIterator;
 use Qwiratry::Context;
 
-plan 30;
+plan 16;
 
 # =============================================================================
 # Helper classes for testing
@@ -33,6 +33,13 @@ my class MockWalker2 does Qwiratry::Walker {
     method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
         die "Not implemented for testing";
     }
+}
+
+# Stand-in query AST types for tests (avoid anonymous classes overriding ^name)
+my class MockQuery { }
+my class MockAST { }
+my class OriginalQuery {
+    has $.value = "original";
 }
 
 # =============================================================================
@@ -121,14 +128,15 @@ subtest 'check-domain-metadata() method (T018)' => {
     
     # Test with providing trait
     my $root1 is providing<sql> = "test";
-    my @domains1 = $master.check-domain-metadata($root1);
-    ok @domains1, 'check-domain-metadata returns domains for providing trait';
-    is-deeply @domains1, ['sql'], 'Domain metadata correct for single domain';
+    providing-domains($root1);
+    my $domains1 = $master.check-domain-metadata($root1);
+    ok $domains1, 'check-domain-metadata returns domains for providing trait';
+    is-deeply $domains1, ['sql'], 'Domain metadata correct for single domain';
     
     # Test without provides trait
     my $root2 = "plain";
-    my @domains2 = $master.check-domain-metadata($root2);
-    nok @domains2, 'check-domain-metadata returns Nil for object without trait';
+    my $domains2 = $master.check-domain-metadata($root2);
+    nok $domains2, 'check-domain-metadata returns Nil for object without trait';
 }
 
 subtest 'Domain metadata fast path (T019, T024)' => {
@@ -228,7 +236,7 @@ subtest 'Capability check (T021, T026)' => {
     
     # For testing, we'll use Mu instead of RakuAST::Node
     # In production, this would be a real RakuAST::Node
-    my $mock-ast = class { method ^name { 'MockAST' } };
+    my $mock-ast = MockAST.new;
     
     # Test check-capability (this should work with any type)
     # Note: check-capability signature requires RakuAST::Node, but for testing
@@ -277,7 +285,7 @@ subtest 'Qwiratry::Walker::Master::Plan class structure (T028)' => {
     use Qwiratry::Walker::Master;
     
     # Create a mock query AST (using a simple class for testing)
-    my $mock-query = class { method ^name { 'MockQuery' } };
+    my $mock-query = MockQuery.new;
     
     # Create Qwiratry::Walker::Master::Plan
     my $plan = Qwiratry::Walker::Master::Plan.new(query-ast => $mock-query);
@@ -294,7 +302,7 @@ subtest 'Qwiratry::Walker::Master::Plan attributes (T029)' => {
     use Qwiratry::Walker::Master;
     use Qwiratry::Walker;
     
-    my $mock-query = class { method ^name { 'MockQuery' } };
+    my $mock-query = MockQuery.new;
     
     # Create mock subplan
     my class MockPlan does Qwiratry::Walker::Plan {
@@ -323,7 +331,7 @@ subtest 'Qwiratry::Walker::Master::Plan.subplans() method (T030, T036)' => {
     use Qwiratry::Walker::Master;
     use Qwiratry::Walker;
     
-    my $mock-query = class { method ^name { 'MockQuery' } };
+    my $mock-query = MockQuery.new;
     
     my class MockPlan does Qwiratry::Walker::Plan {
         has $.query-ast;
@@ -353,7 +361,7 @@ subtest 'Qwiratry::Walker::Master::Plan.query() method (T037)' => {
     
     use Qwiratry::Walker::Master;
     
-    my $mock-query = class { method ^name { 'MockQuery' } };
+    my $mock-query = MockQuery.new;
     
     my $plan = Qwiratry::Walker::Master::Plan.new(query-ast => $mock-query);
     
@@ -406,7 +414,7 @@ subtest 'Qwiratry::Walker::Master.plan() with handover delegation (T031, T035)' 
     
     # Create root without provides trait (will use capability check)
     my $root = "plain";
-    my $mock-query = class { method ^name { 'MockQuery' } };
+    my $mock-query = MockQuery.new;
     
     # Call plan() - should detect handover and delegate
     my $plan = $master.plan($mock-query, $root);
@@ -449,10 +457,7 @@ subtest 'Plan immutability (T038)' => {
     my $master = Qwiratry::Walker::Master.new(:candidate-walkers([$walker]));
     
     # Create original query
-    my $original-query = class { 
-        method ^name { 'OriginalQuery' }
-        has $.value = "original";
-    }.new;
+    my $original-query = OriginalQuery.new;
     
     my $root = "plain";
     

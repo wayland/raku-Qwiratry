@@ -259,10 +259,8 @@ class Qwiratry::Walker::Master does Qwiratry::Walker {
     
     # Check "providing" trait on root object, return domain names or Nil.
     # Uses providing-domains() from Qwiratry::Walker::Providing to extract domain metadata.
-    method check-domain-metadata(Mu $root --> Array) {
-        my @domains = providing-domains($root);
-        return @domains if @domains;
-        return Nil;
+    method check-domain-metadata($root is raw --> Array) {
+        cached-providing-domains($root);
     }
     
     # Query walker about capability via supports() method.
@@ -285,6 +283,8 @@ class Qwiratry::Walker::Master does Qwiratry::Walker {
         
         # For each domain, try to find a walker that supports it
         for @$domains -> $domain {
+            my $domain-name = ~$domain;
+            next unless $domain-name.chars;
             for @candidates -> $walker {
                 # Check if walker has domain support method (if available)
                 if $walker.^can('supports-domain') {
@@ -295,7 +295,7 @@ class Qwiratry::Walker::Master does Qwiratry::Walker {
                     # Fallback heuristic: check if walker type name contains domain
                     # This is a simple heuristic for MVP - can be enhanced later
                     my $walker-name = $walker.^name.lc;
-                    if $walker-name.contains($domain.lc) {
+                    if $walker-name.contains($domain-name.lc) {
                         return $walker;
                     }
                 }
@@ -347,14 +347,15 @@ class Qwiratry::Walker::Master does Qwiratry::Walker {
     Handles edge cases: no walker found, multiple walkers, walker declines.
 
     =end pod
-    method detect-handover(Mu $subtree, Mu $root) {
+    method detect-handover(Mu $subtree, $root is raw) {
         my @candidates = self.candidate-walkers();
         my @tried-walkers = Array.new;
         my @failure-reasons = Array.new;
         
         # Step 1: Check domain metadata (fast path)
-        my @domains = self.check-domain-metadata($root);
-        if @domains {
+        my $domains = self.check-domain-metadata($root);
+        if $domains.defined {
+            my @domains = $domains;
             my $walker = self.find-walker-by-domain(@domains);
             if $walker {
                 return $walker;
@@ -447,7 +448,7 @@ class Qwiratry::Walker::Master does Qwiratry::Walker {
     Detects handovers, delegates planning, and embeds subplans in Qwiratry::Walker::Master::Plan.
 
     =end pod
-    method plan(Mu $query, Mu $root --> Qwiratry::Walker::Plan) {
+    method plan(Mu $query, $root is raw --> Qwiratry::Walker::Plan) {
         # Detect if handover is needed
         my $walker = self.detect-handover($query, $root);
         
