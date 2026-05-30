@@ -126,36 +126,52 @@ class Qwiratry::Walker::Factory {
     @returns Array[Qwiratry::Walker] - Array of discovered Walker type objects (not instances)
 
     =end pod
-    method discover-walkers(:@paths = ['lib'], Bool :$refresh = False --> Array) {
+    method !extract-walker-types(@raw --> Array) {
+        my @found;
+        for @raw -> $item {
+            next unless $item ~~ Associative;
+            for $item.keys -> $name {
+                my $value = $item{$name};
+                next if $value ~~ Exception;
+                try {
+                    my $type = ::($name);
+                    @found.push($type) if $type.does(Qwiratry::Walker);
+                }
+            }
+        }
+        return @found;
+    }
+
+    method discover-walkers(:@paths = ['lib'], Bool :$refresh = False) {
         # Return cached result if discovery already performed and refresh not requested
         if $!discovery-performed && !$refresh {
             return @!discovered-walkers;
         }
-        
-        {
-            # Use Implementation::Loader to discover classes matching pattern
-            # Pattern: Qwiratry::Walker::Implementation::* in specified directories
+
+        my @search-paths = @paths;
+        @search-paths.push('lib') unless @search-paths.grep(* eq 'lib');
+
+        try {
             my $discoverer = Implementation::Loader.new;
-            
-            # load-module-pattern accepts :globs and :paths as arrays
-            # It will search all paths for classes matching the glob pattern
-            # Cache results
-            @!discovered-walkers = $discoverer.load-module-pattern(
-                :globs(['Qwiratry::Walker::Implementation::*']),
-                :paths(@paths)
+            my @raw = $discoverer.load-module-pattern(
+                :globs([
+                    'Qwiratry::Walker::Implementation::*',
+                    'Qwiratry::Walker::Test*',
+                ]),
+                :paths(@search-paths)
             );
+            @!discovered-walkers = self!extract-walker-types(@raw);
             $!discovery-performed = True;
-            CATCH {
-                default {
-                    # Implementation::Loader API error or incompatible version
-                    X::Qwiratry::Walker.new(
-                        message => "Implementation::Loader discovery failed. Version 0.0.7 or higher is required. Error: {.message}",
-                        walker-type => 'Qwiratry::Walker::Factory'
-                    ).throw;
-                }
+        }
+        CATCH {
+            default {
+                X::Qwiratry::Walker.new(
+                    message => "Implementation::Loader discovery failed. Version 0.0.7 or higher is required. Error: {.message}",
+                    walker-type => 'Qwiratry::Walker::Factory'
+                ).throw;
             }
         }
-        
+
         return @!discovered-walkers;
     }
 }

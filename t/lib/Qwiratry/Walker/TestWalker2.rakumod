@@ -6,12 +6,11 @@ This is a minimal Walker implementation used solely for testing
 the Qwiratry::Walker::Factory discovery mechanism with multiple walkers.
 
 =end pod
-unit class Qwiratry::Walker::TestWalker2;
 
 use Qwiratry::Walker;
 use Qwiratry::QueryIterator;
 
-does Qwiratry::Walker;
+unit class Qwiratry::Walker::TestWalker2 does Qwiratry::Walker;
 
 method plan($query, $root --> Qwiratry::Walker::Plan) {
     die "TestWalker2.plan() not implemented for testing";
@@ -20,4 +19,3 @@ method plan($query, $root --> Qwiratry::Walker::Plan) {
 method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
     die "TestWalker2.iterator() not implemented for testing";
 }
-

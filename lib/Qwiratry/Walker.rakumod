@@ -70,7 +70,7 @@ role Qwiratry::Walker::Plan {
     @returns RakuAST::Node - The Query AST
 
     =end pod
-    method query(--> RakuAST::Node) { ... }
+    method query(--> Mu) { ... }
     
     =begin pod
 
@@ -219,7 +219,7 @@ role Qwiratry::Walker does Iterable {
     @throws X::Qwiratry::UnknownQueryElement if query cannot be interpreted
 
     =end pod
-    method plan(RakuAST::Node $query, Mu:D $root --> Qwiratry::Walker::Plan) { ... }
+    method plan(Mu $query, Mu:D $root --> Qwiratry::Walker::Plan) { ... }
     
     =begin pod
 
@@ -249,7 +249,7 @@ role Qwiratry::Walker does Iterable {
     @returns QueryIterator - Ready to produce results
 
     =end pod
-    method start(RakuAST::Node $query, Mu:D $root --> QueryIterator) {
+    method start(Mu $query, Mu:D $root --> QueryIterator) {
         self.iterator(self.plan($query, $root))
     }
     
@@ -321,7 +321,7 @@ role Qwiratry::Walker does Iterable {
     @returns Bool - True if walker can interpret query
 
     =end pod
-    method supports(RakuAST::Node $query --> Bool) {
+    method supports(Mu $query --> Bool) {
         # Default: conservative - assume cannot support
         False
     }

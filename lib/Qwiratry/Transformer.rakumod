@@ -249,10 +249,10 @@ class MetamodelX::TransformerHOW is Metamodel::ClassHOW {
 =begin pod
 
 Export transformer declarator via EXPORTHOW::DECLARE
-Using global package (not lexical) so declarator is available globally
+Using my package so declarator is merged into callers during `use`
 
 =end pod
-package EXPORTHOW {
+my package EXPORTHOW {
 	package DECLARE {
 		# Use custom TransformerHOW class to process transformer body
 		constant transformer = MetamodelX::TransformerHOW;

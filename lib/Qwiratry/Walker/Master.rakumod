@@ -42,7 +42,7 @@ Example:
 =end pod
 class Qwiratry::Walker::Master::Plan does Qwiratry::Walker::Plan {
     # Original query AST (composite query, not modified)
-    has RakuAST::Node $.query-ast is required;
+    has Mu $.query-ast is required;
     
     # Embedded subplans from delegated walkers
     has @.subplans;
@@ -62,7 +62,7 @@ class Qwiratry::Walker::Master::Plan does Qwiratry::Walker::Plan {
     }
     
     # Return original query AST (not modified)
-    method query(--> RakuAST::Node) {
+    method query(--> Mu) {
         return $!query-ast;
     }
     
@@ -267,7 +267,7 @@ class Qwiratry::Walker::Master does Qwiratry::Walker {
     
     # Query walker about capability via supports() method.
     # Returns True if walker supports the subtree, False otherwise.
-    method check-capability(RakuAST::Node $subtree, Qwiratry::Walker $walker --> Bool) {
+    method check-capability(Mu $subtree, Qwiratry::Walker $walker --> Bool) {
         # Check if walker has supports() method and call it
         if $walker.^can('supports') {
             return $walker.supports($subtree);
@@ -314,7 +314,7 @@ class Qwiratry::Walker::Master does Qwiratry::Walker {
     Returns Qwiratry::Walker if pattern matches, Nil otherwise.
 
     =end pod
-    method check-ast-pattern(RakuAST::Node $subtree) {
+    method check-ast-pattern(Mu $subtree) {
         # For MVP, this is optional and not implemented
         # Can be enhanced later to recognize specific AST patterns
         # (e.g., SQL SELECT patterns, JSON path expressions, etc.)
@@ -330,7 +330,7 @@ class Qwiratry::Walker::Master does Qwiratry::Walker {
     Returns Qwiratry::Walker if heuristic matches, Nil otherwise.
 
     =end pod
-    method check-heuristic(RakuAST::Node $subtree) {
+    method check-heuristic(Mu $subtree) {
         # For MVP, this is optional and not implemented
         # Can be enhanced later with heuristics based on:
         # - Node type (RakuAST::Node.^name)
@@ -347,7 +347,7 @@ class Qwiratry::Walker::Master does Qwiratry::Walker {
     Handles edge cases: no walker found, multiple walkers, walker declines.
 
     =end pod
-    method detect-handover(RakuAST::Node $subtree, Mu $root) {
+    method detect-handover(Mu $subtree, Mu $root) {
         my @candidates = self.candidate-walkers();
         my @tried-walkers = Array.new;
         my @failure-reasons = Array.new;
@@ -403,7 +403,7 @@ class Qwiratry::Walker::Master does Qwiratry::Walker {
     
     # Extract AST subtree from query for delegation.
     # For MVP, delegates entire query. Subtree extraction can be enhanced later.
-    method extract-subtree(RakuAST::Node $query --> RakuAST::Node) {
+    method extract-subtree(Mu $query --> Mu) {
         # For MVP, return entire query as subtree
         # This can be enhanced later to extract specific subtrees
         return $query;
@@ -416,7 +416,7 @@ class Qwiratry::Walker::Master does Qwiratry::Walker {
     Handles edge case T052: walker accepts via supports() but declines during planning.
 
     =end pod
-    method delegate-planning(Qwiratry::Walker $walker, RakuAST::Node $subtree, Mu $root --> Qwiratry::Walker::Plan) {
+    method delegate-planning(Qwiratry::Walker $walker, Mu $subtree, Mu $root --> Qwiratry::Walker::Plan) {
         {
             return $walker.plan($subtree, $root);
             CATCH {
@@ -447,7 +447,7 @@ class Qwiratry::Walker::Master does Qwiratry::Walker {
     Detects handovers, delegates planning, and embeds subplans in Qwiratry::Walker::Master::Plan.
 
     =end pod
-    method plan(RakuAST::Node $query, Mu $root --> Qwiratry::Walker::Plan) {
+    method plan(Mu $query, Mu $root --> Qwiratry::Walker::Plan) {
         # Detect if handover is needed
         my $walker = self.detect-handover($query, $root);
         

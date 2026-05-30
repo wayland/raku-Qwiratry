@@ -7,6 +7,7 @@ Tests Transformer declarator, class structure, and basic behavior
 use Test;
 use lib 'lib';
 
+use Qwiratry::TemplateSlangActivate;
 use Qwiratry::Transformer;
 
 plan 7; # Updated to include new template parsing tests
@@ -62,7 +63,7 @@ subtest "Transformer declarator - basic declaration" => {
     plan 3;
     
     # Declare a transformer
-    transformer MyTestTransform is Transformer { }
+    transformer MyTestTransform { }
     
     # Verify it creates a class
     ok MyTestTransform.^name eq 'MyTestTransform', "Transformer creates class with correct name";
@@ -77,7 +78,7 @@ subtest "Transformer declarator - basic declaration" => {
 subtest "Transformer callable behavior" => {
     plan 2;
     
-    transformer MyCallableTransform is Transformer { }
+    transformer MyCallableTransform { }
     
     my $t = MyCallableTransform.new;
     ok $t ~~ Transformer, "Transformer can be instantiated";

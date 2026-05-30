@@ -95,51 +95,16 @@ sub providing-domains(Mu $obj) is export {
         return $result if $result;
     }
     
-    # If direct lookup fails, try to find metadata by checking all entries
-    # This handles the case where metadata was stored by Variable declarand identity
-    # and we're looking it up by container identity
-    # 
-    # Since Variable declarand WHICH != Scalar container WHICH, we use a heuristic:
-    # If there's only one entry in the registry, it's likely the one we want.
-    # This works for the common case of a single variable with the trait.
-    # For multiple variables, we return the first match (which may not be perfect,
-    # but is better than nothing). A more robust solution would require storing
-    # metadata on the variable's meta-object or using a different key mechanism.
-    if %PROVIDING-METADATA.elems == 1 {
-        my $stored-value = %PROVIDING-METADATA.values[0];
-        if $stored-value {
-            # Ensure we return an Array[Str], flattening if needed
-            if $stored-value ~~ Positional {
-                return $stored-value.flat.Array;
-            }
-            return $stored-value;
-        }
-    } elsif %PROVIDING-METADATA.elems > 1 {
-        # Multiple entries - return the last one as a heuristic
-        # This assumes the most recently added entry is the one we want
-        # (which works when variables are declared in sequence)
-        # This is not perfect but works for most cases
-        my $stored-value = %PROVIDING-METADATA.values[*-1];
-        if $stored-value {
-            if $stored-value ~~ Positional {
-                return $stored-value.flat.Array;
-            }
-            return $stored-value;
-        }
-    }
-    
-    # Also check via .^traits introspection as fallback
-    # This allows discovery even if registry lookup fails
+    # If direct lookup fails, do not guess from unrelated registry entries.
+    # Fall back to trait introspection on the object itself.
     try {
         my @traits = $obj.^traits;
         for @traits -> $trait {
             if $trait.^name eq 'providing' {
-                # Extract domain names from trait
-                # This is a fallback mechanism
                 return $trait.arguments.map(*.Str).Array;
             }
         }
     }
-    
+
     Nil
 }
