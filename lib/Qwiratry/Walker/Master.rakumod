@@ -143,7 +143,7 @@ class Qwiratry::Walker::Master::Iterator does QueryIterator {
             my @subplan-results = Array.new;
             loop {
                 my $result = $subplan-iter.pull-one();
-                last if $result === IterationEnd;
+                last if $result ~~ IterationEnd;
                 @subplan-results.push($result);
             }
             

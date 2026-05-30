@@ -125,7 +125,7 @@ subtest 'Basic plan → iterator → results flow' => {
     my @results;
     loop {
         my $val = $iter.pull-one;
-        last if $val =:= IterationEnd;
+        last if $val ~~ IterationEnd;
         @results.push($val);
     }
     
@@ -206,7 +206,7 @@ subtest 'start() convenience method works end-to-end' => {
     my @results;
     loop {
         my $val = $iter.pull-one;
-        last if $val =:= IterationEnd;
+        last if $val ~~ IterationEnd;
         @results.push($val);
     }
     

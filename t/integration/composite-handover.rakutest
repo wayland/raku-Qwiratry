@@ -98,7 +98,7 @@ subtest 'Composite execution with single subplan (T040, T044)' => {
     
     loop {
         my $result = $iter.pull-one();
-        last if $result === IterationEnd;
+        last if $result ~~ IterationEnd;
         @results.push($result);
     }
     
@@ -126,7 +126,7 @@ subtest 'Composite execution with multiple subplans (T040, T044)' => {
     
     loop {
         my $result = $iter.pull-one();
-        last if $result === IterationEnd;
+        last if $result ~~ IterationEnd;
         @results.push($result);
     }
     
@@ -156,7 +156,7 @@ subtest 'Execution ordering (T041, T045)' => {
     my @results1;
     loop {
         my $result = $iter1.pull-one();
-        last if $result === IterationEnd;
+        last if $result ~~ IterationEnd;
         @results1.push($result);
     }
     
@@ -173,7 +173,7 @@ subtest 'Execution ordering (T041, T045)' => {
     my @results2;
     loop {
         my $result = $iter2.pull-one();
-        last if $result === IterationEnd;
+        last if $result ~~ IterationEnd;
         @results2.push($result);
     }
     
@@ -202,7 +202,7 @@ subtest 'Data flow materialization (T042, T046)' => {
     my @results;
     loop {
         my $result = $iter.pull-one();
-        last if $result === IterationEnd;
+        last if $result ~~ IterationEnd;
         @results.push($result);
     }
     
@@ -230,7 +230,7 @@ subtest 'Result combination (T043)' => {
     my @results;
     loop {
         my $result = $iter.pull-one();
-        last if $result === IterationEnd;
+        last if $result ~~ IterationEnd;
         @results.push($result);
     }
     
@@ -482,7 +482,7 @@ subtest 'End-to-end multi-domain query planning and execution (T055)' => {
     my @results;
     loop {
         my $result = $iter.pull-one();
-        last if $result === IterationEnd;
+        last if $result ~~ IterationEnd;
         @results.push($result);
     }
     
@@ -539,7 +539,7 @@ subtest 'Composite execution with different walkers (T056)' => {
     my @results;
     loop {
         my $result = $iter.pull-one();
-        last if $result === IterationEnd;
+        last if $result ~~ IterationEnd;
         @results.push($result);
     }
     
