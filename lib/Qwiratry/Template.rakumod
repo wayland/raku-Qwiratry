@@ -138,14 +138,18 @@ class Template is export {
         # Pass $node as topic ($_) to the block
         # Coerce result to Bool and handle errors
         {
-            my $result = $!when-block($node);
-            # Coerce to Bool: truthy values become True, falsy become False
+            my $result = self!invoke-block($!when-block, $node);
             return ?$result;
             CATCH {
-                # T024: Handle errors gracefully - return False if evaluation fails
                 return False;
             }
         }
+    }
+
+    method !invoke-block(Block $block, $node) {
+        $block.arity == 0
+            ?? do with $node { $block() }
+            !! $block($node);
     }
     
     =begin pod
@@ -194,14 +198,18 @@ class Template is export {
         # T025: Execute do block and handle results
         # Pass $node as topic ($_) to the block
         # Support both make and return value patterns
-        my $result = $!do-block($node);
+        my $result = self!invoke-block($!do-block, $node);
         
         # T050: Execute WRAP_TEMPLATE_ACTION wrapper around template action execution
         # The wrapper receives node and action result, can modify action result or perform side effects
         # Wrappers are called as submethods on the transformer, which automatically traverse the hierarchy via MRO
-        if $transformer.defined && $transformer.^find_method('WRAP_TEMPLATE_ACTION', :no_fallback) {
-            # Call wrapper submethod - it will traverse hierarchy and execute all wrappers
-            $result = $transformer.WRAP_TEMPLATE_ACTION($node, $result);
+        if $transformer.defined {
+            try {
+                $result = $transformer.WRAP_TEMPLATE_ACTION($node, $result);
+                CATCH {
+                    when X::Method::NotFound { }
+                }
+            }
         }
         
         # T053: Check returns(Type) trait if present on template

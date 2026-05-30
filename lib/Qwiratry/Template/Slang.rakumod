@@ -49,6 +49,10 @@ sub register-template(Template $template) is export {
     @TEMPLATES.push($template);
 }
 
+sub register-wrapper(Str $type, Block $block) is export {
+    @WRAPPERS.push(%(type => $type, block => $block));
+}
+
 =begin pod
 
 Get templates collected by the slang.
