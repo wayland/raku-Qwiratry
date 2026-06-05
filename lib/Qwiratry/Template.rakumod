@@ -146,10 +146,9 @@ class Template is export {
         }
     }
 
-    method !invoke-block(Block $block, $node) {
-        $block.arity == 0
-            ?? do with $node { $block() }
-            !! $block($node);
+    method !invoke-block($block, $node) {
+        return $block($node) if $block.arity == 1;
+        return do with $node { $block() };
     }
     
     =begin pod
@@ -213,14 +212,13 @@ class Template is export {
         }
         
         # T053: Check returns(Type) trait if present on template
-        if $!returns-type.defined {
-            # Check if result conforms to the specified type
+        if $!returns-type.WHICH ne Mu.WHICH {
             unless $result ~~ $!returns-type {
-                die X::Qwiratry::TypeCheck.new(
+                X::Qwiratry::TypeCheck.new(
                     expected => $!returns-type,
                     got => $result.WHAT,
                     message => "Template result does not match returns type constraint"
-                );
+                ).throw;
             }
         }
         

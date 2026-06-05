@@ -160,7 +160,7 @@ class Qwiratry::Walker::Factory {
                 ]),
                 :paths(@search-paths)
             );
-            @!discovered-walkers = self!extract-walker-types(@raw);
+            @!discovered-walkers = self!extract-walker-types(@raw).sort(*.^name);
             $!discovery-performed = True;
         }
         CATCH {

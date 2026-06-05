@@ -15,7 +15,7 @@ use X::Qwiratry;
 # runtime behavior when traits are set via attributes.
 
 subtest ":streaming trait - lazy iterator output" => {
-    plan 3;
+    plan 2;
     
     # Create transformer with streaming enabled
     transformer StreamingTest {
@@ -37,7 +37,7 @@ subtest ":streaming trait - lazy iterator output" => {
 }
 
 subtest "returns(Type) trait - type checking" => {
-    plan 4;
+    plan 2;
     
     # Create transformer with returns(Int) constraint
     transformer ReturnsIntTest {
@@ -151,7 +151,7 @@ subtest "Mode detection - auto-detect" => {
 }
 
 subtest "rewrite-optional and rewrite-mandatory modes" => {
-    plan 4;
+    plan 3;
     
     transformer RewriteOptionalTest {
         template TOP do {

@@ -86,7 +86,8 @@ subtest 'Qwiratry::Walker::Factory.discover-walkers() - Refresh parameter (T017)
     ok @refreshed ~~ Array, 'Refresh returns Array';
     
     # Results should be same (no new classes added)
-    is-deeply @refreshed, @first, 'Refresh returns same results (no new classes)';
+    is-deeply @refreshed.map(*.^name), @first.map(*.^name),
+        'Refresh returns same results (no new classes)';
     
     # After refresh, subsequent call should use updated cache
     my @after-refresh = $factory.discover-walkers(:paths(['t/lib']));
@@ -180,7 +181,7 @@ subtest 'Qwiratry::Walker::Factory.discover-walkers() - Error handling incompati
 }
 
 subtest 'Qwiratry::Walker::Factory.discover-walkers() - Integration test (T021)' => {
-    plan 4;
+    plan 5;
     
     my $factory = Qwiratry::Walker::Factory.new;
     my @walkers = $factory.discover-walkers(:paths(['t/lib']));

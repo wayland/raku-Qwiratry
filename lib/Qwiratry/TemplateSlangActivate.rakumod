@@ -15,6 +15,17 @@ sub compile-invokable(Mu $cap) {
     { @_[0] }
 }
 
+sub implicit-template-signature() {
+    RakuAST::Signature.new(
+        parameters => (
+            RakuAST::Parameter.new(
+                target => RakuAST::ParameterTarget::Var.new(name => '$_'),
+                optional => False,
+            ),
+        ),
+    );
+}
+
 sub apply-template-traits(Template $template, $routine) {
     return unless $routine.traits.defined;
     for $routine.traits -> $trait {
@@ -94,13 +105,24 @@ role TemplateActions {
         if $name.defined {
             $routine.replace-name(RakuAST::Name.from-identifier("_q_tpl_$name"));
         }
+        unless $<signature>.defined {
+            $routine.replace-signature(implicit-template-signature());
+        }
         $routine.replace-body($<do-block>.ast);
         self.attach: $/, $routine;
 
         my $do-block = try $routine.meta-object // compile-invokable($<do-block>);
-        my $when-block = $<when-block>.defined
-            ?? compile-invokable($<when-block>)
-            !! Nil;
+        my $when-block;
+        if $<when-block>.defined {
+            my $when-routine := RakuAST::Sub.new(
+                :signature(implicit-template-signature()),
+                body => RakuAST::Blockoid.new($<when-block>.ast),
+            );
+            $when-block = try $when-routine.compile-time-value // compile-invokable($<when-block>);
+        }
+        else {
+            $when-block = Nil;
+        }
 
         my $template = Template.new(:$name, :$signature, :$when-block, :$do-block);
         apply-template-traits($template, $routine);

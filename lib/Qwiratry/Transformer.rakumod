@@ -100,13 +100,13 @@ class Transformer is export {
     has @.wrappers;
     
     # T052: Whether transformer has :streaming trait
-    has Bool $.streaming = False;
+    has Bool $.streaming is rw = False;
     
     # T053: Output type constraint (from returns(Type) trait)
-    has Mu $.returns-type;
+    has Mu $.returns-type is rw;
     
     # T054: Whether transformer can mutate input (from does TreeRewrite)
-    has Bool $.mutates-input = False;
+    has Bool $.mutates-input is rw = False;
     
     # Transformation mode (pre, inline, post, default, rewrite-optional, rewrite-mandatory)
     has Str $.mode = 'default';
@@ -161,7 +161,17 @@ class Transformer is export {
                 # First match wins - execute template and return result
                 # Pass self as transformer for self reference
                 # T050: WRAP_TEMPLATE_ACTION is called inside Template.execute()
-                return $template.execute($node, :transformer(self));
+                my $result = $template.execute($node, :transformer(self));
+                if $!returns-type.WHICH ne Mu.WHICH && $result.defined {
+                    unless $result ~~ $.returns-type {
+                        X::Qwiratry::TypeCheck.new(
+                            expected => $.returns-type,
+                            got => $result.WHAT,
+                            message => "Transformer '{self.^name}' has returns({$.returns-type.^name}) trait but result is of type {$result.WHAT.^name}. Ensure templates return values conforming to the specified type."
+                        ).throw;
+                    }
+                }
+                return $result;
             }
         }
         
@@ -324,6 +334,18 @@ class Transformer is export {
         for $iter -> $node {
             my $result = self.APPLY($node);
             if $result.defined {
+                if $!returns-type.WHICH ne Mu.WHICH {
+                    my @values = $result ~~ Positional ?? $result.list !! ($result,);
+                    for @values -> $item {
+                        unless $item ~~ $.returns-type {
+                            X::Qwiratry::TypeCheck.new(
+                                expected => $.returns-type,
+                                got => $item.WHAT,
+                                message => "Transformer '{self.^name}' has returns({$.returns-type.^name}) trait but result is of type {$item.WHAT.^name}. Ensure templates return values conforming to the specified type."
+                            ).throw;
+                        }
+                    }
+                }
                 # Handle result - could be Iterator, List, or single value
                 if $result ~~ Iterator {
                     # If streaming, collect from iterator
@@ -359,14 +381,16 @@ class Transformer is export {
         }
         
         # T053: Check returns(Type) trait if present
-        if $.returns-type.defined {
-            # Check if result conforms to the specified type
-            unless $result ~~ $.returns-type {
-                die X::Qwiratry::TypeCheck.new(
-                    expected => $.returns-type,
-                    got => $result.WHAT,
-                    message => "Transformer '{self.^name}' has returns({$.returns-type.^name}) trait but result is of type {$result.WHAT.^name}. Ensure templates return values conforming to the specified type."
-                );
+        if $!returns-type.WHICH ne Mu.WHICH {
+            my @values = $result ~~ Positional ?? $result.list !! ($result,);
+            for @values -> $item {
+                unless $item ~~ $.returns-type {
+                    X::Qwiratry::TypeCheck.new(
+                        expected => $.returns-type,
+                        got => $item.WHAT,
+                        message => "Transformer '{self.^name}' has returns({$.returns-type.^name}) trait but result is of type {$item.WHAT.^name}. Ensure templates return values conforming to the specified type."
+                    ).throw;
+                }
             }
         }
         
@@ -669,12 +693,13 @@ class Transformer is export {
                 die X::Qwiratry::Walker.new(
                     message => "Transformer '{self.^name}' in rewrite-mandatory mode requires a transformation result, but no template matched the element. Add a template that matches this element or use rewrite-optional mode instead.",
                     walker-type => self.^name
-                );
+                ).throw;
             }
         }
         
         # If no result, return element unchanged (or Nil if appropriate)
-        return $result // $element;
+        my $value = $result // $element;
+        return $value.List;
     }
     
     =begin pod
