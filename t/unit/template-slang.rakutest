@@ -8,6 +8,8 @@ use Test;
 use lib 'lib';
 
 use Qwiratry::Template::Slang;
+use Qwiratry::TemplateSlangActivate;
+use Qwiratry::Transformer;
 use Qwiratry::Template;
 
 plan 6;
@@ -16,13 +18,16 @@ plan 6;
 # Test: TemplateSlang grammar and actions exist
 # =============================================================================
 
-subtest "TemplateSlang components exist" => {
+subtest "TemplateSlang activation" => {
     plan 2;
-    
-    ok Qwiratry::Template::Slang::TemplateGrammar.^name eq 'Qwiratry::Template::Slang::TemplateGrammar',
-        "TemplateGrammar role exists";
-    ok Qwiratry::Template::Slang::TemplateActions.^name eq 'Qwiratry::Template::Slang::TemplateActions',
-        "TemplateActions role exists";
+
+    clear-collected-templates();
+    transformer SlangSmoke is Transformer {
+        template TOP do { "smoke" }
+    }
+
+    ok SlangSmoke.^does(Transformer), "Transformer compiles with template slang active";
+    ok SlangSmoke.new.templates.elems > 0, "Template declarations are collected";
 }
 
 # =============================================================================

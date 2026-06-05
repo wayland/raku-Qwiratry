@@ -9,7 +9,24 @@
   "description": "A brand new and very nice module",
   "name": "Qwiratry",
   "provides": {
-    "Qwiratry": "lib/Qwiratry.rakumod"
+    "Qwiratry": "lib/Qwiratry.rakumod",
+    "Qwiratry::Context": "lib/Qwiratry/Context.rakumod",
+    "Qwiratry::QueryIterator": "lib/Qwiratry/QueryIterator.rakumod",
+    "Qwiratry::Strategy": "lib/Qwiratry/Strategy.rakumod",
+    "Qwiratry::Strategy::ControlSignal": "lib/Qwiratry/Strategy/ControlSignal.rakumod",
+    "Qwiratry::Strategy::FinishResult": "lib/Qwiratry/Strategy/FinishResult.rakumod",
+    "Qwiratry::Strategy::RewriteSpec": "lib/Qwiratry/Strategy/RewriteSpec.rakumod",
+    "Qwiratry::Template": "lib/Qwiratry/Template.rakumod",
+    "Qwiratry::Template::Slang": "lib/Qwiratry/Template/Slang.rakumod",
+    "Qwiratry::TemplateSlangActivate": "lib/Qwiratry/TemplateSlangActivate.rakumod",
+    "Qwiratry::Transformer": "lib/Qwiratry/Transformer.rakumod",
+    "Qwiratry::Transformer::Copy": "lib/Qwiratry/Transformer/Copy.rakumod",
+    "Qwiratry::Transformer::TreeRewrite": "lib/Qwiratry/Transformer/TreeRewrite.rakumod",
+    "Qwiratry::Walker": "lib/Qwiratry/Walker.rakumod",
+    "Qwiratry::Walker::Factory": "lib/Qwiratry/Walker/Factory.rakumod",
+    "Qwiratry::Walker::Master": "lib/Qwiratry/Walker/Master.rakumod",
+    "Qwiratry::Walker::Providing": "lib/Qwiratry/Walker/Providing.rakumod",
+    "X::Qwiratry": "lib/X/Qwiratry.rakumod"
   },
   "resources": [
   ],

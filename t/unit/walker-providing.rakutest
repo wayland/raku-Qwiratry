@@ -2,6 +2,7 @@
 #|
 #| Tests trait application, metadata attachment, and runtime discovery.
 use Test;
+use lib 'lib';
 use Qwiratry::Walker::Providing;
 
 plan 6;

@@ -26,6 +26,16 @@ sub implicit-template-signature() {
     );
 }
 
+sub compile-signature($sig-ast) {
+    return Nil unless $sig-ast.defined;
+    return $sig-ast if $sig-ast ~~ Signature;
+    my $stub := RakuAST::Sub.new(
+        :signature($sig-ast),
+        body => RakuAST::Blockoid.new(),
+    );
+    try $stub.compile-time-value.signature // Nil
+}
+
 sub apply-template-traits(Template $template, $routine) {
     return unless $routine.traits.defined;
     for $routine.traits -> $trait {
@@ -99,7 +109,7 @@ role TemplateActions {
 
     method template-def(Mu $/) {
         my $name = $<name>.defined ?? ~$<name> !! Nil;
-        my $signature = $<signature>.defined ?? $<signature>.ast !! Nil;
+        my $signature = $<signature>.defined ?? compile-signature($<signature>.ast) !! Nil;
 
         my $routine := $*BLOCK;
         if $name.defined {
