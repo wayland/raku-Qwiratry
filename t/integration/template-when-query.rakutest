@@ -1,0 +1,53 @@
+#| Integration tests for when-query extraction via template slang
+use Test;
+use lib 'lib';
+
+use Qwiratry::Template::Slang;
+use Qwiratry::Query::Slang;
+use Qwiratry::Transformer;
+use Qwiratry::Query::Match;
+
+plan 2;
+
+my $tree = [
+    %(name => 'section', children => [
+        %(name => 'item', value => 1),
+        %(name => 'item', value => 2),
+    ]),
+];
+
+subtest 'Template slang extracts when-query from navigation when blocks' => {
+    plan 4;
+
+    clear-collected-templates();
+    transformer QueryWhenTest is Transformer {
+        template item when { $_ ⪪⪪ <item> } do { "item-{$_<value>}" }
+        template section when { $_ ⪪ <section> } do { 'section' }
+    }
+
+    my $t = QueryWhenTest.new;
+    my $item-template = $t.templates.first({ $_.name eq 'item' });
+    my $section-template = $t.templates.first({ $_.name eq 'section' });
+
+    ok $item-template.when-query.defined, 'item template has extracted when-query';
+    nok $item-template.when-block.defined, 'pure query when block replaced by when-query';
+    ok $section-template.when-query.defined, 'section template has extracted when-query';
+    ok $item-template.when-query.subject ~~ NavQueryTopic, 'topic sentinel preserved in query';
+}
+
+subtest 'Slang-defined templates match and transform via extracted queries' => {
+    plan 3;
+
+    clear-collected-templates();
+    transformer QueryTransformTest is Transformer {
+        template item when { $_ ⪪⪪ <item> } do { "v{$_<value>}" }
+    }
+
+    my $t = QueryTransformTest.new;
+    my $item = $tree[0]<children>[0];
+    my $section = $tree[0];
+
+    is $t.APPLY($item), 'v1', 'APPLY matches item via extracted when-query';
+    ok !$t.APPLY($section).defined, 'section does not match item query';
+    is $t.TRANSFORM($tree).sort, ('v1', 'v2'), 'TRANSFORM visits matching item nodes only';
+}

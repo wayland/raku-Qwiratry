@@ -171,7 +171,7 @@ class Template is export {
     =end pod
     method matches($node --> Bool) {
         if $!when-query.defined && !$!when-block.defined {
-            return node-matches($!when-query, $node, :origin($node));
+            return when-query-matches($!when-query, $node, :origin($node));
         }
 
         if !$!when-block.defined {

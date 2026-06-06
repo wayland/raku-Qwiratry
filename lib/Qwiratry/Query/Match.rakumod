@@ -20,6 +20,53 @@ use Qwiratry::Operator::Capability;
 
 =begin pod
 
+Sentinel substituted for C<$_> when extracting navigation queries from template
+C<when> blocks. See L<Qwiratry::Query::Extract>.
+
+=end pod
+class NavQueryTopic is export {
+    multi method gist(--> Str) { 'NavQueryTopic' }
+}
+
+=begin pod
+
+Match a node against a template C<when-query>, including topic-rooted queries
+extracted from C<when { $_ ⪪ ... }> blocks.
+
+=end pod
+our sub when-query-matches(Mu $query, Mu $node, Mu :$origin --> Bool) is export {
+    return False unless $query.defined;
+    if query-uses-topic($query) {
+        return template-topic-matches($query, $node);
+    }
+    node-matches($query, $node, :$origin);
+}
+
+sub query-uses-topic(Mu $query --> Bool) {
+    return True if $query ~~ NavQueryTopic;
+    if $query.can('subject') && $query.subject.defined {
+        return True if $query.subject ~~ NavQueryTopic;
+        return query-uses-topic($query.subject) if $query.subject ~~ NavigationOperator;
+    }
+    False
+}
+
+sub template-topic-matches(Mu $query, Mu $node --> Bool) {
+    my $leaf = navigation-leaf($query);
+    return False unless $leaf.defined && $leaf.can('selector');
+    selector-matches($leaf.selector, $node)
+}
+
+sub navigation-leaf(Mu $query --> Mu) {
+    if $query.can('subject') && $query.subject.defined
+            && $query.subject ~~ NavigationOperator {
+        return navigation-leaf($query.subject);
+    }
+    $query
+}
+
+=begin pod
+
 Return a lazy sequence of nodes matching C<$query> from C<$origin>.
 
 =end pod

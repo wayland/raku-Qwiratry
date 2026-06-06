@@ -1,0 +1,57 @@
+#| Unit tests for when-block query extraction
+use Test;
+use lib 'lib';
+
+use Qwiratry::Query::Extract;
+use Qwiratry::Query::Match;
+use Qwiratry::Query::Slang;
+use Qwiratry::Operator::Navigation;
+
+plan 4;
+
+subtest 'extract-navigation-query captures topic-rooted query' => {
+    plan 3;
+
+    my $when = { $_ ⪪⪪ <item> };
+    my $query = extract-navigation-query($when);
+    ok $query ~~ DescendantOperator, 'descendant operator extracted';
+    ok $query.subject ~~ NavQueryTopic, 'subject is NavQueryTopic sentinel';
+    is $query.selector, 'item', 'selector preserved';
+}
+
+subtest 'is-navigation-query-when detects pure query when blocks' => {
+    plan 2;
+
+    my $pure = { $_ ⪪ <section> };
+    my $mixed = { $_ ⪪⪪ <item> && .<value>:exists };
+
+    ok is-navigation-query-when($pure), 'pure query when block recognized';
+    nok is-navigation-query-when($mixed), 'mixed predicate when block rejected';
+}
+
+subtest 'when-query-matches topic-rooted queries by selector' => {
+    plan 3;
+
+    my $query = extract-navigation-query({ $_ ⪪⪪ <item> });
+    my $item = %(name => 'item', value => 1);
+    my $other = %(name => 'footer');
+
+    ok when-query-matches($query, $item), 'item node matches topic query';
+    nok when-query-matches($query, $other), 'non-item node does not match';
+    ok when-query-matches($query, 'item'), 'string node name matches';
+}
+
+subtest 'when-query-matches uses full select for explicit subjects' => {
+    plan 2;
+
+    my $tree = [
+        %(name => 'section', children => [
+            %(name => 'item', value => 1),
+        ]),
+    ];
+    my $query = $tree ⪪⪪ <item>;
+    my $item = $tree[0]<children>[0];
+
+    ok when-query-matches($query, $item, :origin($tree)), 'explicit-subject query matches';
+    nok when-query-matches($query, $tree[0], :origin($tree)), 'parent node not in descendant results';
+}

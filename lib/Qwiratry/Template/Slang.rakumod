@@ -3,8 +3,8 @@
 Template slang for transformer bodies: registry, grammar, and Slangify activation.
 
 Load this module in any compunit that uses C<template> or C<wrapper> syntax
-(the Slangify/Piersing pattern). Grammar and actions live at file scope in this
-compunit so slang mixes into the caller's MAIN grammar.
+(the Slangify/Piersing pattern). Also load L<Qwiratry::Query::Slang> in the same
+compunit when template C<when> blocks use navigation operators (C<⪪>, C<⪪⪪>, etc.).
 
 Template syntax (Specification.md section 3.3.3):
 
@@ -31,6 +31,8 @@ Example:
 # File-level compunit (no unit module): required for Slangify in the importer.
 use v6.e.PREVIEW;
 use Qwiratry::Template;
+use Qwiratry::Query::Slang;
+use Qwiratry::Query::Extract;
 
 our $SLANG-ACTIVATION-METHOD = 'slangify';
 
@@ -251,13 +253,18 @@ our role TemplateActions {
 
         my $when-block = $<when-block>.defined ?? compile-blockoid($<when-block>) !! Nil;
 
+        my $when-query = $when-block.defined ?? extract-navigation-query($when-block) !! Nil;
+        if $when-query.defined && is-navigation-query-when($when-block) {
+            $when-block = Nil;
+        }
+
         my %method-structure = transform-template-to-method(
             :$name, :$signature, :$when-block, :$do-block,
         );
         $when-block = %method-structure<where-constraint>;
         $do-block   = compile-rakuast-method(%method-structure) // $do-block;
 
-        my $template = Template.new(:$name, :$signature, :$when-block, :$do-block);
+        my $template = Template.new(:$name, :$signature, :$when-block, :$when-query, :$do-block);
         apply-template-traits($template, $routine);
         register-template($template);
     }
