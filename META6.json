@@ -16,6 +16,7 @@
     "Qwiratry::Operator::IO": "lib/Qwiratry/Operator/IO.rakumod",
     "Qwiratry::Operator::MapReduce": "lib/Qwiratry/Operator/MapReduce.rakumod",
     "Qwiratry::Operator::Navigation": "lib/Qwiratry/Operator/Navigation.rakumod",
+    "Qwiratry::Query::Slang": "lib/Qwiratry/Query/Slang.rakumod",
     "Qwiratry::Operator::Set": "lib/Qwiratry/Operator/Set.rakumod",
     "Qwiratry::Strategy": "lib/Qwiratry/Strategy.rakumod",
     "Qwiratry::Strategy::ControlSignal": "lib/Qwiratry/Strategy/ControlSignal.rakumod",

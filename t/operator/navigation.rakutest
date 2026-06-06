@@ -1,0 +1,104 @@
+#| Unit tests for navigation operator AST nodes (WP03)
+use Test;
+use lib 'lib';
+
+use Qwiratry::Operator::Navigation;
+use Qwiratry::Operator::Capability;
+
+plan 6;
+
+my @nav-classes = <
+    ChildOperator
+    ParentOperator
+    DescendantOperator
+    AncestorOperator
+    FollowingSiblingOperator
+    PrecedingSiblingOperator
+    FollowingOperator
+    PrecedingOperator
+>;
+
+sub nav-class(Str $name) {
+    ::($name)
+}
+
+subtest 'Binary navigation operators construct AST nodes' => {
+    plan (@nav-classes.elems * 6);
+
+    for @nav-classes -> $name {
+        my $class = nav-class($name);
+        my $op = $class.new(:selector('*'));
+        ok $op ~~ RakuAST::Node, "$name is a RakuAST::Node";
+        ok $op ~~ NavigationOperator, "$name does NavigationOperator";
+        ok $op ~~ OperatorBase, "$name does OperatorBase";
+        is $op.selector, '*', "$name stores selector";
+        ok $op.capabilities<navigation>, "$name declares navigation capability";
+        like $op.describe, rx:s/selector/, "$name describe mentions selector";
+    }
+}
+
+subtest 'Binary operators accept optional subject and adverbs' => {
+    plan 4;
+
+    my $subject = %(name => 'root');
+    my $op = ChildOperator.new(:selector('<item>'), :subject($subject));
+    is $op.subject, $subject, 'subject is stored';
+    is $op.selector, '<item>', 'selector is stored';
+
+    my $parent = ParentOperator.new(
+        :selector('*'),
+        :subject($subject),
+        :adverbs(%(reference => True)),
+    );
+    ok $parent.adverbs<reference>, 'ParentOperator stores :reference adverb';
+    like $parent.describe, rx:s/reference/, 'describe includes adverbs';
+}
+
+subtest 'RootOperator is unary postfix with optional subject' => {
+    plan 5;
+
+    my $root = RootOperator.new;
+    ok $root ~~ RakuAST::Node, 'RootOperator is RakuAST::Node';
+    ok $root ~~ NavigationOperator, 'RootOperator does NavigationOperator';
+    is $root.describe, 'RootOperator', 'RootOperator describe without subject';
+
+    my $subject = %(name => 'node');
+    my $root-with-subject = RootOperator.new(:subject($subject));
+    is $root-with-subject.subject, $subject, 'RootOperator stores subject';
+    like $root-with-subject.describe, rx:s/subject/, 'describe includes subject';
+}
+
+subtest 'AttributeOperator uses key instead of selector' => {
+    plan 4;
+
+    my $op = AttributeOperator.new(:key('<status>'));
+    ok $op ~~ NavigationOperator, 'AttributeOperator does NavigationOperator';
+    is $op.key, '<status>', 'key is stored';
+    like $op.describe, rx:s/AttributeOperator/, 'describe names operator';
+    like $op.describe, rx:s/'<status>'/, 'describe includes key';
+}
+
+subtest 'Navigation operators are immutable' => {
+    plan 2;
+
+    my $op = ChildOperator.new(:selector('*'));
+    my $threw-selector = False;
+    try { $op.selector = 'changed'; CATCH { default { $threw-selector = True } } }
+    ok $threw-selector, 'selector attribute cannot be assigned';
+
+    my $threw-subject = False;
+    try { $op.subject = %(x => 1); CATCH { default { $threw-subject = True } } }
+    ok $threw-subject, 'subject attribute cannot be assigned';
+}
+
+subtest 'Capability metadata matches data model' => {
+    plan 4;
+
+    my $op = ChildOperator.new(:selector('*'));
+    my $caps = $op.capabilities;
+    ok $caps<navigation>, 'navigation flag is True';
+    is $caps<domains>, ['tree', 'table', 'graph'], 'domains are declared';
+    ok $caps<lazy>, 'lazy flag is True';
+    ok $caps.keys.grep({ $_ eq any(<navigation domains lazy>) }).elems == 3,
+        'capability hash has expected keys';
+}
