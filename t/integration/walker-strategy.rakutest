@@ -8,6 +8,7 @@ use Qwiratry::Context;
 use Qwiratry::Strategy::ControlSignal;
 use Qwiratry::Strategy::FinishResult;
 use Qwiratry::QueryIterator;
+use Qwiratry::QueryMatch;
 
 plan 19;
 
@@ -77,7 +78,7 @@ class TreeIterator does QueryIterator {
                 }
             }
             
-            my $match = $element.name.match(/./);
+            my $match = QueryMatch.new(:element($element), :query({ type => 'test' }), :origin($!root));
             my $result = $!context.strategy.on-match($element, $match, $!context);
             $!context.on-match-calls.push({ element => $element, result => $result });
             
@@ -200,7 +201,7 @@ subtest 'User Story 1 - Basic Traversal Control (STOP_TRAVERSAL)' => {
     
     my class FindFirstStrategy does Strategy {
         has $.found;
-        method on-match($element, Match $match, Context $ctx) {
+        method on-match($element, QueryMatch $match, Context $ctx) {
             if $element.name eq 'target' {
                 $!found = $element;
                 STOP_TRAVERSAL
@@ -301,7 +302,7 @@ subtest 'User Story 3 - Match Processing' => {
     
     my class CollectMatchesStrategy does Strategy {
         has @.matches;
-        method on-match($element, Match $match, Context $ctx) {
+        method on-match($element, QueryMatch $match, Context $ctx) {
             @!matches.push($element);
             NO_REWRITE
         }
@@ -438,7 +439,7 @@ subtest 'Edge case: Nil return treated as default' => {
         method before($element, Context $ctx) {
             Nil  # Should be treated as NO_REWRITE
         }
-        method on-match($element, Match $match, Context $ctx) {
+        method on-match($element, QueryMatch $match, Context $ctx) {
             Nil  # Should be treated as NO_REWRITE
         }
     }
@@ -471,7 +472,7 @@ subtest 'Edge case: SKIP_ELEMENT prevents on-match' => {
             return SKIP_ELEMENT if $element.name eq 'skip-me';
             NO_REWRITE
         }
-        method on-match($element, Match $match, Context $ctx) {
+        method on-match($element, QueryMatch $match, Context $ctx) {
             @!on-match-calls.push($element.name);
             NO_REWRITE
         }
@@ -501,7 +502,7 @@ subtest 'Edge case: Signal precedence (STOP > SKIP)' => {
             return SKIP_ELEMENT if $element.name eq 'skip';
             NO_REWRITE
         }
-        method on-match($element, Match $match, Context $ctx) {
+        method on-match($element, QueryMatch $match, Context $ctx) {
             return STOP_TRAVERSAL if $element.name eq 'stop';
             NO_REWRITE
         }
@@ -532,7 +533,7 @@ subtest 'Edge case: finish called after STOP_TRAVERSAL' => {
     
     my class StopWithFinishStrategy does Strategy {
         has $.finish-called = False;
-        method on-match($element, Match $match, Context $ctx) {
+        method on-match($element, QueryMatch $match, Context $ctx) {
             return STOP_TRAVERSAL if $element.name eq 'target';
             NO_REWRITE
         }
@@ -625,7 +626,7 @@ subtest 'on-match hook is called when element matches' => {
     
     my class MatchStrategy does Strategy {
         has @.matched;
-        method on-match($element, Match $match, Context $ctx) {
+        method on-match($element, QueryMatch $match, Context $ctx) {
             @!matched.push($element.name);
             NO_REWRITE
         }

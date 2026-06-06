@@ -17,6 +17,7 @@ use Qwiratry::Operator::Navigation;
 use Qwiratry::Query::Specificity;
 use Qwiratry::QueryIterator;
 use Qwiratry::Transformer::Copy;  # For copy() and deepcopy() service functions (exported by default)
+use Qwiratry::Tree::Replace;
 # Note: Template slang activation requires `use Qwiratry::Template::Slang` in the caller compunit.
 
 =begin pod
@@ -109,6 +110,9 @@ class Transformer is export {
     
     # T054: Whether transformer can mutate input (from does TreeRewrite)
     has Bool $.mutates-input is rw = False;
+
+    # Optional Strategy for Walker traversal hooks during TRANSFORM
+    has $.strategy is rw;
     
     # Transformation mode (pre, inline, post, default, rewrite-optional, rewrite-mandatory)
     has Str $.mode = 'default';
@@ -139,6 +143,9 @@ class Transformer is export {
 
     =end pod
     method APPLY($node --> Mu) {
+        my $*TRANSFORM-NODE := $node;
+        my $*TRANSFORM-REWRITE := $.mutates-input;
+
         # T027: Apply templates to a single node
         # Get ordered templates (call ORDER-TEMPLATES if not already ordered)
         my @ordered = self.ORDER-TEMPLATES;
@@ -328,6 +335,10 @@ class Transformer is export {
         
         # T028: Obtain Qwiratry::Walker via factory
         my $walker = Qwiratry::Walker::Factory.instance.get-walker($data);
+        if $.strategy.defined && $walker.defined {
+            my $walker-type = $walker.WHAT;
+            $walker = $walker-type.new(:strategy($.strategy));
+        }
         
         # T030: Create iterator - use provided iterator or default
         my $iter = $iterator;
@@ -340,6 +351,11 @@ class Transformer is export {
         my $*TRANSFORM-ROOT := $data;
         self!each-traversal-node($iter, $walker, -> $node {
             my $result = self.APPLY($node);
+            if $.mutates-input && $result.defined && $result !~~ Iterator {
+                unless $result === $node {
+                    replace-node-in-tree($node, $result, $data);
+                }
+            }
             if $result.defined {
                 if $!returns-type.WHICH ne Mu.WHICH {
                     my @values = $result ~~ Positional ?? $result.list !! ($result,);

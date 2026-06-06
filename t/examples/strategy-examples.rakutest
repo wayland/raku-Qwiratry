@@ -2,6 +2,7 @@
 use Test;
 use lib 'lib';
 use Qwiratry::Strategy;
+use Qwiratry::QueryMatch;
 use Qwiratry::Context;
 use Qwiratry::Strategy::ControlSignal;
 use Qwiratry::Strategy::FinishResult;
@@ -19,7 +20,7 @@ subtest 'FindFirstStrategy - Early Termination Pattern' => {
     class FindFirstStrategy does Strategy {
         has $.found;
         
-        method on-match($element, Match $match, Context $ctx) {
+        method on-match($element, QueryMatch $match, Context $ctx) {
             if $element<name> eq 'target' {
                 $!found = $element;
                 STOP_TRAVERSAL
@@ -41,7 +42,11 @@ subtest 'FindFirstStrategy - Early Termination Pattern' => {
     ]};
     
     # Simulate finding target
-    my $match = 'target'.match(/target/);
+    my $match = QueryMatch.new(
+        :element($test-data<children>[1]),
+        :query({ type => 'example' }),
+        :origin($test-data),
+    );
     my class TestContext does Context { }
     my $ctx = TestContext.new;
     
@@ -58,7 +63,7 @@ subtest 'CollectAllStrategy - Gather All Matches Pattern' => {
     class CollectAllStrategy does Strategy {
         has @.matches;
         
-        method on-match($element, Match $match, Context $ctx) {
+        method on-match($element, QueryMatch $match, Context $ctx) {
             @!matches.push($element);
             NO_REWRITE
         }
@@ -71,7 +76,7 @@ subtest 'CollectAllStrategy - Gather All Matches Pattern' => {
     my $strategy = CollectAllStrategy.new;
     my class TestContext does Context { }
     my $ctx = TestContext.new;
-    my $match = 'test'.match(/test/);
+    my $match = QueryMatch.new(:element({ name => 'match1' }), :query({ type => 'example' }));
     
     $strategy.on-match({ name => 'match1' }, $match, $ctx);
     $strategy.on-match({ name => 'match2' }, $match, $ctx);
@@ -159,7 +164,7 @@ subtest 'TransformingStrategy - Rewrite Pattern (Stub)' => {
     plan 2;
     
     class TransformingStrategy does Strategy {
-        method on-match($element, Match $match, Context $ctx) {
+        method on-match($element, QueryMatch $match, Context $ctx) {
             # In future feature, this would return RewriteSpec
             # For now, just demonstrate the pattern
             NO_REWRITE
@@ -169,8 +174,8 @@ subtest 'TransformingStrategy - Rewrite Pattern (Stub)' => {
     my $strategy = TransformingStrategy.new;
     my class TestContext does Context { }
     my $ctx = TestContext.new;
-    my $match = 'test'.match(/test/);
-    
+    my $match = QueryMatch.new(:element({ name => 'test' }), :query({ type => 'example' }));
+
     my $result = $strategy.on-match({ name => 'test' }, $match, $ctx);
     is $result, NO_REWRITE, 'Returns NO_REWRITE (rewrite not yet implemented)';
     ok $strategy ~~ Strategy, 'Strategy role composed correctly';

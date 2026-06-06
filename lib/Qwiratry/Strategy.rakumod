@@ -24,6 +24,7 @@ use Qwiratry::Context;
 use Qwiratry::Strategy::ControlSignal;
 use Qwiratry::Strategy::RewriteSpec;
 use Qwiratry::Strategy::FinishResult;
+use Qwiratry::QueryMatch;
 
 =begin pod
 
@@ -36,7 +37,7 @@ All hooks are optional; undefined hooks use default behaviour.
 Example:
   class CollectingStrategy does Strategy {
       has @.results;
-      method on-match($element, Match $match, Context $ctx) {
+      method on-match($element, QueryMatch $match, Context $ctx) {
           @!results.push($element);
           NO_REWRITE
       }
@@ -79,7 +80,7 @@ role Strategy is export {
     @returns ControlSignal|RewriteSpec|Nil - Traversal control or rewrite spec, or Nil for default
 
     =end pod
-    method on-match($element, Match $match, Context $ctx) { Nil }
+    method on-match($element, QueryMatch $match, Context $ctx) { Nil }
     
     =begin pod
 

@@ -15,6 +15,9 @@ Example:
 unit module Qwiratry::Query::Slang;
 
 use Qwiratry::Operator::Navigation;
+use Qwiratry::Operator::Set;
+use Qwiratry::Operator::MapReduce;
+use Qwiratry::Operator::Capability;
 
 sub nav-new(
     Mu \type,
@@ -63,4 +66,52 @@ multi sub infix:<⥷>(Mu $left, Mu $right) is export {
 
 multi sub postfix:<⇤>(Mu $subject) is export {
     RootOperator.new(:$subject)
+}
+
+multi sub infix:<∪>(OperatorBase $left, OperatorBase $right) is export {
+    UnionOperator.new(:left($left), :right($right))
+}
+
+multi sub infix:<∪>(OperatorBase $left, Mu $right) is export {
+    UnionOperator.new(:left($left), :right($right))
+}
+
+multi sub infix:<∪>(Mu $left, OperatorBase $right) is export {
+    UnionOperator.new(:left($left), :right($right))
+}
+
+multi sub infix:<∩>(OperatorBase $left, OperatorBase $right) is export {
+    IntersectionOperator.new(:left($left), :right($right))
+}
+
+multi sub infix:<∩>(OperatorBase $left, Mu $right) is export {
+    IntersectionOperator.new(:left($left), :right($right))
+}
+
+multi sub infix:<∩>(Mu $left, OperatorBase $right) is export {
+    IntersectionOperator.new(:left($left), :right($right))
+}
+
+multi sub infix:<∖>(OperatorBase $left, OperatorBase $right) is export {
+    SetDifferenceOperator.new(:left($left), :right($right))
+}
+
+multi sub infix:<∖>(OperatorBase $left, Mu $right) is export {
+    SetDifferenceOperator.new(:left($left), :right($right))
+}
+
+multi sub infix:<∖>(Mu $left, OperatorBase $right) is export {
+    SetDifferenceOperator.new(:left($left), :right($right))
+}
+
+multi sub infix:<σ>(OperatorBase $left, &predicate) is export {
+    SelectionOperator.new(:subject($left), :predicate(&predicate))
+}
+
+multi sub infix:<σ>(Mu $left, &predicate) is export {
+    SelectionOperator.new(:subject($left), :predicate(&predicate))
+}
+
+multi sub prefix:<σ>(&predicate, Mu $subject) is export {
+    SelectionOperator.new(:subject($subject), :predicate(&predicate))
 }

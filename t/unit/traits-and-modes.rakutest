@@ -19,9 +19,7 @@ subtest ":streaming trait - lazy iterator output" => {
     
     # Create transformer with streaming enabled
     transformer StreamingTest {
-        template TOP do {
-            return "result";
-        }
+        template TOP do { "result" }
     }
     
     my $transformer = StreamingTest.new;
@@ -41,9 +39,7 @@ subtest "returns(Type) trait - type checking" => {
     
     # Create transformer with returns(Int) constraint
     transformer ReturnsIntTest {
-        template TOP do {
-            return 42;
-        }
+        template TOP do { 42 }
     }
     
     my $transformer = ReturnsIntTest.new;
@@ -55,9 +51,7 @@ subtest "returns(Type) trait - type checking" => {
     
     # Invalid result - should throw
     transformer ReturnsIntTest2 {
-        template TOP do {
-            return "not an int";  # Wrong type
-        }
+        template TOP do { "not an int" }  # Wrong type
     }
     
     my $transformer2 = ReturnsIntTest2.new;
@@ -74,9 +68,7 @@ subtest "does TreeRewrite role - mutation flag" => {
     # Create transformer and manually set TreeRewrite behavior
     # Note: In actual usage, TreeRewrite would be detected during compose
     transformer RewriteTest {
-        template TOP do {
-            return "rewritten";
-        }
+        template TOP do { "rewritten" }
     }
     
     my $transformer = RewriteTest.new;
@@ -92,9 +84,7 @@ subtest "prepare method - pre-transformation stage" => {
     plan 2;
     
     transformer PrepareTest {
-        template TOP do {
-            return "transformed";
-        }
+        template TOP do { "transformed" }
     }
     
     my $transformer = PrepareTest.new;
@@ -108,9 +98,7 @@ subtest "apply method - inline transformation stage" => {
     plan 3;
     
     transformer ApplyTest {
-        template TOP do {
-            return $_ * 2;
-        }
+        template TOP do { $_ * 2 }
     }
     
     my $transformer = ApplyTest.new;
@@ -125,9 +113,7 @@ subtest "Mode detection - auto-detect" => {
     plan 4;
     
     transformer ModeTest {
-        template TOP do {
-            return $_;
-        }
+        template TOP do { $_ }
     }
     
     my $transformer = ModeTest.new;
@@ -154,9 +140,7 @@ subtest "rewrite-optional and rewrite-mandatory modes" => {
     plan 3;
     
     transformer RewriteOptionalTest {
-        template TOP do {
-            return $_ * 2;
-        }
+        template TOP do { $_ * 2 }
     }
     
     my $transformer = RewriteOptionalTest.new;

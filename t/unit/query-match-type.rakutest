@@ -1,0 +1,29 @@
+#!/usr/bin/env raku
+use Test;
+use lib 'lib';
+
+use Qwiratry::QueryMatch;
+use Qwiratry::Operator::Navigation;
+
+plan 2;
+
+subtest 'QueryMatch holds element and query' => {
+    plan 3;
+    my $node = %(name => 'item', value => 42);
+    my $query = %(type => 'test-query');
+    my $match = QueryMatch.new(:element($node), :query($query), :origin($node));
+    is $match.element<value>, 42, 'element accessible';
+    is $match.query<type>, 'test-query', 'query accessible';
+    ok $match.origin === $node, 'origin stored';
+}
+
+subtest 'QueryMatch stringifies readably' => {
+    plan 1;
+    my $match = QueryMatch.new(
+        :element('item'),
+        :query(RootOperator.new),
+    );
+    ok $match.gist.contains('QueryMatch'), 'gist identifies QueryMatch';
+}
+
+done-testing;

@@ -12,6 +12,7 @@ unit module Qwiratry::Template;
 
 use X::Qwiratry;  # For X::Qwiratry::TypeCheck
 use Qwiratry::Query::Match;
+use Qwiratry::Tree::Replace;
 
 =begin pod
 
@@ -31,6 +32,20 @@ our $*TRANSFORM-ROOT is export;
 
 =begin pod
 
+Node currently being transformed. Set during C<APPLY> and C<TRANSFORM>.
+
+=end pod
+our $*TRANSFORM-NODE is export;
+
+=begin pod
+
+When True, C<make> replaces the current node in the transform tree.
+
+=end pod
+our $*TRANSFORM-REWRITE is export;
+
+=begin pod
+
 Add a value to the current template's output stream.
 
 =end pod
@@ -42,6 +57,9 @@ sub make(Mu $value) is export {
         ).throw;
     }
     $*MAKE-OUTPUT.push($value);
+    if $*TRANSFORM-REWRITE && $*TRANSFORM-NODE.defined && $*TRANSFORM-ROOT.defined {
+        replace-node-in-tree($*TRANSFORM-NODE, $value, $*TRANSFORM-ROOT);
+    }
     $value;
 }
 

@@ -167,7 +167,7 @@ subtest "Template transformation - when/do as where/body" => {
 
     clear-collected-templates();
     transformer TransformTest is Transformer {
-        template section() when { True } do { return "matched" }
+        template section() when { True } do { "matched" }
         template TOP do { "fallback" }
     }
 
@@ -189,7 +189,7 @@ subtest "Named template signature compilation" => {
 
     clear-collected-templates();
     transformer SigTest is Transformer {
-        template section() when { True } do { return "ok" }
+        template section() when { True } do { "ok" }
     }
 
     my $template = SigTest.new.templates.first({ $_.name eq 'section' });
@@ -213,7 +213,7 @@ subtest "API compatibility - collection helpers" => {
 
     transformer WrapTest is Transformer {
         wrapper TRANSFORMER { @_[0] ~ "-wrapped" }
-        template TOP do { return "ok" }
+        template TOP do { "ok" }
     }
     ok WrapTest.can('WRAP_TRANSFORMER'), "TRANSFORMER wrapper submethod is installed";
     is WrapTest.new.transform(Any), "ok-wrapped", "Wrapper block is wired into transform";

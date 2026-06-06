@@ -3,6 +3,7 @@ use Test;
 use lib 'lib';
 use Qwiratry::Strategy;
 use Qwiratry::Context;
+use Qwiratry::QueryMatch;
 use Qwiratry::Strategy::ControlSignal;
 use Qwiratry::Strategy::FinishResult;
 use Qwiratry::Strategy::RewriteSpec;
@@ -32,12 +33,12 @@ subtest 'before hook signature', {
 subtest 'on-match hook signature', {
     plan 2;
     my class TestStrategy does Strategy {
-        method on-match($element, Match $match, Context $ctx) { NO_REWRITE }
+        method on-match($element, QueryMatch $match, Context $ctx) { NO_REWRITE }
     }
     my $s = TestStrategy.new;
     my class TestContext does Context { }
     my $ctx = TestContext.new;
-    my $match = 'test'.match(/test/);
+    my $match = QueryMatch.new(:element('test'), :query({ type => 'test' }));
     my $result = $s.on-match('elem', $match, $ctx);
     ok $result ~~ ControlSignal, 'on-match returns ControlSignal';
     is $result, NO_REWRITE, 'on-match returns expected value';
@@ -110,7 +111,7 @@ subtest 'Default on-match returns Nil', {
     my $s = TestStrategy.new;
     my class TestContext does Context { }
     my $ctx = TestContext.new;
-    my $match = 'test'.match(/test/);
+    my $match = QueryMatch.new(:element('test'), :query({ type => 'test' }));
     is $s.on-match('elem', $match, $ctx), Nil, 'Default on-match returns Nil';
 }
 
@@ -156,12 +157,12 @@ subtest 'on-match can return RewriteSpec', {
     plan 1;
     my class TestRewrite does RewriteSpec { }
     my class TestStrategy does Strategy {
-        method on-match($element, Match $match, Context $ctx) { TestRewrite.new }
+        method on-match($element, QueryMatch $match, Context $ctx) { TestRewrite.new }
     }
     my $s = TestStrategy.new;
     my class TestContext does Context { }
     my $ctx = TestContext.new;
-    my $match = 'test'.match(/test/);
+    my $match = QueryMatch.new(:element('test'), :query({ type => 'test' }));
     ok $s.on-match('elem', $match, $ctx) ~~ RewriteSpec, 'on-match can return RewriteSpec';
 }
 

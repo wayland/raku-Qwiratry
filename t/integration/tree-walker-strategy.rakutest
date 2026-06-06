@@ -1,0 +1,70 @@
+#!/usr/bin/env raku
+use Test;
+use lib 'lib';
+
+use Qwiratry::Walker::Implementation::Tree;
+use Qwiratry::Strategy;
+use Qwiratry::Strategy::ControlSignal;
+use Qwiratry::QueryMatch;
+use Qwiratry::Operator::Navigation;
+use Qwiratry::Query::Slang;
+
+plan 2;
+
+my $tree = [
+    %(name => 'root', children => [
+        %(name => 'keep', value => 1),
+        %(name => 'skip', value => 2),
+    ]),
+];
+
+subtest 'tree Walker invokes Strategy hooks with QueryMatch' => {
+    plan 3;
+
+    my class CollectStrategy does Strategy {
+        has @.matched;
+        has @.match-types;
+
+        method on-match($element, QueryMatch $match, $ctx) {
+            @!matched.push($element<name>);
+            @!match-types.push($match.query.^name);
+            NO_REWRITE
+        }
+    }
+
+    my $strategy = CollectStrategy.new;
+    my $walker = Qwiratry::Walker::Implementation::Tree.new(:strategy($strategy));
+    my $query = DescendantOperator.new(:subject($tree), :selector('*'));
+    my $iter = $walker.start($query, $tree);
+
+    while $iter.pull-one !~~ IterationEnd { }
+
+    ok $strategy.matched.grep('keep'), 'on-match called for keep node';
+    ok $strategy.matched.grep('root'), 'on-match called for root';
+    ok $strategy.match-types.grep(*.contains('DescendantOperator')), 'QueryMatch carries query AST';
+}
+
+subtest 'Strategy STOP_TRAVERSAL halts tree Walker' => {
+    plan 2;
+
+    my class StopStrategy does Strategy {
+        method on-match($element, QueryMatch $match, $ctx) {
+            return STOP_TRAVERSAL if $element<name> eq 'keep';
+            NO_REWRITE
+        }
+    }
+
+    my $walker = Qwiratry::Walker::Implementation::Tree.new(:strategy(StopStrategy.new));
+    my $query = DescendantOperator.new(:subject($tree), :selector('*'));
+    my $iter = $walker.start($query, $tree);
+    my @names = gather {
+        while (my $n = $iter.pull-one) !~~ IterationEnd {
+            take $n<name>;
+        }
+    };
+
+    ok @names.grep('keep'), 'keep node yielded before stop';
+    nok @names.grep('skip'), 'skip node not yielded after STOP_TRAVERSAL';
+}
+
+done-testing;

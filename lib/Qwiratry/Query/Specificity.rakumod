@@ -14,6 +14,8 @@ unit module Qwiratry::Query::Specificity;
 
 use Qwiratry::Operator::Navigation;
 use Qwiratry::Operator::Capability;
+use Qwiratry::Operator::Set;
+use Qwiratry::Operator::MapReduce;
 
 =begin pod
 
@@ -46,6 +48,16 @@ our sub score(Mu $query --> Int) is export {
             $max = $branch-score if $branch-score > $max;
         }
         return $max;
+    }
+
+    if $query ~~ UnionOperator | IntersectionOperator | SetDifferenceOperator {
+        my $left = score($query.left);
+        my $right = score($query.right);
+        return $left > $right ?? $left !! $right;
+    }
+
+    if $query ~~ SelectionOperator {
+        return score($query.subject);
     }
 
     0;

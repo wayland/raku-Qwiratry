@@ -28,9 +28,7 @@ subtest "WRAP_TRANSFORMER - wraps entire transformation" => {
             return [$result, "wrapped"];
         }
         
-        template TOP do {
-            return "original";
-        }
+        template TOP do { "original" }
     }
     
     my $transformer = TestTransformer1.new;
@@ -56,9 +54,7 @@ subtest "WRAP_TEMPLATE_MATCHER - wraps match evaluation" => {
             return $match && $node ~~ Int;
         }
         
-        template TOP do {
-            return "matched";
-        }
+        template TOP do { "matched" }
     }
     
     my $transformer = TestTransformer2.new;
@@ -88,9 +84,7 @@ subtest "WRAP_TEMPLATE_ACTION - wraps action execution" => {
             return [$result, "wrapped-action"];
         }
         
-        template TOP do {
-            return "original-action";
-        }
+        template TOP do { "original-action" }
     }
     
     my $transformer = TestTransformer3.new;
@@ -120,9 +114,7 @@ subtest "Hierarchy traversal - wrappers called up transformer hierarchy" => {
             return [$result, "derived"];
         }
         
-        template TOP do {
-            return "original";
-        }
+        template TOP do { "original" }
     }
     
     my $transformer = DerivedTransformer.new;
@@ -157,9 +149,7 @@ subtest "Wrapper parameters - verify correct parameters passed" => {
             return $result;
         }
         
-        template TOP do {
-            return "test";
-        }
+        template TOP do { "test" }
     }
     
     my $transformer = TestTransformer4.new;

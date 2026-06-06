@@ -256,7 +256,7 @@ our role TemplateActions {
         $routine.replace-body($<do-block>.ast);
         self.attach: $/, $routine;
 
-        my $do-block = try $routine.meta-object // compile-blockoid($<do-block>);
+        my $do-block = compile-blockoid($<do-block>) // try $routine.meta-object;
         unless $do-block.defined {
             die "{template-display-name($name)}: required 'do' block could not be compiled.";
         }

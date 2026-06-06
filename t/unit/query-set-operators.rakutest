@@ -1,0 +1,50 @@
+#!/usr/bin/env raku
+use Test;
+use lib 'lib';
+
+use Qwiratry::Query::Slang;
+use Qwiratry::Query::Match;
+use Qwiratry::Query::Specificity;
+use Qwiratry::Operator::Navigation;
+use Qwiratry::Operator::Set;
+
+plan 4;
+
+my $tree = [
+    %(name => 'section', children => [
+        %(name => 'item', value => 1),
+        %(name => 'item', value => 2),
+        %(name => 'meta', value => 99),
+    ]),
+];
+
+subtest 'union combines query results' => {
+    plan 2;
+    my $query = ($tree ⪪⪪ <item>) ∪ ($tree ⪪⪪ <meta>);
+    my @results = select($query, $tree).list;
+    is @results.elems, 3, 'union yields item and meta branches';
+    ok @results.grep({ $_<name> eq 'item' }), 'item present in union';
+}
+
+subtest 'intersection keeps shared nodes only' => {
+    plan 1;
+    my $query = (DescendantOperator.new(:subject($tree), :selector('*')))
+        ∩ ($tree ⪪⪪ <item>);
+    my @results = select($query, $tree).list;
+    is @results.elems, 2, 'intersection keeps item nodes only';
+}
+
+subtest 'selection predicate filters results' => {
+    plan 1;
+    my $query = $tree ⪪⪪ <item> σ -> $_ { $_<value> > 1 };
+    my @results = select($query, $tree).list;
+    is @results[0]<value>, 2, 'selection keeps item with value > 1';
+}
+
+subtest 'set operator specificity uses max branch' => {
+    plan 1;
+    my $union = ($tree ⪪ <section>) ∪ ($tree ⪪⪪ <item>);
+    ok score($union) >= score($tree ⪪⪪ <item>), 'union specificity at least as specific as strongest branch';
+}
+
+done-testing;

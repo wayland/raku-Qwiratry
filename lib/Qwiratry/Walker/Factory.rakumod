@@ -12,6 +12,15 @@ use Qwiratry::Walker;
 use X::Qwiratry;
 use Implementation::Loader;
 use Qwiratry::Walker::Implementation::Tree;
+use Qwiratry::Walker::Implementation::Table;
+
+sub is-table-data($data --> Bool) {
+    return False unless $data ~~ Positional;
+    return False if $data.elems == 0;
+    return False unless $data[0] ~~ Associative;
+    return False if $data[0]<children>:exists;
+    True
+}
 
 =begin pod
 
@@ -94,6 +103,9 @@ class Qwiratry::Walker::Factory {
         }
 
         if $data.defined {
+            if is-table-data($data) {
+                return Qwiratry::Walker::Implementation::Table.new;
+            }
             return Qwiratry::Walker::Implementation::Tree.new;
         }
 

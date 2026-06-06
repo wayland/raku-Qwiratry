@@ -1,0 +1,56 @@
+#!/usr/bin/env raku
+#| Regression: slang-compiled do blocks must bind $_ to the node under transform.
+use Test;
+use lib 'lib';
+
+use Qwiratry::Template::Slang;
+use Qwiratry::Transformer;
+
+plan 1;
+
+class Node {
+    has Str $.name = 'node';
+
+    method gist(--> Str) { "Node[$.name]" }
+}
+
+subtest 'slang do blocks bind topic to the node being transformed' => {
+    plan 7;
+
+    clear-collected-templates();
+    transformer TransformTree is Transformer {
+        template TOP do {
+            Node.new();
+        }
+
+        template section() when { .name eq 'section' } do {
+            Node.new(name => .name);
+        }
+    }
+
+    my $transformer = TransformTree.new;
+    my $section = $transformer.templates.first({ .name eq 'section' });
+    my $top = $transformer.templates.first({ !.name.defined || .name eq 'TOP' });
+
+    ok $section.do-block ~~ Block, 'do block compiles to Block closure, not Sub';
+    nok $section.do-block ~~ Sub, 'do block is not a named Sub (_q_tpl_*)';
+    is $section.do-block.count, 1,
+        'do block has implicit topic parameter like when blocks';
+
+    ok $section.when-block ~~ Block, 'when block remains a Block closure';
+    ok $section.matches(Node.new(name => 'section')),
+        'when block matches section node by .name';
+
+    my $section-node = Node.new(name => 'section');
+    my $apply-result = $transformer.APPLY($section-node);
+    is $apply-result.name, 'section',
+        'APPLY: do block .name reads topic from matched node';
+
+    my $other-node = Node.new(name => 'paragraph');
+    my $transform-result = $transformer.transform($other-node);
+    my $first = $transform-result ~~ List ?? $transform-result[0] !! $transform-result;
+    is $first.name, 'node',
+        'transform: TOP template do block runs with topic for non-section nodes';
+}
+
+done-testing;

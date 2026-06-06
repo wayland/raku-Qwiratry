@@ -17,6 +17,8 @@ unit module Qwiratry::Query::Match;
 
 use Qwiratry::Operator::Navigation;
 use Qwiratry::Operator::Capability;
+use Qwiratry::Operator::Set;
+use Qwiratry::Operator::MapReduce;
 
 =begin pod
 
@@ -183,7 +185,43 @@ sub select-list(Mu $query, Mu $origin --> List) {
             }
             return @results;
         }
+        when UnionOperator {
+            my @left = select-list($query.left, $origin);
+            my @right = select-list($query.right, $origin);
+            return unique-nodes(|@left, |@right);
+        }
+        when IntersectionOperator {
+            my @left = select-list($query.left, $origin);
+            my @right = select-list($query.right, $origin);
+            return @left.grep(-> $node { node-in-list($node, @right) }).List;
+        }
+        when SetDifferenceOperator {
+            my @left = select-list($query.left, $origin);
+            my @right = select-list($query.right, $origin);
+            return @left.grep(-> $node { !node-in-list($node, @right) }).List;
+        }
+        when SelectionOperator {
+            my @bases;
+            if $query.subject ~~ NavigationOperator | RootOperator {
+                @bases = select-list($query.subject, $origin);
+            }
+            elsif $query.subject ~~ Positional {
+                @bases = $query.subject.list;
+            }
+            else {
+                @bases = ($query.subject,);
+            }
+            my &pred = $query.predicate;
+            return @bases.grep(-> $base { selection-predicate-matches(&pred, $base) }).List;
+        }
         default {
+            if is-union-query-list($query) {
+                my @combined;
+                for $query.list -> $branch {
+                    @combined.append(select-list($branch, $origin));
+                }
+                return unique-nodes(|@combined);
+            }
             return ();
         }
     }
@@ -234,7 +272,7 @@ sub tree-parent(Mu $node, Mu :$origin --> Mu) {
     Nil
 }
 
-sub find-parent-in-tree(Mu $node, Mu $current --> Mu) {
+our sub find-parent-in-tree(Mu $node, Mu $current --> Mu) is export {
     return Nil unless $current.defined;
     for tree-children($current) -> $child {
         return $current if $child === $node;
@@ -338,4 +376,37 @@ sub node-name(Mu $node --> Mu) {
         }
     }
     Nil
+}
+
+sub is-union-query-list(Mu $query --> Bool) {
+    return False unless $query.WHAT === Array || $query.WHAT === List;
+    $query.elems > 0 && $query[0] ~~ NavigationOperator;
+}
+
+sub unique-nodes(*@nodes --> List) {
+    my @unique;
+    for @nodes -> $node {
+        next if node-in-list($node, @unique);
+        @unique.push($node);
+    }
+    @unique
+}
+
+sub node-in-list(Mu $node, @list --> Bool) {
+    for @list -> $candidate {
+        return True if $candidate === $node;
+    }
+    False
+}
+
+sub selection-predicate-matches(&pred, Mu $base --> Bool) {
+    my $result = try {
+        if &pred.arity == 1 {
+            pred($base).Bool;
+        }
+        else {
+            (with $base { pred() }).Bool;
+        }
+    };
+    return $result // False;
 }

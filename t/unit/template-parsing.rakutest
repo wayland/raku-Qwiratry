@@ -29,9 +29,7 @@ subtest "Template parsing from transformer body" => {
     # Note: Slang activation works when Qwiratry is used, but template syntax
     # in test files may have parsing limitations. The infrastructure is complete.
     transformer TestTransform is Transformer {
-        template TOP do {
-            return "top";
-        }
+        template TOP do { "top" }
     }
     
     # Verify transformer was created
@@ -67,9 +65,7 @@ subtest "Named template method creation" => {
     clear-collected-templates();
     
     transformer TestNamedTransform is Transformer {
-        template my-template do {
-            return "result";
-        }
+        template my-template do { "result" }
     }
     
     my $t = TestNamedTransform.new;
