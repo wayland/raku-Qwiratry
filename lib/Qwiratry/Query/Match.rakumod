@@ -37,7 +37,7 @@ extracted from C<when { $_ ⪪ ... }> blocks.
 our sub when-query-matches(Mu $query, Mu $node, Mu :$origin --> Bool) is export {
     return False unless $query.defined;
     if query-uses-topic($query) {
-        return template-topic-matches($query, $node);
+        return template-topic-matches($query, $node, :$origin);
     }
     node-matches($query, $node, :$origin);
 }
@@ -51,10 +51,31 @@ sub query-uses-topic(Mu $query --> Bool) {
     False
 }
 
-sub template-topic-matches(Mu $query, Mu $node --> Bool) {
-    my $leaf = navigation-leaf($query);
-    return False unless $leaf.defined && $leaf.can('selector');
-    selector-matches($leaf.selector, $node)
+sub template-topic-matches(Mu $query, Mu $node, Mu :$origin --> Bool) {
+    match-topic-chain($query, $node, :$origin);
+}
+
+sub match-topic-chain(Mu $query, Mu $node, Mu :$origin --> Bool) {
+    given $query {
+        when NavQueryTopic { True }
+        when ChildOperator {
+            return False unless selector-matches(.selector, $node);
+            return True if .subject ~~ NavQueryTopic;
+            my $parent = tree-parent($node, :$origin);
+            return False unless $parent.defined;
+            match-topic-chain(.subject, $parent, :$origin);
+        }
+        when DescendantOperator {
+            return False unless selector-matches(.selector, $node);
+            return True if .subject ~~ NavQueryTopic;
+            match-topic-chain(.subject, $node, :$origin);
+        }
+        default {
+            my $leaf = navigation-leaf($query);
+            return False unless $leaf.defined && $leaf.can('selector');
+            selector-matches($leaf.selector, $node);
+        }
+    }
 }
 
 sub navigation-leaf(Mu $query --> Mu) {
@@ -130,7 +151,7 @@ sub select-list(Mu $query, Mu $origin --> List) {
             my @bases = resolve-bases($query, $origin);
             my @results;
             for @bases -> $base {
-                my $parent = tree-parent($base);
+                my $parent = tree-parent($base, :$origin);
                 @results.push($parent) if $parent.defined
                     && selector-matches($query.selector, $parent);
             }
@@ -140,7 +161,7 @@ sub select-list(Mu $query, Mu $origin --> List) {
             my @bases = resolve-bases($query, $origin);
             my @results;
             for @bases -> $base {
-                for tree-ancestors($base) -> $anc {
+                for tree-ancestors($base, :$origin) -> $anc {
                     @results.push($anc) if selector-matches($query.selector, $anc);
                 }
             }
@@ -151,7 +172,7 @@ sub select-list(Mu $query, Mu $origin --> List) {
             my @bases = resolve-bases($query, $origin);
             my @results;
             for @bases -> $base {
-                my @siblings = sibling-context($base)<all>;
+                my @siblings = sibling-context($base, :$origin)<all>;
                 my $index = sibling-index(@siblings, $base);
                 next unless $index.defined;
                 my @candidates = sibling-candidates($query, @siblings, $index);
@@ -207,26 +228,35 @@ sub tree-descendants(Mu $node --> Seq) {
     }
 }
 
-sub tree-parent(Mu $node --> Mu) {
+sub tree-parent(Mu $node, Mu :$origin --> Mu) {
     return $node.parent if $node.can('parent');
+    return find-parent-in-tree($node, $origin) if $origin.defined;
     Nil
 }
 
-sub tree-ancestors(Mu $node --> Seq) {
+sub find-parent-in-tree(Mu $node, Mu $current --> Mu) {
+    return Nil unless $current.defined;
+    for tree-children($current) -> $child {
+        return $current if $child === $node;
+        my $found = find-parent-in-tree($node, $child);
+        return $found if $found.defined;
+    }
+    Nil
+}
+
+sub tree-ancestors(Mu $node, Mu :$origin --> Seq) {
     gather {
-        my $current = tree-parent($node);
+        my $current = tree-parent($node, :$origin);
         while $current.defined {
             take $current;
-            $current = tree-parent($current);
+            $current = tree-parent($current, :$origin);
         }
     }
 }
 
-sub sibling-context(Mu $node --> Associative) {
-    if $node.can('parent') {
-        my $parent = $node.parent;
-        return %(all => tree-children($parent)) if $parent.defined;
-    }
+sub sibling-context(Mu $node, Mu :$origin --> Associative) {
+    my $parent = tree-parent($node, :$origin);
+    return %(all => tree-children($parent)) if $parent.defined;
     %(all => ());
 }
 

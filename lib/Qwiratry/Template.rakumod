@@ -23,6 +23,14 @@ our $*MAKE-OUTPUT is export;
 
 =begin pod
 
+Root data structure for the current C<TRANSFORM> pass. Used for parent lookup
+during query matching when nodes do not provide a C<.parent> method.
+
+=end pod
+our $*TRANSFORM-ROOT is export;
+
+=begin pod
+
 Add a value to the current template's output stream.
 
 =end pod
@@ -136,6 +144,15 @@ class Template is export {
 
     =end pod
     has Mu $.when-query is rw;
+
+    =begin pod
+
+    When True, C<when-query> and C<when-block> are both required to match (mixed query
+    + predicate). When False, a defined C<when-block> alone controls matching and
+    C<when-query> is used only for specificity ordering.
+
+    =end pod
+    has Bool $.combine-when-query = False;
     
     # Constructor
     submethod BUILD(
@@ -143,6 +160,7 @@ class Template is export {
         :$signature,
         :$when-block,
         :$when-query,
+        :$combine-when-query = False,
         :$!do-block!,
         :$!priority = 0,
         :$specificity,
@@ -154,6 +172,7 @@ class Template is export {
         $!signature = $signature if $signature.defined;
         $!when-block = $when-block if $when-block.defined;
         $!when-query = $when-query if $when-query.defined;
+        $!combine-when-query = $combine-when-query;
         $!specificity = $specificity if $specificity.defined;
         $!returns-type = $returns-type if $returns-type.defined;
     }
@@ -170,14 +189,25 @@ class Template is export {
 
     =end pod
     method matches($node --> Bool) {
+        my $origin = $*TRANSFORM-ROOT // $node;
+
+        if $.combine-when-query && $!when-query.defined {
+            return False unless when-query-matches($!when-query, $node, :$origin);
+            return $!when-block.defined ?? self!evaluate-when-block($node) !! True;
+        }
+
         if $!when-query.defined && !$!when-block.defined {
-            return when-query-matches($!when-query, $node, :origin($node));
+            return when-query-matches($!when-query, $node, :$origin);
         }
 
         if !$!when-block.defined {
             return True;
         }
 
+        self!evaluate-when-block($node);
+    }
+
+    method !evaluate-when-block($node --> Bool) {
         my $*MAKE-OUTPUT := Nil;
         try {
             return self!run-with-magic-variables(

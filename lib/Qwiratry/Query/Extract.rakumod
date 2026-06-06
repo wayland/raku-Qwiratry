@@ -8,6 +8,7 @@ stands in for C<$_> during extraction so the query can be stored on the template
 for specificity scoring and matching.
 
 =end pod
+use v6.e.PREVIEW;
 unit module Qwiratry::Query::Extract;
 
 use Qwiratry::Operator::Navigation;
@@ -51,4 +52,74 @@ sub selectors-equivalent(Mu $a, Mu $b --> Bool) {
     return False unless $left.defined && $right.defined;
     return $left eqv $right if $left ~~ Str && $right ~~ Str;
     $left.gist eq $right.gist
+}
+
+my constant @NAV-INFIX = «⪪ ⪫ ⪪⪪ ⪫⪫ ⪨ ⪩ ⪨⪨ ⪩⪩ ⥷»;
+
+sub infix-name(Mu $infix --> Str) {
+    return $infix.operator if $infix.can('operator');
+    try $infix.name // ~$infix
+}
+
+sub infix-is-navigation(Mu $infix --> Bool) {
+    return False unless $infix.defined;
+    my $name = infix-name($infix);
+    return False unless $name.defined;
+    so $name eq any(@NAV-INFIX)
+}
+
+sub infix-is-conjunction(Mu $infix --> Bool) {
+    return False unless $infix.defined;
+    my $name = infix-name($infix);
+    return False unless $name.defined;
+    so $name eq any(<&& and>)
+}
+
+sub when-body-expression(Mu $body --> Mu) {
+    if $body.WHAT.^name eq 'RakuAST::Blockoid' {
+        my $inner = try $body.statement-list;
+        return when-body-expression($inner) if $inner.defined;
+    }
+    if $body ~~ RakuAST::StatementList {
+        my @stmts = $body.statements;
+        return Nil unless @stmts == 1;
+        my $stmt = @stmts[0];
+        return $stmt.expression if $stmt.can('expression');
+    }
+    Nil
+}
+
+sub is-navigation-expr(Mu $expr --> Bool) {
+    return False unless $expr.defined;
+    return True if $expr.WHAT.^name eq 'RakuAST::ApplyInfix'
+        && infix-is-navigation($expr.infix);
+    False
+}
+
+sub split-when-navigation-ast(Mu $body --> Hash) {
+    my $expr = when-body-expression($body);
+    return %() unless $expr.defined;
+
+    if $expr.WHAT.^name eq 'RakuAST::ApplyInfix' && infix-is-conjunction($expr.infix) {
+        my $left = $expr.left;
+        my $right = $expr.right;
+        if is-navigation-expr($left) {
+            return %(query => $left, predicate => $right);
+        }
+    }
+
+    return %(query => $expr) if is-navigation-expr($expr);
+    %()
+}
+
+=begin pod
+
+Split a template C<when> blockoid AST into navigation query and predicate parts.
+
+=end pod
+our sub split-when-navigation-from-blockoid(Mu $blockoid-cap --> Hash) is export {
+    return %() unless $blockoid-cap.defined;
+    my $body = try $blockoid-cap.ast;
+    return %() unless $body.defined;
+    split-when-navigation-ast($body);
 }

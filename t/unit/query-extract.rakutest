@@ -7,7 +7,7 @@ use Qwiratry::Query::Match;
 use Qwiratry::Query::Slang;
 use Qwiratry::Operator::Navigation;
 
-plan 4;
+plan 6;
 
 subtest 'extract-navigation-query captures topic-rooted query' => {
     plan 3;
@@ -54,4 +54,51 @@ subtest 'when-query-matches uses full select for explicit subjects' => {
 
     ok when-query-matches($query, $item, :origin($tree)), 'explicit-subject query matches';
     nok when-query-matches($query, $tree[0], :origin($tree)), 'parent node not in descendant results';
+}
+
+subtest 'when-query-matches chained topic child operators' => {
+    plan 3;
+
+    my $tree = [
+        %(name => 'section', children => [
+            %(name => 'item', value => 1),
+            %(name => 'item', value => 2),
+        ]),
+    ];
+    my $query = extract-navigation-query({ $_ ⪪ <section> ⪪ <item> });
+    my $item = $tree[0]<children>[0];
+    my $section = $tree[0];
+
+    ok when-query-matches($query, $item, :origin($tree)), 'item under section matches chain';
+    nok when-query-matches($query, $section, :origin($tree)), 'section alone does not match item chain';
+    nok when-query-matches($query, $item), 'chain requires transform root for parent lookup';
+}
+
+subtest 'mixed query and predicate matching' => {
+    plan 3;
+
+    use Qwiratry::Template;
+
+    my $tree = [
+        %(name => 'section', children => [
+            %(name => 'item', value => 1),
+            %(name => 'item'),
+        ]),
+    ];
+    my $when-query = extract-navigation-query({ $_ ⪪⪪ <item> });
+    my $when-block = { .<value>:exists };
+    my $template = Template.new(
+        :$when-query,
+        :$when-block,
+        :combine-when-query(True),
+        do-block => { 'ok' },
+    );
+
+    $*TRANSFORM-ROOT := $tree;
+    my $with-value = $tree[0]<children>[0];
+    my $without-value = $tree[0]<children>[1];
+
+    ok $template.matches($with-value), 'item with value matches mixed template';
+    nok $template.matches($without-value), 'item without value fails predicate';
+    nok $template.matches($tree[0]), 'section fails query match';
 }

@@ -99,6 +99,10 @@ sub compile-blockoid(Mu $cap) {
     return Nil unless $cap.defined;
     my $body = try $cap.ast;
     return Nil unless $body.defined;
+    _q_compile_block_body($body);
+}
+
+sub _q_compile_block_body(Mu $body) {
     my $block = RakuAST::Block.new(body => $body);
     try {
         $block.to-begin-time($*R, $*CU.context);
@@ -106,6 +110,12 @@ sub compile-blockoid(Mu $cap) {
         return $code if $code.defined;
     }
     Nil
+}
+
+sub _q_compile_block_expr(Mu $expr) {
+    _q_compile_block_body(RakuAST::StatementList.new(
+        RakuAST::Statement::Expression.new(:expression($expr)),
+    ));
 }
 
 sub implicit-template-signature() {
@@ -251,11 +261,26 @@ our role TemplateActions {
             die "{template-display-name($name)}: required 'do' block could not be compiled.";
         }
 
-        my $when-block = $<when-block>.defined ?? compile-blockoid($<when-block>) !! Nil;
-
-        my $when-query = $when-block.defined ?? extract-navigation-query($when-block) !! Nil;
-        if $when-query.defined && is-navigation-query-when($when-block) {
-            $when-block = Nil;
+        my $when-query = Nil;
+        my $when-block = Nil;
+        my $combine-when-query = False;
+        if $<when-block>.defined {
+            my %parts = split-when-navigation-from-blockoid($<when-block>);
+            if %parts<query>.defined {
+                my $query-block = _q_compile_block_expr(%parts<query>);
+                $when-query = extract-navigation-query($query-block) if $query-block.defined;
+                $when-block = %parts<predicate>:exists
+                    ?? _q_compile_block_expr(%parts<predicate>)
+                    !! Nil;
+                $combine-when-query = %parts<predicate>:exists;
+            }
+            else {
+                $when-block = compile-blockoid($<when-block>);
+                $when-query = extract-navigation-query($when-block) if $when-block.defined;
+                if $when-query.defined && is-navigation-query-when($when-block) {
+                    $when-block = Nil;
+                }
+            }
         }
 
         my %method-structure = transform-template-to-method(
@@ -264,7 +289,11 @@ our role TemplateActions {
         $when-block = %method-structure<where-constraint>;
         $do-block   = compile-rakuast-method(%method-structure) // $do-block;
 
-        my $template = Template.new(:$name, :$signature, :$when-block, :$when-query, :$do-block);
+        my $template = Template.new(
+            :$name, :$signature, :$when-block, :$when-query,
+            :$combine-when-query,
+            :$do-block,
+        );
         apply-template-traits($template, $routine);
         register-template($template);
     }

@@ -337,6 +337,7 @@ class Transformer is export {
         
         # T029: Iterate over data nodes and apply templates
         my @results;
+        my $*TRANSFORM-ROOT := $data;
         self!each-traversal-node($iter, $walker, -> $node {
             my $result = self.APPLY($node);
             if $result.defined {
