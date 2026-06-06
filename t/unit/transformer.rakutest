@@ -7,7 +7,7 @@ Tests Transformer declarator, class structure, and basic behavior
 use Test;
 use lib 'lib';
 
-use Qwiratry::TemplateSlangActivate;
+use Qwiratry::Template::Slang;
 use Qwiratry::Transformer;
 
 plan 7; # Updated to include new template parsing tests
@@ -121,8 +121,6 @@ subtest "Template collection mechanism" => {
     plan 2;
     
     # Verify that the template collection functions exist
-    use Qwiratry::Template::Slang;
-    
     ok &get-collected-templates.defined, "get-collected-templates function exists";
     ok &clear-collected-templates.defined, "clear-collected-templates function exists";
 }

@@ -148,7 +148,8 @@ class Template is export {
 
     method !invoke-block($block, $node) {
         return $block($node) if $block.arity == 1;
-        return do with $node { $block() };
+        # Topic blocks accept $node as caller arg; arity-0 subs (from routine.meta-object) do not.
+        return (try $block.($node)) // $block();
     }
     
     =begin pod

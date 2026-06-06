@@ -8,7 +8,7 @@ use Test;
 use lib 'lib';
 
 # Activate template slang (Piersing-style compunit; must be loaded directly)
-use Qwiratry::TemplateSlangActivate;
+use Qwiratry::Template::Slang;
 use Qwiratry::Transformer;
 use Qwiratry::Template::Slang;
 

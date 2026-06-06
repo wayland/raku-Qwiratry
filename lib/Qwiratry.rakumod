@@ -7,6 +7,7 @@ Users can simply `use Qwiratry` to get access to transformers, templates, walker
 and all other Qwiratry features.
 
 Example:
+  use Qwiratry::Template::Slang;  # required for template/wrapper syntax
   use Qwiratry;
   
   transformer MyTransform {
@@ -20,13 +21,13 @@ Example:
 unit module Qwiratry;
 
 # Activate template slang and transformer declarator in callers.
-# Slangify must run in the caller; see Qwiratry::TemplateSlangActivate.
+# Slangify must run in the caller; see Qwiratry::Template::Slang.
 sub IMPORT(::(?Mu) $, |) {
-    use Qwiratry::TemplateSlangActivate;
+    # Slangify must be loaded in the importer's compunit (Piersing pattern).
+    use Qwiratry::Template::Slang;
     use Qwiratry::Transformer;
 }
 
-use Qwiratry::TemplateSlangActivate;
 use Qwiratry::Template::Slang;
 use Qwiratry::Template;
 use Qwiratry::Transformer;

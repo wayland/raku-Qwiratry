@@ -14,8 +14,7 @@ use Qwiratry::Template::Slang;  # For get-collected-templates(), clear-collected
 use X::Qwiratry;  # For X::Qwiratry::TemplateOrderingConflict
 use Qwiratry::Walker::Factory;  # For Qwiratry::Walker selection
 use Qwiratry::Transformer::Copy;  # For copy() and deepcopy() service functions (exported by default)
-# Note: Template slang activation is handled by main Qwiratry.rakumod
-# Users should `use Qwiratry` to get slang activation automatically
+# Note: Template slang activation requires `use Qwiratry::Template::Slang` in the caller compunit.
 
 =begin pod
 

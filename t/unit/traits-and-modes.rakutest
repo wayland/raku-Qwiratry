@@ -1,7 +1,7 @@
 use Test;
 use lib 'lib';
 
-use Qwiratry::TemplateSlangActivate;
+use Qwiratry::Template::Slang;
 use Qwiratry::Transformer;
 
 use Qwiratry::Transformer::TreeRewrite;

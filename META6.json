@@ -18,7 +18,6 @@
     "Qwiratry::Strategy::RewriteSpec": "lib/Qwiratry/Strategy/RewriteSpec.rakumod",
     "Qwiratry::Template": "lib/Qwiratry/Template.rakumod",
     "Qwiratry::Template::Slang": "lib/Qwiratry/Template/Slang.rakumod",
-    "Qwiratry::TemplateSlangActivate": "lib/Qwiratry/TemplateSlangActivate.rakumod",
     "Qwiratry::Transformer": "lib/Qwiratry/Transformer.rakumod",
     "Qwiratry::Transformer::Copy": "lib/Qwiratry/Transformer/Copy.rakumod",
     "Qwiratry::Transformer::TreeRewrite": "lib/Qwiratry/Transformer/TreeRewrite.rakumod",
