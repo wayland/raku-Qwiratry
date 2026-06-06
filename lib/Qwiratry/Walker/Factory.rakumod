@@ -11,6 +11,7 @@ Walker selection while maintaining flexibility for explicit registration.
 use Qwiratry::Walker;
 use X::Qwiratry;
 use Implementation::Loader;
+use Qwiratry::Walker::Implementation::Tree;
 
 =begin pod
 
@@ -91,7 +92,11 @@ class Qwiratry::Walker::Factory {
             # For MVP, return Nil - specific walkers can be registered
             # Future: return default Associative walker if available
         }
-        
+
+        if $data.defined {
+            return Qwiratry::Walker::Implementation::Tree.new;
+        }
+
         # No Walker found
         # Explicitly return Nil to avoid returning Any (type object)
         return Nil;

@@ -1,0 +1,65 @@
+#| Integration tests for Walker-driven TRANSFORM traversal
+use Test;
+use lib 'lib';
+
+use Qwiratry::Transformer;
+use Qwiratry::Template;
+use Qwiratry::Walker::Factory;
+use Qwiratry::Walker::Implementation::Tree;
+use Qwiratry::Operator::Navigation;
+use Qwiratry::Query::Slang;
+
+plan 3;
+
+subtest 'Factory provides default tree walker' => {
+    plan 2;
+
+    my $walker = Qwiratry::Walker::Factory.instance.get-walker(%(a => 1));
+    ok $walker ~~ Qwiratry::Walker::Implementation::Tree,
+        'factory returns default tree walker for defined data';
+    ok $walker.supports(DescendantOperator.new(:selector('*'))),
+        'tree walker supports descendant traversal queries';
+}
+
+subtest 'TRANSFORM traverses nested structures via walker' => {
+    plan 2;
+
+    my $transformer = Transformer.new;
+    $transformer.add-template(Template.new(
+        when-block => -> { True },
+        do-block => -> { "node" },
+    ));
+
+    my $nested = ['root', ['inner', 'leaf']];
+    my $result = $transformer.TRANSFORM($nested);
+    is $result.elems, 4,
+        'walker DFS visits root, inner array, and leaf nodes';
+    ok $result.grep('node').elems == 4,
+        'template applied to every visited node';
+}
+
+subtest 'when-query specificity orders templates at equal priority' => {
+    plan 2;
+
+    my $transformer = Transformer.new;
+    my $root = %(name => 'root');
+
+    $transformer.add-template(Template.new(
+        when-block => -> { True },
+        do-block => -> { 'wildcard' },
+        :when-query($root ⪪ <*>),
+        priority => 5,
+    ));
+    $transformer.add-template(Template.new(
+        when-block => -> { True },
+        do-block => -> { 'explicit' },
+        :when-query($root ⪪ <item>),
+        priority => 5,
+    ));
+
+    my @ordered = $transformer.ORDER-TEMPLATES;
+    is @ordered[0].execute($root, :transformer($transformer)), 'explicit',
+        'more specific template is ordered first';
+    is $transformer.APPLY($root), 'explicit',
+        'APPLY uses query-derived specificity ordering';
+}

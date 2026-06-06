@@ -11,6 +11,7 @@ use Qwiratry;
 use Qwiratry::Transformer;
 use Qwiratry::Template;
 use Qwiratry::Walker::Factory;
+use Qwiratry::Walker::Implementation::Tree;
 
 plan 5;
 
@@ -60,14 +61,11 @@ subtest "Walker factory" => {
     
     my $factory = Qwiratry::Walker::Factory.instance;
     
-    # Test get-walker returns Nil for unknown types (MVP)
     my $walker1 = $factory.get-walker("test");
-    ok $walker1 === Nil || $walker1 === Any, "Walker factory returns Nil/Any for unknown types (MVP)";
+    ok $walker1 ~~ Qwiratry::Walker::Implementation::Tree,
+        "Walker factory returns default tree walker for defined data";
     
-    # Test register-walker and get-walker
-    # Note: For MVP, we can't easily test with actual Walker instances
-    # without importing Walker implementations, but we can test the infrastructure
-    pass "Walker factory infrastructure in place (registration and discovery ready)";
+    pass "Walker factory registration and discovery infrastructure in place";
 }
 
 # =============================================================================

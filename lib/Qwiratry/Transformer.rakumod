@@ -13,6 +13,9 @@ use Qwiratry::Template;
 use Qwiratry::Template::Slang;  # For get-collected-templates(), clear-collected-templates(), get-collected-wrappers(), clear-collected-wrappers()
 use X::Qwiratry;  # For X::Qwiratry::TemplateOrderingConflict
 use Qwiratry::Walker::Factory;  # For Qwiratry::Walker selection
+use Qwiratry::Operator::Navigation;
+use Qwiratry::Query::Specificity;
+use Qwiratry::QueryIterator;
 use Qwiratry::Transformer::Copy;  # For copy() and deepcopy() service functions (exported by default)
 # Note: Template slang activation requires `use Qwiratry::Template::Slang` in the caller compunit.
 
@@ -164,6 +167,9 @@ class Transformer is export {
                         when X::Qwiratry::NextTemplate { next }
                         default { .throw }
                     }
+                }
+                if self.^find_method('WRAP_TEMPLATE_ACTION', :no_fallback) {
+                    $result = self.WRAP_TEMPLATE_ACTION($node, $result);
                 }
                 if $!returns-type.WHICH ne Mu.WHICH && $result.defined {
                     unless $result ~~ $.returns-type {
@@ -326,15 +332,12 @@ class Transformer is export {
         # T030: Create iterator - use provided iterator or default
         my $iter = $iterator;
         if !$iter.defined {
-            # Create default iterator (depth-first, top-down)
-            # For MVP, use a simple iterator that yields nodes
-            # Future: Use Qwiratry::Walker-provided iterator if available
             $iter = self!create-default-iterator($data, $walker);
         }
         
         # T029: Iterate over data nodes and apply templates
         my @results;
-        for $iter -> $node {
+        self!each-traversal-node($iter, $walker, -> $node {
             my $result = self.APPLY($node);
             if $result.defined {
                 if $!returns-type.WHICH ne Mu.WHICH {
@@ -362,7 +365,7 @@ class Transformer is export {
                     @results.push($result);
                 }
             }
-        }
+        });
         
         # T029: Return results based on streaming trait
         my $result;
@@ -412,24 +415,62 @@ class Transformer is export {
     @returns Iterator - Iterator that yields nodes
 
     =end pod
-    method !create-default-iterator($data, $walker --> Iterable) {
-        # T030: Create default iterator (depth-first, top-down)
-        # For MVP, provide simple iterator for basic structures
-        # Future: Use Qwiratry::Walker-provided iterator if available
-        
-        # Simple iterator that yields the root and its children (if applicable)
+    method !default-traversal-query(Mu $data --> Mu) {
+        if $data ~~ Positional || $data ~~ Associative {
+            return DescendantOperator.new(:subject($data), :selector('*'));
+        }
+        return RootOperator.new(:subject($data));
+    }
+
+    method !walker-traversal-seq(Mu $data, $walker --> Iterable) {
+        my $query = self!default-traversal-query($data);
+        my $plan = $walker.plan($query, $data);
+        my $qiter = $walker.iterator($plan);
+        my $ctx = $qiter.context;
+        gather {
+            $walker.PRE-PASS($ctx);
+            while (my $node = $qiter.pull-one) !~~ IterationEnd {
+                take $node;
+            }
+            $walker.POST-PASS($ctx);
+        }
+    }
+
+    method !each-traversal-node($iter, $walker, &code) {
+        if $iter ~~ QueryIterator {
+            my $ctx = $iter.context;
+            $walker.PRE-PASS($ctx) if $walker.defined;
+            while (my $node = $iter.pull-one) !~~ IterationEnd {
+                code($node);
+            }
+            $walker.POST-PASS($ctx) if $walker.defined;
+            return;
+        }
+
+        for $iter -> $node {
+            code($node);
+        }
+    }
+
+    method !create-default-iterator($data, $walker --> Mu) {
+        if $walker.defined {
+            my $query = self!default-traversal-query($data);
+            if $walker.supports($query) {
+                my $plan = $walker.plan($query, $data);
+                return $walker.iterator($plan);
+            }
+        }
+
+        # Fallback: simple root + direct children iterator
         my @nodes = gather {
-            # Yield root node
             take $data;
-            
-            # For Positional (arrays, lists), yield each element
+
             if $data ~~ Positional {
                 for $data -> $item {
                     take $item;
                 }
             }
-            
-            # For Associative (hashes, maps), yield each value
+
             if $data ~~ Associative {
                 for $data.values -> $value {
                     take $value;
@@ -533,32 +574,14 @@ class Transformer is export {
 
     =end pod
     method !calculate-specificity(Template $template --> Int) {
-        # MVP Implementation (WP04): Basic specificity calculation
-        # 
-        # This provides a minimal implementation that:
-        # 1. Returns 0 for templates without when blocks
-        # 2. Returns 1 for templates with when blocks (base specificity)
-        #
-        # Full AST analysis will be implemented when query operators are available.
-        # At that time, we'll analyze the when-block AST to detect:
-        # - Axis operators (⪪, ⪪⪪, etc.) - multilevel axes reduce specificity
-        # - Wildcards (*) - reduce specificity
-        # - Explicit path elements - increase specificity
-        # - Attribute axes - increase specificity
-        #
-        # For now, templates with when blocks get a base specificity of 1,
-        # which allows ordering to work correctly when priority is equal.
-        # Users can use explicit :tie-breaker values to fine-tune ordering
-        # until full specificity calculation is available.
-        
-        # If template has no when block, default specificity is 0
+        if $template.when-query.defined {
+            return score($template.when-query);
+        }
+
         if !$template.when-block.defined {
             return 0;
         }
-        
-        # Base specificity for templates with when clauses
-        # This ensures templates with when blocks are ordered correctly
-        # when priority is equal, even without full AST analysis
+
         return 1;
     }
     

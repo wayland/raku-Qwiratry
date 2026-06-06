@@ -17,6 +17,7 @@
     "Qwiratry::Operator::MapReduce": "lib/Qwiratry/Operator/MapReduce.rakumod",
     "Qwiratry::Operator::Navigation": "lib/Qwiratry/Operator/Navigation.rakumod",
     "Qwiratry::Query::Slang": "lib/Qwiratry/Query/Slang.rakumod",
+    "Qwiratry::Query::Specificity": "lib/Qwiratry/Query/Specificity.rakumod",
     "Qwiratry::Operator::Set": "lib/Qwiratry/Operator/Set.rakumod",
     "Qwiratry::Strategy": "lib/Qwiratry/Strategy.rakumod",
     "Qwiratry::Strategy::ControlSignal": "lib/Qwiratry/Strategy/ControlSignal.rakumod",
@@ -29,6 +30,7 @@
     "Qwiratry::Transformer::TreeRewrite": "lib/Qwiratry/Transformer/TreeRewrite.rakumod",
     "Qwiratry::Walker": "lib/Qwiratry/Walker.rakumod",
     "Qwiratry::Walker::Factory": "lib/Qwiratry/Walker/Factory.rakumod",
+    "Qwiratry::Walker::Implementation::Tree": "lib/Qwiratry/Walker/Implementation/Tree.rakumod",
     "Qwiratry::Walker::Master": "lib/Qwiratry/Walker/Master.rakumod",
     "Qwiratry::Walker::Providing": "lib/Qwiratry/Walker/Providing.rakumod",
     "X::Qwiratry": "lib/X/Qwiratry.rakumod"

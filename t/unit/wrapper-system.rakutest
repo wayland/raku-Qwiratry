@@ -34,10 +34,10 @@ subtest "WRAP_TRANSFORMER - wraps entire transformation" => {
     }
     
     my $transformer = TestTransformer1.new;
-    my $result = $transformer.transform([1, 2, 3]);
-    
+    my $result = $transformer.transform(42);
+
     ok $result ~~ List, "TRANSFORMER wrapper returns List";
-    is $result[0], "original", "TRANSFORMER wrapper receives original result";
+    is $result[0][0], "original", "TRANSFORMER wrapper receives original result";
     is $result[1], "wrapped", "TRANSFORMER wrapper can modify result";
 }
 
@@ -127,16 +127,16 @@ subtest "Hierarchy traversal - wrappers called up transformer hierarchy" => {
     
     my $transformer = DerivedTransformer.new;
     my $result = $transformer.transform(42);
-    
+
     ok $result ~~ List, "Hierarchy traversal returns List";
-    is $result[0], "original", "Original result preserved";
+    is $result[0][0], "original", "Original result preserved";
     # Note: The order depends on how callwith works
     # For MVP, we'll just verify both wrappers execute
     ok $result.elems >= 2, "Both wrappers execute";
 }
 
 subtest "Wrapper parameters - verify correct parameters passed" => {
-    plan 4;
+    plan 6;
     
     transformer TestTransformer4 {
         wrapper TEMPLATE_MATCHER {

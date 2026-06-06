@@ -128,12 +128,20 @@ class Template is export {
     
     =end pod
     has Mu $.returns-type;
+
+    =begin pod
+
+    Optional Query AST extracted from the C<when> clause for specificity calculation.
+
+    =end pod
+    has Mu $.when-query is rw;
     
     # Constructor
     submethod BUILD(
         :$name,
         :$signature,
         :$when-block,
+        :$when-query,
         :$!do-block!,
         :$!priority = 0,
         :$specificity,
@@ -144,6 +152,7 @@ class Template is export {
         $!name = $name if $name.defined;
         $!signature = $signature if $signature.defined;
         $!when-block = $when-block if $when-block.defined;
+        $!when-query = $when-query if $when-query.defined;
         $!specificity = $specificity if $specificity.defined;
         $!returns-type = $returns-type if $returns-type.defined;
     }
