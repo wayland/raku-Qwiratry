@@ -1,0 +1,71 @@
+#| Unit tests for tree query matching and selection
+use Test;
+use lib 'lib';
+
+use Qwiratry::Query::Match;
+use Qwiratry::Query::Slang;
+use Qwiratry::Operator::Navigation;
+
+plan 6;
+
+my $tree = [
+    %(name => 'section', children => [
+        %(name => 'item', value => 1),
+        %(name => 'item', value => 2),
+    ]),
+    %(name => 'footer'),
+];
+
+subtest 'child operator selects direct children by name' => {
+    plan 2;
+
+    my $query = $tree ⪪ <section>;
+    my @matches = select($query, $tree).List;
+    is @matches.elems, 1, 'one section child';
+    is @matches[0]<name>, 'section', 'matched section node';
+}
+
+subtest 'descendant operator selects nested nodes' => {
+    plan 3;
+
+    my $query = $tree ⪪⪪ <item>;
+    my @matches = select($query, $tree).List;
+    is @matches.elems, 2, 'two item descendants';
+    ok @matches[0]<value> == 1 || @matches[0]<value> == 2, 'first item has value';
+    ok node-matches($query, @matches[1], :origin($tree)), 'node-matches agrees with select';
+}
+
+subtest 'wildcard descendant skips root container' => {
+    plan 1;
+
+    my $nested = ['root', ['inner', 'leaf']];
+    my $query = DescendantOperator.new(:selector('*'));
+    is select($query, $nested).elems, 4, 'descendant wildcard skips root, visits four nodes';
+}
+
+subtest 'root operator selects origin node' => {
+    plan 2;
+
+    my $query = RootOperator.new(:subject($tree));
+    my @matches = select($query, $tree).List;
+    is @matches.elems, 1, 'single root result';
+    ok @matches[0] === $tree, 'root node returned';
+}
+
+subtest 'attribute operator reads associative keys' => {
+    plan 2;
+
+    my $node = %(name => 'item', status => 'active');
+    my $query = AttributeOperator.new(:key('status'));
+    is select($query, $node)[0], 'active', 'attribute value selected';
+    ok node-matches($query, 'active', :origin($node)), 'value matches attribute query';
+}
+
+subtest 'chained child operators compose' => {
+    plan 2;
+
+    my $query = $tree ⪪ <section> ⪪ <item>;
+    my @matches = select($query, $tree).List;
+    is @matches.elems, 2, 'section items selected through chain';
+    ok @matches.grep({ .<name> eq 'item' }).elems == 2, 'all matches are items';
+}

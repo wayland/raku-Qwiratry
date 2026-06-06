@@ -13,6 +13,7 @@ use Qwiratry::QueryIterator;
 use Qwiratry::Context;
 use Qwiratry::Operator::Navigation;
 use Qwiratry::Operator::Capability;
+use Qwiratry::Query::Match;
 use X::Qwiratry;
 
 unit class Qwiratry::Walker::Implementation::Tree does Qwiratry::Walker {
@@ -23,47 +24,21 @@ unit class Qwiratry::Walker::Implementation::Tree does Qwiratry::Walker {
     my class TreeIterator does QueryIterator {
         has Mu $.root is required;
         has Mu $.query-ast;
-        has @!stack;
-        has Bool $!started = False;
-        has Bool $!skip-root = False;
+        has Iterator $!matches;
 
         submethod BUILD(:$!root, :$!query-ast, :$!context) {
-            @!stack = ();
-            $!skip-root = $!query-ast ~~ DescendantOperator;
-        }
-
-        method !push-children(Mu $node) {
-            my @children;
-            if $node ~~ Positional {
-                @children = $node.list;
-            }
-            elsif $node ~~ Associative {
-                @children = $node.values.list;
-            }
-            for @children.reverse -> $child {
-                @!stack.push($child);
-            }
+            $!matches = select($!query-ast, $!root).iterator;
         }
 
         method pull-one(--> Mu) {
-            unless $!started {
-                $!started = True;
-                if $!query-ast ~~ RootOperator {
-                    $.context.nodes-visited++;
-                    return $!root;
+            my $next = $!matches.pull-one;
+            given $next {
+                when IterationEnd { return IterationEnd; }
+                default {
+                    $.context.nodes-visited++ if $.context.defined;
+                    $next
                 }
-                @!stack.push($!root);
             }
-
-            while @!stack {
-                my $node = @!stack.pop;
-                $.context.nodes-visited++;
-                self!push-children($node);
-                next if $!skip-root && $node === $!root;
-                return $node;
-            }
-
-            IterationEnd;
         }
     }
 

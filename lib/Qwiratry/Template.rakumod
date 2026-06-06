@@ -11,6 +11,7 @@ metadata for ordering (priority, specificity, tie-breaker).
 unit module Qwiratry::Template;
 
 use X::Qwiratry;  # For X::Qwiratry::TypeCheck
+use Qwiratry::Query::Match;
 
 =begin pod
 
@@ -169,6 +170,10 @@ class Template is export {
 
     =end pod
     method matches($node --> Bool) {
+        if $!when-query.defined && !$!when-block.defined {
+            return node-matches($!when-query, $node, :origin($node));
+        }
+
         if !$!when-block.defined {
             return True;
         }

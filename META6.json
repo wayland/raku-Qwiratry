@@ -17,6 +17,7 @@
     "Qwiratry::Operator::MapReduce": "lib/Qwiratry/Operator/MapReduce.rakumod",
     "Qwiratry::Operator::Navigation": "lib/Qwiratry/Operator/Navigation.rakumod",
     "Qwiratry::Query::Slang": "lib/Qwiratry/Query/Slang.rakumod",
+    "Qwiratry::Query::Match": "lib/Qwiratry/Query/Match.rakumod",
     "Qwiratry::Query::Specificity": "lib/Qwiratry/Query/Specificity.rakumod",
     "Qwiratry::Operator::Set": "lib/Qwiratry/Operator/Set.rakumod",
     "Qwiratry::Strategy": "lib/Qwiratry/Strategy.rakumod",
