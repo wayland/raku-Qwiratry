@@ -101,14 +101,6 @@
 - **[Entity 1]**: [What it represents, key attributes without implementation]
 - **[Entity 2]**: [What it represents, relationships to other entities]
 
-## Constitution Alignment *(non-negotiable)*
-
-- **Testing**: Describe automated tests to be written before implementation (unit plus integration/contract where applicable).
-- **Data contracts**: Note schemas/validation boundaries and backward-compatibility expectations or migrations.
-- **CLI & observability**: State the CLI surface, text/JSON outputs, and required logs/metrics/traces for this feature.
-- **Security/privacy**: Capture least-privilege needs, secrets handling, and any sensitive data minimization.
-- **Simplicity & increments**: Identify the smallest independently testable slices and rollback considerations.
-
 ## Success Criteria *(mandatory)*
 
 <!--

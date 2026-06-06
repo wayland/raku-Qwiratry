@@ -70,6 +70,7 @@ role QueryIterator does Iterator is export {
     Contract:
       - Returns: Any value (the next result) or IterationEnd (exhausted)
       - After returning IterationEnd once, must consistently return IterationEnd
+      - Test exhaustion with `$value ~~ IterationEnd` (not `=:=`) when storing pull-one in a variable
       - Should support lazy evaluation when possible
       - May coordinate with Context for state management
       - May support backtracking per Qwiratry::Walker logic

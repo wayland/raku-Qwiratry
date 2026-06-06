@@ -2,9 +2,10 @@
 #|
 #| Tests trait application, metadata attachment, and runtime discovery.
 use Test;
+use lib 'lib';
 use Qwiratry::Walker::Providing;
 
-plan 6;  # Note: Test 3 skipped - single domain discovery doesn't work with current implementation
+plan 6;
 
 # Test T007: Trait application compiles successfully
 {
@@ -18,10 +19,11 @@ plan 6;  # Note: Test 3 skipped - single domain discovery doesn't work with curr
 }
 
 # Test T008: Single domain discovery
-# Note: providing-domains needs the variable (container), so we pass $table directly
-# SKIPPED: This test doesn't work with the current implementation due to
-# the mismatch between Variable declarand identity and Scalar container identity
-skip "Single domain discovery doesn't work with current implementation", 1;
+{
+    my $table is providing<sql> = "test";
+    my @domains = providing-domains($table);
+    is-deeply @domains, ['sql'], "Single domain discovery returns correct array";
+}
 
 # Test T009: Multiple domain discovery
 {

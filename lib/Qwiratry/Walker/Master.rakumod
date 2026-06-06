@@ -42,7 +42,7 @@ Example:
 =end pod
 class Qwiratry::Walker::Master::Plan does Qwiratry::Walker::Plan {
     # Original query AST (composite query, not modified)
-    has RakuAST::Node $.query-ast is required;
+    has Mu $.query-ast is required;
     
     # Embedded subplans from delegated walkers
     has @.subplans;
@@ -62,7 +62,7 @@ class Qwiratry::Walker::Master::Plan does Qwiratry::Walker::Plan {
     }
     
     # Return original query AST (not modified)
-    method query(--> RakuAST::Node) {
+    method query(--> Mu) {
         return $!query-ast;
     }
     
@@ -143,7 +143,7 @@ class Qwiratry::Walker::Master::Iterator does QueryIterator {
             my @subplan-results = Array.new;
             loop {
                 my $result = $subplan-iter.pull-one();
-                last if $result === IterationEnd;
+                last if $result ~~ IterationEnd;
                 @subplan-results.push($result);
             }
             
@@ -259,15 +259,13 @@ class Qwiratry::Walker::Master does Qwiratry::Walker {
     
     # Check "providing" trait on root object, return domain names or Nil.
     # Uses providing-domains() from Qwiratry::Walker::Providing to extract domain metadata.
-    method check-domain-metadata(Mu $root --> Array) {
-        my @domains = providing-domains($root);
-        return @domains if @domains;
-        return Nil;
+    method check-domain-metadata($root is raw --> Array) {
+        cached-providing-domains($root);
     }
     
     # Query walker about capability via supports() method.
     # Returns True if walker supports the subtree, False otherwise.
-    method check-capability(RakuAST::Node $subtree, Qwiratry::Walker $walker --> Bool) {
+    method check-capability(Mu $subtree, Qwiratry::Walker $walker --> Bool) {
         # Check if walker has supports() method and call it
         if $walker.^can('supports') {
             return $walker.supports($subtree);
@@ -285,6 +283,8 @@ class Qwiratry::Walker::Master does Qwiratry::Walker {
         
         # For each domain, try to find a walker that supports it
         for @$domains -> $domain {
+            my $domain-name = ~$domain;
+            next unless $domain-name.chars;
             for @candidates -> $walker {
                 # Check if walker has domain support method (if available)
                 if $walker.^can('supports-domain') {
@@ -295,7 +295,7 @@ class Qwiratry::Walker::Master does Qwiratry::Walker {
                     # Fallback heuristic: check if walker type name contains domain
                     # This is a simple heuristic for MVP - can be enhanced later
                     my $walker-name = $walker.^name.lc;
-                    if $walker-name.contains($domain.lc) {
+                    if $walker-name.contains($domain-name.lc) {
                         return $walker;
                     }
                 }
@@ -314,7 +314,7 @@ class Qwiratry::Walker::Master does Qwiratry::Walker {
     Returns Qwiratry::Walker if pattern matches, Nil otherwise.
 
     =end pod
-    method check-ast-pattern(RakuAST::Node $subtree) {
+    method check-ast-pattern(Mu $subtree) {
         # For MVP, this is optional and not implemented
         # Can be enhanced later to recognize specific AST patterns
         # (e.g., SQL SELECT patterns, JSON path expressions, etc.)
@@ -330,7 +330,7 @@ class Qwiratry::Walker::Master does Qwiratry::Walker {
     Returns Qwiratry::Walker if heuristic matches, Nil otherwise.
 
     =end pod
-    method check-heuristic(RakuAST::Node $subtree) {
+    method check-heuristic(Mu $subtree) {
         # For MVP, this is optional and not implemented
         # Can be enhanced later with heuristics based on:
         # - Node type (RakuAST::Node.^name)
@@ -347,14 +347,15 @@ class Qwiratry::Walker::Master does Qwiratry::Walker {
     Handles edge cases: no walker found, multiple walkers, walker declines.
 
     =end pod
-    method detect-handover(RakuAST::Node $subtree, Mu $root) {
+    method detect-handover(Mu $subtree, $root is raw) {
         my @candidates = self.candidate-walkers();
         my @tried-walkers = Array.new;
         my @failure-reasons = Array.new;
         
         # Step 1: Check domain metadata (fast path)
-        my @domains = self.check-domain-metadata($root);
-        if @domains {
+        my $domains = self.check-domain-metadata($root);
+        if $domains.defined {
+            my @domains = $domains;
             my $walker = self.find-walker-by-domain(@domains);
             if $walker {
                 return $walker;
@@ -403,7 +404,7 @@ class Qwiratry::Walker::Master does Qwiratry::Walker {
     
     # Extract AST subtree from query for delegation.
     # For MVP, delegates entire query. Subtree extraction can be enhanced later.
-    method extract-subtree(RakuAST::Node $query --> RakuAST::Node) {
+    method extract-subtree(Mu $query --> Mu) {
         # For MVP, return entire query as subtree
         # This can be enhanced later to extract specific subtrees
         return $query;
@@ -416,7 +417,7 @@ class Qwiratry::Walker::Master does Qwiratry::Walker {
     Handles edge case T052: walker accepts via supports() but declines during planning.
 
     =end pod
-    method delegate-planning(Qwiratry::Walker $walker, RakuAST::Node $subtree, Mu $root --> Qwiratry::Walker::Plan) {
+    method delegate-planning(Qwiratry::Walker $walker, Mu $subtree, Mu $root --> Qwiratry::Walker::Plan) {
         {
             return $walker.plan($subtree, $root);
             CATCH {
@@ -447,7 +448,7 @@ class Qwiratry::Walker::Master does Qwiratry::Walker {
     Detects handovers, delegates planning, and embeds subplans in Qwiratry::Walker::Master::Plan.
 
     =end pod
-    method plan(RakuAST::Node $query, Mu $root --> Qwiratry::Walker::Plan) {
+    method plan(Mu $query, $root is raw --> Qwiratry::Walker::Plan) {
         # Detect if handover is needed
         my $walker = self.detect-handover($query, $root);
         

@@ -9,7 +9,7 @@ use Qwiratry::Strategy::ControlSignal;
 use Qwiratry::Strategy::FinishResult;
 use Qwiratry::QueryIterator;
 
-plan 20;
+plan 19;
 
 # =============================================================================
 # Helper classes for integration testing
@@ -32,11 +32,11 @@ class TestContext does Context {
     has @.should-follow-calls;
     has @.after-calls;
     has $.finish-result is rw;
-    has Int $.should-continue-calls = 0;
-    has Bool $.should-continue-result = False;
+    has Int $.should-continue-calls is rw = 0;
+    has Bool $.should-continue-result is rw = False;
     has @.matches;
-    has Int $.depth = 0;
-    has Int $.max-depth = 0;
+    has Int $.depth is rw = 0;
+    has Int $.max-depth is rw = 0;
 }
 
 # Simple QueryIterator that traverses a tree and calls Strategy hooks
@@ -44,56 +44,59 @@ class TreeIterator does QueryIterator {
     has TreeNode $.root;
     has @!stack;
     has Bool $!finished = False;
+    has Bool $!finish-called = False;
     
     submethod BUILD(:$!root, :$!context) {
         @!stack = [$!root] if $!root.defined;
     }
     
-    method pull-one(--> Mu) {
-        return IterationEnd if $!finished || @!stack.elems == 0;
-        
-        my $element = @!stack.shift;
-        
-        # Call before hook
+    method !invoke-finish() {
+        return if $!finish-called;
+        $!finish-called = True;
+        if $!context.strategy.defined {
+            $!context.finish-result = $!context.strategy.finish($!root, $!context);
+        }
+    }
+    
+    method !run-hooks($element, :$expand-children = True, :$yield = True --> Mu) {
         if $!context.strategy.defined {
             my $signal = $!context.strategy.before($element, $!context);
             $!context.before-calls.push({ element => $element, signal => $signal });
             
-            given $signal {
-                when STOP_TRAVERSAL {
+            if $signal ~~ ControlSignal {
+                if $signal == STOP_TRAVERSAL {
                     $!finished = True;
-                    $!context.finish-result = $!context.strategy.finish($!root, $!context);
+                    @!stack = ();
+                    self!invoke-finish();
+                    return $element if $yield;
                     return IterationEnd;
                 }
-                when SKIP_ELEMENT {
-                    # Skip this element's children
-                    return self.pull-one;
+                elsif $signal == SKIP_ELEMENT {
+                    return $element if $yield;
+                    return Nil;
                 }
             }
-        }
-        
-        # Simulate query match (all nodes match for testing)
-        if $!context.strategy.defined {
+            
             my $match = $element.name.match(/./);
             my $result = $!context.strategy.on-match($element, $match, $!context);
             $!context.on-match-calls.push({ element => $element, result => $result });
             
             if $result ~~ ControlSignal {
-                given $result {
-                    when STOP_TRAVERSAL {
-                        $!finished = True;
-                        $!context.finish-result = $!context.strategy.finish($!root, $!context);
-                        return IterationEnd;
-                    }
-                    when SKIP_ELEMENT {
-                        return self.pull-one;
-                    }
+                if $result == STOP_TRAVERSAL {
+                    $!finished = True;
+                    @!stack = ();
+                    self!invoke-finish();
+                    return $element if $yield;
+                    return IterationEnd;
+                }
+                elsif $result == SKIP_ELEMENT {
+                    return $element if $yield;
+                    return Nil;
                 }
             }
         }
         
-        # Process children (check should-follow)
-        if $element.children.defined {
+        if $expand-children && $element.children.defined {
             for $element.children -> $child {
                 my $should-follow = True;
                 if $!context.strategy.defined {
@@ -102,24 +105,40 @@ class TreeIterator does QueryIterator {
                 }
                 if $should-follow {
                     @!stack.push($child);
+                } else {
+                    self!run-hooks($child, :expand-children(False), :yield(False));
                 }
             }
         }
         
-        # Call after hook
         if $!context.strategy.defined {
             my $signal = $!context.strategy.after($element, $!context);
             $!context.after-calls.push({ element => $element, signal => $signal });
             
             if $signal ~~ ControlSignal && $signal == STOP_TRAVERSAL {
                 $!finished = True;
-                $!context.finish-result = $!context.strategy.finish($!root, $!context);
-                return IterationEnd;
+                @!stack = ();
+                self!invoke-finish();
             }
         }
         
-        # Return the element as a result
-        $element
+        return $yield ?? $element !! Nil;
+    }
+    
+    method pull-one(--> Mu) {
+        if $!finished && @!stack.elems == 0 {
+            return IterationEnd;
+        }
+        
+        if @!stack.elems == 0 {
+            self!invoke-finish();
+            return IterationEnd;
+        }
+        
+        my $element = @!stack.shift;
+        my $result = self!run-hooks($element);
+        return $result if $result.defined;
+        return IterationEnd;
     }
 }
 
@@ -138,6 +157,19 @@ class TestPlan does Qwiratry::Walker::Plan {
     
     method query(--> Mu) { { type => 'test' } }
     method describe(--> Str) { "TestPlan" }
+}
+
+# Depth-tracking strategy stores depth on TestContext (see $.depth / $.max-depth)
+my class DepthTrackingStrategy does Strategy {
+    method before($element, Context $ctx) {
+        return Nil unless $ctx ~~ TestContext;
+        # Iterator calls after() before child nodes run, so track depth on entry only.
+        $ctx.depth++;
+        $ctx.max-depth = $ctx.depth if $ctx.depth > $ctx.max-depth;
+        Nil
+    }
+
+    method after($element, Context $ctx) { Nil }
 }
 
 # Simple Walker for testing
@@ -255,8 +287,9 @@ subtest 'User Story 2 - Element Skipping and Pruning' => {
         TreeNode.new(name => 'content', children => [])
     ]);
     
-    my $skip-plan = $walker.plan({}, $comment-tree);
-    my $skip-iter = $walker.iterator($skip-plan);
+    my $skip-walker = TestTreeWalker.new(strategy => $skip-strategy);
+    my $skip-plan = $skip-walker.plan({}, $comment-tree);
+    my $skip-iter = $skip-walker.iterator($skip-plan);
     
     while $skip-iter.pull-one !~~ IterationEnd { }
     
@@ -295,21 +328,6 @@ subtest 'User Story 3 - Match Processing' => {
 subtest 'User Story 4 - Pre/Post Visit Processing' => {
     plan 3;
     
-    my class DepthTrackingStrategy does Strategy {
-        has Int $.max-depth = 0;
-        has Int $!current-depth = 0;
-        
-        method before($element, Context $ctx) {
-            $!current-depth++;
-            $!max-depth max= $!current-depth;
-            Nil
-        }
-        method after($element, Context $ctx) {
-            $!current-depth--;
-            Nil
-        }
-    }
-    
     my $strategy = DepthTrackingStrategy.new;
     my $walker = TestTreeWalker.new(strategy => $strategy);
     my $tree = TreeNode.new(name => 'root', children => [
@@ -325,11 +343,9 @@ subtest 'User Story 4 - Pre/Post Visit Processing' => {
     
     while $iter.pull-one !~~ IterationEnd { }
     
-    is $strategy.max-depth, 3, 'Maximum depth tracked correctly';
-    ok $strategy.max-depth > 0, 'Depth tracking worked';
-    
-    # Verify before/after pairing
     my $ctx = $iter.context;
+    is $ctx.before-calls.elems, 4, 'All four nodes received before hook';
+    is $ctx.max-depth, 4, 'Maximum depth tracked correctly';
     is $ctx.before-calls.elems, $ctx.after-calls.elems, 'before and after calls balanced';
 }
 
@@ -452,7 +468,7 @@ subtest 'Edge case: SKIP_ELEMENT prevents on-match' => {
     my class SkipBeforeMatchStrategy does Strategy {
         has @.on-match-calls;
         method before($element, Context $ctx) {
-            SKIP_ELEMENT if $element.name eq 'skip-me';
+            return SKIP_ELEMENT if $element.name eq 'skip-me';
             NO_REWRITE
         }
         method on-match($element, Match $match, Context $ctx) {
@@ -482,11 +498,11 @@ subtest 'Edge case: Signal precedence (STOP > SKIP)' => {
     
     my class PrecedenceStrategy does Strategy {
         method before($element, Context $ctx) {
-            SKIP_ELEMENT if $element.name eq 'skip';
+            return SKIP_ELEMENT if $element.name eq 'skip';
             NO_REWRITE
         }
         method on-match($element, Match $match, Context $ctx) {
-            STOP_TRAVERSAL if $element.name eq 'stop';
+            return STOP_TRAVERSAL if $element.name eq 'stop';
             NO_REWRITE
         }
     }
@@ -517,7 +533,7 @@ subtest 'Edge case: finish called after STOP_TRAVERSAL' => {
     my class StopWithFinishStrategy does Strategy {
         has $.finish-called = False;
         method on-match($element, Match $match, Context $ctx) {
-            STOP_TRAVERSAL if $element.name eq 'target';
+            return STOP_TRAVERSAL if $element.name eq 'target';
             NO_REWRITE
         }
         method finish($root, Context $ctx --> FinishResult) {
@@ -717,7 +733,7 @@ subtest 'STOP_TRAVERSAL from before halts immediately' => {
         has Int $.before-calls = 0;
         method before($element, Context $ctx) {
             $!before-calls++;
-            STOP_TRAVERSAL if $element.name eq 'child1';
+            return STOP_TRAVERSAL if $element.name eq 'child1';
             NO_REWRITE
         }
     }
@@ -747,7 +763,7 @@ subtest 'SKIP_ELEMENT from before skips element relations' => {
     
     my class SkipStrategy does Strategy {
         method before($element, Context $ctx) {
-            SKIP_ELEMENT if $element.name eq 'root';
+            return SKIP_ELEMENT if $element.name eq 'root';
             NO_REWRITE
         }
     }

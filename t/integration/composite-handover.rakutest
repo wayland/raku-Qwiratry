@@ -11,7 +11,7 @@ use Qwiratry::Walker;
 use Qwiratry::QueryIterator;
 use Qwiratry::Context;
 
-plan 30;
+plan 15;
 
 # =============================================================================
 # Helper classes for testing
@@ -98,7 +98,7 @@ subtest 'Composite execution with single subplan (T040, T044)' => {
     
     loop {
         my $result = $iter.pull-one();
-        last if $result === IterationEnd;
+        last if $result ~~ IterationEnd;
         @results.push($result);
     }
     
@@ -126,7 +126,7 @@ subtest 'Composite execution with multiple subplans (T040, T044)' => {
     
     loop {
         my $result = $iter.pull-one();
-        last if $result === IterationEnd;
+        last if $result ~~ IterationEnd;
         @results.push($result);
     }
     
@@ -156,7 +156,7 @@ subtest 'Execution ordering (T041, T045)' => {
     my @results1;
     loop {
         my $result = $iter1.pull-one();
-        last if $result === IterationEnd;
+        last if $result ~~ IterationEnd;
         @results1.push($result);
     }
     
@@ -173,7 +173,7 @@ subtest 'Execution ordering (T041, T045)' => {
     my @results2;
     loop {
         my $result = $iter2.pull-one();
-        last if $result === IterationEnd;
+        last if $result ~~ IterationEnd;
         @results2.push($result);
     }
     
@@ -202,7 +202,7 @@ subtest 'Data flow materialization (T042, T046)' => {
     my @results;
     loop {
         my $result = $iter.pull-one();
-        last if $result === IterationEnd;
+        last if $result ~~ IterationEnd;
         @results.push($result);
     }
     
@@ -230,7 +230,7 @@ subtest 'Result combination (T043)' => {
     my @results;
     loop {
         my $result = $iter.pull-one();
-        last if $result === IterationEnd;
+        last if $result ~~ IterationEnd;
         @results.push($result);
     }
     
@@ -330,9 +330,9 @@ subtest 'Edge case: no walker found (T050, T054)' => {
     }
     
     ok $caught, 'Exception thrown when no walker found';
-    like $exception-message, /No suitable walker found/, 'Exception message is diagnostic';
-    like $exception-message, /Tried walkers/, 'Exception includes tried walkers';
-    like $exception-message, /Reasons/, 'Exception includes failure reasons';
+    ok $exception-message.contains('No suitable walker found'), 'Exception message is diagnostic';
+    ok $exception-message.contains('Tried walkers'), 'Exception includes tried walkers';
+    ok $exception-message.contains('Reasons'), 'Exception includes failure reasons';
 }
 
 subtest 'Edge case: multiple walkers support subtree (T051, T054)' => {
@@ -424,8 +424,8 @@ subtest 'Edge case: walker declines after accepting (T052, T054)' => {
     }
     
     ok $caught, 'Exception caught when walker declines';
-    like $exception-message, /accepted.*but declined/, 'Exception message explains walker decline';
-    like $exception-message, /DecliningWalker/, 'Exception includes walker name';
+    ok $exception-message.contains('declined during planning'), 'Exception message explains walker decline';
+    ok $exception-message.contains('DecliningWalker'), 'Exception includes walker name';
     ok True, 'Edge case T052: walker decline handled gracefully';
 }
 
@@ -482,7 +482,7 @@ subtest 'End-to-end multi-domain query planning and execution (T055)' => {
     my @results;
     loop {
         my $result = $iter.pull-one();
-        last if $result === IterationEnd;
+        last if $result ~~ IterationEnd;
         @results.push($result);
     }
     
@@ -539,7 +539,7 @@ subtest 'Composite execution with different walkers (T056)' => {
     my @results;
     loop {
         my $result = $iter.pull-one();
-        last if $result === IterationEnd;
+        last if $result ~~ IterationEnd;
         @results.push($result);
     }
     
@@ -629,21 +629,21 @@ subtest 'Performance: walker discovery caching (T061)' => {
     
     # First call should perform discovery
     my $start1 = now;
-    my @walkers1 = $master.discover-walkers();
+    my $walkers1 = $master.discover-walkers();
     my $elapsed1 = now - $start1;
     
     # Subsequent calls should use cache
     my $start2 = now;
-    my @walkers2 = $master.discover-walkers();
+    my $walkers2 = $master.discover-walkers();
     my $elapsed2 = now - $start2;
     
     my $start3 = now;
-    my @walkers3 = $master.discover-walkers();
+    my $walkers3 = $master.discover-walkers();
     my $elapsed3 = now - $start3;
     
-    # Cached calls should be faster (or at least not slower)
-    ok @walkers2 === @walkers1, 'Cached result is same reference';
-    ok @walkers3 === @walkers1, 'Third call also uses cache';
+    # Cached calls should return the same array reference
+    ok $walkers2 === $walkers1, 'Cached result is same reference';
+    ok $walkers3 === $walkers1, 'Third call also uses cache';
     ok True, 'Walker discovery caching works correctly';
 }
 

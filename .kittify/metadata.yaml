@@ -3,9 +3,9 @@
 # DO NOT EDIT MANUALLY
 
 spec_kitty:
-  version: 0.9.4
+  version: 0.10.13
   initialized_at: '2025-12-16T23:23:55.078508'
-  last_upgraded_at: '2025-12-27T18:04:34.669426'
+  last_upgraded_at: '2026-01-23T17:14:42.730595'
 environment:
   python_version: 3.12.10
   platform: linux
@@ -143,3 +143,58 @@ migrations:
       Normalized: kitty-specs/004-composite-walker-handovers/tasks/WP07-handover-detection-priority-and-edge-cases.md;
       Normalized: kitty-specs/004-composite-walker-handovers/tasks/WP08-integration-tests-and-polish.md;
       Normalized 67 files, skipped 0'
+  - id: 0.10.0_python_only
+    applied_at: '2026-01-23T17:14:42.576813'
+    result: success
+    notes: 'Removed: .kittify/scripts/bash/tasks-add-history-entry.sh; Removed: .kittify/scripts/bash/common.sh;
+      Removed: .kittify/scripts/bash/mark-task-status.sh; Removed: .kittify/scripts/bash/validate-task-workflow.sh;
+      Removed: .kittify/scripts/bash/setup-sandbox.sh; Removed: .kittify/scripts/bash/move-task-to-doing.sh;
+      Removed: .kittify/scripts/bash/update-agent-context.sh; Removed: .kittify/scripts/bash/refresh-kittify-tasks.sh;
+      Removed: .kittify/scripts/bash/tasks-list-lanes.sh; Removed: .kittify/scripts/bash/create-new-feature.sh;
+      Removed: .kittify/scripts/bash/tasks-rollback-move.sh; Removed: .kittify/scripts/bash/setup-plan.sh;
+      Removed: .kittify/scripts/bash/tasks-move-to-lane.sh; Removed: .kittify/scripts/bash/merge-feature.sh;
+      Removed: .kittify/scripts/bash/check-prerequisites.sh; Removed: .kittify/scripts/bash/accept-feature.sh;
+      Removed empty: .kittify/scripts/bash/; Total scripts removed: 16; Removed .kittify/scripts/tasks/
+      (obsolete task helpers); Updated: accept.md (1 replacements); Updated: analyze.md
+      (1 replacements); Updated: checklist.md (1 replacements); Updated: clarify.md
+      (1 replacements); Updated: implement.md (6 replacements); Updated: merge.md
+      (1 replacements); Updated: plan.md (2 replacements); Updated: review.md (3 replacements);
+      Updated: specify.md (2 replacements); Updated: tasks.md (1 replacements); Total
+      templates updated: 10'
+  - id: 0.10.1_populate_slash_commands
+    applied_at: '2026-01-23T17:14:42.601172'
+    result: success
+    notes: 'Created: /home/wayland/src/raku/Tims/DataOrientedProgramming/raku-Qwiratry/.claude/commands;
+      Created: spec-kitty.accept.md; Created: spec-kitty.analyze.md; Created: spec-kitty.checklist.md;
+      Created: spec-kitty.clarify.md; Created: spec-kitty.constitution.md; Created:
+      spec-kitty.dashboard.md; Created: spec-kitty.implement.md; Created: spec-kitty.merge.md;
+      Created: spec-kitty.plan.md; Created: spec-kitty.review.md; Created: spec-kitty.specify.md;
+      Created: spec-kitty.tasks.md; Created 12 slash commands for claude from software-dev'
+  - id: 0.10.2_update_slash_commands
+    applied_at: '2026-01-23T17:14:42.629323'
+    result: success
+    notes: 'Updated 12 slash commands for claude; Updated 12 slash commands for cursor;
+      Total: Updated 24 slash commands from software-dev mission; Slash commands now
+      use Python CLI (no bash scripts); Slash commands now enforce flat tasks/ structure
+      (feature 007)'
+  - id: 0.10.6_workflow_simplification
+    applied_at: '2026-01-23T17:14:42.633798'
+    result: success
+    notes: 'Updated mission template: software-dev/implement.md; Updated mission template:
+      software-dev/review.md; Updated 2 templates for claude; Updated 2 templates
+      for cursor; Total: Updated 4 slash command templates; Templates now use ''spec-kitty
+      agent workflow'' commands; Agents now see prompts directly, no file navigation
+      needed'
+  - id: 0.10.8_fix_memory_structure
+    applied_at: '2026-01-23T17:14:42.633910'
+    result: skipped
+    notes: Not applicable
+  - id: 0.10.9_repair_templates
+    applied_at: '2026-01-23T17:14:42.730318'
+    result: success
+    notes: Removed broken templates from .kittify/templates/; Copied correct templates
+      from package; Regenerated all agent slash commands; Cleaned up temporary templates
+  - id: 0.10.12_constitution_cleanup
+    applied_at: '2026-01-23T17:14:42.730578'
+    result: skipped
+    notes: Not applicable

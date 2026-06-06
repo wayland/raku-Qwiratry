@@ -7,6 +7,7 @@ Users can simply `use Qwiratry` to get access to transformers, templates, walker
 and all other Qwiratry features.
 
 Example:
+  use Qwiratry::Template::Slang;  # required for template/wrapper syntax
   use Qwiratry;
   
   transformer MyTransform {
@@ -17,37 +18,17 @@ Example:
 
 =end pod
 
-#unit module Qwiratry;
+unit module Qwiratry;
 
-# Activate template slang FIRST so it's available when other modules load
-# This must be done at the module level so it's active when users
-# declare transformers in their code
+# Activate template slang and transformer declarator in callers.
+# Slangify must run in the caller; see Qwiratry::Template::Slang.
+sub IMPORT(::(?Mu) $, |) {
+    # Slangify must be loaded in the importer's compunit (Piersing pattern).
+    use Qwiratry::Template::Slang;
+    use Qwiratry::Transformer;
+}
+
 use Qwiratry::Template::Slang;
-#use Slangify Qwiratry::Template::Slang::TemplateGrammar, Qwiratry::Template::Slang::TemplateActions;
-
-#-----
-# This next was borrowed from Slangify, because Slangify wasn't working
-#BEGIN {
-say "pre-load";
-my $LANG := $*LANG;
-
-my $grammar = Qwiratry::Template::Slang::TemplateGrammar;
-my $actions = Qwiratry::Template::Slang::TemplateActions;
-
-$LANG.define_slang('MAIN',
-          $grammar<> =:= Mu
-            ?? $LANG.slang_grammar('MAIN')
-            !! $LANG.slang_grammar('MAIN').^mixin($grammar<>),
-            $LANG.slang_actions('MAIN')
-          $actions<> =:= Mu
-            ?? $LANG.slang_actions('MAIN')
-            !! $LANG.slang_actions('MAIN').^mixin($actions<>)
-        );
-say "post-load";
-#}
-#-----
-
-# Import transformer-related modules - these are the essential ones for transformers
 use Qwiratry::Template;
 use Qwiratry::Transformer;
 

@@ -172,3 +172,5 @@ else:
 - Browser opens automatically to the dashboard
 - If browser doesn't open, user gets clear instructions
 - Error messages are helpful and actionable
+
+--- End Command ---

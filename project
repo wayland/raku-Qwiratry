@@ -4,17 +4,21 @@ command=$1
 
 case $command in
 	test)
-		# All unit tests
-		echo "=== Unit Tests ==="
-		for test in t/unit/*.rakutest; do echo "==> $test" ; raku -Ilib "$test"; done
+		{
+			echo -n "Started at "
+			date
+			# All unit tests
+			echo === Unit Tests ===
+			for test in t/unit/*.rakutest		; do echo '=> ' $test ; raku -Ilib -It/lib "$test"; done
 
-		# All integration tests
-		echo "=== Integration Tests ==="
-		for test in t/integration/*.rakutest; do echo "==> $test" ; raku -Ilib "$test"; done
+			# All integration tests
+			echo === Integration Tests ===
+			for test in t/integration/*.rakutest	; do echo '=> ' $test ; raku -Ilib -It/lib "$test"; done
 
-		# All example tests
-		echo "=== Example Tests ==="
-		for test in t/examples/*.rakutest; do echo "==> $test" ; raku -Ilib "$test"; done
+			# All example tests
+			echo === Example Tests ===
+			for test in t/examples/*.rakutest	; do echo '=> ' $test ; raku -Ilib -It/lib "$test"; done
+		} 2>&1 | ts "%H:%M:%.S" | tee test-output.txt
 		;;
 	check)
 #		echo "=== Run tests ==="
