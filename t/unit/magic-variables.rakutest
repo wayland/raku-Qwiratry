@@ -43,41 +43,42 @@ subtest "\$*CONTEXT and topic variable setup" => {
 # =============================================================================
 
 subtest "\$*CAPTURE and \$/ setup" => {
-    plan 2;
+    plan 3;
     
-    my $test-node = "test-node";
+    my $test-node = %(name => 'section', id => 42);
+    my $transformer = Transformer.new;
     
-    # Template without signature - $*CAPTURE should be Nil
-    # Note: For MVP, $*CAPTURE infrastructure is in place but may not be fully accessible
     my $template-no-sig = Template.new(
-        when-block => -> $ { True },
-        do-block => -> $ { 
-            # Check that $*CAPTURE is accessible (should be Nil for MVP)
-            my $cap = $*CAPTURE;
-            $cap === Nil || $cap === Any || $cap === Any
-        }
+        when-block => -> { True },
+        do-block => -> {
+            $*CAPTURE ~~ Associative && $*CAPTURE.elems == 0
+        },
     );
     
-    my $transformer = Transformer.new;
-    my $result1 = $template-no-sig.execute($test-node, :transformer($transformer));
-    # Note: The do-block returns True/False based on $*CAPTURE check
-    # We verify that $*CAPTURE is accessible (infrastructure is in place)
-    ok $result1 === True || $result1 === False, "\$*CAPTURE infrastructure in place (MVP: accessible in template)";
+    ok $template-no-sig.execute($test-node, :transformer($transformer)),
+        "\$*CAPTURE is empty without signature";
     
-    # Template with signature - $*CAPTURE should be accessible
-    my $sig = :(Int $x);
+    my $sig = :(Str $name);
     my $template-with-sig = Template.new(
         signature => $sig,
-        when-block => -> $ { True },
-        do-block => -> $ { 
-            # For MVP, verify $*CAPTURE is accessible
-            my $cap = $*CAPTURE;
-            True  # Just verify it's accessible
-        }
+        when-block => -> { True },
+        do-block => -> {
+            $*CAPTURE<name> eq 'section'
+        },
     );
     
-    my $result2 = $template-with-sig.execute($test-node, :transformer($transformer));
-    ok $result2, "\$*CAPTURE is accessible when template has signature";
+    ok $template-with-sig.execute($test-node, :transformer($transformer)),
+        "\$*CAPTURE and \$/ bind signature parameters from Associative nodes";
+    
+    my $object-node = class { has $.name = 'leaf' }.new;
+    my $named-template = Template.new(
+        signature => $sig,
+        when-block => -> { True },
+        do-block => -> { $*CAPTURE<name> eq 'leaf' },
+    );
+    
+    ok $named-template.execute($object-node, :transformer($transformer)),
+        "\$*CAPTURE binds from object attributes";
 }
 
 # =============================================================================
@@ -91,18 +92,14 @@ subtest "self reference" => {
     my $transformer = Transformer.new;
     
     my $template = Template.new(
-        when-block => -> $ { True },
-        do-block => -> $ { 
-            # self should refer to the transformer
-            # Note: In the current implementation, self may not be directly accessible
-            # in the do block unless the block is called in the transformer's context
-            # This test verifies the infrastructure is in place
-            True  # Placeholder - full self test requires transformer context binding
-        }
+        when-block => -> { True },
+        do-block => method ($node) {
+            self.WHAT === $transformer.WHAT
+        },
     );
     
-    my $result = $template.execute($test-node, :transformer($transformer));
-    ok $result, "Template execution completes (self infrastructure ready)";
+    ok $template.execute($test-node, :transformer($transformer)),
+        "self refers to the Transformer during template execution";
 }
 
 # =============================================================================

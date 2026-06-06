@@ -14,6 +14,44 @@ use X::Qwiratry;  # For X::Qwiratry::TypeCheck
 
 =begin pod
 
+Collector for C<make> calls during template execution. When defined, C<make>
+pushes values here instead of using the block's return value.
+
+=end pod
+our $*MAKE-OUTPUT is export;
+
+=begin pod
+
+Add a value to the current template's output stream.
+
+=end pod
+sub make(Mu $value) is export {
+    unless $*MAKE-OUTPUT.defined {
+        X::Qwiratry::Walker.new(
+            message => 'make() called outside template execution',
+            walker-type => 'Template',
+        ).throw;
+    }
+    $*MAKE-OUTPUT.push($value);
+    $value;
+}
+
+=begin pod
+
+Skip the current template action and continue with the next matching template.
+
+=end pod
+class NextTemplate is export {
+    method throw(NextTemplate:U: ) {
+        X::Qwiratry::NextTemplate.new(
+            message => 'Continue to next matching template',
+            walker-type => 'Template',
+        ).throw;
+    }
+}
+
+=begin pod
+
 Template class representing a match-and-action rule within a Transformer.
 
 Templates define how nodes are selected (via `when` block) and transformed
@@ -122,34 +160,137 @@ class Template is export {
 
     =end pod
     method matches($node --> Bool) {
-        # T021/T024: Set magic variables and evaluate when block
-        # If no when block, template always matches (default behavior)
         if !$!when-block.defined {
             return True;
         }
-        
-        # Set magic variables for when block evaluation
-        # T021: Set $*CONTEXT and $_ to current node
-        # Note: $_ is the topic variable and cannot be declared with 'my'
-        # We'll set it by calling the block with $node as the topic
-        my $*CONTEXT = $node;
-        
-        # Execute when block with magic variables set
-        # Pass $node as topic ($_) to the block
-        # Coerce result to Bool and handle errors
-        {
-            my $result = self!invoke-block($!when-block, $node);
-            return ?$result;
-            CATCH {
-                return False;
+
+        my $*MAKE-OUTPUT := Nil;
+        try {
+            return self!run-with-magic-variables(
+                $node,
+                { ?self!invoke-block($!when-block, $node) },
+                :setup-capture($!signature.defined),
+            );
+        }
+        False;
+    }
+
+    method !run-with-magic-variables($node, &code, :$context, :$setup-capture = False, :$make-output) {
+        my $*CONTEXT = $context // $node;
+        my $*MAKE-OUTPUT := $make-output if $make-output.defined;
+        my $capture = self!capture-signature($node) if $setup-capture;
+        my $*CAPTURE = $capture if $capture.defined;
+        $/ = $capture if $capture.defined;
+        code();
+    }
+
+    method !param-field-name($param --> Str) {
+        my $name = $param.name;
+        $name.=subst(/^\$/, '');
+        $name.=subst(/^\@/, '');
+        $name.=subst(/^\%/, '');
+        $name eq '_' ?? 'topic' !! $name;
+    }
+
+    method !capture-signature($node) {
+        return %() unless $!signature.defined;
+
+        my @params = $!signature.params;
+        if !@params || (@params == 1 && self!param-field-name(@params[0]) eq 'topic') {
+            return %(topic => $node);
+        }
+
+        my @pos;
+        my %named;
+        for @params -> $param {
+            next if $param.slurpy;
+            my $field = self!param-field-name($param);
+            if $param.named {
+                my $val = self!extract-field($node, $field);
+                next unless $val.defined;
+                %named{$field} = $val;
             }
+            elsif $field eq 'topic' {
+                @pos.push($node);
+            }
+            else {
+                my $val = self!extract-field($node, $field);
+                next unless $val.defined;
+                %named{$field} = $val;
+                @pos.push($val);
+            }
+        }
+
+        return %named if @pos == 0;
+        return %(|%named, pos => @pos) if @pos;
+        %named;
+    }
+
+    method !extract-field($node, $field) {
+        return $node if $field eq 'topic';
+        if $node ~~ Associative {
+            return $node{$field} if $node{$field}:exists;
+        }
+        try {
+            return $node."$field"();
+        }
+        Nil;
+    }
+
+    method !invoke-arity0($node, &code) {
+        if $node.defined {
+            with $node { code() }
+        }
+        else {
+            $node.&({ code() })
         }
     }
 
     method !invoke-block($block, $node) {
+        if $block.arity == 0 && $block.count == 0 {
+            return self!invoke-arity0($node, { $block() });
+        }
         return $block($node) if $block.arity == 1;
-        # Topic blocks accept $node as caller arg; arity-0 subs (from routine.meta-object) do not.
-        return (try $block.($node)) // $block();
+        $block($node);
+    }
+
+    method !invoke-do-block($block, $node, $transformer, :$context, :$make-output) {
+        my $template = self;
+        $template!run-with-magic-variables(
+            $node,
+            {
+                if $block ~~ Method && $transformer.defined {
+                    if $block.arity == 0 && $block.count == 0 {
+                        $template!invoke-arity0($node, { $block($transformer) });
+                    }
+                    elsif $block.arity >= 1 {
+                        $block($transformer, $node);
+                    }
+                    else {
+                        $block($transformer);
+                    }
+                }
+                elsif $block.arity == 0 && $block.count == 0 {
+                    $template!invoke-arity0($node, { $block() });
+                }
+                elsif $block.arity == 1 {
+                    $block($node);
+                }
+                else {
+                    $block($node);
+                }
+            },
+            :$context,
+            :setup-capture(True),
+            :$make-output,
+        );
+    }
+
+    method !finalize-result($block-result, @make-output) {
+        if @make-output {
+            return @make-output.elems == 1 ?? @make-output[0] !! @make-output.List;
+        }
+        $block-result;
     }
     
     =begin pod
@@ -166,43 +307,20 @@ class Template is export {
 
     =end pod
     method execute($node, :$transformer, :$context --> Mu) {
-        # T021: Set $*CONTEXT and $_ to current node
-        # Note: $_ is the topic variable and will be set by passing $node to the block
-        my $*CONTEXT = $context // $node;
-        
-        # T022: Set $*CAPTURE and $/ if template has signature
-        # For now, we'll set them to Nil if no signature
-        # Full signature matching will be implemented when query operators are available
-        # Note: $/ is a special variable and cannot be declared with 'my'
-        my $*CAPTURE = Nil;
-        $/ = $*CAPTURE;
-        
-        if $!signature.defined {
-            # TODO: Match node against signature to capture parameters
-            # This will require coordination with query system
-            # For MVP, we'll leave $*CAPTURE as Nil
-            # Future: $*CAPTURE = $node ~~ $!signature;
-        }
-        
-        # T023: self is automatically available in Raku blocks
-        # However, we need to ensure the block executes in the transformer's context
-        # We'll call the block with the transformer bound to self via closure
-        # Actually, in Raku, blocks capture their lexical scope, so self from
-        # the transformer's method context should be available
-        
-        # Execute do block with magic variables set
         if !$!do-block.defined {
             return Nil;
         }
-        
-        # T025: Execute do block and handle results
-        # Pass $node as topic ($_) to the block
-        # Support both make and return value patterns
-        my $result = self!invoke-block($!do-block, $node);
-        
-        # T050: Execute WRAP_TEMPLATE_ACTION wrapper around template action execution
-        # The wrapper receives node and action result, can modify action result or perform side effects
-        # Wrappers are called as submethods on the transformer, which automatically traverse the hierarchy via MRO
+
+        my @make-output;
+        my $result = self!invoke-do-block(
+            $!do-block,
+            $node,
+            $transformer,
+            :$context,
+            :make-output(@make-output),
+        );
+        $result = self!finalize-result($result, @make-output);
+
         if $transformer.defined {
             try {
                 $result = $transformer.WRAP_TEMPLATE_ACTION($node, $result);
@@ -211,8 +329,7 @@ class Template is export {
                 }
             }
         }
-        
-        # T053: Check returns(Type) trait if present on template
+
         if $!returns-type.WHICH ne Mu.WHICH {
             unless $result ~~ $!returns-type {
                 X::Qwiratry::TypeCheck.new(
@@ -222,9 +339,7 @@ class Template is export {
                 ).throw;
             }
         }
-        
-        # If result is Nil, return Nil
-        # Otherwise return the result (could be Iterator, List, single value)
+
         return $result;
     }
 }

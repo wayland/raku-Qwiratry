@@ -157,10 +157,14 @@ class Transformer is export {
             
             # Check if template matches this node
             if $match-result {
-                # First match wins - execute template and return result
-                # Pass self as transformer for self reference
-                # T050: WRAP_TEMPLATE_ACTION is called inside Template.execute()
-                my $result = $template.execute($node, :transformer(self));
+                my $result;
+                try {
+                    $result = $template.execute($node, :transformer(self));
+                    CATCH {
+                        when X::Qwiratry::NextTemplate { next }
+                        default { .throw }
+                    }
+                }
                 if $!returns-type.WHICH ne Mu.WHICH && $result.defined {
                     unless $result ~~ $.returns-type {
                         X::Qwiratry::TypeCheck.new(

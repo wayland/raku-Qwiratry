@@ -108,3 +108,16 @@ class X::Qwiratry::TypeCheck is X::Qwiratry::Walker {
         "X::Qwiratry::TypeCheck: $.message (expected: $expected-name, got: $got-name)"
     }
 }
+
+=begin pod
+
+Control-flow exception for template actions. When thrown from a template C<do>
+block, the transformer continues with the next matching template instead of
+using the current result.
+
+=end pod
+class X::Qwiratry::NextTemplate is X::Qwiratry::Walker {
+    method gist(--> Str) {
+        "X::Qwiratry::NextTemplate: $.message (walker-type: $.walker-type)"
+    }
+}

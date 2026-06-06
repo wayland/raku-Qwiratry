@@ -26,6 +26,7 @@ sub IMPORT(::(?Mu) $, |) {
     # Slangify must be loaded in the importer's compunit (Piersing pattern).
     use Qwiratry::Template::Slang;
     use Qwiratry::Transformer;
+    use Qwiratry::Template;
 }
 
 use Qwiratry::Template::Slang;

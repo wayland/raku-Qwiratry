@@ -1,0 +1,66 @@
+#| Unit tests for template make() output stream
+use Test;
+use lib 'lib';
+
+use Qwiratry::Template;
+use Qwiratry::Transformer;
+
+plan 4;
+
+subtest 'make() collects single output value' => {
+    plan 2;
+
+    my $template = Template.new(
+        when-block => -> { True },
+        do-block => -> {
+            make 'from-make';
+            'ignored-return';
+        },
+    );
+
+    my $transformer = Transformer.new;
+    is $template.execute('node', :transformer($transformer)), 'from-make',
+        'make result overrides return value';
+    dies-ok { make 'outside' }, 'make() dies outside template execution';
+}
+
+subtest 'make() collects multiple output values' => {
+    plan 1;
+
+    my $template = Template.new(
+        when-block => -> { True },
+        do-block => -> {
+            make 'first';
+            make 'second';
+        },
+    );
+
+    my $transformer = Transformer.new;
+    is $template.execute('node', :transformer($transformer)), ('first', 'second'),
+        'multiple make() calls return List';
+}
+
+subtest 'return value used when make() is not called' => {
+    plan 1;
+
+    my $template = Template.new(
+        when-block => -> { True },
+        do-block => -> { 'direct-return' },
+    );
+
+    my $transformer = Transformer.new;
+    is $template.execute('node', :transformer($transformer)), 'direct-return',
+        'do block return value is used without make()';
+}
+
+subtest 'APPLY integrates make() results' => {
+    plan 1;
+
+    my $transformer = Transformer.new;
+    $transformer.add-template(Template.new(
+        when-block => -> $n { $n eq 'hit' },
+        do-block => -> { make 'applied' },
+    ));
+
+    is $transformer.APPLY('hit'), 'applied', 'APPLY returns make() output';
+}
