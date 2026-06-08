@@ -8,6 +8,7 @@ row-by-row without descending into nested tree structures.
 =end pod
 
 use Qwiratry::Walker;
+use Qwiratry::Walker::Capabilities;
 use Qwiratry::QueryIterator;
 use Qwiratry::Context;
 use Qwiratry::Operator::Navigation;
@@ -50,42 +51,52 @@ unit class Qwiratry::Walker::Implementation::Table does Qwiratry::Walker {
     my class StrategyTableIterator does QueryIterator {
         has Mu $.root is required;
         has Mu $.query-ast is required;
+        has Mu $!rows;
         has Int $!index = 0;
         has Bool $!finished = False;
+        has Bool $!finish-invoked = False;
+
+        submethod BUILD(:$!root, :$!query-ast, :$!context) {
+            $!rows = $!root ~~ Qwiratry::Table::Catalog
+                ?? $!root.active-rows
+                !! $!root;
+        }
+
+        method !stop-traversal() {
+            unless $!finish-invoked {
+                invoke-finish($!root, $.context);
+                $!finish-invoked = True;
+            }
+            $!finished = True;
+        }
 
         method pull-one(--> Mu) {
             if $!finished {
                 return IterationEnd;
             }
 
-            my @rows = $!root ~~ Qwiratry::Table::Catalog
-                ?? $!root.active-rows
-                !! $!root.list;
-            while $!index < @rows.elems {
-                my $row = @rows[$!index++];
+            while $!index < $!rows.elems {
+                my $row = $!rows[$!index++];
                 my %state;
 
                 my $before = run-before($row, $.context, %state);
                 if stopped(%state) {
-                    invoke-finish($!root, $.context, :finish-called($!finished));
-                    $!finished = True;
-                    return $row if $before != SKIP_ELEMENT;
+                    self!stop-traversal;
+                    return $row if $before ~~ ControlSignal && $before != SKIP_ELEMENT;
                     return IterationEnd;
                 }
-                next if $before == SKIP_ELEMENT;
+                next if $before ~~ ControlSignal && $before == SKIP_ELEMENT;
 
                 run-on-match($row, $!query-ast, $!root, $.context, %state);
                 if stopped(%state) {
-                    invoke-finish($!root, $.context, :finish-called($!finished));
-                    $!finished = True;
+                    self!stop-traversal;
                     return $row if node-matches($!query-ast, $row, :origin($!root));
                     return IterationEnd;
                 }
 
                 run-after($row, $.context, %state);
                 if stopped(%state) {
-                    invoke-finish($!root, $.context, :finish-called($!finished));
-                    $!finished = True;
+                    self!stop-traversal;
                 }
 
                 next unless node-matches($!query-ast, $row, :origin($!root));
@@ -93,10 +104,11 @@ unit class Qwiratry::Walker::Implementation::Table does Qwiratry::Walker {
                 return $row;
             }
 
-            unless $!finished {
-                invoke-finish($!root, $.context, :finish-called($!finished));
-                $!finished = True;
+            unless $!finish-invoked {
+                invoke-finish($!root, $.context);
+                $!finish-invoked = True;
             }
+            $!finished = True;
             IterationEnd;
         }
     }
@@ -127,10 +139,10 @@ unit class Qwiratry::Walker::Implementation::Table does Qwiratry::Walker {
         method describe(--> Str) { "TablePlan({$!query-ast.^name})" }
 
         method capabilities(--> Associative) {
-            {
-                navigation => { enabled => True, domain => 'table' },
-                lazy => { enabled => True, type => 'scan' },
-            }
+            merge-capabilities(
+                navigation-capability(:enabled(True), 'table'),
+                lazy-capability(:enabled(True), :type('incremental')),
+            )
         }
     }
 
@@ -166,9 +178,9 @@ unit class Qwiratry::Walker::Implementation::Table does Qwiratry::Walker {
     }
 
     method capabilities(--> Associative) {
-        {
-            navigation => { enabled => True, domains => ['table'] },
-            lazy => { enabled => True, type => 'scan' },
-        }
+        merge-capabilities(
+            navigation-capability(:enabled(True), 'table'),
+            lazy-capability(:enabled(True), :type('incremental')),
+        )
     }
 }

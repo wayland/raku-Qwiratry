@@ -83,4 +83,16 @@ role QueryIterator does Iterator is export {
         # Concrete classes MUST override this method
         IterationEnd
     }
+
+    =begin pod
+
+    Spec alias for C<pull-one> (Walker core infrastructure FR-004).
+
+    Returns the next matching result, or C<Nil> when exhausted.
+
+    =end pod
+    method next(--> Mu) {
+        my $value = self.pull-one;
+        $value ~~ IterationEnd ?? Nil !! $value
+    }
 }

@@ -297,14 +297,15 @@ subtest 'capabilities() returns Associative' => {
     ok %caps<lazy><enabled>, 'Capability metadata accessible';
 }
 
-subtest 'Default capabilities() returns empty Associative' => {
-    plan 2;
-    
+subtest 'Default capabilities() returns structured metadata' => {
+    plan 3;
+
     my $walker = MinimalWalker.new(root => 'data');
     my %caps = $walker.capabilities;
-    
+
     ok %caps ~~ Associative, 'Default capabilities() returns Associative';
-    is %caps.elems, 0, 'Default capabilities is empty';
+    ok %caps<lazy>:exists, 'Default capabilities include lazy metadata';
+    nok %caps<lazy><enabled>, 'Default lazy capability is disabled';
 }
 
 subtest 'supports() returns Bool' => {

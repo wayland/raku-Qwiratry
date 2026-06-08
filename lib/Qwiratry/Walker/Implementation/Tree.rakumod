@@ -9,6 +9,7 @@ attached to the Walker.
 =end pod
 
 use Qwiratry::Walker;
+use Qwiratry::Walker::Capabilities;
 use Qwiratry::QueryIterator;
 use Qwiratry::Context;
 use Qwiratry::Operator::Navigation;
@@ -160,10 +161,10 @@ unit class Qwiratry::Walker::Implementation::Tree does Qwiratry::Walker {
         method describe(--> Str) { "TreePlan({$!query-ast.^name})" }
 
         method capabilities(--> Associative) {
-            {
-                navigation => { enabled => True, domain => 'tree' },
-                lazy => { enabled => True, type => 'incremental' },
-            }
+            merge-capabilities(
+                navigation-capability(:enabled(True), 'tree'),
+                lazy-capability(:enabled(True), :type('incremental')),
+            )
         }
     }
 
@@ -200,10 +201,11 @@ unit class Qwiratry::Walker::Implementation::Tree does Qwiratry::Walker {
     }
 
     method capabilities(--> Associative) {
-        {
-            navigation => { enabled => True, domains => ['tree'] },
-            'supports-rewrite' => { enabled => True },
-        }
+        merge-capabilities(
+            navigation-capability(:enabled(True), 'tree'),
+            lazy-capability(:enabled(True), :type('incremental')),
+            %(supports-rewrite => %(enabled => True)),
+        )
     }
 }
 

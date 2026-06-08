@@ -49,6 +49,7 @@
     "Qwiratry::Walker::Implementation::Tree": "lib/Qwiratry/Walker/Implementation/Tree.rakumod",
     "Qwiratry::Walker::Implementation::Table": "lib/Qwiratry/Walker/Implementation/Table.rakumod",
     "Qwiratry::Walker::Master": "lib/Qwiratry/Walker/Master.rakumod",
+    "Qwiratry::Walker::Capabilities": "lib/Qwiratry/Walker/Capabilities.rakumod",
     "Qwiratry::Walker::Providing": "lib/Qwiratry/Walker/Providing.rakumod",
     "X::Qwiratry": "lib/X/Qwiratry.rakumod"
   },

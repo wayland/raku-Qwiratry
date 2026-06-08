@@ -6,7 +6,7 @@ use lib 'lib';
 use Qwiratry::QueryIterator;
 use Qwiratry::Context;
 
-plan 11;
+plan 12;
 
 # =============================================================================
 # Helper classes for testing
@@ -204,6 +204,15 @@ subtest 'Iterator can be used with for loop' => {
     
     is @collected.elems, 3, 'All items collected';
     is-deeply @collected, [10, 20, 30], 'Items in correct order';
+}
+
+subtest 'next() alias returns Nil at exhaustion' => {
+    my $iter = ListIterator.new(
+        context => TestContext.new,
+        items => [1]
+    );
+    is $iter.next(), 1, 'next() returns first item';
+    is $iter.next(), Nil, 'next() returns Nil when exhausted';
 }
 
 done-testing;

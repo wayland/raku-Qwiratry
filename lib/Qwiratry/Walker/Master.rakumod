@@ -19,6 +19,7 @@ use experimental :rakuast;
 use Qwiratry::Walker;
 use Qwiratry::Walker::Providing;
 use X::Qwiratry;
+use Qwiratry::Walker::Capabilities;
 use Qwiratry::QueryIterator;
 use Qwiratry::Context;
 
@@ -71,6 +72,14 @@ class Qwiratry::Walker::Master::Plan does Qwiratry::Walker::Plan {
         my $subplan-count = @!subplans.elems;
         return "Qwiratry::Walker::Master::Plan with $subplan-count subplan(s)";
     }
+
+    method capabilities(--> Associative) {
+        my @subcaps = @!subplans.map(*.capabilities);
+        merge-capabilities(
+            lazy-capability(:enabled(True), :type('incremental')),
+            |@subcaps,
+        )
+    }
     
     # Produce QueryIterator for this composite plan.
     # Creates a composite iterator that coordinates subplan iterators.
@@ -93,9 +102,7 @@ class Qwiratry::Walker::Master::Plan does Qwiratry::Walker::Plan {
 
 Composite iterator that coordinates execution of multiple subplan iterators.
 
-For MVP, materializes results from each subplan and combines them.
-Execution follows the order specified in Qwiratry::Walker::Master::Plan.execution-order,
-or sequential order if not specified.
+For composite execution, pulls incrementally from each subplan iterator in order.
 
 Example:
   my $iter = Iterator.new(context => $ctx, plan => $composite-plan);
@@ -103,69 +110,25 @@ Example:
 
 =end pod
 class Qwiratry::Walker::Master::Iterator does QueryIterator {
-    # The composite plan this iterator executes
     has Qwiratry::Walker::Master::Plan $.plan is required;
-    
-    # Materialized results from all subplans (lazy initialization)
-    has @!materialized-results;
-    
-    # Current index in materialized results
-    has Int $!current-index = 0;
-    
-    # Flag indicating if materialization has been performed
-    has Bool $!materialized = False;
-    
-    # Constructor
+    has @!order;
+    has @!subplan-iters;
+    has Int $!order-index = 0;
+
     submethod BUILD(:$!context, :$!plan) {
-        # Context and plan are set via attributes
+        @!order = $!plan.execution-order;
+        @!order = (0..^$!plan.subplans.elems).Array unless @!order.elems;
+        @!subplan-iters = @!order.map({ $!plan.subplans[$_].iterator });
     }
-    
-    # Materialize results from all subplans.
-    # For MVP, collects all results before returning any.
-    method !materialize-results() {
-        return if $!materialized;
-        
-        my @all-results = Array.new;
-        
-        # Determine execution order
-        my @order = $!plan.execution-order;
-        if @order.elems == 0 {
-            # No explicit order - use sequential (0, 1, 2, ...)
-            @order = (0..^$!plan.subplans.elems).Array;
-        }
-        
-        # Execute subplans in order and materialize results
-        for @order -> $index {
-            my $subplan = $!plan.subplans[$index];
-            my $subplan-iter = $subplan.iterator;
-            
-            # Materialize all results from this subplan
-            my @subplan-results = Array.new;
-            loop {
-                my $result = $subplan-iter.pull-one();
-                last if $result ~~ IterationEnd;
-                @subplan-results.push($result);
-            }
-            
-            # Combine results (for MVP, simple concatenation)
-            @all-results.append(@subplan-results);
-        }
-        
-        @!materialized-results = @all-results;
-        $!materialized = True;
-    }
-    
-    # Return the next combined result, or IterationEnd if exhausted.
+
     method pull-one(--> Mu) {
-        # Materialize results on first call
-        self!materialize-results();
-        
-        # Return next result or IterationEnd
-        if $!current-index >= @!materialized-results.elems {
-            return IterationEnd;
+        while $!order-index < @!subplan-iters.elems {
+            my $iter = @!subplan-iters[$!order-index];
+            my $result = $iter.pull-one;
+            return $result unless $result ~~ IterationEnd;
+            $!order-index++;
         }
-        
-        return @!materialized-results[$!current-index++];
+        IterationEnd
     }
 }
 
@@ -483,6 +446,13 @@ class Qwiratry::Walker::Master does Qwiratry::Walker {
     =end pod
     method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
         return $plan.iterator();
+    }
+
+    method capabilities(--> Associative) {
+        merge-capabilities(
+            lazy-capability(:enabled(True), :type('incremental')),
+            navigation-capability(:enabled(True), 'composite'),
+        )
     }
 }
 

@@ -14,6 +14,7 @@ Lifecycle:
 =end pod
 use Qwiratry::Context;
 use Qwiratry::QueryIterator;
+use Qwiratry::Walker::Capabilities;
 
 =begin pod
 
@@ -137,8 +138,7 @@ role Qwiratry::Walker::Plan {
 
     =end pod
     method capabilities(--> Associative) {
-        # Default: no special capabilities declared
-        {}
+        default-plan-capabilities()
     }
 }
 
@@ -304,8 +304,7 @@ role Qwiratry::Walker does Iterable {
 
     =end pod
     method capabilities(--> Associative) {
-        # Default: no special capabilities declared
-        {}
+        default-walker-capabilities()
     }
     
     =begin pod

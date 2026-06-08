@@ -1,0 +1,80 @@
+#!/usr/bin/env raku
+#| Lazy QueryIterator behaviour for Walker core infrastructure (002 FR-009)
+use Test;
+use lib 'lib';
+
+use Qwiratry::Walker;
+use Qwiratry::Walker::Implementation::Table;
+use Qwiratry::Strategy;
+use Qwiratry::Operator::Navigation;
+use Qwiratry::Operator::MapReduce;
+use Qwiratry::Query::Slang;
+use Qwiratry::Strategy::Traversal;
+
+plan 3;
+
+class CountingRows does Positional {
+    has @.rows;
+    has Int $.at-pos-calls is rw = 0;
+
+    method elems { @!rows.elems }
+    method AT-POS(int $index) {
+        $.at-pos-calls++;
+        @!rows[$index]
+    }
+}
+
+my class MatchAllStrategy does Strategy { }
+
+subtest 'Independent iterators from the same plan' => {
+    plan 2;
+
+    my $walker = Qwiratry::Walker::Implementation::Table.new;
+    my @rows = [%(id => 1), %(id => 2), %(id => 3)];
+    my $query = @rows σ -> $_ { True };
+    my $plan = $walker.plan($query, @rows);
+
+    my $iter1 = $plan.iterator;
+    my $iter2 = $plan.iterator;
+
+    is $iter1.pull-one<id>, 1, 'first iterator yields first row';
+    is $iter2.pull-one<id>, 1, 'second iterator starts independently';
+}
+
+subtest 'Table walker declares incremental lazy capabilities' => {
+    plan 3;
+
+    my $walker = Qwiratry::Walker::Implementation::Table.new;
+    my %caps = $walker.capabilities;
+
+    ok %caps<lazy><enabled>, 'table walker enables lazy evaluation';
+    is %caps<lazy><type>, 'incremental', 'lazy type is incremental';
+
+    my $plan = $walker.plan(RootOperator.new, [%(id => 1)]);
+    ok $plan.capabilities<lazy><enabled>, 'table plan inherits lazy capability';
+}
+
+subtest 'Strategy table scan uses indexed access without list materialization' => {
+    plan 2;
+
+    my $source = CountingRows.new(:rows[
+        %(id => 1, pick => False),
+        %(id => 2, pick => True),
+        %(id => 3, pick => False),
+    ]);
+    my $walker = Qwiratry::Walker::Implementation::Table.new(
+        :strategy(MatchAllStrategy.new),
+    );
+    my $query = SelectionOperator.new(
+        :subject($source.rows),
+        :predicate(-> $_ { $_<pick> }),
+    );
+    my $plan = $walker.plan($query, $source);
+    my $iter = $plan.iterator;
+
+    my $first = $iter.pull-one;
+    ok $first.defined && $first<id> == 2, 'lazy scan finds first matching row';
+    ok $source.at-pos-calls <= 3, 'rows accessed via AT-POS, not full list copy per pull';
+}
+
+done-testing;
