@@ -180,7 +180,7 @@
 - [ ] T044 [P] Implement join operators: `InnerJoinOperator` (`⨝`), `LeftOuterJoinOperator` (`⟕`), `RightOuterJoinOperator` (`⟖`), `FullOuterJoinOperator` (`⟗`)
 - [ ] T045 [P] Implement semijoin operators: `LeftSemijoinOperator` (`⋉`), `RightSemijoinOperator` (`⋊`)
 - [ ] T046 [P] Implement antijoin operators: `LeftAntijoinOperator` (`▷`), `RightAntijoinOperator` (`◁`)
-- [ ] T047 [P] Implement `DivisionOperator` (`÷`) and `CrossJoinOperator` (`X`)
+- [ ] T047 [P] Implement `DivisionOperator` (`÷`) and `CrossJoinOperator` (`×` U+00D7)
 - [ ] T048 Write unit tests for set operators in `t/operator/set.rakutest`
 - [ ] T049 Write integration tests for walker-set interaction in `t/integration/walker-set.rakutest`
 - [ ] T050 Test operator composition with navigation and map-reduce in `t/operator/composition.rakutest`

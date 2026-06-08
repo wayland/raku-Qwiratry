@@ -1,0 +1,57 @@
+#!/usr/bin/env raku
+#| I/O pipeline integration tests (WP06)
+use Test;
+use lib 'lib';
+
+use Qwiratry::IO::Parse::JSON;
+use Qwiratry::IO::Render::JSON;
+use Qwiratry::IO::Pipeline;
+use Qwiratry::Query::Slang;
+use Qwiratry::Query::Match;
+
+plan 2;
+
+my $tmpdir = 't/tmp'.IO;
+$tmpdir.mkdir unless $tmpdir.d;
+
+subtest 'source parse render destination round-trip with temp files' => {
+    plan 3;
+
+    my $input = $tmpdir.child("io-in-{$*PID}.json");
+    my $output = $tmpdir.child("io-out-{$*PID}.json");
+    $input.spurt('[{"name":"alpha","status":"active"},{"name":"beta","status":"inactive"}]');
+
+    my $pipeline = (⮳ $input.Str ↱ 'JSON' σ -> $_ { $_<status> eq 'active' } ↴ 'JSON' ⮷ $output.Str);
+
+    my $result = execute($pipeline);
+    ok $output.e, 'destination file was written';
+    ok $result.defined, 'execute returns rendered content';
+
+    my $parsed = Qwiratry::IO::Parse::JSON::parse($output.slurp);
+    my @rows = $parsed ~~ Positional ?? $parsed.list !! ($parsed,);
+    is @rows.elems, 1, 'pipeline filtered to active rows only';
+
+    $input.unlink if $input.e;
+    $output.unlink if $output.e;
+}
+
+subtest 'parse and query without destination returns filtered data' => {
+    plan 2;
+
+    my $input = $tmpdir.child("io-query-{$*PID}.json");
+    $input.spurt('[{"score":1},{"score":5},{"score":3}]');
+
+    my $query = (⮳ $input.Str ↱ 'JSON') σ -> $_ { $_<score> >= 3 };
+    my $result = execute($query);
+    my @rows = $result ~~ Positional ?? $result.list !! ($result,);
+    my @scores = @rows.map(*<score>);
+
+    is @scores.sort, (3, 5), 'parsed selection returns matching scores';
+
+    my $rendered = execute((⮳ $input.Str ↱ 'JSON') ↴ 'JSON');
+    ok $rendered.starts-with('['), 'parse then render produces JSON text';
+
+    $input.unlink if $input.e;
+}
+
+done-testing;

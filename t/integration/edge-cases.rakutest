@@ -1,0 +1,59 @@
+#!/usr/bin/env raku
+#| Edge case integration tests for query execution (WP07)
+use Test;
+use lib 'lib';
+
+use Qwiratry::Query::Slang;
+use Qwiratry::Query::Match;
+use Qwiratry::Operator::Navigation;
+use Qwiratry::Operator::Set;
+use Qwiratry::Operator::MapReduce;
+
+plan 4;
+
+subtest 'Empty collections in set operations' => {
+    plan 3;
+
+    my @empty = ();
+    my @data = [%(name => 'only')];
+    is select(UnionOperator.new(:left(@empty), :right(@data)), @data).elems, 1,
+        'union with empty left returns right rows';
+    is select(IntersectionOperator.new(:left(@empty), :right(@data)), @data).elems, 0,
+        'intersection with empty left is empty';
+    is select(@empty ⌿ { $^a + $^b }, @empty).elems, 0,
+        'reduce on empty collection yields no values';
+}
+
+subtest 'Null values in selection and joins' => {
+    plan 2;
+
+    my @rows = [
+        %(name => 'a', note => Nil),
+        %(name => 'b', note => 'ok'),
+    ];
+    my @selected = select(@rows σ -> $_ { .<note>.defined }, @rows).list;
+    is @selected.elems, 1, 'selection skips rows with undefined note';
+    is @selected[0]<name>, 'b', 'defined row is retained';
+}
+
+subtest 'Scalars and empty navigation results' => {
+    plan 2;
+
+    my $scalar = 42;
+    is select($scalar σ -> $_ { $_ > 0 }, $scalar).elems, 1,
+        'selection works on scalar subject';
+    is select(DescendantOperator.new(:selector('*')), %(name => 'leaf')).elems, 0,
+        'descendant query on leaf without children is empty';
+}
+
+subtest 'Single-element collections and identity' => {
+    plan 2;
+
+    my @one = [%(id => 1)];
+    ok select(IdentityOperator.new(:left(@one), :right(@one)), @one).so,
+        'identity accepts single-element relation';
+    is select(@one ⇅ -> $_ { $_<id> }, @one)[0]<id>, 1,
+        'sort preserves single row';
+}
+
+done-testing;

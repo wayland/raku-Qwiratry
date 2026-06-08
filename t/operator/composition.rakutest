@@ -3,9 +3,11 @@ use Test;
 use lib 'lib';
 
 use Qwiratry::Operator::Navigation;
+use Qwiratry::Operator::MapReduce;
+use Qwiratry::Operator::Set;
 use Qwiratry::Query::Slang;
 
-plan 4;
+plan 7;
 
 subtest 'Nested selectors compose immutably' => {
     plan 3;
@@ -54,4 +56,38 @@ subtest 'Root postfix and attribute infix compose with navigation' => {
 
     my $attr = $node ⥷ <status>;
     ok $attr ~~ AttributeOperator, '⥷ builds AttributeOperator';
+}
+
+subtest 'Navigation and selection compose immutably' => {
+    plan 3;
+
+    my $root = %(name => 'root');
+    my $nav = $root ⪪⪪ <item>;
+    my $query = $nav σ -> $_ { True };
+    ok $query ~~ SelectionOperator, 'selection wraps navigation query';
+    ok $query.subject ~~ DescendantOperator, 'selection subject is descendant operator';
+    is $query.subject.selector, 'item', 'navigation selector preserved under selection';
+}
+
+subtest 'Navigation and sort compose with subject chaining' => {
+    plan 3;
+
+    my $root = %(name => 'root');
+    my $nav = $root ⪪ <section>;
+    my $sorted = $nav ⇅ -> $_ { $_<name> };
+    ok $sorted ~~ SortOperator, 'sort follows navigation operator';
+    ok $sorted.subject ~~ ChildOperator, 'sort subject is child navigation';
+    is $sorted.subject.selector, 'section', 'child selector preserved';
+}
+
+subtest 'Set operators compose with navigation branches' => {
+    plan 3;
+
+    my $tree = %(name => 'root');
+    my $left = $tree ⪪⪪ <item>;
+    my $right = $tree ⪪⪪ <meta>;
+    my $query = $left ∪ $right;
+    ok $query ~~ UnionOperator, 'union combines navigation queries';
+    ok $query.left ~~ DescendantOperator, 'left branch is descendant query';
+    is $query.right.selector, 'meta', 'right branch retains selector';
 }

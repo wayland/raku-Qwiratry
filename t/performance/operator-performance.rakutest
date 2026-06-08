@@ -1,0 +1,62 @@
+#| Baseline AST construction performance metrics (WP07)
+use Test;
+use lib 'lib';
+
+use Qwiratry::Operator::Navigation;
+use Qwiratry::Operator::MapReduce;
+use Qwiratry::Operator::Set;
+use Qwiratry::Query::Slang;
+
+plan 3;
+
+my $root = %(name => 'root');
+my @rows = [%(id => $_) for ^100];
+
+sub build-simple-nav(Int $n) {
+    my $query = $root;
+    for ^$n {
+        $query = ChildOperator.new(:selector('*'), :subject($query));
+    }
+    $query
+}
+
+sub build-composed(Int $n) {
+    my $query = @rows σ -> $_ { $_<id> > 0 };
+    for ^$n {
+        $query = UnionOperator.new(
+            :left($query),
+            :right(SelectionOperator.new(:subject(@rows), :predicate(-> $_ { True }))),
+        );
+    }
+    $query
+}
+
+sub time-ms(&code, Int :$iterations = 500 --> Num) {
+    my $start = now;
+    for ^$iterations { &code() }
+    ((now - $start) * 1000 / $iterations).Num
+}
+
+subtest 'Simple navigation AST construction stays fast' => {
+    plan 1;
+
+    my $ms = time-ms({ build-simple-nav(5) });
+    ok $ms < 5, "nested navigation AST averages {$ms} ms (< 5 ms)";
+}
+
+subtest 'Composed set and map-reduce AST construction stays fast' => {
+    plan 1;
+
+    my $ms = time-ms({ build-composed(3) });
+    ok $ms < 10, "composed union/selection AST averages {$ms} ms (< 10 ms)";
+}
+
+subtest 'Capability introspection on composed AST stays fast' => {
+    plan 1;
+
+    my $query = build-composed(5);
+    my $ms = time-ms({ $query.capabilities }, :iterations(1000));
+    ok $ms < 25, "capability introspection averages {$ms} ms (< 25 ms)";
+}
+
+done-testing;

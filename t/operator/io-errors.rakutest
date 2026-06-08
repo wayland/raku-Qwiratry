@@ -1,0 +1,57 @@
+#| I/O operator error tests (WP06)
+use Test;
+use lib 'lib';
+
+use Qwiratry::Operator::IO;
+use Qwiratry::Exception::Operator;
+use Qwiratry::IO::Pipeline;
+
+plan 2;
+
+subtest 'ParseOperator throws FormatNotFound for unknown format' => {
+    plan 2;
+
+    my $caught = False;
+    my $side = '';
+    try {
+        ensure-parse-format('YAML');
+        CATCH {
+            when X::Qwiratry::IO::FormatNotFound {
+                $caught = True;
+                $side = .parse-or-render;
+            }
+        }
+    }
+    ok $caught, 'unknown parse format throws FormatNotFound';
+    is $side, 'Parse', 'FormatNotFound identifies parse side';
+}
+
+subtest 'LocationError at construction and during pipeline read' => {
+    plan 3;
+
+    my $invalid = False;
+    try {
+        SourceOperator.new(:location('not a valid location!!!'));
+        CATCH {
+            when X::Qwiratry::IO::LocationError { $invalid = True }
+        }
+    }
+    ok $invalid, 'invalid location rejected at SourceOperator construction';
+
+    my $missing = './t/tmp/does-not-exist-' ~ $*PID ~ '.json';
+    my $read-failed = False;
+    my $reason = '';
+    try {
+        Qwiratry::IO::Pipeline::execute(SourceOperator.new(:location($missing)));
+        CATCH {
+            when X::Qwiratry::IO::LocationError {
+                $read-failed = True;
+                $reason = .reason;
+            }
+        }
+    }
+    ok $read-failed, 'missing file throws LocationError during execute';
+    is $reason, 'File not found', 'LocationError reason identifies missing file';
+}
+
+done-testing;

@@ -116,7 +116,7 @@ A developer wants to compose multiple operators into complex query pipelines. Th
 - **FR-001**: System MUST implement all navigation operators (child `⪪`, parent `⪫`, descendant `⪪⪪`, ancestor `⪫⪫`, following-sibling `⪨`, preceding-sibling `⪩`, following `⪨⪨`, preceding `⪩⪩`, root `⇤`, attribute `⥷`) as Query AST nodes
 - **FR-002**: System MUST implement all map-reduce operators (selection `σ`, sort `⇅`, map `».`, reduce `⌿`) as Query AST nodes
 - **FR-003**: System MUST implement all set operators (union `∪`, intersection `∩`, symmetric difference `⊖`, set difference `∖`, membership `∈`, subset `⊂`, identity `≡`) as Query AST nodes
-- **FR-004**: System MUST implement all relational algebra operators (projection `Π`, rename `ρ`, inner join `⨝`, left outer join `⟕`, right outer join `⟖`, full outer join `⟗`, semijoins `⋉` `⋊`, antijoins `▷` `◁`, division `÷`, cross join `X`) as Query AST nodes
+- **FR-004**: System MUST implement all relational algebra operators (projection `Π`, rename `ρ`, inner join `⨝`, left outer join `⟕`, right outer join `⟖`, full outer join `⟗`, semijoins `⋉` `⋊`, antijoins `▷` `◁`, division `÷`, cross join `×` U+00D7) as Query AST nodes
 - **FR-005**: System MUST implement all I/O operators (source `⮳`, parse `↱`, render `↴`, destination `⮷`) as Query AST nodes
 - **FR-006**: System MUST support operator composition, allowing operators to be chained and combined
 - **FR-007**: System MUST respect operator precedence as defined in the specification

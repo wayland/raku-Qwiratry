@@ -1,0 +1,69 @@
+#!/usr/bin/env raku
+#| Table walker integration tests for set operators (WP05)
+use Test;
+use lib 'lib';
+
+use Qwiratry::Walker::Implementation::Table;
+use Qwiratry::Query::Slang;
+use Qwiratry::Query::Match;
+use Qwiratry::Operator::MapReduce;
+use Qwiratry::Operator::Set;
+
+plan 3;
+
+my @orders = [
+    %(order_id => 1, customer_id => 10, total => 100),
+    %(order_id => 2, customer_id => 20, total => 50),
+    %(order_id => 3, customer_id => 10, total => 75),
+];
+
+my @customers = [
+    %(customer_id => 10, name => 'Alice'),
+    %(customer_id => 20, name => 'Bob'),
+    %(customer_id => 30, name => 'Carol'),
+];
+
+sub rows-from-iter($iter) {
+    gather {
+        while (my $row = $iter.pull-one) !~~ IterationEnd {
+            take $row;
+        }
+    }
+}
+
+subtest 'Table walker union combines row selectors' => {
+    plan 1;
+
+    my $walker = Qwiratry::Walker::Implementation::Table.new;
+    my $query = UnionOperator.new(
+        :left(SelectionOperator.new(:subject(@orders), :predicate(-> $_ { $_<customer_id> == 10 }))),
+        :right(SelectionOperator.new(:subject(@orders), :predicate(-> $_ { $_<total> > 90 }))),
+    );
+    my @ids = rows-from-iter($walker.start($query, @orders)).map(*<order_id>).sort;
+    is @ids, (1, 3), 'union combines customer and total filters';
+}
+
+subtest 'Table walker intersection keeps shared rows' => {
+    plan 1;
+
+    my $walker = Qwiratry::Walker::Implementation::Table.new;
+    my $query = IntersectionOperator.new(
+        :left(SelectionOperator.new(:subject(@orders), :predicate(-> $_ { $_<customer_id> == 10 }))),
+        :right(SelectionOperator.new(:subject(@orders), :predicate(-> $_ { $_<total> == 75 }))),
+    );
+    my @ids = rows-from-iter($walker.start($query, @orders)).map(*<order_id>);
+    is @ids, (3,), 'intersection keeps rows matching both predicates';
+}
+
+subtest 'Table walker inner join merges orders with customers' => {
+    plan 2;
+
+    my $walker = Qwiratry::Walker::Implementation::Table.new;
+    my $query = InnerJoinOperator.new(:left(@orders), :right(@customers));
+    my @joined = rows-from-iter($walker.start($query, @orders));
+
+    is @joined.elems, 3, 'inner join yields one row per matching order';
+    ok @joined.grep({ .<name> eq 'Alice' && .<order_id> == 1 }), 'joined row includes customer name';
+}
+
+done-testing;

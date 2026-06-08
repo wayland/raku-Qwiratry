@@ -174,7 +174,7 @@ history:
 
 ### Subtask T047 – Implement division and cross join
 
-- **Purpose**: Implement `DivisionOperator` (`÷`) and `CrossJoinOperator` (`X`)
+- **Purpose**: Implement `DivisionOperator` (`÷`) and `CrossJoinOperator` (`×` U+00D7)
 - **Steps**:
   1. Create division and cross join operator classes
   2. Add operand attributes

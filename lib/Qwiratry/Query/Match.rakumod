@@ -19,6 +19,8 @@ use Qwiratry::Operator::Navigation;
 use Qwiratry::Operator::Capability;
 use Qwiratry::Operator::Set;
 use Qwiratry::Operator::MapReduce;
+use Qwiratry::Operator::IO;
+use Qwiratry::Query::Relational;
 
 =begin pod
 
@@ -186,24 +188,135 @@ sub select-list(Mu $query, Mu $origin --> List) {
             return @results;
         }
         when UnionOperator {
-            my @left = select-list($query.left, $origin);
-            my @right = select-list($query.right, $origin);
+            my @left = select-relation($query.left, $origin);
+            my @right = select-relation($query.right, $origin);
             return unique-nodes(|@left, |@right);
         }
         when IntersectionOperator {
-            my @left = select-list($query.left, $origin);
-            my @right = select-list($query.right, $origin);
+            my @left = select-relation($query.left, $origin);
+            my @right = select-relation($query.right, $origin);
             return @left.grep(-> $node { node-in-list($node, @right) }).List;
         }
         when SetDifferenceOperator {
+            my @left = select-relation($query.left, $origin);
+            my @right = select-relation($query.right, $origin);
+            return @left.grep(-> $node { !node-in-list($node, @right) }).List;
+        }
+        when SymmetricDifferenceOperator {
+            my @left = select-relation($query.left, $origin);
+            my @right = select-relation($query.right, $origin);
+            return symmetric-difference(@left, @right).List;
+        }
+        when ElementOfOperator {
+            my @collection = select-list($query.collection, $origin);
+            my @elements = select-list($query.element, $origin);
+            my @results;
+            for @elements -> $elem {
+                @results.push($elem) if row-in-list($elem, @collection);
+            }
+            return @results;
+        }
+        when ContainsOperator {
+            my @collection = select-list($query.collection, $origin);
+            my @elements = select-list($query.element, $origin);
+            return @collection.grep(-> $row {
+                @elements.grep(-> $elem { row-equal($elem, $row) }).so
+            }).List;
+        }
+        when SubsetOperator {
             my @left = select-list($query.left, $origin);
             my @right = select-list($query.right, $origin);
-            return @left.grep(-> $node { !node-in-list($node, @right) }).List;
+            return is-subset-of(@left, @right)
+                && !collections-equal(@left, @right)
+                ?? @left.List !! ();
+        }
+        when SubsetOrEqualOperator {
+            my @left = select-list($query.left, $origin);
+            my @right = select-list($query.right, $origin);
+            return is-subset-of(@left, @right) ?? @left.List !! ();
+        }
+        when IdentityOperator {
+            my @left = select-relation($query.left, $origin);
+            my @right = select-relation($query.right, $origin);
+            return collections-equal(@left, @right) ?? @left.List !! ();
+        }
+        when ProjectionOperator {
+            my @rows = select-list($query.relation, $origin);
+            return @rows.map(-> $row {
+                $row ~~ Associative ?? project-row($row, $query.columns) !! $row
+            }).List;
+        }
+        when RenameOperator {
+            my @rows = select-list($query.relation, $origin);
+            return @rows.map(-> $row {
+                $row ~~ Associative ?? rename-row($row, $query.renames) !! $row
+            }).List;
+        }
+        when InnerJoinOperator {
+            my @left = select-relation($query.left, $origin);
+            my @right = select-relation($query.right, $origin);
+            my &cond = $query.condition.defined ?? $query.condition !! Nil;
+            return join-with-condition(&cond, &natural-join, @left, @right).List;
+        }
+        when LeftOuterJoinOperator {
+            my @left = select-relation($query.left, $origin);
+            my @right = select-relation($query.right, $origin);
+            my &cond = $query.condition.defined ?? $query.condition !! Nil;
+            return join-with-condition(&cond, &left-outer-join, @left, @right).List;
+        }
+        when RightOuterJoinOperator {
+            my @left = select-relation($query.left, $origin);
+            my @right = select-relation($query.right, $origin);
+            my &cond = $query.condition.defined ?? $query.condition !! Nil;
+            return join-with-condition(&cond, &right-outer-join, @left, @right).List;
+        }
+        when FullOuterJoinOperator {
+            my @left = select-relation($query.left, $origin);
+            my @right = select-relation($query.right, $origin);
+            my &cond = $query.condition.defined ?? $query.condition !! Nil;
+            return join-with-condition(&cond, &full-outer-join, @left, @right).List;
+        }
+        when LeftSemijoinOperator {
+            my @left = select-relation($query.left, $origin);
+            my @right = select-relation($query.right, $origin);
+            my &cond = $query.condition.defined ?? $query.condition !! Nil;
+            return join-with-condition(&cond, &left-semijoin, @left, @right).List;
+        }
+        when RightSemijoinOperator {
+            my @left = select-relation($query.left, $origin);
+            my @right = select-relation($query.right, $origin);
+            my &cond = $query.condition.defined ?? $query.condition !! Nil;
+            return join-with-condition(&cond, &right-semijoin, @left, @right).List;
+        }
+        when LeftAntijoinOperator {
+            my @left = select-relation($query.left, $origin);
+            my @right = select-relation($query.right, $origin);
+            my &cond = $query.condition.defined ?? $query.condition !! Nil;
+            return join-with-condition(&cond, &left-antijoin, @left, @right).List;
+        }
+        when RightAntijoinOperator {
+            my @left = select-relation($query.left, $origin);
+            my @right = select-relation($query.right, $origin);
+            my &cond = $query.condition.defined ?? $query.condition !! Nil;
+            return join-with-condition(&cond, &right-antijoin, @left, @right).List;
+        }
+        when CrossJoinOperator {
+            my @left = select-relation($query.left, $origin);
+            my @right = select-relation($query.right, $origin);
+            return cross-join(@left, @right).List;
+        }
+        when DivisionOperator {
+            my @left = select-relation($query.left, $origin);
+            my @right = select-relation($query.right, $origin);
+            return relational-division(@left, @right).List;
         }
         when SelectionOperator {
             my @bases;
             if $query.subject ~~ NavigationOperator | RootOperator {
                 @bases = select-list($query.subject, $origin);
+            }
+            elsif $query.subject ~~ IOOperator {
+                @bases = $origin ~~ Positional ?? $origin.list !! ($origin,);
             }
             elsif $query.subject ~~ Positional {
                 @bases = $query.subject.list;
@@ -213,6 +326,28 @@ sub select-list(Mu $query, Mu $origin --> List) {
             }
             my &pred = $query.predicate;
             return @bases.grep(-> $base { selection-predicate-matches(&pred, $base) }).List;
+        }
+        when SortOperator {
+            my @items = mapreduce-items($query, $origin);
+            my &key = $query.key-function;
+            return @items.sort(-> $a, $b {
+                code-result(&key, $a) cmp code-result(&key, $b)
+            }).List;
+        }
+        when MapOperator {
+            my @items = mapreduce-items($query, $origin);
+            my &transform = $query.transform;
+            return @items.map(-> $item { code-result(&transform, $item) }).List;
+        }
+        when ReduceOperator {
+            my @items = mapreduce-items($query, $origin);
+            return () unless @items;
+            my &op = $query.operation;
+            my $acc = @items.shift;
+            for @items -> $item {
+                $acc = reduce-with(&op, $acc, $item);
+            }
+            return ($acc,);
         }
         default {
             if is-union-query-list($query) {
@@ -395,6 +530,8 @@ sub unique-nodes(*@nodes --> List) {
 sub node-in-list(Mu $node, @list --> Bool) {
     for @list -> $candidate {
         return True if $candidate === $node;
+        return True if $node ~~ Associative && $candidate ~~ Associative
+            && row-equal($node, $candidate);
     }
     False
 }
@@ -409,4 +546,62 @@ sub selection-predicate-matches(&pred, Mu $base --> Bool) {
         }
     };
     return $result // False;
+}
+
+sub mapreduce-items(Mu $query, Mu $origin --> List) {
+    if $query.subject.defined {
+        if $query.subject ~~ NavigationOperator | RootOperator | SetOperator | MapReduceOperator {
+            return select-list($query.subject, $origin);
+        }
+        if $query.subject ~~ IOOperator {
+            return $origin ~~ Positional ?? $origin.list !! ($origin,);
+        }
+        if $query.subject ~~ Positional {
+            return $query.subject.list;
+        }
+        return ($query.subject,);
+    }
+    if $origin ~~ Positional {
+        return $origin.list;
+    }
+    ($origin,);
+}
+
+sub code-result(&code, Mu $item --> Mu) {
+    try {
+        if &code.arity == 1 {
+            code($item);
+        }
+        else {
+            with $item { code() }
+        }
+    } orelse $item
+}
+
+sub reduce-with(&op, Mu $acc, Mu $item --> Mu) {
+    try {
+        if &op.arity == 2 {
+            op($acc, $item);
+        }
+        elsif &op.arity == 1 {
+            op($item);
+        }
+        else {
+            with $acc { with $item { op() } }
+        }
+    } orelse $acc
+}
+
+sub select-relation(Mu $operand, Mu $origin --> List) {
+    if $operand ~~ Positional {
+        return $operand.list unless $operand ~~ NavigationOperator;
+    }
+    select-list($operand, $origin)
+}
+
+sub join-with-condition(&cond, &joiner, @left, @right --> List) {
+    if &cond.defined {
+        return joiner(@left, @right, &cond);
+    }
+    joiner(@left, @right);
 }

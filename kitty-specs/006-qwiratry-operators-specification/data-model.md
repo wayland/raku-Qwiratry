@@ -112,7 +112,7 @@
 - **Membership**: `ElementOfOperator` (`∈`), `ContainsOperator` (`∋`)
 - **Subset**: `SubsetOperator` (`⊂`), `SubsetOrEqualOperator` (`⊆`)
 - **Set Operations**: `UnionOperator` (`∪`), `IntersectionOperator` (`∩`), `SymmetricDifferenceOperator` (`⊖`), `SetDifferenceOperator` (`∖`)
-- **Relational**: `ProjectionOperator` (`Π`), `RenameOperator` (`ρ`), `InnerJoinOperator` (`⨝`), `LeftOuterJoinOperator` (`⟕`), `RightOuterJoinOperator` (`⟖`), `FullOuterJoinOperator` (`⟗`), `SemijoinOperator` (`⋉`, `⋊`), `AntijoinOperator` (`▷`, `◁`), `DivisionOperator` (`÷`), `CrossJoinOperator` (`X`)
+- **Relational**: `ProjectionOperator` (`Π`), `RenameOperator` (`ρ`), `InnerJoinOperator` (`⨝`), `LeftOuterJoinOperator` (`⟕`), `RightOuterJoinOperator` (`⟖`), `FullOuterJoinOperator` (`⟗`), `SemijoinOperator` (`⋉`, `⋊`), `AntijoinOperator` (`▷`, `◁`), `DivisionOperator` (`÷`), `CrossJoinOperator` (`×` U+00D7)
 
 **Attributes**:
 - `$.left` (RakuAST::Node) - Left operand (query/collection)

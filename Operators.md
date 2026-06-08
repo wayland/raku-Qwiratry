@@ -42,7 +42,7 @@ Precedence levels in bold are standard Raku levels.  Those not in bold are level
 |--------------------|---------------|-----------|----------|
 | **Symbolic Unary** | non  | ⇤ | Unary postfix |
 | **Replication**    | left | σ Π ρ ⪪ ⪫ ⪪⪪ ⪫⪫ ⪨ ⪩ ⪨⪨ ⪩⪩ ⥷  ↱ ⮣ ↴ ⮧ ⮳ ⮷ | |
-| **Concatenation**  | list | ⋉ ⋊ ▷ ◁ ⨝ ⟕ ⟖ ⟗ ÷ ▵ X | |
+| **Concatenation**  | list | ⋉ ⋊ ▷ ◁ ⨝ ⟕ ⟖ ⟗ ÷ ▵ × | |
 | Junctive Exponentiation | right | 𝒫 | Tighter than Junctive unary |
 | Junctive unary     | left | ⧩ | Tighter than Junctive and |
 | **Junctive and**   | list | ∩ ⩃ | |
@@ -929,7 +929,7 @@ These operators combine rows from two relations based on matching conditions.
 | ≜ | U+225C | Natural Join | Like equijoin, but column names must be the same in both tables |
 | ÷ | U+00F7 | Division | Creates a relation listing every item in A that matches all elements in B |
 | ▵ | U+25B5 | Named Join | Unary prefix operator that takes a Join operand (for recalling a join) |
-| X | | Cross Join | Joins every record in left operand to every record in right operand |
+| × | U+00D7 | Cross Join | Joins every record in left operand to every record in right operand |
 
 #### 6.2.5 Usage Examples
 
@@ -949,9 +949,13 @@ my $left_joined = $relation1 ⟕ $relation2;
 # Natural join
 my $natural = $relation1 ≜ $relation2;
 
-# Cross join
-my $cartesian = $relation1 X $relation2;
+# Cross join (Cartesian product)
+my $cartesian = $relation1 × $relation2;
 ```
+
+Note: Cross join uses U+00D7 (×, multiplication sign). Raku also uses × for numeric
+multiplication (for example `3 × 4`). Query slang defines typed multis on relations and
+query operators so cross join does not override integer math in the same compunit.
 
 ## 7. Operator Composition and Usage
 

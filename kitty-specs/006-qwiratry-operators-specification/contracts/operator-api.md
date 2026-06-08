@@ -215,6 +215,25 @@ InnerJoinOperator.new(
 ) --> InnerJoinOperator
 ```
 
+### CrossJoinOperator (`×` U+00D7)
+
+**Type**: `class CrossJoinOperator is RakuAST::Node does SetOperator`
+
+**Attributes**:
+- `$.left` (RakuAST::Node or Positional) - Left relation
+- `$.right` (RakuAST::Node or Positional) - Right relation
+
+**Constructor**:
+```raku
+CrossJoinOperator.new(
+    left => RakuAST::Node,
+    right => RakuAST::Node
+) --> CrossJoinOperator
+```
+
+**Slang**: Infix `×` on relations or query operators. Typed multis in
+`Qwiratry::Query::Slang` preserve Raku numeric multiplication (`3 × 4`).
+
 ## I/O Operators
 
 ### SourceOperator (`⮳`)

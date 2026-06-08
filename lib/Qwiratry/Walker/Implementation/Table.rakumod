@@ -150,7 +150,7 @@ unit class Qwiratry::Walker::Implementation::Table does Qwiratry::Walker {
         return True if $query ~~ RootOperator;
         return True if $query ~~ NavigationOperator;
         return True if $query ~~ SetOperator;
-        return True if $query ~~ SelectionOperator;
+        return True if $query ~~ MapReduceOperator;
         False;
     }
 

@@ -1,0 +1,84 @@
+#| Unit tests for map-reduce operator AST nodes (WP04)
+use Test;
+use lib 'lib';
+
+use Qwiratry::Operator::MapReduce;
+use Qwiratry::Operator::Capability;
+
+plan 4;
+
+my @mapreduce-classes = <
+    SelectionOperator
+    SortOperator
+    MapOperator
+    ReduceOperator
+>;
+
+sub mr-class(Str $name) {
+    ::($name)
+}
+
+subtest 'Map-reduce operators construct AST nodes' => {
+    plan (@mapreduce-classes.elems * 6);
+
+    for @mapreduce-classes -> $name {
+        my $class = mr-class($name);
+        my $op = do given $name {
+            when 'SelectionOperator' { $class.new(:predicate(-> $_ { True })) }
+            when 'SortOperator'      { $class.new(:key-function(-> $_ { $_ })) }
+            when 'MapOperator'       { $class.new(:transform(-> $_ { $_ })) }
+            when 'ReduceOperator'    { $class.new(:operation(-> $a, $b { $a + $b })) }
+        };
+        ok $op ~~ RakuAST::Node, "$name is a RakuAST::Node";
+        ok $op ~~ MapReduceOperator, "$name does MapReduceOperator";
+        ok $op ~~ OperatorBase, "$name does OperatorBase";
+        ok $op.can('describe'), "$name provides describe";
+        ok $op.capabilities<map-reduce>, "$name declares map-reduce capability";
+        like $op.describe, rx:s/$name/, "$name describe names operator";
+    }
+}
+
+subtest 'Map-reduce operators store Code blocks and optional subject' => {
+    plan 5;
+
+    my $subject = [1, 2, 3];
+    my $select = SelectionOperator.new(:subject($subject), :predicate(-> $_ { $_ > 1 }));
+    ok $select.predicate.defined, 'SelectionOperator stores predicate';
+    is $select.subject, $subject, 'SelectionOperator stores subject';
+
+    my $sort = SortOperator.new(:subject($subject), :key-function(-> $_ { -$_ }));
+    ok $sort.key-function.defined, 'SortOperator stores key-function';
+
+    my $map = MapOperator.new(:transform(-> $_ { $_ * 2 }));
+    ok $map.transform.defined, 'MapOperator stores transform';
+
+    my $reduce = ReduceOperator.new(:operation(-> $a, $b { $a + $b }));
+    ok $reduce.operation.defined, 'ReduceOperator stores operation';
+}
+
+subtest 'Map-reduce operators are immutable' => {
+    plan 2;
+
+    my $op = SelectionOperator.new(:predicate(-> $_ { True }));
+    my $threw-predicate = False;
+    try { $op.predicate = -> { False }; CATCH { default { $threw-predicate = True } } }
+    ok $threw-predicate, 'predicate attribute cannot be assigned';
+
+    my $threw-subject = False;
+    try { $op.subject = [1]; CATCH { default { $threw-subject = True } } }
+    ok $threw-subject, 'subject attribute cannot be assigned';
+}
+
+subtest 'Capability metadata matches data model' => {
+    plan 4;
+
+    my $op = MapOperator.new(:transform(-> $_ { $_ }));
+    my $caps = $op.capabilities;
+    ok $caps<map-reduce>, 'map-reduce flag is True';
+    ok $caps<lazy>, 'lazy flag is True';
+    ok $caps.defined, 'capabilities hash is defined';
+    ok $caps.keys.grep({ $_ eq any(<map-reduce lazy>) }).elems == 2,
+        'capability hash has expected keys';
+}
+
+done-testing;

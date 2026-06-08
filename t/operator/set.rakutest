@@ -1,0 +1,98 @@
+#| Unit tests for set operator AST nodes (WP05)
+use Test;
+use lib 'lib';
+
+use Qwiratry::Operator::Set;
+use Qwiratry::Operator::MapReduce;
+use Qwiratry::Operator::Capability;
+
+plan 6;
+
+subtest 'Membership operators construct AST nodes' => {
+    plan 6;
+
+    my $elem = 'alpha';
+    my $coll = [1, 2, 3];
+    my $eof = ElementOfOperator.new(:element($elem), :collection($coll));
+    ok $eof ~~ RakuAST::Node, 'ElementOfOperator is RakuAST::Node';
+    ok $eof ~~ SetOperator, 'ElementOfOperator does SetOperator';
+    is $eof.element, $elem, 'ElementOfOperator stores element';
+    like $eof.describe, rx:s/ElementOfOperator/, 'ElementOfOperator describe names operator';
+
+    my $contains = ContainsOperator.new(:collection($coll), :element($elem));
+    ok $contains ~~ SetOperator, 'ContainsOperator does SetOperator';
+    like $contains.describe, rx:s/ContainsOperator/, 'ContainsOperator describe names operator';
+}
+
+subtest 'Subset and identity operators are binary set nodes' => {
+    plan 9;
+
+    my $left = [1, 2];
+    my $right = [1, 2, 3];
+    for SubsetOperator, SubsetOrEqualOperator, IdentityOperator -> $class {
+        my $op = $class.new(:left($left), :right($right));
+        ok $op ~~ RakuAST::Node, "{$class.^name} is RakuAST::Node";
+        ok $op ~~ SetOperator, "{$class.^name} does SetOperator";
+        is $op.left, $left, "{$class.^name} stores left operand";
+    }
+}
+
+subtest 'Basic set operators store left and right operands' => {
+    plan 8;
+
+    my $a = [1];
+    my $b = [2];
+    for UnionOperator, IntersectionOperator, SetDifferenceOperator, SymmetricDifferenceOperator -> $class {
+        my $op = $class.new(:left($a), :right($b));
+        ok $op ~~ SetOperator, "{$class.^name} does SetOperator";
+        like $op.describe, rx:s/left/, "{$class.^name} describe mentions operands";
+    }
+}
+
+subtest 'Projection and rename operators store relation metadata' => {
+    plan 4;
+
+    my $relation = [%(name => 'a', score => 1)];
+    my $proj = ProjectionOperator.new(:relation($relation), :columns(<name>));
+    ok $proj ~~ SetOperator, 'ProjectionOperator does SetOperator';
+    is $proj.columns, <name>, 'ProjectionOperator stores columns';
+
+    my $rename = RenameOperator.new(:relation($relation), :renames(score => 'points'));
+    ok $rename ~~ SetOperator, 'RenameOperator does SetOperator';
+    like $rename.describe, rx:s/score/, 'RenameOperator describe includes renames';
+}
+
+subtest 'Join operators accept optional condition' => {
+    plan 4;
+
+    my $left = [%(id => 1)];
+    my $right = [%(id => 1, extra => 'x')];
+    my $inner = InnerJoinOperator.new(:left($left), :right($right));
+    ok $inner ~~ SetOperator, 'InnerJoinOperator does SetOperator';
+    ok $inner.condition.defined.not, 'InnerJoinOperator condition optional';
+
+    my $outer = LeftOuterJoinOperator.new(
+        :left($left),
+        :right($right),
+        :condition(-> $l, $r { $l<id> == $r<id> }),
+    );
+    ok $outer ~~ SetOperator, 'LeftOuterJoinOperator does SetOperator';
+    ok $outer.condition.defined, 'LeftOuterJoinOperator stores condition';
+}
+
+subtest 'Set operators declare capabilities and stable describe output' => {
+    plan 4;
+
+    my $left = SelectionOperator.new(:subject([1]), :predicate(-> { True }));
+    my $right = SelectionOperator.new(:subject([2]), :predicate(-> { True }));
+    my $op = UnionOperator.new(:left($left), :right($right));
+    my $desc = $op.describe;
+    ok $desc.contains('UnionOperator'), 'describe names union operator';
+    ok $desc.contains('SelectionOperator'), 'describe includes operand types';
+
+    my $caps = $op.capabilities;
+    ok $caps<set-operation>, 'set-operation flag is True';
+    ok $caps<relational>, 'relational flag is True';
+}
+
+done-testing;

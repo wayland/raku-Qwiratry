@@ -1,0 +1,74 @@
+#!/usr/bin/env raku
+#| Error handling integration tests across planning and runtime (WP07)
+use Test;
+use lib 'lib';
+
+use Qwiratry::Walker::Implementation::Tree;
+use Qwiratry::Operator::IO;
+use Qwiratry::Operator::Navigation;
+use Qwiratry::IO::Parse::JSON;
+use X::Qwiratry;
+
+plan 3;
+
+my $tree = [
+    %(name => 'section', children => [
+        %(name => 'item', value => 1),
+    ]),
+];
+
+subtest 'Tree walker rejects unsupported IO operators at plan time' => {
+    plan 2;
+
+    my $walker = Qwiratry::Walker::Implementation::Tree.new;
+    my $io = SourceOperator.new(:location('./data.json'));
+    ok !$walker.supports($io), 'Tree walker does not support SourceOperator';
+
+    my $threw = False;
+    try {
+        $walker.plan($io, $tree);
+        CATCH {
+            when X::Qwiratry::UnknownQueryElement { $threw = True }
+        }
+    }
+    ok $threw, 'plan throws UnknownQueryElement for IO operator';
+}
+
+subtest 'UnknownQueryElement includes walker and query metadata' => {
+    plan 2;
+
+    my $walker = Qwiratry::Walker::Implementation::Tree.new;
+    my $io = ParseOperator.new(:format('JSON'));
+    my $ex;
+    try {
+        $walker.plan($io, $tree);
+        CATCH {
+            when X::Qwiratry::UnknownQueryElement { $ex = $_ }
+        }
+    }
+    ok $ex.defined, 'exception captured';
+    like $ex.gist, rx:s/Tree/, 'gist mentions walker type';
+}
+
+subtest 'Unsupported mock operator fails supports and plan' => {
+    plan 2;
+
+    class MockUnsupportedOperator is RakuAST::Node does Qwiratry::Operator::Capability::OperatorBase {
+        method capabilities { %(custom => True) }
+    }
+
+    my $walker = Qwiratry::Walker::Implementation::Tree.new;
+    my $bad = MockUnsupportedOperator.new;
+    ok !$walker.supports($bad), 'walker rejects unknown operator capabilities';
+
+    my $failed = False;
+    try {
+        $walker.plan($bad, $tree);
+        CATCH {
+            when X::Qwiratry::UnknownQueryElement { $failed = True }
+        }
+    }
+    ok $failed, 'plan throws for unsupported operator';
+}
+
+done-testing;

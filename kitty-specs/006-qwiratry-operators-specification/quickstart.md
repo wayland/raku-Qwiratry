@@ -135,6 +135,9 @@ my $common = IntersectionOperator.new(
     left => $query1,
     right => $query2
 );
+
+# Cross join (Cartesian product) - U+00D7, via slang when Query::Slang is loaded
+my $cartesian = $relation1 × $relation2;
 ```
 
 ### I/O Pattern
@@ -191,11 +194,18 @@ try {
 
 ## Next Steps
 
-1. **Implement Core Operators**: Start with navigation operators (P1)
-2. **Add Map-Reduce**: Implement selection, sort, map, reduce (P1)
-3. **Set Operations**: Implement union, intersection, joins (P2)
-4. **I/O Operations**: Implement source, parse, render, destination (P2)
-5. **Query Slang Integration**: Integrate operators into Query Slang (separate feature)
+All operator categories from the 006 specification are implemented:
+
+1. Navigation operators (WP03)
+2. Map-reduce operators: selection, sort, map, reduce (WP04)
+3. Set and relational algebra operators (WP05)
+4. I/O operators with JSON, XML, and CSV format modules (WP06)
+5. Integration tests, precedence checks, and performance baselines (WP07)
+
+Load `Qwiratry::Query::Slang` for unicode operator syntax. Load format modules
+(e.g. `Qwiratry::IO::Parse::JSON`) before constructing parse/render operators.
+
+See `t/integration/quickstart-examples.rakutest` for runnable examples.
 
 ## References
 

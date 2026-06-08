@@ -1,0 +1,78 @@
+#| Unit tests for I/O operator AST nodes (WP06)
+use Test;
+use lib 'lib';
+
+use Qwiratry::Operator::IO;
+use Qwiratry::Operator::Capability;
+use Qwiratry::IO::Parse::JSON;
+use Qwiratry::IO::Parse::XML;
+use Qwiratry::IO::Parse::CSV;
+use Qwiratry::IO::Render::JSON;
+use Qwiratry::IO::Render::XML;
+use Qwiratry::IO::Render::CSV;
+
+plan 5;
+
+subtest 'SourceOperator validates locations at construction' => {
+    plan 4;
+
+    my $file = SourceOperator.new(:location('./data.json'));
+    ok $file ~~ RakuAST::Node, 'SourceOperator is RakuAST::Node';
+    is $file.location, './data.json', 'relative path stored';
+
+    my $url = SourceOperator.new(:location('https://example.com/data.json'));
+    is $url.location, 'https://example.com/data.json', 'https URL stored';
+
+    my $abs = SourceOperator.new(:location('/tmp/data.json'));
+    is $abs.location, '/tmp/data.json', 'absolute path stored';
+}
+
+subtest 'ParseOperator and RenderOperator require loaded format modules' => {
+    plan 6;
+
+    my $parse = ParseOperator.new(:format('JSON'));
+    ok $parse ~~ IOOperator, 'ParseOperator does IOOperator';
+    is $parse.format, 'JSON', 'ParseOperator stores format';
+    like $parse.describe, rx:i/json/, 'ParseOperator describe includes format';
+
+    my $render = RenderOperator.new(:format('JSON'), :options(%(pretty => True)));
+    ok $render ~~ IOOperator, 'RenderOperator does IOOperator';
+    ok $render.options<pretty>, 'RenderOperator stores options';
+    like $render.describe, rx:i/json/, 'RenderOperator describe includes format';
+}
+
+subtest 'DestinationOperator chains with subject' => {
+    plan 3;
+
+    my $subject = RenderOperator.new(:format('JSON'));
+    my $dest = DestinationOperator.new(:subject($subject), :location('./output.json'));
+    ok $dest ~~ IOOperator, 'DestinationOperator does IOOperator';
+    ok $dest.subject ~~ RenderOperator, 'DestinationOperator stores subject';
+    like $dest.describe, rx:s/output\.json/, 'DestinationOperator describe includes location';
+}
+
+subtest 'Format discovery finds loaded parse and render modules' => {
+    plan 2;
+
+    my @parse = discover-parse-formats;
+    ok 'JSON' (elem) @parse, 'discover-parse-formats includes JSON';
+
+    my @render = discover-render-formats;
+    ok 'JSON' (elem) @render, 'discover-render-formats includes JSON';
+}
+
+subtest 'I/O operators are immutable and declare capabilities' => {
+    plan 4;
+
+    my $op = SourceOperator.new(:location('./in.json'));
+    my $threw = False;
+    try { $op.location = '/changed'; CATCH { default { $threw = True } } }
+    ok $threw, 'location attribute cannot be assigned';
+
+    my $caps = $op.capabilities;
+    ok $caps<io>, 'io flag is True';
+    is $caps<formats>, ['json', 'xml', 'csv'], 'formats are declared';
+    ok !$caps<lazy>, 'lazy flag is False for I/O';
+}
+
+done-testing;

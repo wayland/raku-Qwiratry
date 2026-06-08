@@ -186,7 +186,7 @@ unit class Qwiratry::Walker::Implementation::Tree does Qwiratry::Walker {
         return True if $query ~~ RootOperator;
         return True if $query ~~ NavigationOperator;
         return True if $query ~~ SetOperator;
-        return True if $query ~~ SelectionOperator;
+        return True if $query ~~ MapReduceOperator;
         return True if $query.WHAT === Array || $query.WHAT === List;
         False;
     }

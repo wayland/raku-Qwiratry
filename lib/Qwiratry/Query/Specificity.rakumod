@@ -50,14 +50,16 @@ our sub score(Mu $query --> Int) is export {
         return $max;
     }
 
-    if $query ~~ UnionOperator | IntersectionOperator | SetDifferenceOperator {
+    if $query ~~ UnionOperator | IntersectionOperator | SetDifferenceOperator
+            | SymmetricDifferenceOperator {
         my $left = score($query.left);
         my $right = score($query.right);
         return $left > $right ?? $left !! $right;
     }
 
-    if $query ~~ SelectionOperator {
-        return score($query.subject);
+    if $query ~~ SelectionOperator | SortOperator | MapOperator | ReduceOperator {
+        return score($query.subject) if $query.can('subject') && $query.subject.defined;
+        return 0;
     }
 
     0;

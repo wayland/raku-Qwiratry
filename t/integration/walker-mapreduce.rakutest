@@ -1,0 +1,87 @@
+#!/usr/bin/env raku
+#| Tree/Table walker integration tests for map-reduce operators (WP04)
+use Test;
+use lib 'lib';
+
+use Qwiratry::Walker::Implementation::Table;
+use Qwiratry::Walker::Implementation::Tree;
+use Qwiratry::Query::Slang;
+use Qwiratry::Query::Match;
+use Qwiratry::Operator::MapReduce;
+
+plan 2;
+
+my @rows = [
+    %(name => 'alpha', status => 'active', score => 10),
+    %(name => 'beta', status => 'inactive', score => 5),
+    %(name => 'gamma', status => 'active', score => 20),
+];
+
+my $tree = [
+    %(name => 'section', children => [
+        %(name => 'item', value => 30),
+        %(name => 'item', value => 10),
+        %(name => 'item', value => 20),
+    ]),
+];
+
+sub rows-from-iter($iter) {
+    gather {
+        while (my $row = $iter.pull-one) !~~ IterationEnd {
+            take $row;
+        }
+    }
+}
+
+subtest 'Table walker executes selection, sort, map, and reduce' => {
+    plan 5;
+
+    my $walker = Qwiratry::Walker::Implementation::Table.new;
+    ok $walker.supports(SelectionOperator.new(:predicate(-> $_ { True }))),
+        'Table walker supports SelectionOperator';
+
+    my $select-query = @rows σ -> $_ { $_<status> eq 'active' };
+    my @active = rows-from-iter($walker.start($select-query, @rows));
+    is @active.elems, 2, 'selection filters active rows';
+
+    my $sort-query = @rows ⇅ -> $_ { $_<score> };
+    my @sorted = rows-from-iter($walker.start($sort-query, @rows));
+    is @sorted[*-1]<name>, 'gamma', 'sort orders by score ascending';
+
+    my $map-query = @rows ». -> $_ { %(name => $_.<name>.uc, score => $_.<score> * 2) };
+    my @mapped = rows-from-iter($walker.start($map-query, @rows));
+    is @mapped[0]<name>, 'ALPHA', 'map transforms row values';
+
+    my @scores = @rows.map(*<score>);
+    my $reduce-query = @scores ⌿ { $^a + $^b };
+    is select($reduce-query, @scores)[0], 35, 'reduce aggregates scores';
+}
+
+subtest 'Tree walker executes selection and sort on descendant query' => {
+    plan 3;
+
+    my $walker = Qwiratry::Walker::Implementation::Tree.new;
+    my $base = $tree ⪪⪪ <item>;
+    ok $walker.supports(SortOperator.new(:subject($base), :key-function(-> $_ { $_<value> }))),
+        'Tree walker supports SortOperator';
+
+    my $filtered = $base σ -> $_ { $_<value> >= 15 };
+    my @values = gather {
+        my $iter = $walker.start($filtered, $tree);
+        while (my $n = $iter.pull-one) !~~ IterationEnd {
+            take $n<value>;
+        }
+    };
+    is @values.sort, (20, 30), 'selection filters descendant items by value';
+
+    my $sorted = $base ⇅ -> $_ { $_<value> };
+    @values = gather {
+        my $iter = $walker.start($sorted, $tree);
+        while (my $n = $iter.pull-one) !~~ IterationEnd {
+            take $n<value>;
+        }
+    };
+    is @values, (10, 20, 30), 'sort orders matched tree nodes';
+}
+
+done-testing;
