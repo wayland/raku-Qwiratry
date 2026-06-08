@@ -43,8 +43,8 @@ multi sub infix:<⪫>(Mu $left, Mu $right, *%adverbs) is export {
     nav-new(ParentOperator, $left, $right, |(%adverbs ?? :adverbs(%adverbs) !! |()))
 }
 
-multi sub infix:<⪪⪪>(Mu $left, Mu $right) is export {
-    nav-new(DescendantOperator, $left, $right)
+multi sub infix:<⪪⪪>(Mu $left, Mu $right, *%adverbs) is export {
+    nav-new(DescendantOperator, $left, $right, |(%adverbs ?? :adverbs(%adverbs) !! |()))
 }
 
 multi sub infix:<⪫⪫>(Mu $left, Mu $right) is export {

@@ -23,6 +23,7 @@ on first providing-domains() call (compile-time Variable identity != Scalar).
 =end pod
 
 our %PROVIDING-METADATA;
+our %PROVIDING-SCHEMA;
 our @PROVIDING-PENDING;  # queue of space-joined domain name strings
 
 sub normalize-providing-domains($providing --> List) {
@@ -35,7 +36,10 @@ sub normalize-providing-domains($providing --> List) {
 }
 
 sub providing-container($obj is raw) {
-    try { $obj.VAR } // $obj
+    return $obj if $obj ~~ Positional || $obj ~~ Associative;
+    my $container = try { $obj.VAR } // $obj;
+    return $container if $container ~~ Positional || $container ~~ Associative;
+    $obj
 }
 
 sub bind-providing-domains($obj is raw, @domains) {
@@ -83,6 +87,26 @@ sub providing-domains($obj is raw) is export {
     }
 
     Nil
+}
+
+=begin pod
+
+Bind structured table schema metadata to a container (tables, foreign keys).
+
+=end pod
+our sub bind-providing-schema(Mu $obj is raw, Associative $schema) is export {
+    my $key = providing-container($obj).WHICH;
+    %PROVIDING-SCHEMA{$key} = %$schema;
+}
+
+=begin pod
+
+Look up schema metadata attached via L<bind-providing-schema>.
+
+=end pod
+our sub providing-schema(Mu $obj is raw --> Mu) is export {
+    my $key = providing-container($obj).WHICH;
+    %PROVIDING-SCHEMA{$key} if %PROVIDING-SCHEMA{$key}:exists;
 }
 
 multi sub trait_mod:<is>(Variable $declarand, :$providing) is export {

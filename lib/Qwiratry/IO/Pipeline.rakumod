@@ -31,8 +31,7 @@ our sub execute(Mu $op, Mu :$origin) is export {
         }
         when IOOperator | NavigationOperator | SetOperator | MapReduceOperator {
             my $root = pipeline-root($op, $origin);
-            my @results = select($op, $root).list;
-            @results.elems == 1 ?? @results[0] !! @results
+            seq-to-pipeline-value(select($op, $root))
         }
         default {
             $op
@@ -85,5 +84,25 @@ sub parse-data(Str $format, Str $text) {
 sub render-data(Str $format, Mu $data, Associative $options) {
     my $module-name = ensure-render-format($format);
     my $loaded = (require ::($module-name));
-    $loaded.WHO{'&render'}($data, |%($options // %()))
+    $loaded.WHO{'&render'}(pipeline-render-payload($data), |%($options // %()))
+}
+
+sub pipeline-render-payload(Mu $data --> Mu) {
+    return $data.list if $data ~~ Seq;
+    $data
+}
+
+sub seq-to-pipeline-value(Seq $seq --> Mu) {
+    my $iter = $seq.iterator;
+    my $first = $iter.pull-one;
+    return () if $first ~~ IterationEnd;
+    my $second = $iter.pull-one;
+    return $first if $second ~~ IterationEnd;
+    gather {
+        take $first;
+        take $second;
+        while (my $value = $iter.pull-one) !~~ IterationEnd {
+            take $value;
+        }
+    }.List
 }

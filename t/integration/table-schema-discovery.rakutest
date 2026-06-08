@@ -1,0 +1,58 @@
+#!/usr/bin/env raku
+#| Foreign-key navigation via schema discovery (no manual Catalog)
+use Test;
+use lib 'lib';
+
+use Qwiratry::Walker::Providing;
+use Qwiratry::Table::Schema;
+use Qwiratry::Query::Slang;
+use Qwiratry::Query::Match;
+
+my @orders = [
+    %(order_id => 1, customer_id => 10, total => 100),
+    %(order_id => 2, customer_id => 20, total => 50),
+];
+
+my @customers = [
+    %(customer_id => 10, name => 'Alice'),
+    %(customer_id => 20, name => 'Bob'),
+];
+
+plan 3;
+
+subtest 'Multi-table root infers foreign keys' => {
+    plan 2;
+
+    my %database = %(orders => @orders, customers => @customers);
+    my $order = @orders[0];
+    my @related = select($order ⪪ <customer_id>, %database).List;
+
+    is @related.elems, 1, 'inferred FK navigation returns one customer';
+    is @related[0]<name>, 'Alice', 'inferred FK resolves correct row';
+}
+
+subtest 'Providing schema metadata enables FK navigation' => {
+    plan 2;
+
+    my @orders-only = @orders.clone;
+    attach-schema(@orders-only, %(
+        table-name => 'orders',
+        tables => %(orders => @orders-only, customers => @customers),
+    ));
+
+    my $order = @orders-only[0];
+    my @related = select($order ⪪ <customer_id>, @orders-only).List;
+    is @related.elems, 1, 'providing schema enables FK follow';
+    is @related[0]<name>, 'Alice', 'customer resolved via attached schema';
+}
+
+subtest 'Parent :reference works with discovered catalog' => {
+    plan 1;
+
+    my %database = %(orders => @orders, customers => @customers);
+    my $customer = @customers[0];
+    my @referencing = select($customer ⪫ <*> :reference, %database).List;
+    is @referencing.elems, 1, 'reverse FK lookup via inferred schema';
+}
+
+done-testing;

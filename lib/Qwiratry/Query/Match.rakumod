@@ -21,6 +21,9 @@ use Qwiratry::Operator::Set;
 use Qwiratry::Operator::MapReduce;
 use Qwiratry::Operator::IO;
 use Qwiratry::Query::Relational;
+use Qwiratry::Query::TableNav;
+use Qwiratry::Query::Lazy;
+use Qwiratry::Table;
 
 =begin pod
 
@@ -96,9 +99,7 @@ Return a lazy sequence of nodes matching C<$query> from C<$origin>.
 
 =end pod
 our sub select(Mu $query, Mu $origin --> Seq) is export {
-    gather {
-        take $_ for select-list($query, $origin);
-    }
+    select-seq($query, $origin);
 }
 
 =begin pod
@@ -116,6 +117,144 @@ our sub node-matches(Mu $query, Mu $node, Mu :$origin --> Bool) is export {
 
 sub select-list(Mu $query, Mu $origin --> List) {
     return () unless $query.defined;
+    select-seq($query, $origin).list;
+}
+
+sub select-seq(Mu $query, Mu $origin --> Seq) {
+    return ().Seq unless $query.defined;
+
+    given $query {
+        when UnionOperator {
+            return lazy-union(
+                relation-source($query.left, $origin),
+                relation-source($query.right, $origin),
+            );
+        }
+        when IntersectionOperator {
+            return lazy-intersection(
+                relation-source($query.left, $origin),
+                relation-source($query.right, $origin),
+            );
+        }
+        when SetDifferenceOperator {
+            return lazy-set-difference(
+                relation-source($query.left, $origin),
+                relation-source($query.right, $origin),
+            );
+        }
+        when SymmetricDifferenceOperator {
+            return lazy-symmetric-difference(
+                relation-source($query.left, $origin),
+                relation-source($query.right, $origin),
+            );
+        }
+        when InnerJoinOperator {
+            my &cond = $query.condition.defined ?? $query.condition !! Nil;
+            return lazy-natural-join(
+                relation-source($query.left, $origin),
+                relation-source($query.right, $origin),
+                &cond,
+            );
+        }
+        when LeftOuterJoinOperator {
+            my &cond = $query.condition.defined ?? $query.condition !! Nil;
+            return lazy-left-outer-join(
+                relation-source($query.left, $origin),
+                relation-source($query.right, $origin),
+                &cond,
+            );
+        }
+        when RightOuterJoinOperator {
+            my &cond = $query.condition.defined ?? $query.condition !! Nil;
+            return lazy-right-outer-join(
+                relation-source($query.left, $origin),
+                relation-source($query.right, $origin),
+                &cond,
+            );
+        }
+        when FullOuterJoinOperator {
+            my &cond = $query.condition.defined ?? $query.condition !! Nil;
+            my $left = relation-source($query.left, $origin);
+            my $right = relation-source($query.right, $origin);
+            return lazy-union(
+                lazy-natural-join($left, $right, &cond),
+                lazy-left-antijoin($left, $right, &cond),
+                lazy-left-antijoin($right, $left, &cond),
+            );
+        }
+        when LeftSemijoinOperator {
+            my &cond = $query.condition.defined ?? $query.condition !! Nil;
+            return lazy-left-semijoin(
+                relation-source($query.left, $origin),
+                relation-source($query.right, $origin),
+                &cond,
+            );
+        }
+        when RightSemijoinOperator {
+            my &cond = $query.condition.defined ?? $query.condition !! Nil;
+            return lazy-left-semijoin(
+                relation-source($query.right, $origin),
+                relation-source($query.left, $origin),
+                &cond,
+            );
+        }
+        when LeftAntijoinOperator {
+            my &cond = $query.condition.defined ?? $query.condition !! Nil;
+            return lazy-left-antijoin(
+                relation-source($query.left, $origin),
+                relation-source($query.right, $origin),
+                &cond,
+            );
+        }
+        when RightAntijoinOperator {
+            my &cond = $query.condition.defined ?? $query.condition !! Nil;
+            return lazy-left-antijoin(
+                relation-source($query.right, $origin),
+                relation-source($query.left, $origin),
+                &cond,
+            );
+        }
+        when CrossJoinOperator {
+            return lazy-cross-join(
+                relation-source($query.left, $origin),
+                relation-source($query.right, $origin),
+            );
+        }
+        when ProjectionOperator {
+            return lazy-projection(
+                relation-source($query.relation, $origin),
+                $query.columns,
+            );
+        }
+        when RenameOperator {
+            return lazy-rename(
+                relation-source($query.relation, $origin),
+                $query.renames,
+            );
+        }
+        when SelectionOperator {
+            my $source = selection-relation-source($query, $origin);
+            my &pred = $query.predicate;
+            return lazy-filter($source, -> $base { selection-predicate-matches(&pred, $base) });
+        }
+        default {
+            return select-list-eager($query, $origin).Seq;
+        }
+    }
+}
+
+sub relation-source(Mu $operand, Mu $origin) {
+    if $operand ~~ NavigationOperator | SetOperator | MapReduceOperator | IOOperator | RootOperator {
+        return select-seq($operand, $origin);
+    }
+    if $operand ~~ Iterator | Positional {
+        return $operand;
+    }
+    select-seq($operand, $origin);
+}
+
+sub select-list-eager(Mu $query, Mu $origin --> List) {
+    return () unless $query.defined;
 
     given $query {
         when RootOperator {
@@ -124,20 +263,32 @@ sub select-list(Mu $query, Mu $origin --> List) {
         }
         when ChildOperator {
             my @bases = resolve-bases($query, $origin);
+            my $catalog = table-catalog($origin);
             my @results;
             for @bases -> $base {
-                for tree-children($base) -> $child {
-                    @results.push($child) if selector-matches($query.selector, $child);
+                if $catalog.defined {
+                    @results.append(table-child-results($base, $query, $catalog));
+                }
+                else {
+                    for tree-children($base) -> $child {
+                        @results.push($child) if selector-matches($query.selector, $child);
+                    }
                 }
             }
             return @results;
         }
         when DescendantOperator {
             my @bases = resolve-bases($query, $origin);
+            my $catalog = table-catalog($origin);
             my @results;
             for @bases -> $base {
-                for tree-descendants($base) -> $desc {
-                    @results.push($desc) if selector-matches($query.selector, $desc);
+                if $catalog.defined {
+                    @results.append(table-descendant-results($base, $query, $catalog));
+                }
+                else {
+                    for tree-descendants($base) -> $desc {
+                        @results.push($desc) if selector-matches($query.selector, $desc);
+                    }
                 }
             }
             return @results;
@@ -153,20 +304,32 @@ sub select-list(Mu $query, Mu $origin --> List) {
         }
         when ParentOperator {
             my @bases = resolve-bases($query, $origin);
+            my $catalog = table-catalog($origin);
             my @results;
             for @bases -> $base {
-                my $parent = tree-parent($base, :$origin);
-                @results.push($parent) if $parent.defined
-                    && selector-matches($query.selector, $parent);
+                if $catalog.defined {
+                    @results.append(table-parent-results($base, $query, $catalog));
+                }
+                else {
+                    my $parent = tree-parent($base, :$origin);
+                    @results.push($parent) if $parent.defined
+                        && selector-matches($query.selector, $parent);
+                }
             }
             return @results;
         }
         when AncestorOperator {
             my @bases = resolve-bases($query, $origin);
+            my $catalog = table-catalog($origin);
             my @results;
             for @bases -> $base {
-                for tree-ancestors($base, :$origin) -> $anc {
-                    @results.push($anc) if selector-matches($query.selector, $anc);
+                if $catalog.defined {
+                    @results.append(table-parent-results($base, $query, $catalog));
+                }
+                else {
+                    for tree-ancestors($base, :$origin) -> $anc {
+                        @results.push($anc) if selector-matches($query.selector, $anc);
+                    }
                 }
             }
             return @results;
@@ -174,8 +337,13 @@ sub select-list(Mu $query, Mu $origin --> List) {
         when FollowingSiblingOperator | PrecedingSiblingOperator
                 | FollowingOperator | PrecedingOperator {
             my @bases = resolve-bases($query, $origin);
+            my $catalog = table-catalog($origin);
             my @results;
             for @bases -> $base {
+                if $catalog.defined && table-row-base($base) {
+                    @results.append(table-sibling-results($base, $query, $catalog));
+                    next;
+                }
                 my @siblings = sibling-context($base, :$origin)<all>;
                 my $index = sibling-index(@siblings, $base);
                 next unless $index.defined;
@@ -318,11 +486,17 @@ sub select-list(Mu $query, Mu $origin --> List) {
             elsif $query.subject ~~ IOOperator {
                 @bases = $origin ~~ Positional ?? $origin.list !! ($origin,);
             }
+            elsif $query.subject ~~ Qwiratry::Table::Catalog {
+                @bases = $query.subject.active-rows;
+            }
             elsif $query.subject ~~ Positional {
                 @bases = $query.subject.list;
             }
             else {
                 @bases = ($query.subject,);
+            }
+            if !@bases && $origin ~~ Qwiratry::Table::Catalog {
+                @bases = $origin.active-rows;
             }
             my &pred = $query.predicate;
             return @bases.grep(-> $base { selection-predicate-matches(&pred, $base) }).List;
@@ -561,6 +735,9 @@ sub mapreduce-items(Mu $query, Mu $origin --> List) {
         }
         return ($query.subject,);
     }
+    if $origin ~~ Qwiratry::Table::Catalog {
+        return $origin.active-rows;
+    }
     if $origin ~~ Positional {
         return $origin.list;
     }
@@ -590,6 +767,34 @@ sub reduce-with(&op, Mu $acc, Mu $item --> Mu) {
             with $acc { with $item { op() } }
         }
     } orelse $acc
+}
+
+sub selection-relation-source(Mu $query, Mu $origin) {
+    if $query.subject ~~ NavigationOperator | RootOperator {
+        return select-seq($query.subject, $origin);
+    }
+    if $query.subject ~~ IOOperator {
+        return $origin ~~ Positional ?? $origin !! ($origin,);
+    }
+    if $query.subject ~~ Qwiratry::Table::Catalog {
+        return $query.subject.active-rows;
+    }
+    if $query.subject ~~ Iterator {
+        return $query.subject;
+    }
+    if $query.subject ~~ Positional {
+        return $query.subject;
+    }
+    if $query.subject.defined {
+        return ($query.subject,);
+    }
+    if $origin ~~ Qwiratry::Table::Catalog {
+        return $origin.active-rows;
+    }
+    if $origin ~~ Positional {
+        return $origin;
+    }
+    ($origin,);
 }
 
 sub select-relation(Mu $operand, Mu $origin --> List) {

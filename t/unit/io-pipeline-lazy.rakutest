@@ -1,0 +1,40 @@
+#!/usr/bin/env raku
+#| IO pipeline uses lazy select-seq instead of materializing via .list
+use Test;
+use lib 'lib';
+
+use Qwiratry::IO::Pipeline;
+use Qwiratry::Query::Slang;
+use Qwiratry::Query::Match;
+use Qwiratry::Operator::MapReduce;
+
+plan 2;
+
+subtest 'Selection queries evaluate lazily via select-seq' => {
+    plan 1;
+
+    my @rows = [%(score => 1), %(score => 5), %(score => 3)];
+    my $query = SelectionOperator.new(
+        :subject(@rows),
+        :predicate(-> $_ { $_<score> >= 3 }),
+    );
+
+    my $seq = select($query, @rows);
+    ok $seq ~~ Seq, 'selection returns a lazy Seq';
+}
+
+subtest 'Pipeline execute preserves filtered results' => {
+    plan 1;
+
+    my @rows = [%(score => 1), %(score => 5), %(score => 3)];
+    my $query = SelectionOperator.new(
+        :subject(@rows),
+        :predicate(-> $_ { $_<score> >= 3 }),
+    );
+
+    my $result = execute($query, :origin(@rows));
+    my @scores = ($result ~~ Positional ?? $result.list !! ($result,)).map(*<score>);
+    is @scores.sort, (3, 5), 'pipeline execute returns filtered rows';
+}
+
+done-testing;

@@ -18,3 +18,4 @@ __pycache__
 .kittify/active-mission
 .kittify/templates/
 .fez
+t/tmp/

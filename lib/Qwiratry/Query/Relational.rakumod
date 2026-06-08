@@ -65,7 +65,7 @@ our sub natural-join(@left, @right, &condition?) is export {
     @result
 }
 
-sub join-on-common-keys(Associative $l, Associative $r --> Bool) {
+our sub join-on-common-keys(Associative $l, Associative $r --> Bool) is export {
     my @keys = common-keys($l, $r);
     return False unless @keys;
     for @keys -> $key {
@@ -116,7 +116,10 @@ our sub full-outer-join(@left, @right, &condition?) is export {
     my @inner = natural-join(@left, @right, &condition);
     my @left-only = left-antijoin(@left, @right, &condition);
     my @right-only = left-antijoin(@right, @left, &condition);
-    |(@inner, |@left-only, |@right-only)
+    my @result = @inner;
+    @result.append(@left-only);
+    @result.append(@right-only);
+    @result
 }
 
 our sub left-semijoin(@left, @right, &condition?) is export {

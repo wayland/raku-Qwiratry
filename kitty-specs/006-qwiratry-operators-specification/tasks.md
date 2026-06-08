@@ -95,26 +95,30 @@
 **Prompt**: `/tasks/planned/WP03-navigation-operators.md`
 
 ### Included Subtasks
-- [ ] T016 Create `lib/Qwiratry/Operator/Navigation.rakumod` module
-- [ ] T017 [P] Implement `ChildOperator` class (`⪪`) with selector and adverbs support
-- [ ] T018 [P] Implement `ParentOperator` class (`⪫`) with `:reference` adverb support
-- [ ] T019 [P] Implement `DescendantOperator` class (`⪪⪪`) with selector support
-- [ ] T020 [P] Implement `AncestorOperator` class (`⪫⪫`) with selector support
-- [ ] T021 [P] Implement `FollowingSiblingOperator` class (`⪨`)
-- [ ] T022 [P] Implement `PrecedingSiblingOperator` class (`⪩`)
-- [ ] T023 [P] Implement `FollowingOperator` class (`⪨⪨`)
-- [ ] T024 [P] Implement `PrecedingOperator` class (`⪩⪩`)
-- [ ] T025 [P] Implement `RootOperator` class (`⇤`) as unary postfix operator
-- [ ] T026 [P] Implement `AttributeOperator` class (`⥷`) for key-value access
-- [ ] T027 Write unit tests for each navigation operator in `t/operator/navigation.rakutest`
-- [ ] T028 Write integration tests for walker-navigation interaction in `t/integration/walker-navigation.rakutest`
-- [ ] T029 Test operator composition (chaining) in `t/operator/composition.rakutest`
+- [x] T016 Create `lib/Qwiratry/Operator/Navigation.rakumod` module
+- [x] T017 [P] Implement `ChildOperator` class (`⪪`) with selector and adverbs support
+- [x] T018 [P] Implement `ParentOperator` class (`⪫`) with `:reference` adverb support
+- [x] T019 [P] Implement `DescendantOperator` class (`⪪⪪`) with selector and `:recursive` adverb support
+- [x] T020 [P] Implement `AncestorOperator` class (`⪫⪫`) with selector support
+- [x] T021 [P] Implement `FollowingSiblingOperator` class (`⪨`)
+- [x] T022 [P] Implement `PrecedingSiblingOperator` class (`⪩`)
+- [x] T023 [P] Implement `FollowingOperator` class (`⪨⪨`)
+- [x] T024 [P] Implement `PrecedingOperator` class (`⪩⪩`)
+- [x] T025 [P] Implement `RootOperator` class (`⇤`) as unary postfix operator
+- [x] T026 [P] Implement `AttributeOperator` class (`⥷`) for key-value access
+- [x] T027 Write unit tests for each navigation operator in `t/operator/navigation.rakutest`
+- [x] T028 Write integration tests for walker-navigation interaction in `t/integration/walker-navigation.rakutest`
+- [x] T029 Test operator composition (chaining) in `t/operator/composition.rakutest`
 
 ### Implementation Notes
 - All operators extend RakuAST::Node and implement NavigationOperator role
 - Operators are immutable with read-only attributes
 - RootOperator is unary postfix (different from binary operators)
 - Tests verify AST construction, immutability, capability declarations
+- Table-domain execution via `Qwiratry::Query::TableNav` and `Qwiratry::Table::Schema`:
+  FK navigation (`t/integration/table-fk-navigation.rakutest`), schema discovery
+  (`t/integration/table-schema-discovery.rakutest`), ordered-row siblings
+  (`t/integration/table-ordered-navigation.rakutest`)
 
 ### Parallel Opportunities
 - Individual operator classes (T017-T026) can be implemented in parallel
@@ -136,14 +140,14 @@
 **Prompt**: `/tasks/planned/WP04-map-reduce-operators.md`
 
 ### Included Subtasks
-- [ ] T030 Create `lib/Qwiratry/Operator/MapReduce.rakumod` module
-- [ ] T031 [P] Implement `SelectionOperator` class (`σ`) with predicate block support
-- [ ] T032 [P] Implement `SortOperator` class (`⇅`) with key function support
-- [ ] T033 [P] Implement `MapOperator` class (`».`) using Raku hyper operator semantics
-- [ ] T034 [P] Implement `ReduceOperator` class (`⌿`) with operation block support
-- [ ] T035 Write unit tests for each map-reduce operator in `t/operator/mapreduce.rakutest`
-- [ ] T036 Write integration tests for walker-mapreduce interaction in `t/integration/walker-mapreduce.rakutest`
-- [ ] T037 Test operator composition with navigation operators in `t/operator/composition.rakutest`
+- [x] T030 Create `lib/Qwiratry/Operator/MapReduce.rakumod` module
+- [x] T031 [P] Implement `SelectionOperator` class (`σ`) with predicate block support
+- [x] T032 [P] Implement `SortOperator` class (`⇅`) with key function support
+- [x] T033 [P] Implement `MapOperator` class (`».`) using Raku hyper operator semantics
+- [x] T034 [P] Implement `ReduceOperator` class (`⌿`) with operation block support
+- [x] T035 Write unit tests for each map-reduce operator in `t/operator/mapreduce.rakutest`
+- [x] T036 Write integration tests for walker-mapreduce interaction in `t/integration/walker-mapreduce.rakutest`
+- [x] T037 Test operator composition with navigation operators in `t/operator/composition.rakutest`
 
 ### Implementation Notes
 - SelectionOperator accepts Code predicate block
@@ -171,19 +175,19 @@
 **Prompt**: `/tasks/planned/WP05-set-operators.md`
 
 ### Included Subtasks
-- [ ] T038 Create `lib/Qwiratry/Operator/Set.rakumod` module
-- [ ] T039 [P] Implement membership operators: `ElementOfOperator` (`∈`), `ContainsOperator` (`∋`)
-- [ ] T040 [P] Implement subset operators: `SubsetOperator` (`⊂`), `SubsetOrEqualOperator` (`⊆`)
-- [ ] T041 [P] Implement identity operator: `IdentityOperator` (`≡`)
-- [ ] T042 [P] Implement basic set operations: `UnionOperator` (`∪`), `IntersectionOperator` (`∩`), `SymmetricDifferenceOperator` (`⊖`), `SetDifferenceOperator` (`∖`)
-- [ ] T043 [P] Implement relational operators: `ProjectionOperator` (`Π`), `RenameOperator` (`ρ`)
-- [ ] T044 [P] Implement join operators: `InnerJoinOperator` (`⨝`), `LeftOuterJoinOperator` (`⟕`), `RightOuterJoinOperator` (`⟖`), `FullOuterJoinOperator` (`⟗`)
-- [ ] T045 [P] Implement semijoin operators: `LeftSemijoinOperator` (`⋉`), `RightSemijoinOperator` (`⋊`)
-- [ ] T046 [P] Implement antijoin operators: `LeftAntijoinOperator` (`▷`), `RightAntijoinOperator` (`◁`)
-- [ ] T047 [P] Implement `DivisionOperator` (`÷`) and `CrossJoinOperator` (`×` U+00D7)
-- [ ] T048 Write unit tests for set operators in `t/operator/set.rakutest`
-- [ ] T049 Write integration tests for walker-set interaction in `t/integration/walker-set.rakutest`
-- [ ] T050 Test operator composition with navigation and map-reduce in `t/operator/composition.rakutest`
+- [x] T038 Create `lib/Qwiratry/Operator/Set.rakumod` module
+- [x] T039 [P] Implement membership operators: `ElementOfOperator` (`∈`), `ContainsOperator` (`∋`)
+- [x] T040 [P] Implement subset operators: `SubsetOperator` (`⊂`), `SubsetOrEqualOperator` (`⊆`)
+- [x] T041 [P] Implement identity operator: `IdentityOperator` (`≡`)
+- [x] T042 [P] Implement basic set operations: `UnionOperator` (`∪`), `IntersectionOperator` (`∩`), `SymmetricDifferenceOperator` (`⊖`), `SetDifferenceOperator` (`∖`)
+- [x] T043 [P] Implement relational operators: `ProjectionOperator` (`Π`), `RenameOperator` (`ρ`)
+- [x] T044 [P] Implement join operators: `InnerJoinOperator` (`⨝`), `LeftOuterJoinOperator` (`⟕`), `RightOuterJoinOperator` (`⟖`), `FullOuterJoinOperator` (`⟗`)
+- [x] T045 [P] Implement semijoin operators: `LeftSemijoinOperator` (`⋉`), `RightSemijoinOperator` (`⋊`)
+- [x] T046 [P] Implement antijoin operators: `LeftAntijoinOperator` (`▷`), `RightAntijoinOperator` (`◁`)
+- [x] T047 [P] Implement `DivisionOperator` (`÷`) and `CrossJoinOperator` (`×` U+00D7)
+- [x] T048 Write unit tests for set operators in `t/operator/set.rakutest`
+- [x] T049 Write integration tests for walker-set interaction in `t/integration/walker-set.rakutest`
+- [x] T050 Test operator composition with navigation and map-reduce in `t/operator/composition.rakutest`
 
 ### Implementation Notes
 - Set operators accept left and right operands (RakuAST::Node)
@@ -211,15 +215,15 @@
 **Prompt**: `/tasks/planned/WP06-io-operators.md`
 
 ### Included Subtasks
-- [ ] T051 Create `lib/Qwiratry/Operator/IO.rakumod` module
-- [ ] T052 [P] Implement `SourceOperator` class (`⮳`) with location support (file paths, URLs)
-- [ ] T053 [P] Implement `ParseOperator` class (`↱`, `⮣`) with format support
-- [ ] T054 [P] Implement `RenderOperator` class (`↴`, `⮧`) with format and options support
-- [ ] T055 [P] Implement `DestinationOperator` class (`⮷`) with location support
-- [ ] T056 Implement format module discovery (check for `Qwiratry::IO::Parse::*` and `Qwiratry::IO::Render::*`)
-- [ ] T057 Write unit tests for I/O operators in `t/operator/io.rakutest`
-- [ ] T058 Write integration tests for I/O pipeline in `t/integration/io-pipeline.rakutest`
-- [ ] T059 Test error handling (missing files, invalid formats, inaccessible URLs) in `t/operator/io-errors.rakutest`
+- [x] T051 Create `lib/Qwiratry/Operator/IO.rakumod` module
+- [ ] T052 [P] Implement `SourceOperator` class (`⮳`) with location support (file paths, URLs) — file paths done; HTTP/HTTPS fetch not implemented
+- [x] T053 [P] Implement `ParseOperator` class (`↱`, `⮣`) with format support
+- [x] T054 [P] Implement `RenderOperator` class (`↴`, `⮧`) with format and options support
+- [ ] T055 [P] Implement `DestinationOperator` class (`⮷`) with location support — local files done; HTTP endpoints not implemented
+- [x] T056 Implement format module discovery (check for `Qwiratry::IO::Parse::*` and `Qwiratry::IO::Render::*`)
+- [x] T057 Write unit tests for I/O operators in `t/operator/io.rakutest`
+- [x] T058 Write integration tests for I/O pipeline in `t/integration/io-pipeline.rakutest`
+- [x] T059 Test error handling (missing files, invalid formats, inaccessible URLs) in `t/operator/io-errors.rakutest`
 
 ### Implementation Notes
 - SourceOperator validates location format (file path vs URL)
@@ -227,6 +231,8 @@
 - RenderOperator supports format options (e.g., `:pretty`)
 - DestinationOperator validates write permissions
 - Format modules are discovered dynamically (not implemented in this feature)
+- `Qwiratry::IO::Pipeline` uses lazy `select`/`select-seq`; render materializes at boundary
+- Lazy selection covered in `t/unit/io-pipeline-lazy.rakutest`
 
 ### Parallel Opportunities
 - Individual operator classes (T052-T055) can be implemented in parallel
@@ -249,14 +255,14 @@
 **Prompt**: `/tasks/planned/WP07-integration-tests-and-polish.md`
 
 ### Included Subtasks
-- [ ] T060 Write end-to-end integration tests in `t/integration/end-to-end.rakutest`
-- [ ] T061 Test operator precedence in complex expressions in `t/operator/precedence.rakutest`
-- [ ] T062 Test error handling across all stages (compile-time, planning-time, runtime) in `t/integration/error-handling.rakutest`
-- [ ] T063 Test edge cases (null values, empty collections, circular references) in `t/integration/edge-cases.rakutest`
-- [ ] T064 Validate quickstart.md examples compile and run
-- [ ] T065 Update operator documentation with usage examples
-- [ ] T066 Code cleanup and refactoring (DRY, consistency checks)
-- [ ] T067 Performance validation (AST construction time, memory usage)
+- [x] T060 Write end-to-end integration tests in `t/integration/end-to-end.rakutest`
+- [x] T061 Test operator precedence in complex expressions in `t/operator/precedence.rakutest`
+- [x] T062 Test error handling across all stages (compile-time, planning-time, runtime) in `t/integration/error-handling.rakutest`
+- [x] T063 Test edge cases (null values, empty collections, circular references) in `t/integration/edge-cases.rakutest`
+- [x] T064 Validate quickstart.md examples compile and run
+- [ ] T065 Update operator documentation with usage examples — partial; table FK/lazy/ordered-nav docs outstanding
+- [ ] T066 Code cleanup and refactoring (DRY, consistency checks) — ongoing
+- [x] T067 Performance validation (AST construction time, memory usage) — baseline in `t/performance/operator-performance.rakutest`
 
 ### Implementation Notes
 - End-to-end tests combine all operator categories

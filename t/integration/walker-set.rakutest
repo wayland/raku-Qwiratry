@@ -9,12 +9,13 @@ use Qwiratry::Query::Match;
 use Qwiratry::Operator::MapReduce;
 use Qwiratry::Operator::Set;
 
-plan 3;
+plan 10;
 
 my @orders = [
     %(order_id => 1, customer_id => 10, total => 100),
     %(order_id => 2, customer_id => 20, total => 50),
     %(order_id => 3, customer_id => 10, total => 75),
+    %(order_id => 4, customer_id => 99, total => 30),
 ];
 
 my @customers = [
@@ -31,39 +32,123 @@ sub rows-from-iter($iter) {
     }
 }
 
+sub walker-rows($query, $root = @orders) {
+    my $walker = Qwiratry::Walker::Implementation::Table.new;
+    rows-from-iter($walker.start($query, $root));
+}
+
 subtest 'Table walker union combines row selectors' => {
     plan 1;
 
-    my $walker = Qwiratry::Walker::Implementation::Table.new;
     my $query = UnionOperator.new(
         :left(SelectionOperator.new(:subject(@orders), :predicate(-> $_ { $_<customer_id> == 10 }))),
         :right(SelectionOperator.new(:subject(@orders), :predicate(-> $_ { $_<total> > 90 }))),
     );
-    my @ids = rows-from-iter($walker.start($query, @orders)).map(*<order_id>).sort;
+    my @ids = walker-rows($query).map(*<order_id>).sort;
     is @ids, (1, 3), 'union combines customer and total filters';
 }
 
 subtest 'Table walker intersection keeps shared rows' => {
     plan 1;
 
-    my $walker = Qwiratry::Walker::Implementation::Table.new;
     my $query = IntersectionOperator.new(
         :left(SelectionOperator.new(:subject(@orders), :predicate(-> $_ { $_<customer_id> == 10 }))),
         :right(SelectionOperator.new(:subject(@orders), :predicate(-> $_ { $_<total> == 75 }))),
     );
-    my @ids = rows-from-iter($walker.start($query, @orders)).map(*<order_id>);
+    my @ids = walker-rows($query).map(*<order_id>);
     is @ids, (3,), 'intersection keeps rows matching both predicates';
 }
 
 subtest 'Table walker inner join merges orders with customers' => {
     plan 2;
 
-    my $walker = Qwiratry::Walker::Implementation::Table.new;
     my $query = InnerJoinOperator.new(:left(@orders), :right(@customers));
-    my @joined = rows-from-iter($walker.start($query, @orders));
+    my @joined = walker-rows($query);
 
     is @joined.elems, 3, 'inner join yields one row per matching order';
     ok @joined.grep({ .<name> eq 'Alice' && .<order_id> == 1 }), 'joined row includes customer name';
+}
+
+subtest 'Table walker left outer join preserves unmatched left rows' => {
+    plan 2;
+
+    my $query = LeftOuterJoinOperator.new(:left(@customers), :right(@orders));
+    my @joined = walker-rows($query);
+
+    is @joined.elems, 4, 'left outer includes customer without orders';
+    ok @joined.grep({ .<name> eq 'Carol' && !.<order_id>:exists }),
+        'unmatched customer appears without order columns';
+}
+
+subtest 'Table walker right outer join preserves unmatched right rows' => {
+    plan 2;
+
+    my $query = RightOuterJoinOperator.new(:left(@customers), :right(@orders));
+    my @joined = walker-rows($query);
+
+    is @joined.elems, 4, 'right outer includes order without customer match';
+    ok @joined.grep({ .<order_id> == 4 && !.<name>:exists }),
+        'orphan order appears without customer columns';
+}
+
+subtest 'Table walker full outer join includes both unmatched sides' => {
+    plan 2;
+
+    my $query = FullOuterJoinOperator.new(:left(@customers), :right(@orders));
+    my @joined = walker-rows($query);
+
+    ok @joined.grep({ .<name> eq 'Carol' }), 'full outer keeps unmatched customer';
+    ok @joined.grep({ .<order_id>:exists && .<order_id> == 4 }), 'full outer keeps unmatched order';
+}
+
+subtest 'Table walker semijoin returns matching left rows once' => {
+    plan 2;
+
+    my $query = LeftSemijoinOperator.new(:left(@orders), :right(@customers));
+    my @rows = walker-rows($query);
+
+    is @rows.elems, 3, 'semijoin keeps matched orders only';
+    ok !@rows.grep({ .<order_id> == 4 }), 'order without customer match is excluded';
+}
+
+subtest 'Table walker antijoin returns non-matching left rows' => {
+    plan 2;
+
+    my $query = LeftAntijoinOperator.new(:left(@orders), :right(@customers));
+    my @rows = walker-rows($query);
+
+    is @rows.elems, 1, 'antijoin yields one unmatched order';
+    is @rows[0]<order_id>, 4, 'orphan order is returned';
+}
+
+subtest 'Table walker cross join produces cartesian product' => {
+    plan 2;
+
+    my $query = CrossJoinOperator.new(:left(@orders), :right(@customers));
+    my @rows = walker-rows($query);
+
+    is @rows.elems, @orders.elems * @customers.elems, 'cross join row count is product';
+    ok @rows.grep({ .<order_id> == 1 && .<name> eq 'Alice' }),
+        'cross join merges unrelated columns';
+}
+
+subtest 'Table walker division executes through table walker' => {
+    plan 1;
+
+    my @suppliers = [
+        %(supplier_id => 1, part => 'A', city => 'Paris'),
+        %(supplier_id => 1, part => 'B', city => 'Paris'),
+        %(supplier_id => 2, part => 'A', city => 'London'),
+    ];
+    my @parts = [
+        %(part => 'A'),
+        %(part => 'B'),
+    ];
+
+    my $query = DivisionOperator.new(:left(@suppliers), :right(@parts));
+    my @rows = walker-rows($query, @suppliers);
+
+    ok @rows.elems > 0, 'division operator returns rows through table walker';
 }
 
 done-testing;

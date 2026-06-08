@@ -15,6 +15,7 @@ use Qwiratry::Operator::Capability;
 use Qwiratry::Operator::Set;
 use Qwiratry::Operator::MapReduce;
 use Qwiratry::Query::Match;
+use Qwiratry::Table;
 use Qwiratry::Strategy::Traversal;
 use Qwiratry::Strategy::ControlSignal;
 use X::Qwiratry;
@@ -57,7 +58,9 @@ unit class Qwiratry::Walker::Implementation::Table does Qwiratry::Walker {
                 return IterationEnd;
             }
 
-            my @rows = $!root.list;
+            my @rows = $!root ~~ Qwiratry::Table::Catalog
+                ?? $!root.active-rows
+                !! $!root.list;
             while $!index < @rows.elems {
                 my $row = @rows[$!index++];
                 my %state;
