@@ -281,13 +281,13 @@ subtasks:
 
 ## Definition of Done Checklist
 
-- [ ] Walker role implemented with all methods
-- [ ] Required methods (plan, iterator, start) implemented
-- [ ] Optional hooks (PRE-PASS, POST-PASS) implemented with defaults
-- [ ] Optional introspection (capabilities, supports) implemented with defaults
-- [ ] Exception throwing verified
-- [ ] Unit tests written and passing
-- [ ] All method behaviors verified
+- [x] Walker role implemented with all methods
+- [x] Required methods (plan, iterator, start) implemented
+- [x] Optional hooks (PRE-PASS, POST-PASS) implemented with defaults
+- [x] Optional introspection (capabilities, supports) implemented with defaults
+- [x] Exception throwing verified
+- [x] Unit tests written and passing
+- [x] All method behaviors verified
 
 ## Review Guidance
 

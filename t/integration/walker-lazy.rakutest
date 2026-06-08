@@ -5,13 +5,14 @@ use lib 'lib';
 
 use Qwiratry::Walker;
 use Qwiratry::Walker::Implementation::Table;
+use Qwiratry::Walker::Implementation::Tree;
 use Qwiratry::Strategy;
 use Qwiratry::Operator::Navigation;
 use Qwiratry::Operator::MapReduce;
 use Qwiratry::Query::Slang;
 use Qwiratry::Strategy::Traversal;
 
-plan 3;
+plan 6;
 
 class CountingRows does Positional {
     has @.rows;
@@ -75,6 +76,61 @@ subtest 'Strategy table scan uses indexed access without list materialization' =
     my $first = $iter.pull-one;
     ok $first.defined && $first<id> == 2, 'lazy scan finds first matching row';
     ok $source.at-pos-calls <= 3, 'rows accessed via AT-POS, not full list copy per pull';
+}
+
+subtest 'Tree walker declares incremental lazy capabilities' => {
+    plan 3;
+
+    my $walker = Qwiratry::Walker::Implementation::Tree.new;
+    my %caps = $walker.capabilities;
+
+    ok %caps<lazy><enabled>, 'tree walker enables lazy evaluation';
+    is %caps<lazy><type>, 'incremental', 'lazy type is incremental';
+
+    my $tree = [%(name => 'root')];
+    my $plan = $walker.plan(RootOperator.new, $tree);
+    ok $plan.capabilities<lazy><enabled>, 'tree plan inherits lazy capability';
+}
+
+subtest 'Tree strategy traversal yields incrementally' => {
+    plan 2;
+
+    my class VisitCounter does Strategy {
+        has Int $.before-calls is rw = 0;
+        method before($element, $ctx) {
+            $.before-calls++;
+            Nil
+        }
+    }
+
+    my $tree = [
+        %(name => 'root', children => [
+            %(name => 'a'),
+            %(name => 'b'),
+            %(name => 'c'),
+        ]),
+    ];
+    my $strategy = VisitCounter.new;
+    my $walker = Qwiratry::Walker::Implementation::Tree.new(:strategy($strategy));
+    my $query = DescendantOperator.new(:subject($tree), :selector('*'));
+    my $iter = $walker.plan($query, $tree).iterator;
+
+    my $first = $iter.pull-one;
+    ok $first.defined, 'first tree match yielded before traversal completes';
+    ok $strategy.before-calls < 4, 'not every node visited before first yield';
+}
+
+subtest 'next() works through Walker plan iterator' => {
+    plan 3;
+
+    my $walker = Qwiratry::Walker::Implementation::Table.new;
+    my @rows = [%(id => 10), %(id => 20)];
+    my $query = @rows σ -> $_ { True };
+    my $iter = $walker.plan($query, @rows).iterator;
+
+    is $iter.next<id>, 10, 'next() returns first row from plan iterator';
+    is $iter.next<id>, 20, 'next() returns second row from plan iterator';
+    is $iter.next(), Nil, 'next() returns Nil when plan iterator exhausted';
 }
 
 done-testing;

@@ -2,7 +2,7 @@
 
 **Feature Branch**: `002-walker-core-infrastructure`  
 **Created**: 2025-12-17  
-**Status**: Draft  
+**Status**: Complete  
 **Input**: User description: "Implement the core Walker infrastructure including the `Walker` role, `Walker::Plan` role, `Context` role, and `QueryIterator` role as specified in Specification.md sections 2.1.2, 3.2, 3.2.1-3.2.4, and 4. This includes all required methods (plan, iterator, start), optional hooks (PRE-PASS, POST-PASS), capability introspection methods, and the query execution flow that connects queries to incremental result streams. Query AST types use RakuAST::Node."
 
 ## User Scenarios & Testing *(mandatory)*

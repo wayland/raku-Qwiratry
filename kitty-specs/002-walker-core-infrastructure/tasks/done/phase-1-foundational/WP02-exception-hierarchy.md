@@ -120,12 +120,12 @@ subtasks:
 
 ## Definition of Done Checklist
 
-- [ ] X::Qwiratry::Walker base exception implemented
-- [ ] X::Qwiratry::UnknownQueryElement exception implemented
-- [ ] Unit tests written and passing
-- [ ] Exception message formatting verified
-- [ ] All attributes accessible and tested
-- [ ] Exceptions follow Raku conventions
+- [x] X::Qwiratry::Walker base exception implemented
+- [x] X::Qwiratry::UnknownQueryElement exception implemented
+- [x] Unit tests written and passing
+- [x] Exception message formatting verified
+- [x] All attributes accessible and tested
+- [x] Exceptions follow Raku conventions
 
 ## Review Guidance
 

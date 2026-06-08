@@ -140,11 +140,11 @@ subtasks:
 
 ## Definition of Done Checklist
 
-- [ ] QueryIterator role implemented (extends Iterator)
-- [ ] next() method contract defined
-- [ ] Context integration verified
-- [ ] Unit tests written and passing
-- [ ] Iterator contract compliance verified
+- [x] QueryIterator role implemented (extends Iterator)
+- [x] next() method contract defined
+- [x] Context integration verified
+- [x] Unit tests written and passing
+- [x] Iterator contract compliance verified
 
 ## Review Guidance
 

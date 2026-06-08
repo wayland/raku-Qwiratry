@@ -198,13 +198,13 @@ subtasks:
 
 ## Definition of Done Checklist
 
-- [ ] Walker::Plan role implemented with all methods
-- [ ] Required methods (iterator, query, describe) implemented
-- [ ] Optional methods (optimise, subplans, capabilities) implemented with defaults
-- [ ] Unit tests written and passing
-- [ ] Iterator independence verified
-- [ ] Query AST immutability verified
-- [ ] Optimise callback verified
+- [x] Walker::Plan role implemented with all methods
+- [x] Required methods (iterator, query, describe) implemented
+- [x] Optional methods (optimise, subplans, capabilities) implemented with defaults
+- [x] Unit tests written and passing
+- [x] Iterator independence verified
+- [x] Query AST immutability verified
+- [x] Optimise callback verified
 
 ## Review Guidance
 
