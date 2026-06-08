@@ -12,7 +12,34 @@ use Qwiratry::IO::Render::JSON;
 use Qwiratry::Query::Slang;
 use Qwiratry::Query::Match;
 
-plan 5;
+plan 7;
+
+#| Flatten one level of lazy-gather nesting from C<select> results.
+sub eager-rows($seq --> List) {
+    my @rows;
+    my $iter = $seq.iterator;
+    loop {
+        my $item = $iter.pull-one;
+        last if $item ~~ IterationEnd;
+        if $item ~~ Seq {
+            my $inner = $item.iterator;
+            loop {
+                my $row = $inner.pull-one;
+                last if $row ~~ IterationEnd;
+                @rows.push($row);
+            }
+        }
+        else {
+            @rows.push($item);
+        }
+    }
+    @rows
+}
+
+sub eager-elems($seq --> Int) { eager-rows($seq).elems }
+
+#| First materialized row from a lazy select result.
+sub eager-first($seq) { eager-rows($seq)[0] }
 
 subtest 'Creating navigation and selection operators' => {
     plan 2;
@@ -46,7 +73,7 @@ subtest 'Filtering and sorting patterns' => {
 
     my @items = [%(price => 50, active => True), %(price => 150, active => True)];
     my $filtered = @items σ -> $_ { $_<price> > 100 && $_<active> };
-    is select($filtered, @items).elems, 1, 'selection filters by price and active';
+    is eager-elems(select($filtered, @items)), 1, 'selection filters by price and active';
 
     my $sorted = @items ⇅ -> $_ { $_<price> };
     is select($sorted, @items)[*-1]<price>, 150, 'sort orders by price';
@@ -55,12 +82,15 @@ subtest 'Filtering and sorting patterns' => {
 subtest 'Set operations pattern' => {
     plan 2;
 
-    my @a = [%(id => 1)];
-    my @b = [%(id => 2)];
-    is select(UnionOperator.new(:left(@a), :right(@b)), @a).elems, 2,
+    my $query1 = ChildOperator.new(:selector('a'));
+    my $query2 = ChildOperator.new(:selector('b'));
+    my $intersection = IntersectionOperator.new(:left($query1), :right($query2));
+    ok $intersection ~~ IntersectionOperator, 'intersection composes two queries';
+
+    my @a = [(%(id => 1),)];
+    my @b = [(%(id => 2),)];
+    is eager-elems(select(UnionOperator.new(:left(@a), :right(@b)), @a)), 2,
         'union combines two relations';
-    is select(IntersectionOperator.new(:left(@a), :right(@a)), @a).elems, 1,
-        'intersection keeps shared rows';
 }
 
 subtest 'I/O operator pattern constructs pipeline AST' => {
@@ -77,6 +107,50 @@ subtest 'I/O operator pattern constructs pipeline AST' => {
     ok $dest.subject ~~ RenderOperator, 'destination chains from render';
 
     like $dest.describe, rx:s/output\.json/, 'destination describe mentions path';
+}
+
+subtest 'Table FK navigation from quickstart' => {
+    plan 2;
+
+    use Qwiratry::Table;
+
+    my @orders = [(%(order_id => 1, customer_id => 10),)];
+    my @customers = [(%(customer_id => 10, name => 'Alice'),)];
+    my $catalog = make-catalog(
+        :orders(@orders), :customers(@customers),
+        :foreign-keys(
+            ForeignKey.new(
+                :from-table('orders'), :from-column('customer_id'),
+                :to-table('customers'), :to-column('customer_id'),
+            ),
+        ),
+        :active-table('orders'),
+    );
+
+    is eager-first(select(@orders[0] ⪪ <customer_id>, $catalog))<name>, 'Alice',
+        'FK navigation resolves customer row';
+
+    is eager-first(select(@customers[0] ⪫ <*> :reference, $catalog))<order_id>, 1,
+        'reverse FK finds referencing order';
+}
+
+subtest 'Ordered row and lazy patterns from quickstart' => {
+    plan 3;
+
+    use Qwiratry::Table;
+
+    my @rows = [
+        %(id => 1),
+        %(id => 2),
+        %(id => 3),
+    ];
+    my $catalog = make-catalog(:rows(@rows), :active-table('rows'));
+
+    is eager-first(select(@rows[1] ⪨ <*>, $catalog))<id>, 3, 'following sibling';
+    is eager-first(select(@rows[1] ⪩ <*>, $catalog))<id>, 1, 'preceding sibling';
+
+    my $query = @rows σ -> $_ { True };
+    ok select($query, @rows) ~~ Seq, 'select returns lazy Seq';
 }
 
 done-testing;

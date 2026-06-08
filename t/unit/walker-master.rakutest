@@ -56,17 +56,15 @@ subtest 'Qwiratry::Walker::Master class structure' => {
 }
 
 subtest 'Discovery mechanism (T015)' => {
-    plan 3;
-    
+    plan 4;
+
     my $master = Qwiratry::Walker::Master.new;
     my @walkers = $master.discover-walkers();
-    
+
     ok @walkers ~~ Array, 'discover-walkers returns Array';
-    # Note: Discovery currently returns empty array (can be enhanced later)
-    # The important part is that the mechanism exists and can be called
-    ok True, 'Discovery mechanism works (returns empty array for MVP)';
-    
-    # Test that discovery can be called multiple times
+    ok @walkers.elems > 0, 'discovery finds Walker implementations';
+    ok @walkers[0] ~~ Qwiratry::Walker, 'discovered entries are Walker instances';
+
     my @walkers2 = $master.discover-walkers();
     is-deeply @walkers2, @walkers, 'Discovery returns consistent results';
 }

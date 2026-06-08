@@ -439,7 +439,7 @@ my $table = [[1, 2, 3], [4, 5, 6]];
 my @all-rows = $table ⪪⪪ *;  # Returns all rows (wildcard selects all)
 ```
 
-**Row → Foreign Key Navigation**: The behavior of the descendant operator (`⪪⪪`) on rows is **implementation-dependent** and determined by the Walker. The default behavior is to throw an exception, as recursive foreign key following can lead to circular references and infinite loops.
+**Row → Foreign Key Navigation**: The behavior of the descendant operator (`⪪⪪`) on rows is **implementation-dependent** and determined by the Walker. The **current table implementation throws by default** on table rows, as recursive foreign key following can lead to circular references and infinite loops. Use the `:recursive` adverb to follow a foreign key once.
 
 Walkers may choose to:
 - Throw an exception (default)
@@ -725,7 +725,93 @@ my @all-before = $current-row ⪩⪩ *;  # All rows before current
 my @recent-next = $current-row ⪨ * σ { ⥷ <status> eq 'active' };
 ```
 
-### 5.3 Implementation Notes
+### 5.3 Table Catalog, Schema Discovery, and Foreign Keys
+
+Table-domain navigation requires a `Qwiratry::Table::Catalog` that names tables, declares
+foreign keys, and optionally designates an **active table** for row scans. Build catalogs
+explicitly or let `discover-catalog` infer them from your data root.
+
+#### 5.3.1 Explicit catalog with `make-catalog`
+
+```raku
+use Qwiratry::Table;
+use Qwiratry::Query::Slang;
+use Qwiratry::Query::Match;
+
+my @orders = [
+    %(order_id => 1, customer_id => 10),
+    %(order_id => 2, customer_id => 20),
+];  # use a trailing comma inside [%(...),] for single-row tables
+my @customers = [
+    %(customer_id => 10, name => 'Alice'),
+    %(customer_id => 20, name => 'Bob'),
+];
+
+my $catalog = make-catalog(
+    :orders(@orders), :customers(@customers),
+    :foreign-keys(
+        ForeignKey.new(
+            :from-table('orders'), :from-column('customer_id'),
+            :to-table('customers'), :to-column('customer_id'),
+        ),
+    ),
+    :active-table('orders'),
+);
+
+my $order = @orders[0];
+my @customer = select($order ⪪ <customer_id>, $catalog).List;
+# → one row: %(customer_id => 10, name => 'Alice')
+```
+
+#### 5.3.2 Inferred foreign keys from multi-table roots
+
+When the origin is an `Associative` whose values are row collections, `discover-catalog`
+builds a catalog and `infer-foreign-keys` guesses links from `orders.customer_id` →
+`customers.customer_id` style naming:
+
+```raku
+use Qwiratry::Table::Schema;
+
+my %database = %(orders => @orders, customers => @customers);
+my @related = select($order ⪪ <customer_id>, %database).List;
+```
+
+#### 5.3.3 Attached schema via `providing` metadata
+
+Attach schema to a single table container when the root is not a multi-table map:
+
+```raku
+use Qwiratry::Table::Schema;
+
+attach-schema(@orders, %(
+    table-name => 'orders',
+    tables => %(orders => @orders, customers => @customers),
+));
+
+my @related = select(@orders[0] ⪪ <customer_id>, @orders).List;
+```
+
+#### 5.3.4 Table-row navigation semantics (current implementation)
+
+| Operator | On table/catalog | On row |
+|----------|------------------|--------|
+| `⪪` | All active-table rows (`*`) | Follow FK for named column; empty if non-FK or null FK |
+| `⥷` | N/A | Column value (does not follow FK) |
+| `⪫` | Parent container (the table array) | Parent table; add `:reference` for reverse FK lookup |
+| `⪪⪪` | Same as `⪪` on active table | **Throws** unless `:recursive` adverb is present |
+| `⪪⪪ :recursive` | — | Follow FK once (no unbounded recursion) |
+| `⪨` / `⪩` | Empty | Next/previous row by positional index in active table |
+| `⪨⪨` / `⪩⪩` | Empty | All rows after/before current row in active table |
+
+**Reverse FK (`⪫ :reference`)**:
+
+```raku
+my $customer = @customers[0];
+my @orders-for-customer = select($customer ⪫ <*> :reference, $catalog).List;
+# → both orders with customer_id == 10
+```
+
+### 5.4 Implementation Notes
 
 - Axis operators are **implementation-dependent** - different Walkers may implement them differently:
   - They may compose iterators to retrieve nodes along the specified axis
@@ -1077,6 +1163,42 @@ my $query = $root ⪪⪪ * σ { $_.name eq 'item' } σ { $_.value > 10 };
 
 # Optimized: combine predicates
 my $optimized = $root ⪪⪪ * σ { $_.name eq 'item' && $_.value > 10 };
+```
+
+### 7.6 Lazy Evaluation
+
+Query execution is **pull-based**: `select()` returns a lazy `Seq`, and Walkers produce
+`QueryIterator` instances that yield one result per `pull-one` / `next` call.
+
+**`select` and `select-seq`** (`Qwiratry::Query::Match`):
+
+```raku
+use Qwiratry::Query::Match;
+
+my @rows = [%(score => 1), %(score => 5), %(score => 3)];
+my $query = @rows σ -> $_ { $_<score> >= 3 };
+
+my $seq = select($query, @rows);   # lazy Seq — no rows evaluated yet
+my $first = $seq.first;            # pulls until first match
+```
+
+**Lazy set operators**: `UnionOperator`, `IntersectionOperator`, and join operators
+(`⨝`, `⟕`, etc.) use lazy iterators — operands are not fully scanned before the first
+result is returned. Avoid calling `.list` on a `select` result unless you intend to
+materialize the full result set.
+
+**Walker iterators**: `walker.plan($query, $root).iterator` creates an independent
+`QueryIterator` per call. The Table Walker scans rows via indexed access when a Strategy
+is attached; Master composite iterators pull incrementally from subplan iterators.
+
+**I/O pipelines**: `Qwiratry::IO::Pipeline` uses `select-seq` internally. Render and
+destination steps materialize at the pipeline boundary; upstream selection stays lazy.
+
+```raku
+use Qwiratry::IO::Pipeline;
+
+my $query = @rows σ -> $_ { $_<score> >= 3 };
+my $result = execute($query, :origin(@rows));  # materializes at pipeline end
 ```
 
 ## 8. Summary

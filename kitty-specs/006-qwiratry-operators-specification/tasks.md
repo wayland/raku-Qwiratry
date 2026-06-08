@@ -260,7 +260,7 @@
 - [x] T062 Test error handling across all stages (compile-time, planning-time, runtime) in `t/integration/error-handling.rakutest`
 - [x] T063 Test edge cases (null values, empty collections, circular references) in `t/integration/edge-cases.rakutest`
 - [x] T064 Validate quickstart.md examples compile and run
-- [ ] T065 Update operator documentation with usage examples — partial; table FK/lazy/ordered-nav docs outstanding
+- [x] T065 Update operator documentation with usage examples — table FK, schema discovery, lazy evaluation, ordered-row navigation
 - [ ] T066 Code cleanup and refactoring (DRY, consistency checks) — ongoing
 - [x] T067 Performance validation (AST construction time, memory usage) — baseline in `t/performance/operator-performance.rakutest`
 

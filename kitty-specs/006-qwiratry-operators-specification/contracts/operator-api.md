@@ -341,6 +341,82 @@ method supports(RakuAST::Node $query --> Bool) {
 - Missing format modules → `X::Qwiratry::IO::FormatNotFound`
 - Invalid location → `X::Qwiratry::IO::LocationError`
 
+## Table Navigation (Implementation)
+
+Table-domain navigation is implemented in `Qwiratry::Query::TableNav` and requires a
+`Qwiratry::Table::Catalog` (built explicitly or via schema discovery).
+
+### Catalog and Foreign Keys
+
+```raku
+use Qwiratry::Table;
+
+my $catalog = make-catalog(
+    :orders($order-rows), :customers($customer-rows),
+    :foreign-keys(
+        ForeignKey.new(
+            :from-table('orders'), :from-column('customer_id'),
+            :to-table('customers'), :to-column('customer_id'),
+        ),
+    ),
+    :active-table('orders'),
+);
+```
+
+### Schema Discovery
+
+```raku
+use Qwiratry::Table::Schema;
+
+# Multi-table Associative root — infers FKs by naming convention
+my $catalog = discover-catalog(%(orders => @orders, customers => @customers));
+
+# Explicit inference
+my @fks = infer-foreign-keys(%(orders => @orders, customers => @customers));
+
+# Attach schema to a Positional container
+attach-schema(@orders, %(table-name => 'orders', tables => %(...)));
+```
+
+### Navigation Semantics on Rows
+
+| Operator | Behavior |
+|----------|----------|
+| `ChildOperator` (`⪪`) | Follow FK for column name; empty if non-FK or null |
+| `AttributeOperator` (`⥷`) | Return column value |
+| `ParentOperator` (`⪫`) | Return containing table; `:reference` for reverse FK |
+| `DescendantOperator` (`⪪⪪`) | Throws on row unless `:recursive` adverb |
+| `FollowingSiblingOperator` (`⪨`) | Next row by positional index |
+| `PrecedingSiblingOperator` (`⪩`) | Previous row by positional index |
+| `FollowingOperator` (`⪨⪨`) | All rows after current index |
+| `PrecedingOperator` (`⪩⪩`) | All rows before current index |
+
+Entry point: `select($query, $origin)` in `Qwiratry::Query::Match` dispatches to
+`table-child-results`, `table-parent-results`, `table-sibling-results`, etc.
+
+## Lazy Evaluation Contract
+
+### `select` / `select-seq`
+
+```raku
+our sub select(Mu $query, Mu $origin --> Seq) is export;
+```
+
+- Returns a lazy `Seq` backed by `select-seq`
+- Selection (`σ`), set operators (`∪`, `∩`, `⨝`, …), and navigation compose lazily
+- Calling `.list` or iterating to exhaustion materializes all results
+
+### Walker `QueryIterator`
+
+- `plan.iterator` yields one result per `pull-one` / `next`
+- Multiple iterators from the same plan are independent
+- Table Walker uses indexed row access when a Strategy is attached
+
+### I/O Pipeline
+
+- `Qwiratry::IO::Pipeline::execute` uses `select-seq` for query steps
+- Render/destination boundaries materialize output
+
 ## Examples
 
 ### Creating Operators

@@ -25,10 +25,14 @@ sub iterator-for(Mu $source --> Iterator) {
 our sub lazy-natural-join($left, $right, &condition) is export {
     lazy gather {
         my $left-iter = iterator-for($left);
-        while (my $lrow = $left-iter.pull-one) !~~ IterationEnd {
+        loop {
+            my $lrow = $left-iter.pull-one;
+            last if $lrow ~~ IterationEnd;
             next unless $lrow ~~ Associative;
             my $right-iter = iterator-for($right);
-            while (my $rrow = $right-iter.pull-one) !~~ IterationEnd {
+            loop {
+            my $rrow = $right-iter.pull-one;
+            last if $rrow ~~ IterationEnd;
                 next unless $rrow ~~ Associative;
                 my $matches = &condition.defined
                     ?? condition($lrow, $rrow)
@@ -42,10 +46,14 @@ our sub lazy-natural-join($left, $right, &condition) is export {
 our sub lazy-left-outer-join($left, $right, &condition) is export {
     lazy gather {
         my $left-iter = iterator-for($left);
-        while (my $lrow = $left-iter.pull-one) !~~ IterationEnd {
+        loop {
+            my $lrow = $left-iter.pull-one;
+            last if $lrow ~~ IterationEnd;
             my @matches;
             my $right-iter = iterator-for($right);
-            while (my $rrow = $right-iter.pull-one) !~~ IterationEnd {
+            loop {
+            my $rrow = $right-iter.pull-one;
+            last if $rrow ~~ IterationEnd;
                 my $ok = &condition.defined
                     ?? condition($lrow, $rrow)
                     !! join-on-common-keys($lrow, $rrow);
@@ -64,10 +72,14 @@ our sub lazy-left-outer-join($left, $right, &condition) is export {
 our sub lazy-right-outer-join($left, $right, &condition) is export {
     lazy gather {
         my $right-iter = iterator-for($right);
-        while (my $rrow = $right-iter.pull-one) !~~ IterationEnd {
+        loop {
+            my $rrow = $right-iter.pull-one;
+            last if $rrow ~~ IterationEnd;
             my @matches;
             my $left-iter = iterator-for($left);
-            while (my $lrow = $left-iter.pull-one) !~~ IterationEnd {
+            loop {
+            my $lrow = $left-iter.pull-one;
+            last if $lrow ~~ IterationEnd;
                 my $ok = &condition.defined
                     ?? condition($lrow, $rrow)
                     !! join-on-common-keys($lrow, $rrow);
@@ -86,9 +98,13 @@ our sub lazy-right-outer-join($left, $right, &condition) is export {
 our sub lazy-left-semijoin($left, $right, &condition) is export {
     lazy gather {
         my $left-iter = iterator-for($left);
-        while (my $lrow = $left-iter.pull-one) !~~ IterationEnd {
+        loop {
+            my $lrow = $left-iter.pull-one;
+            last if $lrow ~~ IterationEnd;
             my $right-iter = iterator-for($right);
-            while (my $rrow = $right-iter.pull-one) !~~ IterationEnd {
+            loop {
+            my $rrow = $right-iter.pull-one;
+            last if $rrow ~~ IterationEnd;
                 my $ok = &condition.defined
                     ?? condition($lrow, $rrow)
                     !! join-on-common-keys($lrow, $rrow);
@@ -104,10 +120,14 @@ our sub lazy-left-semijoin($left, $right, &condition) is export {
 our sub lazy-left-antijoin($left, $right, &condition) is export {
     lazy gather {
         my $left-iter = iterator-for($left);
-        while (my $lrow = $left-iter.pull-one) !~~ IterationEnd {
+        loop {
+            my $lrow = $left-iter.pull-one;
+            last if $lrow ~~ IterationEnd;
             my $matched = False;
             my $right-iter = iterator-for($right);
-            while (my $rrow = $right-iter.pull-one) !~~ IterationEnd {
+            loop {
+            my $rrow = $right-iter.pull-one;
+            last if $rrow ~~ IterationEnd;
                 my $ok = &condition.defined
                     ?? condition($lrow, $rrow)
                     !! join-on-common-keys($lrow, $rrow);
@@ -124,9 +144,13 @@ our sub lazy-left-antijoin($left, $right, &condition) is export {
 our sub lazy-cross-join($left, $right) is export {
     lazy gather {
         my $left-iter = iterator-for($left);
-        while (my $lrow = $left-iter.pull-one) !~~ IterationEnd {
+        loop {
+            my $lrow = $left-iter.pull-one;
+            last if $lrow ~~ IterationEnd;
             my $right-iter = iterator-for($right);
-            while (my $rrow = $right-iter.pull-one) !~~ IterationEnd {
+            loop {
+            my $rrow = $right-iter.pull-one;
+            last if $rrow ~~ IterationEnd;
                 take merge-rows($lrow, $rrow);
             }
         }
@@ -138,7 +162,9 @@ our sub lazy-union(*@sources) is export {
     lazy gather {
         for @sources -> $source {
             my $iter = iterator-for($source);
-            while (my $row = $iter.pull-one) !~~ IterationEnd {
+            loop {
+            my $row = $iter.pull-one;
+            last if $row ~~ IterationEnd;
                 my $key = row-key($row);
                 unless %seen{$key}:exists {
                     %seen{$key} = True;
@@ -153,7 +179,9 @@ our sub lazy-intersection($left, $right) is export {
     my @right-list = iterator-for($right).list;
     lazy gather {
         my $left-iter = iterator-for($left);
-        while (my $lrow = $left-iter.pull-one) !~~ IterationEnd {
+        loop {
+            my $lrow = $left-iter.pull-one;
+            last if $lrow ~~ IterationEnd;
             take $lrow if row-in-list($lrow, @right-list);
         }
     }
@@ -163,7 +191,9 @@ our sub lazy-set-difference($left, $right) is export {
     my @right-list = iterator-for($right).list;
     lazy gather {
         my $left-iter = iterator-for($left);
-        while (my $lrow = $left-iter.pull-one) !~~ IterationEnd {
+        loop {
+            my $lrow = $left-iter.pull-one;
+            last if $lrow ~~ IterationEnd;
             take $lrow unless row-in-list($lrow, @right-list);
         }
     }
@@ -185,7 +215,9 @@ our sub lazy-symmetric-difference($left, $right) is export {
 our sub lazy-projection($rows, @columns) is export {
     lazy gather {
         my $iter = iterator-for($rows);
-        while (my $row = $iter.pull-one) !~~ IterationEnd {
+        loop {
+            my $row = $iter.pull-one;
+            last if $row ~~ IterationEnd;
             take $row ~~ Associative ?? project-row($row, @columns) !! $row;
         }
     }
@@ -194,7 +226,9 @@ our sub lazy-projection($rows, @columns) is export {
 our sub lazy-filter($source, &match) is export {
     lazy gather {
         my $iter = iterator-for($source);
-        while (my $item = $iter.pull-one) !~~ IterationEnd {
+        loop {
+            my $item = $iter.pull-one;
+            last if $item ~~ IterationEnd;
             take $item if match($item);
         }
     }
@@ -203,7 +237,9 @@ our sub lazy-filter($source, &match) is export {
 our sub lazy-rename($rows, %renames) is export {
     lazy gather {
         my $iter = iterator-for($rows);
-        while (my $row = $iter.pull-one) !~~ IterationEnd {
+        loop {
+            my $row = $iter.pull-one;
+            last if $row ~~ IterationEnd;
             take $row ~~ Associative ?? rename-row($row, %renames) !! $row;
         }
     }

@@ -17,6 +17,7 @@ The Master Walker:
 
 use experimental :rakuast;
 use Qwiratry::Walker;
+use Qwiratry::Walker::Factory;
 use Qwiratry::Walker::Providing;
 use X::Qwiratry;
 use Qwiratry::Walker::Capabilities;
@@ -181,42 +182,20 @@ class Qwiratry::Walker::Master does Qwiratry::Walker {
     Cached per instance to avoid repeated introspection.
 
     =end pod
-    method discover-walkers(--> Array) {
-        # Return cached result if discovery already performed
-        if $!discovery-performed {
+    method discover-walkers(:@paths = ['lib'], Bool :$refresh = False --> Array) {
+        if $!discovery-performed && !$refresh {
             return @!discovered-walkers;
         }
-        
-        # Perform discovery
-        my @found = Array[Qwiratry::Walker].new;
-        
-        # Scan through all loaded classes/types using Metamodel
-            # Check each class to see if it does Qwiratry::Walker role
-        try {
-            # Use Metamodel::ClassHOW to iterate through all classes
-            # This is a basic discovery mechanism that can be enhanced
-            my $metamodel = Metamodel::ClassHOW;
-            
-            # Get all classes from the metamodel registry
-            # Note: This is a simplified approach - in practice, we'd need to
-            # scan through all loaded modules or use a registry
-            # For MVP, we'll check if we can find Walker implementations
-            # by iterating through known class hierarchies
-            
-            # Try to find classes that do Walker role
-            # We check if a class does Qwiratry::Walker by using .^does(Qwiratry::Walker)
-            # However, we need to get a list of all classes first
-            
-            # For now, return empty array - discovery can be enhanced later
-            # with more sophisticated mechanisms (e.g., module registry, 
-            # explicit walker registration system, etc.)
-            # The important part is that explicit registration via constructor works
-        }
-        
-        # Cache results
-        @!discovered-walkers = @found;
+
+        my @types = Qwiratry::Walker::Factory.instance.discover-walkers(:@paths, :$refresh);
+        my @instances = gather {
+            for @types -> $type {
+                next if $type === Qwiratry::Walker::Master;
+                take $type.new;
+            }
+        };
+        @!discovered-walkers = @instances;
         $!discovery-performed = True;
-        
         return @!discovered-walkers;
     }
     

@@ -100,12 +100,100 @@ class TreeWalker does Walker {
 # Navigate tree structure
 my $children = ChildOperator.new(selector => 'item');
 my $descendants = DescendantOperator.new(selector => '*');
-
-# Navigate table foreign keys
-my $fk-navigation = ChildOperator.new(
-    selector => 'customer_id'  # Foreign key column
-);
 ```
+
+### Table Foreign Key Navigation
+
+Table-domain `⪪` follows foreign keys when the origin resolves to a `Catalog` (explicit
+or discovered). Use `⥷` for column values without following the FK.
+
+```raku
+use Qwiratry::Table;
+use Qwiratry::Query::Slang;
+use Qwiratry::Query::Match;
+
+my @orders = [(%(order_id => 1, customer_id => 10),)];
+my @customers = [(%(customer_id => 10, name => 'Alice'),)];
+
+my $catalog = make-catalog(
+    :orders(@orders), :customers(@customers),
+    :foreign-keys(
+        ForeignKey.new(
+            :from-table('orders'), :from-column('customer_id'),
+            :to-table('customers'), :to-column('customer_id'),
+        ),
+    ),
+    :active-table('orders'),
+);
+
+my $order = @orders[0];
+my @customer = select($order ⪪ <customer_id>, $catalog).List;
+my $fk-value = select($order ⥷ <customer_id>, $catalog).List[0];
+
+# Reverse FK: rows that reference this customer
+my @referencing = select(@customers[0] ⪫ <*> :reference, $catalog).List;
+```
+
+`⪪⪪` on a table **row** throws by default; add `:recursive` to follow the FK once:
+
+```raku
+my @once = select($order ⪪⪪ <customer_id> :recursive, $catalog).List;
+```
+
+### Schema Discovery
+
+Skip manual `ForeignKey` declarations when table names and columns follow conventions
+(`orders.customer_id` → `customers.customer_id`):
+
+```raku
+use Qwiratry::Table::Schema;
+
+my %database = %(orders => @orders, customers => @customers);
+my @related = select($order ⪪ <customer_id>, %database).List;
+
+# Or attach schema to a single Positional root:
+attach-schema(@orders, %(
+    table-name => 'orders',
+    tables => %(orders => @orders, customers => @customers),
+));
+```
+
+### Ordered Row Navigation
+
+Sibling and following/preceding operators use **positional order** in the catalog's
+active table:
+
+```raku
+my @orders = [
+    %(order_id => 1), %(order_id => 2), %(order_id => 3),
+];
+my $catalog = make-catalog(:orders(@orders), :active-table('orders'));
+
+my $row = @orders[1];
+my $next = select($row ⪨ <*>, $catalog).List[0];      # order_id 3
+my $prev = select($row ⪩ <*>, $catalog).List[0];      # order_id 2
+my @later = select($row ⪨⪨ <*>, $catalog).List;      # rows after index 1
+```
+
+### Lazy Evaluation
+
+`select` returns a lazy `Seq`. Set operators and joins pull operands incrementally.
+
+```raku
+use Qwiratry::Query::Match;
+
+my $query = @rows σ -> $_ { $_<score> >= 3 };
+my $seq = select($query, @rows);           # lazy — not evaluated yet
+my $first = $seq.first;                    # pulls until first match
+
+# Walker execution is also incremental:
+my $iter = $walker.plan($query, @rows).iterator;
+while (my $row = $iter.pull-one) !~~ IterationEnd {
+    # one row at a time
+}
+```
+
+Avoid `.list` on `select` results unless you need full materialization.
 
 ### Filtering Pattern
 
