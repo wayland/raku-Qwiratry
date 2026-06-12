@@ -3,14 +3,16 @@
 Minimal JSON render format module (no external dependencies).
 
 =end pod
-unit module Qwiratry::IO::Render::JSON;
+use Qwiratry::IO::Render::Base;
 
-our sub render(Mu $data, Associative :%options --> Str) is export {
+unit class Qwiratry::IO::Render::JSON is Qwiratry::IO::Render::Base;
+
+method render(Mu $data, Associative :%options --> Str) {
 	my $pretty = %options<pretty> // False;
-	to-json-text($data, $pretty, 0)
+	self.to-json-text($data, $pretty, 0)
 }
 
-sub to-json-text($value, Bool $pretty, Int $indent --> Str) {
+method to-json-text($value, Bool $pretty, Int $indent --> Str) {
 	return 'null' unless $value.defined;
 	if $value ~~ Str {
 		my $escaped = $value;
@@ -28,8 +30,8 @@ sub to-json-text($value, Bool $pretty, Int $indent --> Str) {
 		my $pad = $pretty ?? ' ' x ($indent + 2) !! '';
 		my $sep = $pretty ?? (",\n") !! ',';
 		my $inner = @pairs.map(-> $p {
-			($pretty ?? $pad !! '') ~ to-json-text(~$p.key, False, 0) ~ ': '
-				~ to-json-text($p.value, $pretty, $indent + 2)
+			($pretty ?? $pad !! '') ~ self.to-json-text(~$p.key, False, 0) ~ ': '
+				~ self.to-json-text($p.value, $pretty, $indent + 2)
 		}).join($sep);
 		return $pretty ?? ('{' ~ "\n" ~ $inner ~ "\n" ~ (' ' x $indent) ~ '}')
 			!! ('{' ~ $inner ~ '}');
@@ -40,11 +42,15 @@ sub to-json-text($value, Bool $pretty, Int $indent --> Str) {
 		my $pad = $pretty ?? ' ' x ($indent + 2) !! '';
 		my $sep = $pretty ?? (",\n") !! ',';
 		my $inner = $value.map({
-			($pretty ?? $pad !! '') ~ to-json-text($_, $pretty, $indent + 2)
+			($pretty ?? $pad !! '') ~ self.to-json-text($_, $pretty, $indent + 2)
 		}).join($sep);
 		return $pretty ?? ('[' ~ "\n" ~ $inner ~ "\n" ~ (' ' x $indent) ~ ']')
 			!! ('[' ~ $inner ~ ']');
 	}
 
 	$value.raku
+}
+
+our sub render(Mu $data, Associative :%options --> Str) is export {
+	Qwiratry::IO::Render::JSON.new.render($data, :%options)
 }

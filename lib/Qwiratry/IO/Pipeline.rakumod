@@ -5,6 +5,8 @@ Execute I/O operator pipelines (source, parse, query, render, destination).
 =end pod
 unit module Qwiratry::IO::Pipeline;
 
+use Qwiratry::IO::Parse;
+use Qwiratry::IO::Render;
 use Qwiratry::Operator::IO;
 use Qwiratry::Operator::Capability;
 use Qwiratry::Operator::MapReduce;
@@ -76,15 +78,11 @@ sub write-location(Str $location, Mu $content) {
 }
 
 sub parse-data(Str $format, Str $text) {
-	my $module-name = ensure-parse-format($format);
-	my $loaded = (require ::($module-name));
-	$loaded.WHO{'&parse'}($text)
+	Qwiratry::IO::Parse.instance.parse($format, $text)
 }
 
 sub render-data(Str $format, Mu $data, Associative $options) {
-	my $module-name = ensure-render-format($format);
-	my $loaded = (require ::($module-name));
-	$loaded.WHO{'&render'}(pipeline-render-payload($data), |%($options // %()))
+	Qwiratry::IO::Render.instance.render($format, pipeline-render-payload($data), |%($options // %()))
 }
 
 sub pipeline-render-payload(Mu $data --> Mu) {

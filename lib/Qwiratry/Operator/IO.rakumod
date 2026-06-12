@@ -8,6 +8,8 @@ parse, render, and write external data.
 =end pod
 unit module Qwiratry::Operator::IO;
 
+use Qwiratry::IO::Parse;
+use Qwiratry::IO::Render;
 use Qwiratry::Operator::Capability;
 use Qwiratry::Exception::Operator;
 
@@ -37,105 +39,6 @@ sub validate-location(Str $location --> Str) is export {
 	).throw;
 }
 
-sub normalize-format-name(Str $format --> Str) is export {
-	my $name = $format.subst(/\.rakumod$/, '');
-	$name = $name.split('::').[*-1] if $name.contains('::');
-	$name.uc
-}
-
-sub parse-format-module-name(Str $format --> Str) is export {
-	"Qwiratry::IO::Parse::{normalize-format-name($format)}"
-}
-
-sub render-format-module-name(Str $format --> Str) is export {
-	"Qwiratry::IO::Render::{normalize-format-name($format)}"
-}
-
-our sub discover-parse-formats(--> List) is export {
-	state @formats;
-	unless @formats {
-		@formats = gather {
-			for <JSON XML CSV> -> $name {
-				my $module = parse-format-module-name($name);
-				ensure-format-module($module);
-				take $name if format-module-available($module);
-			}
-		}
-	}
-	@formats
-}
-
-our sub discover-render-formats(--> List) is export {
-	state @formats;
-	unless @formats {
-		@formats = gather {
-			for <JSON XML CSV> -> $name {
-				my $module = render-format-module-name($name);
-				ensure-format-module($module);
-				take $name if format-module-available($module);
-			}
-		}
-	}
-	@formats
-}
-
-sub format-export-name(Str $module --> Str) {
-	$module.contains('::Parse::') ?? '&parse' !! '&render'
-}
-
-sub load-format-module(Str $module) {
-	try {
-		my $loaded = ::($module);
-		my $export = format-export-name($module);
-		return $loaded if $loaded.WHO{$export}.defined;
-		CATCH { }
-	}
-	(require ::($module))
-}
-
-sub format-module-available(Str $module --> Bool) {
-	try {
-		my $loaded = load-format-module($module);
-		return $loaded.WHO{format-export-name($module)}.defined;
-		CATCH { default { False } }
-	}
-}
-
-sub ensure-format-module(Str $module) is export {
-	try {
-		load-format-module($module);
-		CATCH { default { Nil } }
-	}
-}
-
-sub ensure-parse-format(Str $format) is export {
-	my $module = parse-format-module-name($format);
-	ensure-format-module($module);
-	unless format-module-available($module) {
-		X::Qwiratry::IO::FormatNotFound.new(
-			:message("Parse format module not found for $format"),
-			:format(normalize-format-name($format)),
-			:parse-or-render('Parse'),
-			:operator-type('ParseOperator'),
-		).throw;
-	}
-	$module
-}
-
-sub ensure-render-format(Str $format) is export {
-	my $module = render-format-module-name($format);
-	ensure-format-module($module);
-	unless format-module-available($module) {
-		X::Qwiratry::IO::FormatNotFound.new(
-			:message("Render format module not found for $format"),
-			:format(normalize-format-name($format)),
-			:parse-or-render('Render'),
-			:operator-type('RenderOperator'),
-		).throw;
-	}
-	$module
-}
-
 class SourceOperator is RakuAST::Node does IOOperator does OperatorBase is export {
 	has Str $.location is required;
 
@@ -152,7 +55,7 @@ class ParseOperator is RakuAST::Node does IOOperatorNode is export {
 	has Str $.format is required;
 
 	submethod TWEAK {
-		ensure-parse-format($!format);
+		Qwiratry::IO::Parse.instance.ensure-format($!format);
 	}
 
 	method describe(--> Str) {
@@ -165,7 +68,7 @@ class RenderOperator is RakuAST::Node does IOOperatorNode is export {
 	has %.options;
 
 	submethod TWEAK {
-		ensure-render-format($!format);
+		Qwiratry::IO::Render.instance.ensure-format($!format);
 	}
 
 	method describe(--> Str) {

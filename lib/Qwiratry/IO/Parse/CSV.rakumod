@@ -1,11 +1,13 @@
 =begin pod
 
-Minimal CSV parse/render format modules.
+Minimal CSV parse format module.
 
 =end pod
-unit module Qwiratry::IO::Parse::CSV;
+use Qwiratry::IO::Parse::Base;
 
-our sub parse(Str $text --> Mu) is export {
+unit class Qwiratry::IO::Parse::CSV is Qwiratry::IO::Parse::Base;
+
+method parse(Str $text --> Mu) {
 	my @lines = $text.lines.grep(*.chars);
 	return @() unless @lines;
 	my @headers = @lines[0].split(',', :trim);
@@ -19,4 +21,8 @@ our sub parse(Str $text --> Mu) is export {
 		@rows.push(%row);
 	}
 	@rows
+}
+
+our sub parse(Str $text --> Mu) is export {
+	Qwiratry::IO::Parse::CSV.new.parse($text)
 }

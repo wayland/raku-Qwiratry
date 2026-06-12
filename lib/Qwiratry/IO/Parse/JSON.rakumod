@@ -3,69 +3,71 @@
 Minimal JSON parse format module (no external dependencies).
 
 =end pod
-unit module Qwiratry::IO::Parse::JSON;
+use Qwiratry::IO::Parse::Base;
 
-our sub parse(Str $text --> Mu) is export {
-	my ($value, $pos) = parse-value($text.trim, 0);
+unit class Qwiratry::IO::Parse::JSON is Qwiratry::IO::Parse::Base;
+
+method parse(Str $text --> Mu) {
+	my ($value, $pos) = self.parse-value($text.trim, 0);
 	$value
 }
 
-sub parse-value(Str $s, Int $pos is copy) {
-	$pos = skip-ws($s, $pos);
+method parse-value(Str $s, Int $pos is copy) {
+	$pos = self.skip-ws($s, $pos);
 	my $c = $s.substr($pos, 1);
 	given $c {
-		when '{' { parse-object($s, $pos) }
-		when '[' { parse-array($s, $pos) }
-		when '"' { parse-string($s, $pos) }
-		when 't' { parse-literal($s, $pos, 'true', True) }
-		when 'f' { parse-literal($s, $pos, 'false', False) }
-		when 'n' { parse-literal($s, $pos, 'null', Nil) }
-		default { parse-number($s, $pos) }
+		when '{' { self.parse-object($s, $pos) }
+		when '[' { self.parse-array($s, $pos) }
+		when '"' { self.parse-string($s, $pos) }
+		when 't' { self.parse-literal($s, $pos, 'true', True) }
+		when 'f' { self.parse-literal($s, $pos, 'false', False) }
+		when 'n' { self.parse-literal($s, $pos, 'null', Nil) }
+		default { self.parse-number($s, $pos) }
 	}
 }
 
-sub skip-ws(Str $s, Int $pos is copy) {
+method skip-ws(Str $s, Int $pos is copy) {
 	while $pos < $s.chars && $s.substr($pos, 1) ~~ /\s/ { $pos++ }
 	$pos
 }
 
-sub parse-object(Str $s, Int $pos is copy) {
+method parse-object(Str $s, Int $pos is copy) {
 	$pos++;
-	$pos = skip-ws($s, $pos);
+	$pos = self.skip-ws($s, $pos);
 	return (%(), $pos + 1) if $s.substr($pos, 1) eq '}';
 	my %obj;
 	loop {
-		my ($key, $p1) = parse-string($s, $pos);
-		$pos = skip-ws($s, $p1);
+		my ($key, $p1) = self.parse-string($s, $pos);
+		$pos = self.skip-ws($s, $p1);
 		die "Expected :" unless $s.substr($pos, 1) eq ':';
-		$pos = skip-ws($s, $pos + 1);
-		my ($value, $p2) = parse-value($s, $pos);
+		$pos = self.skip-ws($s, $pos + 1);
+		my ($value, $p2) = self.parse-value($s, $pos);
 		%obj{$key} = $value;
-		$pos = skip-ws($s, $p2);
+		$pos = self.skip-ws($s, $p2);
 		last if $s.substr($pos, 1) eq '}';
 		die "Expected ," unless $s.substr($pos, 1) eq ',';
-		$pos = skip-ws($s, $pos + 1);
+		$pos = self.skip-ws($s, $pos + 1);
 	}
 	(%obj, $pos + 1)
 }
 
-sub parse-array(Str $s, Int $pos is copy) {
+method parse-array(Str $s, Int $pos is copy) {
 	$pos++;
-	$pos = skip-ws($s, $pos);
+	$pos = self.skip-ws($s, $pos);
 	return (@(), $pos + 1) if $s.substr($pos, 1) eq ']';
 	my @arr;
 	loop {
-		my ($value, $p1) = parse-value($s, $pos);
+		my ($value, $p1) = self.parse-value($s, $pos);
 		@arr.push($value);
-		$pos = skip-ws($s, $p1);
+		$pos = self.skip-ws($s, $p1);
 		last if $s.substr($pos, 1) eq ']';
 		die "Expected ," unless $s.substr($pos, 1) eq ',';
-		$pos = skip-ws($s, $pos + 1);
+		$pos = self.skip-ws($s, $pos + 1);
 	}
 	(@arr, $pos + 1)
 }
 
-sub parse-string(Str $s, Int $pos is copy) {
+method parse-string(Str $s, Int $pos is copy) {
 	$pos++;
 	my $buf = '';
 	while $pos < $s.chars {
@@ -93,15 +95,19 @@ sub parse-string(Str $s, Int $pos is copy) {
 	die "Unterminated JSON string";
 }
 
-sub parse-literal(Str $s, Int $pos, Str $word, Mu $value) {
+method parse-literal(Str $s, Int $pos, Str $word, Mu $value) {
 	die "Invalid JSON literal" unless $s.substr($pos, $word.chars) eq $word;
 	($value, $pos + $word.chars)
 }
 
-sub parse-number(Str $s, Int $pos is copy) {
+method parse-number(Str $s, Int $pos is copy) {
 	my $start = $pos;
 	while $pos < $s.chars && $s.substr($pos, 1) ~~ /<[0..9 . e E + -]>/ { $pos++ }
 	my $num-str = $s.substr($start, $pos - $start);
 	my $value = $num-str.contains('.') ?? $num-str.Num !! $num-str.Int;
 	($value, $pos)
+}
+
+our sub parse(Str $text --> Mu) is export {
+	Qwiratry::IO::Parse::JSON.new.parse($text)
 }

@@ -4,6 +4,8 @@ use lib 'lib';
 
 use Qwiratry::Operator::IO;
 use Qwiratry::Operator::Capability;
+use Qwiratry::IO::Parse;
+use Qwiratry::IO::Render;
 use Qwiratry::IO::Parse::JSON;
 use Qwiratry::IO::Parse::XML;
 use Qwiratry::IO::Parse::CSV;
@@ -54,11 +56,11 @@ subtest 'DestinationOperator chains with subject' => {
 subtest 'Format discovery finds loaded parse and render modules' => {
 	plan 2;
 
-	my @parse = discover-parse-formats;
-	ok 'JSON' (elem) @parse, 'discover-parse-formats includes JSON';
+	my @parse = Qwiratry::IO::Parse.instance.formats;
+	ok 'JSON' (elem) @parse, 'Parse.instance.formats includes JSON';
 
-	my @render = discover-render-formats;
-	ok 'JSON' (elem) @render, 'discover-render-formats includes JSON';
+	my @render = Qwiratry::IO::Render.instance.formats;
+	ok 'JSON' (elem) @render, 'Render.instance.formats includes JSON';
 }
 
 subtest 'I/O operators are immutable and declare capabilities' => {
