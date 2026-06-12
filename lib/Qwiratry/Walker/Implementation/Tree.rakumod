@@ -21,7 +21,9 @@ use Qwiratry::Strategy::Traversal;
 use Qwiratry::Strategy::ControlSignal;
 use X::Qwiratry;
 
-unit class Qwiratry::Walker::Implementation::Tree does Qwiratry::Walker {
+my constant traversal = Qwiratry::Strategy::Traversal.instance;
+
+class Qwiratry::Walker::Implementation::Tree does Qwiratry::Walker is export {
 	my class TreeContext does Context {
 		has Int $.nodes-visited is rw = 0;
 		has $.finish-result is rw;
@@ -53,7 +55,7 @@ unit class Qwiratry::Walker::Implementation::Tree does Qwiratry::Walker {
 		has Mu $.query-ast is required;
 		has @!stack;
 		has @!yield-queue;
-		has %!state;
+		has TraversalState $!state = TraversalState.new;
 		has Bool $!finished = False;
 		has Bool $!finish-invoked = False;
 
@@ -64,17 +66,17 @@ unit class Qwiratry::Walker::Implementation::Tree does Qwiratry::Walker {
 		method !stop-traversal() {
 			@!stack = ();
 			unless $!finish-invoked {
-				invoke-finish($!root, $.context);
+				traversal.invoke-finish($!root, $.context);
 				$!finish-invoked = True;
 			}
 			$!finished = True;
 		}
 
 		method !visit-element(Mu $element, :$yield = True --> Mu) {
-			clear-skip(%!state);
+			$!state.clear-skip;
 
-			my $before = run-before($element, $.context, %!state);
-			if stopped(%!state) {
+			my $before = traversal.run-before($element, $.context, $!state);
+			if $!state.stopped {
 				self!stop-traversal;
 				return $yield ?? $element !! IterationEnd;
 			}
@@ -87,21 +89,21 @@ unit class Qwiratry::Walker::Implementation::Tree does Qwiratry::Walker {
 				$.context.nodes-visited++ if $.context.defined;
 			}
 
-			run-on-match($element, $!query-ast, $!root, $.context, %!state);
-			if stopped(%!state) {
+			traversal.run-on-match($element, $!query-ast, $!root, $.context, $!state);
+			if $!state.stopped {
 				self!stop-traversal;
 				return $yield ?? $element !! IterationEnd;
 			}
 
-			unless skip-expand(%!state) {
+			unless $!state.should-skip-expand {
 				for tree-children($element) -> $child {
-					next unless should-follow($element, 'child', $child, $.context);
+					next unless traversal.should-follow($element, 'child', $child, $.context);
 					@!stack.push($child);
 				}
 			}
 
-			run-after($element, $.context, %!state);
-			if stopped(%!state) {
+			traversal.run-after($element, $.context, $!state);
+			if $!state.stopped {
 				self!stop-traversal;
 			}
 
@@ -123,11 +125,11 @@ unit class Qwiratry::Walker::Implementation::Tree does Qwiratry::Walker {
 				if @!yield-queue.elems > 0 {
 					return @!yield-queue.shift;
 				}
-				last if stopped(%!state);
+				last if $!state.stopped;
 			}
 
 			unless $!finish-invoked {
-				invoke-finish($!root, $.context);
+				traversal.invoke-finish($!root, $.context);
 				$!finish-invoked = True;
 			}
 			$!finished = True;

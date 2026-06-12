@@ -7,7 +7,7 @@ C<providing> trait, multi-table roots, or inferred foreign-key relationships.
 
 =end pod
 use Qwiratry::Table;
-use Qwiratry::Walker::Providing;
+use Qwiratry::Walker::Providing; # for trait; runtime via Providing.instance
 
 unit class Qwiratry::Table::Schema;
 
@@ -38,14 +38,14 @@ method catalog-from-tables(
 }
 
 method attach(Mu $container is raw, Associative $schema!) {
-	bind-providing-schema($container, %$schema);
+	Qwiratry::Walker::Providing.instance.bind-schema($container, %$schema);
 	$container
 }
 
 method discover(Mu $origin is raw --> Mu) {
 	return $origin if $origin ~~ Qwiratry::Table::Catalog;
 
-	my $schema = providing-schema($origin);
+	my $schema = Qwiratry::Walker::Providing.instance.schema($origin);
 	if $schema.defined {
 		return self!catalog-from-providing-schema($schema, $origin);
 	}
@@ -69,7 +69,7 @@ method discover(Mu $origin is raw --> Mu) {
 	}
 
 	if $origin ~~ Positional && !( $origin ~~ Associative ) {
-		my @domains = providing-domains($origin) // ();
+		my @domains = Qwiratry::Walker::Providing.instance.domains($origin) // ();
 		if @domains.grep(* eq 'table').so {
 			my $name = self!schema-table-name($origin) // 'rows';
 			my %tables = %($name => $origin);
@@ -141,7 +141,7 @@ method !schema-active-table(Associative $source --> Mu) {
 }
 
 method !schema-table-name(Mu $origin --> Mu) {
-	my $schema = providing-schema($origin);
+	my $schema = Qwiratry::Walker::Providing.instance.schema($origin);
 	return $schema<table-name> if $schema.defined && $schema<table-name>.defined;
 	Nil
 }

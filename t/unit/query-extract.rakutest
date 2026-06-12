@@ -7,32 +7,34 @@ use Qwiratry::Query::Match;
 use Qwiratry::Query::Slang;
 use Qwiratry::Operator::Navigation;
 
+my constant extract = Qwiratry::Query::Extract.instance;
+
 plan 6;
 
-subtest 'extract-navigation-query captures topic-rooted query' => {
+subtest 'from-when-block captures topic-rooted query' => {
 	plan 3;
 
 	my $when = { $_ ⪪⪪ <item> };
-	my $query = extract-navigation-query($when);
+	my $query = extract.from-when-block($when);
 	ok $query ~~ DescendantOperator, 'descendant operator extracted';
 	ok $query.subject ~~ NavQueryTopic, 'subject is NavQueryTopic sentinel';
 	is $query.selector, 'item', 'selector preserved';
 }
 
-subtest 'is-navigation-query-when detects pure query when blocks' => {
+subtest 'is-pure-navigation-when detects pure query when blocks' => {
 	plan 2;
 
 	my $pure = { $_ ⪪ <section> };
 	my $mixed = { $_ ⪪⪪ <item> && .<value>:exists };
 
-	ok is-navigation-query-when($pure), 'pure query when block recognized';
-	nok is-navigation-query-when($mixed), 'mixed predicate when block rejected';
+	ok extract.is-pure-navigation-when($pure), 'pure query when block recognized';
+	nok extract.is-pure-navigation-when($mixed), 'mixed predicate when block rejected';
 }
 
 subtest 'when-query-matches topic-rooted queries by selector' => {
 	plan 3;
 
-	my $query = extract-navigation-query({ $_ ⪪⪪ <item> });
+	my $query = extract.from-when-block({ $_ ⪪⪪ <item> });
 	my $item = %(name => 'item', value => 1);
 	my $other = %(name => 'footer');
 
@@ -65,7 +67,7 @@ subtest 'when-query-matches chained topic child operators' => {
 			%(name => 'item', value => 2),
 		]),
 	];
-	my $query = extract-navigation-query({ $_ ⪪ <section> ⪪ <item> });
+	my $query = extract.from-when-block({ $_ ⪪ <section> ⪪ <item> });
 	my $item = $tree[0]<children>[0];
 	my $section = $tree[0];
 
@@ -85,7 +87,7 @@ subtest 'mixed query and predicate matching' => {
 			%(name => 'item'),
 		]),
 	];
-	my $when-query = extract-navigation-query({ $_ ⪪⪪ <item> });
+	my $when-query = extract.from-when-block({ $_ ⪪⪪ <item> });
 	my $when-block = { .<value>:exists };
 	my $template = Template.new(
 		:$when-query,

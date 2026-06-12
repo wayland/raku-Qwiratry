@@ -23,6 +23,12 @@ use v6.e.PREVIEW;
 use Qwiratry::Template;
 use Qwiratry::Query::Slang;
 use Qwiratry::Query::Extract;
+use Qwiratry::Template::Registry;
+use Qwiratry::Template::Compiler;
+
+my constant registry = Qwiratry::Template::Registry.instance;
+my constant compiler = Qwiratry::Template::Compiler.instance;
+my constant extract = Qwiratry::Query::Extract.instance;
 
 =begin pod
 
@@ -36,73 +42,30 @@ our $SLANG-ACTIVATION-METHOD = 'slangify';
 Collected L<Qwiratry::Template> instances registered during transformer parsing.
 
 =end pod
-our @TEMPLATES;
-
-=begin pod
-
-Collected wrapper blocks registered during transformer parsing.
-
-=end pod
-our @WRAPPERS;
-
 my $activation-status;
 
-=begin pod
-
-Register a compiled template with the module-level collection.
-
-=end pod
 sub register-template(Template $template) is export {
-	@TEMPLATES.push($template);
+	registry.register-template($template);
 }
 
-=begin pod
-
-Register a wrapper block of the given C<$type> (TRANSFORMER, TEMPLATE_MATCHER, etc.).
-
-=end pod
 sub register-wrapper(Str $type, Block $block) is export {
-	@WRAPPERS.push(%(type => $type, block => $block));
+	registry.register-wrapper($type, $block);
 }
 
-=begin pod
-
-Return collected templates and clear the module-level list.
-
-=end pod
 sub get-collected-templates() is export {
-	my @result = @TEMPLATES;
-	@TEMPLATES = [];
-	return @result;
+	registry.collected-templates;
 }
 
-=begin pod
-
-Clear the template collection without returning it.
-
-=end pod
 sub clear-collected-templates() is export {
-	@TEMPLATES = [];
+	registry.clear-templates;
 }
 
-=begin pod
-
-Return collected wrappers and clear the module-level list.
-
-=end pod
 sub get-collected-wrappers() is export {
-	my @wrappers = @WRAPPERS;
-	@WRAPPERS = [];
-	@wrappers
+	registry.collected-wrappers;
 }
 
-=begin pod
-
-Clear the wrapper collection without returning it.
-
-=end pod
 sub clear-collected-wrappers() is export {
-	@WRAPPERS = [];
+	registry.clear-wrappers;
 }
 
 =begin pod
@@ -161,147 +124,6 @@ sub attempt-slangify-activation() is export {
 Compile a RakuAST blockoid capture to an executable C<Block>.
 
 =end pod
-sub compile-blockoid(Mu $cap) {
-	return Nil unless $cap.defined;
-	my $body = try $cap.ast;
-	return Nil unless $body.defined;
-	_q_compile_block_body($body);
-}
-
-=begin pod
-
-Compile a RakuAST statement list body to a C<Block> at begin time.
-
-=end pod
-sub _q_compile_block_body(Mu $body) {
-	my $block = RakuAST::Block.new(body => $body);
-	try {
-		$block.to-begin-time($*R, $*CU.context);
-		my $code = $block.meta-object;
-		return $code if $code.defined;
-	}
-	Nil
-}
-
-=begin pod
-
-Compile a single expression as a one-statement block.
-
-=end pod
-sub _q_compile_block_expr(Mu $expr) {
-	_q_compile_block_body(RakuAST::StatementList.new(
-		RakuAST::Statement::Expression.new(:expression($expr)),
-	));
-}
-
-=begin pod
-
-Default C<$_> signature for templates without an explicit signature.
-
-=end pod
-sub implicit-template-signature() {
-	RakuAST::Signature.new(
-		parameters => (
-			RakuAST::Parameter.new(
-				target => RakuAST::ParameterTarget::Var.new(name => '$_'),
-				optional => False,
-			),
-		),
-	);
-}
-
-=begin pod
-
-Compile a RakuAST signature node to a runtime C<Signature> object.
-
-=end pod
-sub compile-signature($sig-ast) {
-	return Nil unless $sig-ast.defined;
-	return $sig-ast if $sig-ast ~~ Signature;
-	my $stub := RakuAST::Sub.new(
-		:signature($sig-ast),
-		body => RakuAST::Blockoid.new(),
-	);
-	try $stub.compile-time-value.signature // Nil
-}
-
-=begin pod
-
-Build conceptual method structure from template name, signature, and blocks.
-
-=end pod
-sub transform-template-to-method(
-	:$name,
-	:$signature,
-	:$when-block,
-	:$do-block,
-) {
-	return %(
-		name             => $name,
-		signature        => $signature,
-		where-constraint => convert-when-to-where($when-block),
-		body             => $do-block,
-		transformed      => True,
-	);
-}
-
-=begin pod
-
-Placeholder for converting a C<when> block to a where-constraint (identity today).
-
-=end pod
-sub convert-when-to-where($when-block) {
-	$when-block
-}
-
-=begin pod
-
-Extract compiled do-block from transformed method structure.
-
-=end pod
-sub compile-rakuast-method(%method-structure) {
-	return Nil unless %method-structure<transformed>;
-	%method-structure<body>
-}
-
-=begin pod
-
-Human-readable label for error messages.
-
-=end pod
-sub template-display-name($name) {
-	$name.defined ?? "template $name" !! "unnamed template"
-}
-
-=begin pod
-
-Apply C<is streaming>, C<is priority>, C<is tie-breaker>, and C<returns> traits to a template.
-
-=end pod
-sub apply-template-traits(Template $template, $routine) {
-	return unless $routine.traits.defined;
-	for $routine.traits -> $trait {
-		if $trait ~~ RakuAST::Trait::Is {
-			my $name = try $trait.name.simple-identifier // ~$trait.name;
-			given $name {
-				when 'streaming' { $template.streaming = True }
-				when 'priority' {
-					$template.priority = $trait.argument.defined
-						?? +(~$trait.argument)
-						!! 0;
-				}
-				when 'tie-breaker' {
-					$template.tie-breaker = $trait.argument.defined
-						?? +(~$trait.argument)
-						!! 0;
-				}
-			}
-		}
-		elsif $trait ~~ RakuAST::Trait::Returns {
-			$template.returns-type = try $trait.type.compile-time-value;
-		}
-	}
-}
 
 =begin pod
 
@@ -396,61 +218,61 @@ our role TemplateActions {
 	=end pod
 	method template-def(Mu $/) {
 		my $name = $<name>.defined ?? ~$<name> !! Nil;
-		my $signature = $<signature>.defined ?? compile-signature($<signature>.ast) !! Nil;
+		my $signature = $<signature>.defined ?? compiler.compile-signature($<signature>.ast) !! Nil;
 
 		my $routine := $*BLOCK;
 		if $name.defined {
 			$routine.replace-name(RakuAST::Name.from-identifier("_q_tpl_$name"));
 		}
 		unless $<signature>.defined {
-			$routine.replace-signature(implicit-template-signature());
+			$routine.replace-signature(compiler.implicit-template-signature);
 		}
 		unless $<do-block>.defined {
-			die "{template-display-name($name)}: required 'do' block is missing. "
+			die "{compiler.display-name($name)}: required 'do' block is missing. "
 			~ "Syntax: template [name] [signature] [traits] when { ... } do { ... }";
 		}
 		$routine.replace-body($<do-block>.ast);
 		self.attach: $/, $routine;
 
-		my $do-block = compile-blockoid($<do-block>) // try $routine.meta-object;
+		my $do-block = compiler.compile-blockoid($<do-block>) // try $routine.meta-object;
 		unless $do-block.defined {
-			die "{template-display-name($name)}: required 'do' block could not be compiled.";
+			die "{compiler.display-name($name)}: required 'do' block could not be compiled.";
 		}
 
 		my $when-query = Nil;
 		my $when-block = Nil;
 		my $combine-when-query = False;
 		if $<when-block>.defined {
-			my %parts = split-when-navigation-from-blockoid($<when-block>);
+			my %parts = extract.split-from-blockoid($<when-block>);
 			if %parts<query>.defined {
-				my $query-block = _q_compile_block_expr(%parts<query>);
-				$when-query = extract-navigation-query($query-block) if $query-block.defined;
+				my $query-block = compiler.compile-block-expr(%parts<query>);
+				$when-query = extract.from-when-block($query-block) if $query-block.defined;
 				$when-block = %parts<predicate>:exists
-					?? _q_compile_block_expr(%parts<predicate>)
+					?? compiler.compile-block-expr(%parts<predicate>)
 					!! Nil;
 				$combine-when-query = %parts<predicate>:exists;
 			}
 			else {
-				$when-block = compile-blockoid($<when-block>);
-				$when-query = extract-navigation-query($when-block) if $when-block.defined;
-				if $when-query.defined && is-navigation-query-when($when-block) {
+				$when-block = compiler.compile-blockoid($<when-block>);
+				$when-query = extract.from-when-block($when-block) if $when-block.defined;
+				if $when-query.defined && extract.is-pure-navigation-when($when-block) {
 					$when-block = Nil;
 				}
 			}
 		}
 
-		my %method-structure = transform-template-to-method(
+		my %method-structure = compiler.transform-to-method(
 			:$name, :$signature, :$when-block, :$do-block,
 		);
 		$when-block = %method-structure<where-constraint>;
-		$do-block   = compile-rakuast-method(%method-structure) // $do-block;
+		$do-block   = compiler.compile-rakuast-method(%method-structure) // $do-block;
 
 		my $template = Template.new(
 			:$name, :$signature, :$when-block, :$when-query,
 			:$combine-when-query,
 			:$do-block,
 		);
-		apply-template-traits($template, $routine);
+		compiler.apply-traits($template, $routine);
 		register-template($template);
 	}
 
@@ -481,7 +303,7 @@ our role TemplateActions {
 		}
 		$routine.replace-body($<wrap-block>.ast);
 		self.attach: $/, $routine;
-		my $block = try $routine.meta-object // compile-blockoid($<wrap-block>);
+		my $block = try $routine.meta-object // compiler.compile-blockoid($<wrap-block>);
 		unless $block.defined {
 			die "Wrapper $type: block could not be compiled.";
 		}

@@ -154,7 +154,7 @@ subtest "RakuAST slang implementation" => {
 		"Template::Slang does not use MONKEY-SEE-NO-EVAL";
 	ok $slang-code.contains('use Slangify TemplateGrammar, TemplateActions'),
 		"Template::Slang activates slang via Slangify";
-	ok $slang-code.contains('transform-template-to-method'),
+	ok $slang-code.contains('transform-to-method'),
 		"WP03 method transformation is implemented";
 }
 

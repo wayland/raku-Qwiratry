@@ -16,8 +16,11 @@ use Qwiratry::Operator::Navigation;
 use Qwiratry::Operator::Capability;
 use Qwiratry::Operator::Set;
 use Qwiratry::Operator::MapReduce;
+use Qwiratry::Query::Selector;
 
 unit class Qwiratry::Query::Specificity;
+
+my constant selector = Qwiratry::Query::Selector.instance;
 
 my $instance;
 
@@ -86,21 +89,7 @@ method !operator-contribution(Mu $op --> Int) {
 }
 
 method !selector-contribution(Mu $selector --> Int) {
-	return -10 if self!is-wildcard-selector($selector);
-	return 5 if self!is-explicit-path-selector($selector);
+	return -10 if selector.is-wildcard($selector);
+	return 5 if selector.is-explicit-path($selector);
 	0;
-}
-
-method !is-wildcard-selector(Mu $selector --> Bool) {
-	return True if $selector ~~ Whatever;
-	return True if $selector ~~ Str && $selector eq any(<* **>);
-	False;
-}
-
-method !is-explicit-path-selector(Mu $selector --> Bool) {
-	return False unless $selector.defined;
-	return False if self!is-wildcard-selector($selector);
-	return True if $selector ~~ Str && $selector.chars > 0;
-	return True if $selector ~~ Callable;
-	False;
 }

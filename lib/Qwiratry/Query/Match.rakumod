@@ -21,11 +21,13 @@ use Qwiratry::Operator::Set;
 use Qwiratry::Operator::MapReduce;
 use Qwiratry::Operator::IO;
 use Qwiratry::Query::Relational;
-use Qwiratry::Query::TableNav;
 use Qwiratry::Query::Lazy;
 use Qwiratry::Table;
+use Qwiratry::Table::Schema;
+use Qwiratry::Query::Selector;
 
 my sub relational() { Qwiratry::Query::Relational.instance }
+my constant selector = Qwiratry::Query::Selector.instance;
 
 =begin pod
 
@@ -68,21 +70,21 @@ sub match-topic-chain(Mu $query, Mu $node, Mu :$origin --> Bool) {
 	given $query {
 		when NavQueryTopic { True }
 		when ChildOperator {
-			return False unless selector-matches(.selector, $node);
+			return False unless selector.matches(.selector, $node);
 			return True if .subject ~~ NavQueryTopic;
 			my $parent = tree-parent($node, :$origin);
 			return False unless $parent.defined;
 			match-topic-chain(.subject, $parent, :$origin);
 		}
 		when DescendantOperator {
-			return False unless selector-matches(.selector, $node);
+			return False unless selector.matches(.selector, $node);
 			return True if .subject ~~ NavQueryTopic;
 			match-topic-chain(.subject, $node, :$origin);
 		}
 		default {
 			my $leaf = navigation-leaf($query);
 			return False unless $leaf.defined && $leaf.can('selector');
-			selector-matches($leaf.selector, $node);
+			selector.matches($leaf.selector, $node);
 		}
 	}
 }
@@ -267,15 +269,15 @@ sub select-list-eager(Mu $query, Mu $origin --> List) {
 		}
 		when ChildOperator {
 			my @bases = resolve-bases($query, $origin);
-			my $catalog = table-catalog($origin);
+			my $catalog = Qwiratry::Table::Schema.instance.discover($origin);
 			my @results;
 			for @bases -> $base {
 				if $catalog.defined {
-					@results.append(table-child-results($base, $query, $catalog));
+					@results.append($catalog.child-results($base, $query));
 				}
 				else {
 					for tree-children($base) -> $child {
-						@results.push($child) if selector-matches($query.selector, $child);
+						@results.push($child) if selector.matches($query.selector, $child);
 					}
 				}
 			}
@@ -283,15 +285,15 @@ sub select-list-eager(Mu $query, Mu $origin --> List) {
 		}
 		when DescendantOperator {
 			my @bases = resolve-bases($query, $origin);
-			my $catalog = table-catalog($origin);
+			my $catalog = Qwiratry::Table::Schema.instance.discover($origin);
 			my @results;
 			for @bases -> $base {
 				if $catalog.defined {
-					@results.append(table-descendant-results($base, $query, $catalog));
+					@results.append($catalog.descendant-results($base, $query));
 				}
 				else {
 					for tree-descendants($base) -> $desc {
-						@results.push($desc) if selector-matches($query.selector, $desc);
+						@results.push($desc) if selector.matches($query.selector, $desc);
 					}
 				}
 			}
@@ -308,31 +310,31 @@ sub select-list-eager(Mu $query, Mu $origin --> List) {
 		}
 		when ParentOperator {
 			my @bases = resolve-bases($query, $origin);
-			my $catalog = table-catalog($origin);
+			my $catalog = Qwiratry::Table::Schema.instance.discover($origin);
 			my @results;
 			for @bases -> $base {
 				if $catalog.defined {
-					@results.append(table-parent-results($base, $query, $catalog));
+					@results.append($catalog.parent-results($base, $query));
 				}
 				else {
 					my $parent = tree-parent($base, :$origin);
 					@results.push($parent) if $parent.defined
-						&& selector-matches($query.selector, $parent);
+						&& selector.matches($query.selector, $parent);
 				}
 			}
 			return @results;
 		}
 		when AncestorOperator {
 			my @bases = resolve-bases($query, $origin);
-			my $catalog = table-catalog($origin);
+			my $catalog = Qwiratry::Table::Schema.instance.discover($origin);
 			my @results;
 			for @bases -> $base {
 				if $catalog.defined {
-					@results.append(table-parent-results($base, $query, $catalog));
+					@results.append($catalog.parent-results($base, $query));
 				}
 				else {
 					for tree-ancestors($base, :$origin) -> $anc {
-						@results.push($anc) if selector-matches($query.selector, $anc);
+						@results.push($anc) if selector.matches($query.selector, $anc);
 					}
 				}
 			}
@@ -341,11 +343,11 @@ sub select-list-eager(Mu $query, Mu $origin --> List) {
 		when FollowingSiblingOperator | PrecedingSiblingOperator
 				| FollowingOperator | PrecedingOperator {
 			my @bases = resolve-bases($query, $origin);
-			my $catalog = table-catalog($origin);
+			my $catalog = Qwiratry::Table::Schema.instance.discover($origin);
 			my @results;
 			for @bases -> $base {
-				if $catalog.defined && table-row-base($base) {
-					@results.append(table-sibling-results($base, $query, $catalog));
+				if $catalog.defined && $catalog.is-table-row($base) {
+					@results.append($catalog.sibling-results($base, $query));
 					next;
 				}
 				my @siblings = sibling-context($base, :$origin)<all>;
@@ -354,7 +356,7 @@ sub select-list-eager(Mu $query, Mu $origin --> List) {
 				my @candidates = sibling-candidates($query, @siblings, $index);
 				for @candidates -> $candidate {
 					@results.push($candidate)
-						if selector-matches($query.selector, $candidate);
+						if selector.matches($query.selector, $candidate);
 				}
 			}
 			return @results;
@@ -639,54 +641,12 @@ sub sibling-candidates(Mu $op, @siblings, Int $index --> List) {
 }
 
 sub attribute-value(Mu $node, Mu $key --> Mu) {
-	my $name = normalize-key($key);
+	my $name = selector.normalize-key($key);
 	if $node ~~ Associative && $node{$name}:exists {
 		return $node{$name};
 	}
 	if $node.can($name) {
 		return $node.$name;
-	}
-	Nil
-}
-
-sub normalize-key(Mu $key --> Str) {
-	return $key if $key ~~ Str;
-	if $key ~~ List && $key.elems == 1 {
-		return normalize-key($key[0]);
-	}
-	~$key
-}
-
-sub selector-matches(Mu $selector, Mu $node --> Bool) {
-	return True if is-wildcard-selector($selector);
-	if $selector ~~ List {
-		return True if $selector.grep({ selector-matches($_, $node) }).so;
-		return False;
-	}
-	if $selector ~~ Str {
-		my $name = node-name($node);
-		return $name.defined && $name eq normalize-selector-name($selector);
-	}
-	False
-}
-
-sub normalize-selector-name(Str $selector --> Str) {
-	return $selector.substr(1, *-2) if $selector.starts-with('<') && $selector.ends-with('>');
-	$selector
-}
-
-sub is-wildcard-selector(Mu $selector --> Bool) {
-	return True if $selector ~~ Whatever;
-	return True if $selector ~~ Str && $selector eq any(<* **>);
-	False
-}
-
-sub node-name(Mu $node --> Mu) {
-	return $node if $node ~~ Str;
-	if $node ~~ Associative {
-		for <name tag type> -> $field {
-			return ~($node{$field}) if $node{$field}:exists;
-		}
 	}
 	Nil
 }

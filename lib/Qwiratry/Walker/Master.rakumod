@@ -202,7 +202,7 @@ class Qwiratry::Walker::Master does Qwiratry::Walker {
 	# Check "providing" trait on root object, return domain names or Nil.
 	# Uses providing-domains() from Qwiratry::Walker::Providing to extract domain metadata.
 	method check-domain-metadata($root is raw --> Array) {
-		cached-providing-domains($root);
+		Qwiratry::Walker::Providing.instance.cached-domains($root);
 	}
     
 	# Query walker about capability via supports() method.

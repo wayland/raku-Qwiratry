@@ -21,7 +21,9 @@ use Qwiratry::Strategy::Traversal;
 use Qwiratry::Strategy::ControlSignal;
 use X::Qwiratry;
 
-unit class Qwiratry::Walker::Implementation::Table does Qwiratry::Walker {
+my constant traversal = Qwiratry::Strategy::Traversal.instance;
+
+class Qwiratry::Walker::Implementation::Table does Qwiratry::Walker is export {
 	my class TableContext does Context {
 		has Int $.rows-scanned is rw = 0;
 		has $.finish-result is rw;
@@ -64,7 +66,7 @@ unit class Qwiratry::Walker::Implementation::Table does Qwiratry::Walker {
 
 		method !stop-traversal() {
 			unless $!finish-invoked {
-				invoke-finish($!root, $.context);
+				traversal.invoke-finish($!root, $.context);
 				$!finish-invoked = True;
 			}
 			$!finished = True;
@@ -77,25 +79,25 @@ unit class Qwiratry::Walker::Implementation::Table does Qwiratry::Walker {
 
 			while $!index < $!rows.elems {
 				my $row = $!rows[$!index++];
-				my %state;
+				my $state = TraversalState.new;
 
-				my $before = run-before($row, $.context, %state);
-				if stopped(%state) {
+				my $before = traversal.run-before($row, $.context, $state);
+				if $state.stopped {
 					self!stop-traversal;
 					return $row if $before ~~ ControlSignal && $before != SKIP_ELEMENT;
 					return IterationEnd;
 				}
 				next if $before ~~ ControlSignal && $before == SKIP_ELEMENT;
 
-				run-on-match($row, $!query-ast, $!root, $.context, %state);
-				if stopped(%state) {
+				traversal.run-on-match($row, $!query-ast, $!root, $.context, $state);
+				if $state.stopped {
 					self!stop-traversal;
 					return $row if node-matches($!query-ast, $row, :origin($!root));
 					return IterationEnd;
 				}
 
-				run-after($row, $.context, %state);
-				if stopped(%state) {
+				traversal.run-after($row, $.context, $state);
+				if $state.stopped {
 					self!stop-traversal;
 				}
 
@@ -105,7 +107,7 @@ unit class Qwiratry::Walker::Implementation::Table does Qwiratry::Walker {
 			}
 
 			unless $!finish-invoked {
-				invoke-finish($!root, $.context);
+				traversal.invoke-finish($!root, $.context);
 				$!finish-invoked = True;
 			}
 			$!finished = True;
