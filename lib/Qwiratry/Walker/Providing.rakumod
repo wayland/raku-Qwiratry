@@ -37,8 +37,9 @@ sub normalize-providing-domains($providing --> List) {
 
 sub providing-container($obj is raw) {
     return $obj if $obj ~~ Positional || $obj ~~ Associative;
-    my $container = try { $obj.VAR } // $obj;
-    return $container if $container ~~ Positional || $container ~~ Associative;
+    if (my $var = try { $obj.VAR }) {
+        return $var;
+    }
     $obj
 }
 
