@@ -46,103 +46,103 @@ Example:
 =end pod
 role Strategy is export {
     
-    =begin pod
+	=begin pod
 
-    Called before visiting an element (pre-visit).
+	Called before visiting an element (pre-visit).
 
-    This hook is called before processing an element and its relations.
-    It can return a ControlSignal to control traversal:
-      - NO_REWRITE: Continue normally
-      - SKIP_ELEMENT: Skip this element and its relations
-      - STOP_TRAVERSAL: Halt traversal immediately
-      - Nil: Same as NO_REWRITE (default)
+	This hook is called before processing an element and its relations.
+	It can return a ControlSignal to control traversal:
+	- NO_REWRITE: Continue normally
+	- SKIP_ELEMENT: Skip this element and its relations
+	- STOP_TRAVERSAL: Halt traversal immediately
+	- Nil: Same as NO_REWRITE (default)
 
-    @param $element - The element being visited
-    @param $ctx - The Context for this traversal
-    @returns ControlSignal|Nil - Traversal control signal, or Nil for default
+	@param $element - The element being visited
+	@param $ctx - The Context for this traversal
+	@returns ControlSignal|Nil - Traversal control signal, or Nil for default
 
-    =end pod
-    method before($element, Context $ctx) { Nil }
+	=end pod
+	method before($element, Context $ctx) { Nil }
     
-    =begin pod
+	=begin pod
 
-    Called when a query matches an element.
+	Called when a query matches an element.
 
-    This hook is called when the query successfully matches an element.
-    It can return:
-      - ControlSignal: To control traversal (NO_REWRITE, SKIP_ELEMENT, STOP_TRAVERSAL)
-      - RewriteSpec: To indicate the element was rewritten (future feature)
-      - Nil: Continue normally (default)
+	This hook is called when the query successfully matches an element.
+	It can return:
+	- ControlSignal: To control traversal (NO_REWRITE, SKIP_ELEMENT, STOP_TRAVERSAL)
+	- RewriteSpec: To indicate the element was rewritten (future feature)
+	- Nil: Continue normally (default)
 
-    @param $element - The matched element
-    @param $match - The Match object from the query
-    @param $ctx - The Context for this traversal
-    @returns ControlSignal|RewriteSpec|Nil - Traversal control or rewrite spec, or Nil for default
+	@param $element - The matched element
+	@param $match - The Match object from the query
+	@param $ctx - The Context for this traversal
+	@returns ControlSignal|RewriteSpec|Nil - Traversal control or rewrite spec, or Nil for default
 
-    =end pod
-    method on-match($element, QueryMatch $match, Context $ctx) { Nil }
+	=end pod
+	method on-match($element, QueryMatch $match, Context $ctx) { Nil }
     
-    =begin pod
+	=begin pod
 
-    Decide whether to follow a relation to another element.
+	Decide whether to follow a relation to another element.
 
-    This hook is called for each relation of an element to decide whether
-    to traverse into the related element. Return False to prune this branch.
+	This hook is called for each relation of an element to decide whether
+	to traverse into the related element. Return False to prune this branch.
 
-    @param $origin - The source element
-    @param $relation - The relation name or identifier
-    @param $target - The target element
-    @param $ctx - The Context for this traversal
-    @returns Bool - True to follow the relation, False to prune
+	@param $origin - The source element
+	@param $relation - The relation name or identifier
+	@param $target - The target element
+	@param $ctx - The Context for this traversal
+	@returns Bool - True to follow the relation, False to prune
 
-    =end pod
-    method should-follow($origin, $relation, $target, Context $ctx --> Bool) { True }
+	=end pod
+	method should-follow($origin, $relation, $target, Context $ctx --> Bool) { True }
     
-    =begin pod
+	=begin pod
 
-    Called after visiting all relations of an element (post-visit).
+	Called after visiting all relations of an element (post-visit).
 
-    This hook is called after processing an element and all its relations.
-    It can return:
-      - ControlSignal: To control traversal (NO_REWRITE, SKIP_ELEMENT, STOP_TRAVERSAL)
-      - RewriteSpec: To indicate the element was rewritten (future feature)
-      - Nil: Continue normally (default)
+	This hook is called after processing an element and all its relations.
+	It can return:
+	- ControlSignal: To control traversal (NO_REWRITE, SKIP_ELEMENT, STOP_TRAVERSAL)
+	- RewriteSpec: To indicate the element was rewritten (future feature)
+	- Nil: Continue normally (default)
 
-    @param $element - The element that was visited
-    @param $ctx - The Context for this traversal
-    @returns ControlSignal|RewriteSpec|Nil - Traversal control or rewrite spec, or Nil for default
+	@param $element - The element that was visited
+	@param $ctx - The Context for this traversal
+	@returns ControlSignal|RewriteSpec|Nil - Traversal control or rewrite spec, or Nil for default
 
-    =end pod
-    method after($element, Context $ctx) { Nil }
+	=end pod
+	method after($element, Context $ctx) { Nil }
     
-    =begin pod
+	=begin pod
 
-    Called after completing a full traversal.
+	Called after completing a full traversal.
 
-    This hook is called once when the traversal completes (or is stopped).
-    It should return a FinishResult containing the traversal outcome.
+	This hook is called once when the traversal completes (or is stopped).
+	It should return a FinishResult containing the traversal outcome.
 
-    @param $root - The root element of the traversal
-    @param $ctx - The Context for this traversal
-    @returns FinishResult - The traversal outcome
+	@param $root - The root element of the traversal
+	@param $ctx - The Context for this traversal
+	@returns FinishResult - The traversal outcome
 
-    =end pod
-    method finish($root, Context $ctx --> FinishResult) {
-        FinishResult.new(type => 'final-result', value => Nil)
-    }
+	=end pod
+	method finish($root, Context $ctx --> FinishResult) {
+		FinishResult.new(type => 'final-result', value => Nil)
+	}
     
-    =begin pod
+	=begin pod
 
-    Decide whether to continue with another traversal pass.
+	Decide whether to continue with another traversal pass.
 
-    This hook is called after finish() to support fixed-point iteration.
-    Return True to trigger another traversal pass. This enables multi-pass
-    algorithms like iterative dataflow analysis or rewrite until stable.
+	This hook is called after finish() to support fixed-point iteration.
+	Return True to trigger another traversal pass. This enables multi-pass
+	algorithms like iterative dataflow analysis or rewrite until stable.
 
-    @param $root - The root element of the traversal
-    @param $ctx - The Context for this traversal
-    @returns Bool - True to continue with another pass, False to stop (default)
+	@param $root - The root element of the traversal
+	@param $ctx - The Context for this traversal
+	@returns Bool - True to continue with another pass, False to stop (default)
 
-    =end pod
-    method should-continue($root, Context $ctx --> Bool) { False }
+	=end pod
+	method should-continue($root, Context $ctx --> Bool) { False }
 }

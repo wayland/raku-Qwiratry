@@ -15,427 +15,427 @@ use Qwiratry::Operator::IO;
 use Qwiratry::Query::Relational;
 
 sub iterator-for(Mu $source --> Iterator) {
-    return $source if $source ~~ Iterator;
-    if $source ~~ Seq {
-        return $source.iterator;
-    }
-    $source.list.iterator;
+	return $source if $source ~~ Iterator;
+	if $source ~~ Seq {
+		return $source.iterator;
+	}
+	$source.list.iterator;
 }
 
 sub lazy-seq(Iterator $iter --> Seq) {
-    Seq.new($iter)
+	Seq.new($iter)
 }
 
 sub source-list(Mu $source --> List) {
-    return $source.list if $source ~~ Seq | List | Array;
-    if $source ~~ Positional {
-        return $source.list;
-    }
-    return gather {
-        my $iter = iterator-for($source);
-        loop {
-            my $item = pull-next($iter);
-            last if $item ~~ IterationEnd;
-            take $item;
-        }
-    }.List;
+	return $source.list if $source ~~ Seq | List | Array;
+	if $source ~~ Positional {
+		return $source.list;
+	}
+	return gather {
+		my $iter = iterator-for($source);
+		loop {
+			my $item = pull-next($iter);
+			last if $item ~~ IterationEnd;
+			take $item;
+		}
+	}.List;
 }
 
 #| Advance past IterationEnd, returning the next value or IterationEnd.
 sub pull-next(Iterator $iter) {
-    my $item = $iter.pull-one;
-    $item ~~ IterationEnd ?? IterationEnd !! $item
+	my $item = $iter.pull-one;
+	$item ~~ IterationEnd ?? IterationEnd !! $item
 }
 
 class ListIterator does Iterator {
-    has Mu @.items is required;
-    has Int $!idx = 0;
+	has Mu @.items is required;
+	has Int $!idx = 0;
 
-    method pull-one {
-        return IterationEnd if $!idx >= @.items;
-        @.items[$!idx++]
-    }
+	method pull-one {
+		return IterationEnd if $!idx >= @.items;
+		@.items[$!idx++]
+	}
 }
 
 sub source-iterator(Mu $source --> Iterator) {
-    ListIterator.new(items => source-list($source))
+	ListIterator.new(items => source-list($source))
 }
 
 class UnionIterator does Iterator {
-    has Mu @.sources is required;
-    has Int $!source-idx = 0;
-    has Iterator $!iter;
-    has Mu @!seen;
+	has Mu @.sources is required;
+	has Int $!source-idx = 0;
+	has Iterator $!iter;
+	has Mu @!seen;
 
-    method pull-one {
-        loop {
-            unless $!iter.defined {
-                return IterationEnd if $!source-idx >= @.sources;
-                my $src = @.sources[$!source-idx++];
-                $!iter = iterator-for($src);
-            }
-            my $row = pull-next($!iter);
-            if $row ~~ IterationEnd {
-                $!iter = Nil;
-                next;
-            }
-            next if node-in-list($row, @!seen);
-            @!seen.push($row);
-            return $row;
-        }
-    }
+	method pull-one {
+		loop {
+			unless $!iter.defined {
+				return IterationEnd if $!source-idx >= @.sources;
+				my $src = @.sources[$!source-idx++];
+				$!iter = iterator-for($src);
+			}
+			my $row = pull-next($!iter);
+			if $row ~~ IterationEnd {
+				$!iter = Nil;
+				next;
+			}
+			next if node-in-list($row, @!seen);
+			@!seen.push($row);
+			return $row;
+		}
+	}
 }
 
 class IntersectionIterator does Iterator {
-    has Mu $.left is required;
-    has Mu $.right is required;
-    has Iterator $!left-iter;
-    has @!right-list;
-    has Bool $!right-ready = False;
+	has Mu $.left is required;
+	has Mu $.right is required;
+	has Iterator $!left-iter;
+	has @!right-list;
+	has Bool $!right-ready = False;
 
-    method pull-one {
-        $!left-iter //= iterator-for($.left);
-        unless $!right-ready {
-            @!right-list = source-list($.right);
-            $!right-ready = True;
-        }
-        loop {
-            my $lrow = pull-next($!left-iter);
-            return IterationEnd if $lrow ~~ IterationEnd;
-            return $lrow if node-in-list($lrow, @!right-list);
-        }
-    }
+	method pull-one {
+		$!left-iter //= iterator-for($.left);
+		unless $!right-ready {
+			@!right-list = source-list($.right);
+			$!right-ready = True;
+		}
+		loop {
+			my $lrow = pull-next($!left-iter);
+			return IterationEnd if $lrow ~~ IterationEnd;
+			return $lrow if node-in-list($lrow, @!right-list);
+		}
+	}
 }
 
 class SetDifferenceIterator does Iterator {
-    has Mu $.left is required;
-    has Mu $.right is required;
-    has Iterator $!left-iter;
-    has @!right-list;
-    has Bool $!right-ready = False;
+	has Mu $.left is required;
+	has Mu $.right is required;
+	has Iterator $!left-iter;
+	has @!right-list;
+	has Bool $!right-ready = False;
 
-    method pull-one {
-        $!left-iter //= iterator-for($.left);
-        unless $!right-ready {
-            @!right-list = source-list($.right);
-            $!right-ready = True;
-        }
-        loop {
-            my $lrow = pull-next($!left-iter);
-            return IterationEnd if $lrow ~~ IterationEnd;
-            return $lrow unless row-in-list($lrow, @!right-list);
-        }
-    }
+	method pull-one {
+		$!left-iter //= iterator-for($.left);
+		unless $!right-ready {
+			@!right-list = source-list($.right);
+			$!right-ready = True;
+		}
+		loop {
+			my $lrow = pull-next($!left-iter);
+			return IterationEnd if $lrow ~~ IterationEnd;
+			return $lrow unless row-in-list($lrow, @!right-list);
+		}
+	}
 }
 
 our sub lazy-from-list(@items --> Seq) is export {
-    return ().Seq unless @items;
-    lazy-seq ListIterator.new(items => @items)
+	return ().Seq unless @items;
+	lazy-seq ListIterator.new(items => @items)
 }
 
 class NaturalJoinIterator does Iterator {
-    has Mu $.left is required;
-    has Mu $.right is required;
-    has &.condition;
-    has Iterator $!left-iter;
-    has Mu $!current-left;
-    has Iterator $!right-iter;
+	has Mu $.left is required;
+	has Mu $.right is required;
+	has &.condition;
+	has Iterator $!left-iter;
+	has Mu $!current-left;
+	has Iterator $!right-iter;
 
-    method pull-one {
-        loop {
-            unless $!current-left.defined {
-                $!left-iter //= iterator-for($.left);
-                $!current-left = pull-next($!left-iter);
-                return IterationEnd if $!current-left ~~ IterationEnd;
-                next unless $!current-left ~~ Associative;
-                $!right-iter = iterator-for($.right);
-            }
-            my $rrow = pull-next($!right-iter);
-            if $rrow ~~ IterationEnd {
-                $!current-left = Nil;
-                $!right-iter = Nil;
-                next;
-            }
-            next unless $rrow ~~ Associative;
-            my $matches = &!condition.defined
-                ?? &!condition($!current-left, $rrow)
-                !! join-on-common-keys($!current-left, $rrow);
-            return merge-rows($!current-left, $rrow) if $matches;
-        }
-    }
+	method pull-one {
+		loop {
+			unless $!current-left.defined {
+				$!left-iter //= iterator-for($.left);
+				$!current-left = pull-next($!left-iter);
+				return IterationEnd if $!current-left ~~ IterationEnd;
+				next unless $!current-left ~~ Associative;
+				$!right-iter = iterator-for($.right);
+			}
+			my $rrow = pull-next($!right-iter);
+			if $rrow ~~ IterationEnd {
+				$!current-left = Nil;
+				$!right-iter = Nil;
+				next;
+			}
+			next unless $rrow ~~ Associative;
+			my $matches = &!condition.defined
+				?? &!condition($!current-left, $rrow)
+				!! join-on-common-keys($!current-left, $rrow);
+			return merge-rows($!current-left, $rrow) if $matches;
+		}
+	}
 }
 
 class LeftOuterJoinIterator does Iterator {
-    has Mu $.left is required;
-    has Mu $.right is required;
-    has &.condition;
-    has Iterator $!left-iter;
-    has Mu $!current-left;
-    has Iterator $!right-iter;
-    has @!pending;
+	has Mu $.left is required;
+	has Mu $.right is required;
+	has &.condition;
+	has Iterator $!left-iter;
+	has Mu $!current-left;
+	has Iterator $!right-iter;
+	has @!pending;
 
-    method pull-one {
-        return @!pending.shift if @!pending;
-        loop {
-            $!left-iter //= iterator-for($.left);
-            $!current-left = pull-next($!left-iter);
-            return IterationEnd if $!current-left ~~ IterationEnd;
+	method pull-one {
+		return @!pending.shift if @!pending;
+		loop {
+			$!left-iter //= iterator-for($.left);
+			$!current-left = pull-next($!left-iter);
+			return IterationEnd if $!current-left ~~ IterationEnd;
 
-            my @matches;
-            $!right-iter = iterator-for($.right);
-            loop {
-                my $rrow = pull-next($!right-iter);
-                last if $rrow ~~ IterationEnd;
-                my $ok = &!condition.defined
-                    ?? &!condition($!current-left, $rrow)
-                    !! join-on-common-keys($!current-left, $rrow);
-                @matches.push(merge-rows($!current-left, $rrow)) if $ok;
-            }
-            if @matches {
-                @!pending = @matches;
-                return @!pending.shift;
-            }
-            return %($!current-left);
-        }
-    }
+			my @matches;
+			$!right-iter = iterator-for($.right);
+			loop {
+				my $rrow = pull-next($!right-iter);
+				last if $rrow ~~ IterationEnd;
+				my $ok = &!condition.defined
+					?? &!condition($!current-left, $rrow)
+					!! join-on-common-keys($!current-left, $rrow);
+				@matches.push(merge-rows($!current-left, $rrow)) if $ok;
+			}
+			if @matches {
+				@!pending = @matches;
+				return @!pending.shift;
+			}
+			return %($!current-left);
+		}
+	}
 }
 
 class RightOuterJoinIterator does Iterator {
-    has Mu $.left is required;
-    has Mu $.right is required;
-    has &.condition;
-    has Iterator $!right-iter;
-    has Mu $!current-right;
-    has Iterator $!left-iter;
-    has @!pending;
+	has Mu $.left is required;
+	has Mu $.right is required;
+	has &.condition;
+	has Iterator $!right-iter;
+	has Mu $!current-right;
+	has Iterator $!left-iter;
+	has @!pending;
 
-    method pull-one {
-        return @!pending.shift if @!pending;
-        loop {
-            $!right-iter //= iterator-for($.right);
-            $!current-right = pull-next($!right-iter);
-            return IterationEnd if $!current-right ~~ IterationEnd;
+	method pull-one {
+		return @!pending.shift if @!pending;
+		loop {
+			$!right-iter //= iterator-for($.right);
+			$!current-right = pull-next($!right-iter);
+			return IterationEnd if $!current-right ~~ IterationEnd;
 
-            my @matches;
-            $!left-iter = iterator-for($.left);
-            loop {
-                my $lrow = pull-next($!left-iter);
-                last if $lrow ~~ IterationEnd;
-                my $ok = &!condition.defined
-                    ?? &!condition($lrow, $!current-right)
-                    !! join-on-common-keys($lrow, $!current-right);
-                @matches.push(merge-rows($lrow, $!current-right)) if $ok;
-            }
-            if @matches {
-                @!pending = @matches;
-                return @!pending.shift;
-            }
-            return %($!current-right);
-        }
-    }
+			my @matches;
+			$!left-iter = iterator-for($.left);
+			loop {
+				my $lrow = pull-next($!left-iter);
+				last if $lrow ~~ IterationEnd;
+				my $ok = &!condition.defined
+					?? &!condition($lrow, $!current-right)
+					!! join-on-common-keys($lrow, $!current-right);
+				@matches.push(merge-rows($lrow, $!current-right)) if $ok;
+			}
+			if @matches {
+				@!pending = @matches;
+				return @!pending.shift;
+			}
+			return %($!current-right);
+		}
+	}
 }
 
 class LeftSemijoinIterator does Iterator {
-    has Mu $.left is required;
-    has Mu $.right is required;
-    has &.condition;
-    has Iterator $!left-iter;
+	has Mu $.left is required;
+	has Mu $.right is required;
+	has &.condition;
+	has Iterator $!left-iter;
 
-    method pull-one {
-        $!left-iter //= iterator-for($.left);
-        loop {
-            my $lrow = pull-next($!left-iter);
-            return IterationEnd if $lrow ~~ IterationEnd;
-            my $right-iter = iterator-for($.right);
-            loop {
-                my $rrow = pull-next($right-iter);
-                last if $rrow ~~ IterationEnd;
-                my $ok = &!condition.defined
-                    ?? &!condition($lrow, $rrow)
-                    !! join-on-common-keys($lrow, $rrow);
-                return %($lrow) if $ok;
-            }
-        }
-    }
+	method pull-one {
+		$!left-iter //= iterator-for($.left);
+		loop {
+			my $lrow = pull-next($!left-iter);
+			return IterationEnd if $lrow ~~ IterationEnd;
+			my $right-iter = iterator-for($.right);
+			loop {
+				my $rrow = pull-next($right-iter);
+				last if $rrow ~~ IterationEnd;
+				my $ok = &!condition.defined
+					?? &!condition($lrow, $rrow)
+					!! join-on-common-keys($lrow, $rrow);
+				return %($lrow) if $ok;
+			}
+		}
+	}
 }
 
 class LeftAntijoinIterator does Iterator {
-    has Mu $.left is required;
-    has Mu $.right is required;
-    has &.condition;
-    has Iterator $!left-iter;
+	has Mu $.left is required;
+	has Mu $.right is required;
+	has &.condition;
+	has Iterator $!left-iter;
 
-    method pull-one {
-        $!left-iter //= iterator-for($.left);
-        loop {
-            my $lrow = pull-next($!left-iter);
-            return IterationEnd if $lrow ~~ IterationEnd;
-            my $matched = False;
-            my $right-iter = iterator-for($.right);
-            loop {
-                my $rrow = pull-next($right-iter);
-                last if $rrow ~~ IterationEnd;
-                my $ok = &!condition.defined
-                    ?? &!condition($lrow, $rrow)
-                    !! join-on-common-keys($lrow, $rrow);
-                if $ok {
-                    $matched = True;
-                    last;
-                }
-            }
-            return %($lrow) unless $matched;
-        }
-    }
+	method pull-one {
+		$!left-iter //= iterator-for($.left);
+		loop {
+			my $lrow = pull-next($!left-iter);
+			return IterationEnd if $lrow ~~ IterationEnd;
+			my $matched = False;
+			my $right-iter = iterator-for($.right);
+			loop {
+				my $rrow = pull-next($right-iter);
+				last if $rrow ~~ IterationEnd;
+				my $ok = &!condition.defined
+					?? &!condition($lrow, $rrow)
+					!! join-on-common-keys($lrow, $rrow);
+				if $ok {
+					$matched = True;
+					last;
+				}
+			}
+			return %($lrow) unless $matched;
+		}
+	}
 }
 
 class CrossJoinIterator does Iterator {
-    has Mu $.left is required;
-    has Mu $.right is required;
-    has Iterator $!left-iter;
-    has Mu $!current-left;
-    has Iterator $!right-iter;
+	has Mu $.left is required;
+	has Mu $.right is required;
+	has Iterator $!left-iter;
+	has Mu $!current-left;
+	has Iterator $!right-iter;
 
-    method pull-one {
-        loop {
-            unless $!current-left.defined {
-                $!left-iter //= iterator-for($.left);
-                $!current-left = pull-next($!left-iter);
-                return IterationEnd if $!current-left ~~ IterationEnd;
-                $!right-iter = iterator-for($.right);
-            }
-            my $rrow = pull-next($!right-iter);
-            if $rrow ~~ IterationEnd {
-                $!current-left = Nil;
-                $!right-iter = Nil;
-                next;
-            }
-            return merge-rows($!current-left, $rrow);
-        }
-    }
+	method pull-one {
+		loop {
+			unless $!current-left.defined {
+				$!left-iter //= iterator-for($.left);
+				$!current-left = pull-next($!left-iter);
+				return IterationEnd if $!current-left ~~ IterationEnd;
+				$!right-iter = iterator-for($.right);
+			}
+			my $rrow = pull-next($!right-iter);
+			if $rrow ~~ IterationEnd {
+				$!current-left = Nil;
+				$!right-iter = Nil;
+				next;
+			}
+			return merge-rows($!current-left, $rrow);
+		}
+	}
 }
 
 class ProjectionIterator does Iterator {
-    has Mu $.rows is required;
-    has Mu @.columns is required;
-    has Iterator $!iter;
+	has Mu $.rows is required;
+	has Mu @.columns is required;
+	has Iterator $!iter;
 
-    method pull-one {
-        $!iter //= iterator-for($.rows);
-        loop {
-            my $row = pull-next($!iter);
-            return IterationEnd if $row ~~ IterationEnd;
-            return $row ~~ Associative ?? project-row($row, @.columns) !! $row;
-        }
-    }
+	method pull-one {
+		$!iter //= iterator-for($.rows);
+		loop {
+			my $row = pull-next($!iter);
+			return IterationEnd if $row ~~ IterationEnd;
+			return $row ~~ Associative ?? project-row($row, @.columns) !! $row;
+		}
+	}
 }
 
 class RenameIterator does Iterator {
-    has Mu $.rows is required;
-    has %.renames is required;
-    has Iterator $!iter;
+	has Mu $.rows is required;
+	has %.renames is required;
+	has Iterator $!iter;
 
-    method pull-one {
-        $!iter //= iterator-for($.rows);
-        loop {
-            my $row = pull-next($!iter);
-            return IterationEnd if $row ~~ IterationEnd;
-            return $row ~~ Associative ?? rename-row($row, %.renames) !! $row;
-        }
-    }
+	method pull-one {
+		$!iter //= iterator-for($.rows);
+		loop {
+			my $row = pull-next($!iter);
+			return IterationEnd if $row ~~ IterationEnd;
+			return $row ~~ Associative ?? rename-row($row, %.renames) !! $row;
+		}
+	}
 }
 
 our sub lazy-natural-join($left, $right, &condition) is export {
-    lazy-seq NaturalJoinIterator.new(:$left, :$right, :&condition)
+	lazy-seq NaturalJoinIterator.new(:$left, :$right, :&condition)
 }
 
 our sub lazy-left-outer-join($left, $right, &condition) is export {
-    lazy-seq LeftOuterJoinIterator.new(:$left, :$right, :&condition)
+	lazy-seq LeftOuterJoinIterator.new(:$left, :$right, :&condition)
 }
 
 our sub lazy-right-outer-join($left, $right, &condition) is export {
-    lazy-seq RightOuterJoinIterator.new(:$left, :$right, :&condition)
+	lazy-seq RightOuterJoinIterator.new(:$left, :$right, :&condition)
 }
 
 our sub lazy-left-semijoin($left, $right, &condition) is export {
-    lazy-seq LeftSemijoinIterator.new(:$left, :$right, :&condition)
+	lazy-seq LeftSemijoinIterator.new(:$left, :$right, :&condition)
 }
 
 our sub lazy-left-antijoin($left, $right, &condition) is export {
-    lazy-seq LeftAntijoinIterator.new(:$left, :$right, :&condition)
+	lazy-seq LeftAntijoinIterator.new(:$left, :$right, :&condition)
 }
 
 our sub lazy-cross-join($left, $right) is export {
-    lazy-seq CrossJoinIterator.new(:$left, :$right)
+	lazy-seq CrossJoinIterator.new(:$left, :$right)
 }
 
 our sub lazy-union(+@sources) is export {
-    my Mu @prepared = @sources.map(-> $source {
-        $source ~~ Seq ?? $source.cache !! $source
-    });
-    lazy-seq UnionIterator.new(sources => Array.new(@prepared))
+	my Mu @prepared = @sources.map(-> $source {
+		$source ~~ Seq ?? $source.cache !! $source
+	});
+	lazy-seq UnionIterator.new(sources => Array.new(@prepared))
 }
 
 our sub lazy-intersection($left, $right) is export {
-    lazy-seq IntersectionIterator.new(:$left, :$right)
+	lazy-seq IntersectionIterator.new(:$left, :$right)
 }
 
 our sub lazy-set-difference($left, $right) is export {
-    lazy-seq SetDifferenceIterator.new(:$left, :$right)
+	lazy-seq SetDifferenceIterator.new(:$left, :$right)
 }
 
 our sub lazy-symmetric-difference($left, $right) is export {
-    my @right-list = iterator-for($right).list;
-    my @left-list = iterator-for($left).list;
-    my @items = gather {
-        for @left-list -> $row {
-            take $row unless row-in-list($row, @right-list);
-        }
-        for @right-list -> $row {
-            take $row unless row-in-list($row, @left-list);
-        }
-    };
-    lazy-seq ListIterator.new(items => @items)
+	my @right-list = iterator-for($right).list;
+	my @left-list = iterator-for($left).list;
+	my @items = gather {
+		for @left-list -> $row {
+			take $row unless row-in-list($row, @right-list);
+		}
+		for @right-list -> $row {
+			take $row unless row-in-list($row, @left-list);
+		}
+	};
+	lazy-seq ListIterator.new(items => @items)
 }
 
 our sub lazy-projection($rows, @columns) is export {
-    lazy-seq ProjectionIterator.new(:$rows, :@columns)
+	lazy-seq ProjectionIterator.new(:$rows, :@columns)
 }
 
 class FilterIterator does Iterator {
-    has Iterator $!iter;
-    has $!matcher;
+	has Iterator $!iter;
+	has $!matcher;
 
-    method BUILD(Iterator :$iter!, :$matcher!) {
-        $!iter = $iter;
-        $!matcher = $matcher;
-    }
+	method BUILD(Iterator :$iter!, :$matcher!) {
+		$!iter = $iter;
+		$!matcher = $matcher;
+	}
 
-    method pull-one {
-        loop {
-            my $item = pull-next($!iter);
-            return IterationEnd if $item ~~ IterationEnd;
-            return $item if $!matcher($item);
-        }
-    }
+	method pull-one {
+		loop {
+			my $item = pull-next($!iter);
+			return IterationEnd if $item ~~ IterationEnd;
+			return $item if $!matcher($item);
+		}
+	}
 }
 
 our sub lazy-filter($source, &match) is export {
-    my $inner = iterator-for($source);
-    lazy-seq FilterIterator.new(:iter($inner), :matcher(&match))
+	my $inner = iterator-for($source);
+	lazy-seq FilterIterator.new(:iter($inner), :matcher(&match))
 }
 
 our sub lazy-rename($rows, %renames) is export {
-    lazy-seq RenameIterator.new(:$rows, :%renames)
+	lazy-seq RenameIterator.new(:$rows, :%renames)
 }
 
 sub row-key(Mu $row --> Str) {
-    if $row ~~ Associative {
-        my @parts;
-        for $row.keys.sort -> $key {
-            @parts.push("$key=" ~($row{$key}));
-        }
-        return @parts.join('|');
-    }
-    return ~$row.WHICH if $row ~~ Mu;
-    ~$row
+	if $row ~~ Associative {
+		my @parts;
+		for $row.keys.sort -> $key {
+			@parts.push("$key=" ~($row{$key}));
+		}
+		return @parts.join('|');
+	}
+	return ~$row.WHICH if $row ~~ Mu;
+	~$row
 }

@@ -12,66 +12,66 @@ plan 10;
 # =============================================================================
 
 subtest 'X::Qwiratry::Operator basic construction' => {
-    plan 5;
+	plan 5;
     
-    my $ex = X::Qwiratry::Operator.new(
-        message => 'Test error',
-        operator-type => 'ChildOperator'
-    );
+	my $ex = X::Qwiratry::Operator.new(
+		message => 'Test error',
+		operator-type => 'ChildOperator'
+	);
     
-    ok $ex.defined, 'Exception can be created';
-    is $ex.message, 'Test error', 'Message attribute accessible';
-    is $ex.operator-type, 'ChildOperator', 'Operator-type attribute accessible';
-    ok $ex ~~ X::Qwiratry::Walker, 'Exception extends X::Qwiratry::Walker';
-    ok $ex ~~ Exception, 'Exception does Exception role';
+	ok $ex.defined, 'Exception can be created';
+	is $ex.message, 'Test error', 'Message attribute accessible';
+	is $ex.operator-type, 'ChildOperator', 'Operator-type attribute accessible';
+	ok $ex ~~ X::Qwiratry::Walker, 'Exception extends X::Qwiratry::Walker';
+	ok $ex ~~ Exception, 'Exception does Exception role';
 }
 
 subtest 'X::Qwiratry::Operator with query-ast' => {
-    plan 2;
+	plan 2;
     
-    # Create a simple mock object for testing (avoiding RakuAST::Node dependency)
-    my $mock-ast = class MockAST { }.new;
+	# Create a simple mock object for testing (avoiding RakuAST::Node dependency)
+	my $mock-ast = class MockAST { }.new;
     
-    my $ex = X::Qwiratry::Operator.new(
-        message => 'Test error',
-        query-ast => $mock-ast,
-        operator-type => 'TestOperator'
-    );
+	my $ex = X::Qwiratry::Operator.new(
+		message => 'Test error',
+		query-ast => $mock-ast,
+		operator-type => 'TestOperator'
+	);
     
-    ok $ex.query-ast.defined, 'Query AST attribute accessible';
-    is $ex.query-ast.^name, 'MockAST', 'Query AST stored correctly';
+	ok $ex.query-ast.defined, 'Query AST attribute accessible';
+	is $ex.query-ast.^name, 'MockAST', 'Query AST stored correctly';
 }
 
 subtest 'X::Qwiratry::Operator gist formatting' => {
-    plan 2;
+	plan 2;
     
-    my $ex = X::Qwiratry::Operator.new(
-        message => 'Test message',
-        operator-type => 'TestOperator'
-    );
+	my $ex = X::Qwiratry::Operator.new(
+		message => 'Test message',
+		operator-type => 'TestOperator'
+	);
     
-    like $ex.gist, /X\:\:Qwiratry\:\:Operator/, 'Gist contains exception name';
-    like $ex.gist, /TestOperator/, 'Gist contains operator type';
+	like $ex.gist, /X\:\:Qwiratry\:\:Operator/, 'Gist contains exception name';
+	like $ex.gist, /TestOperator/, 'Gist contains operator type';
 }
 
 subtest 'X::Qwiratry::Operator can be thrown and caught' => {
-    plan 2;
+	plan 2;
     
-    my $caught = False;
-    my $caught-message = '';
+	my $caught = False;
+	my $caught-message = '';
     
-    try {
-        X::Qwiratry::Operator.new(message => 'Thrown error').throw;
-        CATCH {
-            when X::Qwiratry::Operator {
-                $caught = True;
-                $caught-message = .message;
-            }
-        }
-    }
+	try {
+		X::Qwiratry::Operator.new(message => 'Thrown error').throw;
+		CATCH {
+			when X::Qwiratry::Operator {
+				$caught = True;
+				$caught-message = .message;
+			}
+		}
+	}
     
-    ok $caught, 'Exception can be caught';
-    is $caught-message, 'Thrown error', 'Caught exception has correct message';
+	ok $caught, 'Exception can be caught';
+	is $caught-message, 'Thrown error', 'Caught exception has correct message';
 }
 
 # =============================================================================
@@ -79,55 +79,55 @@ subtest 'X::Qwiratry::Operator can be thrown and caught' => {
 # =============================================================================
 
 subtest 'X::Qwiratry::IO::FormatNotFound basic construction' => {
-    plan 4;
+	plan 4;
     
-    my $ex = X::Qwiratry::IO::FormatNotFound.new(
-        message => 'Format not found',
-        format => 'JSON',
-        parse-or-render => 'parse'
-    );
+	my $ex = X::Qwiratry::IO::FormatNotFound.new(
+		message => 'Format not found',
+		format => 'JSON',
+		parse-or-render => 'parse'
+	);
     
-    ok $ex.defined, 'Exception can be created';
-    is $ex.format, 'JSON', 'Format attribute accessible';
-    is $ex.parse-or-render, 'parse', 'Parse-or-render attribute accessible';
-    ok $ex ~~ X::Qwiratry::Operator, 'Exception extends X::Qwiratry::Operator';
+	ok $ex.defined, 'Exception can be created';
+	is $ex.format, 'JSON', 'Format attribute accessible';
+	is $ex.parse-or-render, 'parse', 'Parse-or-render attribute accessible';
+	ok $ex ~~ X::Qwiratry::Operator, 'Exception extends X::Qwiratry::Operator';
 }
 
 subtest 'X::Qwiratry::IO::FormatNotFound gist formatting' => {
-    plan 2;
+	plan 2;
     
-    my $ex = X::Qwiratry::IO::FormatNotFound.new(
-        message => 'Format not found',
-        format => 'XML',
-        parse-or-render => 'render'
-    );
+	my $ex = X::Qwiratry::IO::FormatNotFound.new(
+		message => 'Format not found',
+		format => 'XML',
+		parse-or-render => 'render'
+	);
     
-    like $ex.gist, /FormatNotFound/, 'Gist contains exception name';
-    like $ex.gist, /Qwiratry\:\:IO\:\:Render\:\:XML/, 'Gist contains module name';
+	like $ex.gist, /FormatNotFound/, 'Gist contains exception name';
+	like $ex.gist, /Qwiratry\:\:IO\:\:Render\:\:XML/, 'Gist contains module name';
 }
 
 subtest 'X::Qwiratry::IO::FormatNotFound can be thrown and caught' => {
-    plan 2;
+	plan 2;
     
-    my $caught = False;
-    my $caught-format = '';
+	my $caught = False;
+	my $caught-format = '';
     
-    try {
-        X::Qwiratry::IO::FormatNotFound.new(
-            message => 'Format not found',
-            format => 'CSV',
-            parse-or-render => 'parse'
-        ).throw;
-        CATCH {
-            when X::Qwiratry::IO::FormatNotFound {
-                $caught = True;
-                $caught-format = .format;
-            }
-        }
-    }
+	try {
+		X::Qwiratry::IO::FormatNotFound.new(
+			message => 'Format not found',
+			format => 'CSV',
+			parse-or-render => 'parse'
+		).throw;
+		CATCH {
+			when X::Qwiratry::IO::FormatNotFound {
+				$caught = True;
+				$caught-format = .format;
+			}
+		}
+	}
     
-    ok $caught, 'Exception can be caught';
-    is $caught-format, 'CSV', 'Caught exception has correct format';
+	ok $caught, 'Exception can be caught';
+	is $caught-format, 'CSV', 'Caught exception has correct format';
 }
 
 # =============================================================================
@@ -135,54 +135,54 @@ subtest 'X::Qwiratry::IO::FormatNotFound can be thrown and caught' => {
 # =============================================================================
 
 subtest 'X::Qwiratry::IO::LocationError basic construction' => {
-    plan 4;
+	plan 4;
     
-    my $ex = X::Qwiratry::IO::LocationError.new(
-        message => 'Location error',
-        location => '/path/to/file.json',
-        reason => 'not_found'
-    );
+	my $ex = X::Qwiratry::IO::LocationError.new(
+		message => 'Location error',
+		location => '/path/to/file.json',
+		reason => 'not_found'
+	);
     
-    ok $ex.defined, 'Exception can be created';
-    is $ex.location, '/path/to/file.json', 'Location attribute accessible';
-    is $ex.reason, 'not_found', 'Reason attribute accessible';
-    ok $ex ~~ X::Qwiratry::Operator, 'Exception extends X::Qwiratry::Operator';
+	ok $ex.defined, 'Exception can be created';
+	is $ex.location, '/path/to/file.json', 'Location attribute accessible';
+	is $ex.reason, 'not_found', 'Reason attribute accessible';
+	ok $ex ~~ X::Qwiratry::Operator, 'Exception extends X::Qwiratry::Operator';
 }
 
 subtest 'X::Qwiratry::IO::LocationError gist formatting' => {
-    plan 2;
+	plan 2;
     
-    my $ex = X::Qwiratry::IO::LocationError.new(
-        message => 'Location error',
-        location => 'https://example.com/data.json',
-        reason => 'invalid_url'
-    );
+	my $ex = X::Qwiratry::IO::LocationError.new(
+		message => 'Location error',
+		location => 'https://example.com/data.json',
+		reason => 'invalid_url'
+	);
     
-    like $ex.gist, /LocationError/, 'Gist contains exception name';
-    like $ex.gist, /invalid_url/, 'Gist contains reason';
+	like $ex.gist, /LocationError/, 'Gist contains exception name';
+	like $ex.gist, /invalid_url/, 'Gist contains reason';
 }
 
 subtest 'X::Qwiratry::IO::LocationError can be thrown and caught' => {
-    plan 2;
+	plan 2;
     
-    my $caught = False;
-    my $caught-location = '';
+	my $caught = False;
+	my $caught-location = '';
     
-    try {
-        X::Qwiratry::IO::LocationError.new(
-            message => 'Location error',
-            location => '/missing/file.json',
-            reason => 'not_found'
-        ).throw;
-        CATCH {
-            when X::Qwiratry::IO::LocationError {
-                $caught = True;
-                $caught-location = .location;
-            }
-        }
-    }
+	try {
+		X::Qwiratry::IO::LocationError.new(
+			message => 'Location error',
+			location => '/missing/file.json',
+			reason => 'not_found'
+		).throw;
+		CATCH {
+			when X::Qwiratry::IO::LocationError {
+				$caught = True;
+				$caught-location = .location;
+			}
+		}
+	}
     
-    ok $caught, 'Exception can be caught';
-    is $caught-location, '/missing/file.json', 'Caught exception has correct location';
+	ok $caught, 'Exception can be caught';
+	is $caught-location, '/missing/file.json', 'Caught exception has correct location';
 }
 

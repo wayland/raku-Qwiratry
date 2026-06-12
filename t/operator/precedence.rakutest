@@ -13,42 +13,42 @@ my $root = %(name => 'root');
 my @rows = [%(a => 1), %(a => 2)];
 
 subtest 'Postfix root binds to subject before replication operators' => {
-    plan 2;
+	plan 2;
 
-    my $query = ($root ⪪ <item>)⇤;
-    ok $query ~~ RootOperator, 'postfix root applies to navigation expression';
-    ok $query.subject ~~ ChildOperator, 'root subject is child navigation node';
+	my $query = ($root ⪪ <item>)⇤;
+	ok $query ~~ RootOperator, 'postfix root applies to navigation expression';
+	ok $query.subject ~~ ChildOperator, 'root subject is child navigation node';
 }
 
 subtest 'Selection binds to navigation expression as subject' => {
-    plan 3;
+	plan 3;
 
-    my $query = $root ⪪⪪ <item> σ -> $_ { True };
-    ok $query ~~ SelectionOperator, 'selection follows navigation';
-    ok $query.subject ~~ DescendantOperator, 'selection subject is descendant operator';
-    is $query.subject.selector, 'item', 'nested selector preserved under selection';
+	my $query = $root ⪪⪪ <item> σ -> $_ { True };
+	ok $query ~~ SelectionOperator, 'selection follows navigation';
+	ok $query.subject ~~ DescendantOperator, 'selection subject is descendant operator';
+	is $query.subject.selector, 'item', 'nested selector preserved under selection';
 }
 
 subtest 'Set operators compose with union binding tighter than intersection' => {
-    plan 3;
+	plan 3;
 
-    my $left = SelectionOperator.new(:subject(@rows), :predicate(-> $_ { True }));
-    my $right = SelectionOperator.new(:subject(@rows), :predicate(-> $_ { $_<a> > 1 }));
-    my $query = $left ∪ $right ∩ $left;
-    ok $query ~~ UnionOperator, 'union is outer when chained with intersection';
-    ok $query.left ~~ SelectionOperator, 'left branch retains first selection';
-    ok $query.right ~~ IntersectionOperator, 'right branch is intersection expression';
+	my $left = SelectionOperator.new(:subject(@rows), :predicate(-> $_ { True }));
+	my $right = SelectionOperator.new(:subject(@rows), :predicate(-> $_ { $_<a> > 1 }));
+	my $query = $left ∪ $right ∩ $left;
+	ok $query ~~ UnionOperator, 'union is outer when chained with intersection';
+	ok $query.left ~~ SelectionOperator, 'left branch retains first selection';
+	ok $query.right ~~ IntersectionOperator, 'right branch is intersection expression';
 }
 
 subtest 'Join and map-reduce nest with explicit subjects' => {
-    plan 3;
+	plan 3;
 
-    my $join = @rows ⨝ @rows;
-    ok $join ~~ InnerJoinOperator, 'join operator constructs InnerJoinOperator';
+	my $join = @rows ⨝ @rows;
+	ok $join ~~ InnerJoinOperator, 'join operator constructs InnerJoinOperator';
 
-    my $sorted = (@rows σ -> $_ { True }) ⇅ -> $_ { $_<a> };
-    ok $sorted ~~ SortOperator, 'sort follows selection in chain';
-    ok $sorted.subject ~~ SelectionOperator, 'sort subject is selection operator';
+	my $sorted = (@rows σ -> $_ { True }) ⇅ -> $_ { $_<a> };
+	ok $sorted ~~ SortOperator, 'sort follows selection in chain';
+	ok $sorted.subject ~~ SelectionOperator, 'sort subject is selection operator';
 }
 
 done-testing;

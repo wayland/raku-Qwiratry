@@ -22,46 +22,46 @@ plan 7;  # Some tests skipped due to Iterator coercion issues in test framework
 # using the Template class directly where possible.
 
 subtest "Basic Usage - Simple transformer" => {
-    plan 2;
+	plan 2;
     
-    # Example: Simple transformer with TOP template
-    my $transformer = Transformer.new;
-    my $template = Template.new(
-        do-block => -> $n { "transformed" }
-    );
-    $transformer.add-template($template);
+	# Example: Simple transformer with TOP template
+	my $transformer = Transformer.new;
+	my $template = Template.new(
+		do-block => -> $n { "transformed" }
+	);
+	$transformer.add-template($template);
     
-    my $result = $transformer.transform("input");
-    ok $result.defined, "Basic transformer works";
-    ok $result ~~ List, "Transformer returns List";
+	my $result = $transformer.transform("input");
+	ok $result.defined, "Basic transformer works";
+	ok $result ~~ List, "Transformer returns List";
 }
 
 subtest "Template Priority" => {
-    plan 2;
+	plan 2;
     
-    # Example: Priority-based template selection
-    my $transformer = Transformer.new;
+	# Example: Priority-based template selection
+	my $transformer = Transformer.new;
     
-    my $high-priority = Template.new(
-        when-block => -> $n { $n > 5 },
-        do-block => -> $n { "high" },
-        priority => 10
-    );
+	my $high-priority = Template.new(
+		when-block => -> $n { $n > 5 },
+		do-block => -> $n { "high" },
+		priority => 10
+	);
     
-    my $low-priority = Template.new(
-        when-block => -> $n { True },
-        do-block => -> $n { "low" },
-        priority => 0
-    );
+	my $low-priority = Template.new(
+		when-block => -> $n { True },
+		do-block => -> $n { "low" },
+		priority => 0
+	);
     
-    $transformer.add-template($high-priority);
-    $transformer.add-template($low-priority);
+	$transformer.add-template($high-priority);
+	$transformer.add-template($low-priority);
     
-    my $result1 = $transformer.APPLY(10);
-    is $result1, "high", "High priority template matches first";
+	my $result1 = $transformer.APPLY(10);
+	is $result1, "high", "High priority template matches first";
     
-    my $result2 = $transformer.APPLY(3);
-    is $result2, "low", "Low priority template matches when high doesn't";
+	my $result2 = $transformer.APPLY(3);
+	is $result2, "low", "Low priority template matches when high doesn't";
 }
 
 # Streaming test skipped - Iterator coercion issue in test framework
@@ -69,111 +69,111 @@ subtest "Template Priority" => {
 # skip "Streaming Transformations - Iterator coercion issue in test framework", 2;
 
 subtest "Tree Rewriting" => {
-    plan 2;
+	plan 2;
     
-    # Example: TreeRewrite role
-    # Note: Role composition is tested via mutates-input flag
-    # In actual usage, TreeRewrite would be detected during compose
-    my $transformer = Transformer.new;
-    # Note: mutates-input is set during TWEAK based on trait detection
-    # For testing, we verify the concept works
+	# Example: TreeRewrite role
+	# Note: Role composition is tested via mutates-input flag
+	# In actual usage, TreeRewrite would be detected during compose
+	my $transformer = Transformer.new;
+	# Note: mutates-input is set during TWEAK based on trait detection
+	# For testing, we verify the concept works
     
-    my $template = Template.new(
-        do-block => -> $n { $n * 2 }
-    );
-    $transformer.add-template($template);
+	my $template = Template.new(
+		do-block => -> $n { $n * 2 }
+	);
+	$transformer.add-template($template);
     
-    # Test rewrite mode (mutates-input would be True if TreeRewrite was applied)
-    my $result = $transformer.apply(21, :mode<rewrite-optional>);
-    ok $result.defined, "TreeRewrite mode works";
+	# Test rewrite mode (mutates-input would be True if TreeRewrite was applied)
+	my $result = $transformer.apply(21, :mode<rewrite-optional>);
+	ok $result.defined, "TreeRewrite mode works";
     
-    ok True, "TreeRewrite concept verified (mutates-input set during compose)";
+	ok True, "TreeRewrite concept verified (mutates-input set during compose)";
 }
 
 subtest "Magic Variables" => {
-    plan 2;
+	plan 2;
     
-    # Example: Using magic variables ($*CONTEXT, self)
-    my $transformer = Transformer.new;
-    my $template = Template.new(
-        do-block => -> $n {
-            # $*CONTEXT should be set to $n
-            # self should refer to transformer
-            $*CONTEXT * 2
-        }
-    );
-    $transformer.add-template($template);
+	# Example: Using magic variables ($*CONTEXT, self)
+	my $transformer = Transformer.new;
+	my $template = Template.new(
+		do-block => -> $n {
+			# $*CONTEXT should be set to $n
+			# self should refer to transformer
+			$*CONTEXT * 2
+		}
+	);
+	$transformer.add-template($template);
     
-    my $result = $transformer.APPLY(21);
-    is $result, 42, "Magic variables work correctly";
+	my $result = $transformer.APPLY(21);
+	is $result, 42, "Magic variables work correctly";
     
-    ok True, "Template execution context is set";
+	ok True, "Template execution context is set";
 }
 
 subtest "Type Constraints" => {
-    plan 2;
+	plan 2;
     
-    # Example: returns(Type) trait
-    # Note: returns-type is set during compose via trait detection
-    # For testing, we verify the concept works with type checking
-    my $transformer = Transformer.new;
+	# Example: returns(Type) trait
+	# Note: returns-type is set during compose via trait detection
+	# For testing, we verify the concept works with type checking
+	my $transformer = Transformer.new;
     
-    my $template = Template.new(
-        do-block => -> $n { $n * 2 }
-    );
-    $transformer.add-template($template);
+	my $template = Template.new(
+		do-block => -> $n { $n * 2 }
+	);
+	$transformer.add-template($template);
     
-    # Valid result - type checking would happen if returns-type was set
-    my $result = $transformer.APPLY(21);
-    is $result, 42, "Type constraint allows valid result";
+	# Valid result - type checking would happen if returns-type was set
+	my $result = $transformer.APPLY(21);
+	is $result, 42, "Type constraint allows valid result";
     
-    ok $result ~~ Int, "Result conforms to type constraint";
-    # Note: Actual type checking happens in TRANSFORM when returns-type is set via trait
+	ok $result ~~ Int, "Result conforms to type constraint";
+	# Note: Actual type checking happens in TRANSFORM when returns-type is set via trait
 }
 
 subtest "Transformation Modes" => {
-    plan 2;  # Default mode test skipped due to Iterator coercion issue
+	plan 2;  # Default mode test skipped due to Iterator coercion issue
     
-    # Example: Multiple transformation modes
-    my $transformer = Transformer.new;
-    my $template = Template.new(
-        do-block => -> $n { $n * 2 }
-    );
-    $transformer.add-template($template);
+	# Example: Multiple transformation modes
+	my $transformer = Transformer.new;
+	my $template = Template.new(
+		do-block => -> $n { $n * 2 }
+	);
+	$transformer.add-template($template);
     
-    # Pre mode
-    {
-        my $pre-result = $transformer.transform([1, 2, 3], :mode<pre>);
-        ok $pre-result.defined, "Pre mode works";
-    }
+	# Pre mode
+	{
+		my $pre-result = $transformer.transform([1, 2, 3], :mode<pre>);
+		ok $pre-result.defined, "Pre mode works";
+	}
     
-    # Inline mode
-    {
-        my $inline-result = $transformer.transform(21, :mode<inline>);
-        ok $inline-result.defined, "Inline mode works";
-    }
+	# Inline mode
+	{
+		my $inline-result = $transformer.transform(21, :mode<inline>);
+		ok $inline-result.defined, "Inline mode works";
+	}
     
-    # Default mode test skipped - Iterator coercion issue in test framework
-    # Default mode functionality is verified in transformer-strategy.rakutest
+	# Default mode test skipped - Iterator coercion issue in test framework
+	# Default mode functionality is verified in transformer-strategy.rakutest
 }
 
 subtest "Copy Operations" => {
-    plan 4;
+	plan 4;
     
-    # Example: Copy operations
-    use Qwiratry::Transformer::Copy;
+	# Example: Copy operations
+	use Qwiratry::Transformer::Copy;
     
-    my $original = [1, 2, 3];
+	my $original = [1, 2, 3];
     
-    # Shallow copy
-    my $shallow = copy($original);
-    ok $shallow.defined, "Shallow copy works";
-    is-deeply $shallow, $original, "Shallow copy preserves structure";
+	# Shallow copy
+	my $shallow = copy($original);
+	ok $shallow.defined, "Shallow copy works";
+	is-deeply $shallow, $original, "Shallow copy preserves structure";
     
-    # Deep copy
-    my $deep = deepcopy($original);
-    ok $deep.defined, "Deep copy works";
-    is-deeply $deep, $original, "Deep copy preserves structure";
+	# Deep copy
+	my $deep = deepcopy($original);
+	ok $deep.defined, "Deep copy works";
+	is-deeply $deep, $original, "Deep copy preserves structure";
 }
 
 done-testing;

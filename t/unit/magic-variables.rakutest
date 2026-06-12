@@ -17,25 +17,25 @@ plan 7;
 # =============================================================================
 
 subtest "\$*CONTEXT and topic variable setup" => {
-    plan 2;
+	plan 2;
     
-    my $test-node = "test-node";
+	my $test-node = "test-node";
     
-    my $template = Template.new(
-        when-block => -> $node { $*CONTEXT eq $test-node },
-        do-block => -> $node { 
-            # Verify $*CONTEXT is set
-            $*CONTEXT eq $test-node && $node eq $test-node
-        }
-    );
+	my $template = Template.new(
+		when-block => -> $node { $*CONTEXT eq $test-node },
+		do-block => -> $node { 
+			# Verify $*CONTEXT is set
+			$*CONTEXT eq $test-node && $node eq $test-node
+		}
+	);
     
-    # Test matches() sets $*CONTEXT
-    ok $template.matches($test-node), "\$*CONTEXT is set in when block";
+	# Test matches() sets $*CONTEXT
+	ok $template.matches($test-node), "\$*CONTEXT is set in when block";
     
-    # Test execute() sets $*CONTEXT and $_
-    my $transformer = Transformer.new;
-    my $result = $template.execute($test-node, :transformer($transformer));
-    ok $result, "\$*CONTEXT and \$_ are set in do block";
+	# Test execute() sets $*CONTEXT and $_
+	my $transformer = Transformer.new;
+	my $result = $template.execute($test-node, :transformer($transformer));
+	ok $result, "\$*CONTEXT and \$_ are set in do block";
 }
 
 # =============================================================================
@@ -43,42 +43,42 @@ subtest "\$*CONTEXT and topic variable setup" => {
 # =============================================================================
 
 subtest "\$*CAPTURE and \$/ setup" => {
-    plan 3;
+	plan 3;
     
-    my $test-node = %(name => 'section', id => 42);
-    my $transformer = Transformer.new;
+	my $test-node = %(name => 'section', id => 42);
+	my $transformer = Transformer.new;
     
-    my $template-no-sig = Template.new(
-        when-block => -> { True },
-        do-block => -> {
-            $*CAPTURE ~~ Associative && $*CAPTURE.elems == 0
-        },
-    );
+	my $template-no-sig = Template.new(
+		when-block => -> { True },
+		do-block => -> {
+			$*CAPTURE ~~ Associative && $*CAPTURE.elems == 0
+		},
+	);
     
-    ok $template-no-sig.execute($test-node, :transformer($transformer)),
-        "\$*CAPTURE is empty without signature";
+	ok $template-no-sig.execute($test-node, :transformer($transformer)),
+		"\$*CAPTURE is empty without signature";
     
-    my $sig = :(Str $name);
-    my $template-with-sig = Template.new(
-        signature => $sig,
-        when-block => -> { True },
-        do-block => -> {
-            $*CAPTURE<name> eq 'section'
-        },
-    );
+	my $sig = :(Str $name);
+	my $template-with-sig = Template.new(
+		signature => $sig,
+		when-block => -> { True },
+		do-block => -> {
+			$*CAPTURE<name> eq 'section'
+		},
+	);
     
-    ok $template-with-sig.execute($test-node, :transformer($transformer)),
-        "\$*CAPTURE and \$/ bind signature parameters from Associative nodes";
+	ok $template-with-sig.execute($test-node, :transformer($transformer)),
+		"\$*CAPTURE and \$/ bind signature parameters from Associative nodes";
     
-    my $object-node = class { has $.name = 'leaf' }.new;
-    my $named-template = Template.new(
-        signature => $sig,
-        when-block => -> { True },
-        do-block => -> { $*CAPTURE<name> eq 'leaf' },
-    );
+	my $object-node = class { has $.name = 'leaf' }.new;
+	my $named-template = Template.new(
+		signature => $sig,
+		when-block => -> { True },
+		do-block => -> { $*CAPTURE<name> eq 'leaf' },
+	);
     
-    ok $named-template.execute($object-node, :transformer($transformer)),
-        "\$*CAPTURE binds from object attributes";
+	ok $named-template.execute($object-node, :transformer($transformer)),
+		"\$*CAPTURE binds from object attributes";
 }
 
 # =============================================================================
@@ -86,20 +86,20 @@ subtest "\$*CAPTURE and \$/ setup" => {
 # =============================================================================
 
 subtest "self reference" => {
-    plan 1;
+	plan 1;
     
-    my $test-node = "test-node";
-    my $transformer = Transformer.new;
+	my $test-node = "test-node";
+	my $transformer = Transformer.new;
     
-    my $template = Template.new(
-        when-block => -> { True },
-        do-block => method ($node) {
-            self.WHAT === $transformer.WHAT
-        },
-    );
+	my $template = Template.new(
+		when-block => -> { True },
+		do-block => method ($node) {
+			self.WHAT === $transformer.WHAT
+		},
+	);
     
-    ok $template.execute($test-node, :transformer($transformer)),
-        "self refers to the Transformer during template execution";
+	ok $template.execute($test-node, :transformer($transformer)),
+		"self refers to the Transformer during template execution";
 }
 
 # =============================================================================
@@ -107,40 +107,40 @@ subtest "self reference" => {
 # =============================================================================
 
 subtest "Template.matches() method" => {
-    plan 4;
+	plan 4;
     
-    my $test-node = "test-node";
+	my $test-node = "test-node";
     
-    # Template that matches
-    my $matching-template = Template.new(
-        when-block => -> $node { $*CONTEXT eq "test-node" },
-        do-block => -> $ { "matched" }
-    );
+	# Template that matches
+	my $matching-template = Template.new(
+		when-block => -> $node { $*CONTEXT eq "test-node" },
+		do-block => -> $ { "matched" }
+	);
     
-    ok $matching-template.matches($test-node), "Template matches when when block returns True";
+	ok $matching-template.matches($test-node), "Template matches when when block returns True";
     
-    # Template that doesn't match
-    my $non-matching-template = Template.new(
-        when-block => -> $node { $*CONTEXT eq "other-node" },
-        do-block => -> $ { "matched" }
-    );
+	# Template that doesn't match
+	my $non-matching-template = Template.new(
+		when-block => -> $node { $*CONTEXT eq "other-node" },
+		do-block => -> $ { "matched" }
+	);
     
-    nok $non-matching-template.matches($test-node), "Template doesn't match when when block returns False";
+	nok $non-matching-template.matches($test-node), "Template doesn't match when when block returns False";
     
-    # Template without when block (always matches)
-    my $no-when-template = Template.new(
-        do-block => -> $ { "matched" }
-    );
+	# Template without when block (always matches)
+	my $no-when-template = Template.new(
+		do-block => -> $ { "matched" }
+	);
     
-    ok $no-when-template.matches($test-node), "Template without when block always matches";
+	ok $no-when-template.matches($test-node), "Template without when block always matches";
     
-    # Template with when block that throws exception (should return False)
-    my $error-template = Template.new(
-        when-block => -> $ { die "Error in when block" },
-        do-block => -> $ { "matched" }
-    );
+	# Template with when block that throws exception (should return False)
+	my $error-template = Template.new(
+		when-block => -> $ { die "Error in when block" },
+		do-block => -> $ { "matched" }
+	);
     
-    nok $error-template.matches($test-node), "Template.matches() returns False when when block throws exception";
+	nok $error-template.matches($test-node), "Template.matches() returns False when when block throws exception";
 }
 
 # =============================================================================
@@ -148,35 +148,35 @@ subtest "Template.matches() method" => {
 # =============================================================================
 
 subtest "Template.execute() method" => {
-    plan 3;
+	plan 3;
     
-    my $test-node = "test-node";
-    my $transformer = Transformer.new;
+	my $test-node = "test-node";
+	my $transformer = Transformer.new;
     
-    # Template with do block that returns a value
-    my $return-template = Template.new(
-        when-block => -> $ { True },
-        do-block => -> $ { "result" }
-    );
+	# Template with do block that returns a value
+	my $return-template = Template.new(
+		when-block => -> $ { True },
+		do-block => -> $ { "result" }
+	);
     
-    my $result1 = $return-template.execute($test-node, :transformer($transformer));
-    is $result1, "result", "Template.execute() returns do block result";
+	my $result1 = $return-template.execute($test-node, :transformer($transformer));
+	is $result1, "result", "Template.execute() returns do block result";
     
-    # Template with do block that returns Nil
-    my $nil-template = Template.new(
-        when-block => -> $ { True },
-        do-block => -> $ { Nil }
-    );
+	# Template with do block that returns Nil
+	my $nil-template = Template.new(
+		when-block => -> $ { True },
+		do-block => -> $ { Nil }
+	);
     
-    my $result2 = $nil-template.execute($test-node, :transformer($transformer));
-    # Note: In Raku, blocks returning Nil actually return Any (type object)
-    ok $result2 === Nil || $result2 === Any, "Template.execute() returns Nil/Any when do block returns Nil";
+	my $result2 = $nil-template.execute($test-node, :transformer($transformer));
+	# Note: In Raku, blocks returning Nil actually return Any (type object)
+	ok $result2 === Nil || $result2 === Any, "Template.execute() returns Nil/Any when do block returns Nil";
     
-    # Template without do block - should return Nil from execute() method
-    # Note: We can't easily create a template without do-block since it's required in BUILD
-    # So we test that execute() returns Nil when do-block is not defined (handled in execute method)
-    # This is tested implicitly by the execute method's check for !$!do-block.defined
-    pass "Template.execute() returns Nil when template has no do block (tested in execute method)";
+	# Template without do block - should return Nil from execute() method
+	# Note: We can't easily create a template without do-block since it's required in BUILD
+	# So we test that execute() returns Nil when do-block is not defined (handled in execute method)
+	# This is tested implicitly by the execute method's check for !$!do-block.defined
+	pass "Template.execute() returns Nil when template has no do block (tested in execute method)";
 }
 
 # =============================================================================
@@ -184,34 +184,34 @@ subtest "Template.execute() method" => {
 # =============================================================================
 
 subtest "Magic variables don't leak between templates" => {
-    plan 2;
+	plan 2;
     
-    my $node1 = "node1";
-    my $node2 = "node2";
-    my $transformer = Transformer.new;
+	my $node1 = "node1";
+	my $node2 = "node2";
+	my $transformer = Transformer.new;
     
-    my $template1 = Template.new(
-        when-block => -> $ { True },
-        do-block => -> $node { 
-            my $captured = $*CONTEXT;
-            $captured
-        }
-    );
+	my $template1 = Template.new(
+		when-block => -> $ { True },
+		do-block => -> $node { 
+			my $captured = $*CONTEXT;
+			$captured
+		}
+	);
     
-    my $template2 = Template.new(
-        when-block => -> $ { True },
-        do-block => -> $node { 
-            my $captured = $*CONTEXT;
-            $captured
-        }
-    );
+	my $template2 = Template.new(
+		when-block => -> $ { True },
+		do-block => -> $node { 
+			my $captured = $*CONTEXT;
+			$captured
+		}
+	);
     
-    # Execute templates with different nodes
-    my $result1 = $template1.execute($node1, :transformer($transformer));
-    my $result2 = $template2.execute($node2, :transformer($transformer));
+	# Execute templates with different nodes
+	my $result1 = $template1.execute($node1, :transformer($transformer));
+	my $result2 = $template2.execute($node2, :transformer($transformer));
     
-    is $result1, $node1, "First template captures correct node";
-    is $result2, $node2, "Second template captures correct node (no leakage)";
+	is $result1, $node1, "First template captures correct node";
+	is $result2, $node2, "Second template captures correct node (no leakage)";
 }
 
 # =============================================================================
@@ -219,28 +219,28 @@ subtest "Magic variables don't leak between templates" => {
 # =============================================================================
 
 subtest "Magic variables are Nil/undefined outside template execution" => {
-    plan 2;
+	plan 2;
     
-    # Before template execution, $*CONTEXT should not be set (or be in outer scope)
-    # We can't easily test this without executing a template, but we can verify
-    # that variables are scoped to template execution
+	# Before template execution, $*CONTEXT should not be set (or be in outer scope)
+	# We can't easily test this without executing a template, but we can verify
+	# that variables are scoped to template execution
     
-    my $test-node = "test-node";
-    my $transformer = Transformer.new;
+	my $test-node = "test-node";
+	my $transformer = Transformer.new;
     
-    my $template = Template.new(
-        when-block => -> $ { True },
-        do-block => -> $ { 
-            # Inside template, $*CONTEXT is set
-            $*CONTEXT.defined
-        }
-    );
+	my $template = Template.new(
+		when-block => -> $ { True },
+		do-block => -> $ { 
+			# Inside template, $*CONTEXT is set
+			$*CONTEXT.defined
+		}
+	);
     
-    my $result = $template.execute($test-node, :transformer($transformer));
-    ok $result, "\$*CONTEXT is defined inside template execution";
+	my $result = $template.execute($test-node, :transformer($transformer));
+	ok $result, "\$*CONTEXT is defined inside template execution";
     
-    # After execution, we can't easily test that it's undefined without
-    # checking in a different scope, but the scoping should work correctly
-    pass "Magic variables are scoped to template execution (lexical scoping)";
+	# After execution, we can't easily test that it's undefined without
+	# checking in a different scope, but the scoping should work correctly
+	pass "Magic variables are scoped to template execution (lexical scoping)";
 }
 

@@ -23,218 +23,218 @@ use Qwiratry::Operator::IO;
 use Qwiratry::Operator::Capability;
 
 sub set-new(Mu \type, Mu $left, Mu $right, |c) is export {
-    type.new(:left($left), :right($right), |c)
+	type.new(:left($left), :right($right), |c)
 }
 
 sub nav-new(
-    Mu \type,
-    Mu $subject,
-    Mu $selector,
-    |c,
+	Mu \type,
+	Mu $subject,
+	Mu $selector,
+	|c,
 ) is export {
-    type.new(:$subject, :$selector, |c)
+	type.new(:$subject, :$selector, |c)
 }
 
 multi sub infix:<⪪>(Mu $left, Mu $right) is export {
-    nav-new(ChildOperator, $left, $right)
+	nav-new(ChildOperator, $left, $right)
 }
 
 multi sub infix:<⪫>(Mu $left, Mu $right, *%adverbs) is export {
-    nav-new(ParentOperator, $left, $right, |(%adverbs ?? :adverbs(%adverbs) !! |()))
+	nav-new(ParentOperator, $left, $right, |(%adverbs ?? :adverbs(%adverbs) !! |()))
 }
 
 multi sub infix:<⪪⪪>(Mu $left, Mu $right, *%adverbs) is export {
-    nav-new(DescendantOperator, $left, $right, |(%adverbs ?? :adverbs(%adverbs) !! |()))
+	nav-new(DescendantOperator, $left, $right, |(%adverbs ?? :adverbs(%adverbs) !! |()))
 }
 
 multi sub infix:<⪫⪫>(Mu $left, Mu $right) is export {
-    nav-new(AncestorOperator, $left, $right)
+	nav-new(AncestorOperator, $left, $right)
 }
 
 multi sub infix:<⪨>(Mu $left, Mu $right) is export {
-    nav-new(FollowingSiblingOperator, $left, $right)
+	nav-new(FollowingSiblingOperator, $left, $right)
 }
 
 multi sub infix:<⪩>(Mu $left, Mu $right) is export {
-    nav-new(PrecedingSiblingOperator, $left, $right)
+	nav-new(PrecedingSiblingOperator, $left, $right)
 }
 
 multi sub infix:<⪨⪨>(Mu $left, Mu $right) is export {
-    nav-new(FollowingOperator, $left, $right)
+	nav-new(FollowingOperator, $left, $right)
 }
 
 multi sub infix:<⪩⪩>(Mu $left, Mu $right) is export {
-    nav-new(PrecedingOperator, $left, $right)
+	nav-new(PrecedingOperator, $left, $right)
 }
 
 multi sub infix:<⥷>(Mu $left, Mu $right) is export {
-    AttributeOperator.new(:subject($left), :key($right))
+	AttributeOperator.new(:subject($left), :key($right))
 }
 
 multi sub postfix:<⇤>(Mu $subject) is export {
-    RootOperator.new(:$subject)
+	RootOperator.new(:$subject)
 }
 
 multi sub infix:<∪>(OperatorBase $left, OperatorBase $right) is export {
-    UnionOperator.new(:left($left), :right($right))
+	UnionOperator.new(:left($left), :right($right))
 }
 
 multi sub infix:<∪>(OperatorBase $left, Mu $right) is export {
-    UnionOperator.new(:left($left), :right($right))
+	UnionOperator.new(:left($left), :right($right))
 }
 
 multi sub infix:<∪>(Mu $left, OperatorBase $right) is export {
-    UnionOperator.new(:left($left), :right($right))
+	UnionOperator.new(:left($left), :right($right))
 }
 
 multi sub infix:<∩>(OperatorBase $left, OperatorBase $right) is export {
-    IntersectionOperator.new(:left($left), :right($right))
+	IntersectionOperator.new(:left($left), :right($right))
 }
 
 multi sub infix:<∩>(OperatorBase $left, Mu $right) is export {
-    IntersectionOperator.new(:left($left), :right($right))
+	IntersectionOperator.new(:left($left), :right($right))
 }
 
 multi sub infix:<∩>(Mu $left, OperatorBase $right) is export {
-    IntersectionOperator.new(:left($left), :right($right))
+	IntersectionOperator.new(:left($left), :right($right))
 }
 
 multi sub infix:<∖>(OperatorBase $left, OperatorBase $right) is export {
-    SetDifferenceOperator.new(:left($left), :right($right))
+	SetDifferenceOperator.new(:left($left), :right($right))
 }
 
 multi sub infix:<∖>(OperatorBase $left, Mu $right) is export {
-    SetDifferenceOperator.new(:left($left), :right($right))
+	SetDifferenceOperator.new(:left($left), :right($right))
 }
 
 multi sub infix:<∖>(Mu $left, OperatorBase $right) is export {
-    SetDifferenceOperator.new(:left($left), :right($right))
+	SetDifferenceOperator.new(:left($left), :right($right))
 }
 
 multi sub infix:<σ>(OperatorBase $left, &predicate) is export {
-    SelectionOperator.new(:subject($left), :predicate(&predicate))
+	SelectionOperator.new(:subject($left), :predicate(&predicate))
 }
 
 multi sub infix:<σ>(Mu $left, &predicate) is export {
-    SelectionOperator.new(:subject($left), :predicate(&predicate))
+	SelectionOperator.new(:subject($left), :predicate(&predicate))
 }
 
 multi sub prefix:<σ>(&predicate, Mu $subject) is export {
-    SelectionOperator.new(:subject($subject), :predicate(&predicate))
+	SelectionOperator.new(:subject($subject), :predicate(&predicate))
 }
 
 multi sub infix:<⇅>(Mu $left, &key) is export {
-    SortOperator.new(:subject($left), :key-function(&key))
+	SortOperator.new(:subject($left), :key-function(&key))
 }
 
 multi sub infix:<⌿>(Mu $left, &operation) is export {
-    ReduceOperator.new(:subject($left), :operation(&operation))
+	ReduceOperator.new(:subject($left), :operation(&operation))
 }
 
 multi sub infix:<».>(OperatorBase $left, &transform) is export {
-    MapOperator.new(:subject($left), :transform(&transform))
+	MapOperator.new(:subject($left), :transform(&transform))
 }
 
 multi sub infix:<».>(Mu $left, &transform) is export {
-    MapOperator.new(:subject($left), :transform(&transform))
+	MapOperator.new(:subject($left), :transform(&transform))
 }
 
 multi sub infix:<⊖>(OperatorBase $left, OperatorBase $right) is export {
-    SymmetricDifferenceOperator.new(:left($left), :right($right))
+	SymmetricDifferenceOperator.new(:left($left), :right($right))
 }
 
 multi sub infix:<⊖>(Mu $left, Mu $right) is export {
-    SymmetricDifferenceOperator.new(:left($left), :right($right))
+	SymmetricDifferenceOperator.new(:left($left), :right($right))
 }
 
 multi sub infix:<∈>(Mu $element, Mu $collection) is export {
-    ElementOfOperator.new(:element($element), :collection($collection))
+	ElementOfOperator.new(:element($element), :collection($collection))
 }
 
 multi sub infix:<∋>(Mu $collection, Mu $element) is export {
-    ContainsOperator.new(:collection($collection), :element($element))
+	ContainsOperator.new(:collection($collection), :element($element))
 }
 
 multi sub infix:<⊂>(Mu $left, Mu $right) is export {
-    SubsetOperator.new(:left($left), :right($right))
+	SubsetOperator.new(:left($left), :right($right))
 }
 
 multi sub infix:<⊆>(Mu $left, Mu $right) is export {
-    SubsetOrEqualOperator.new(:left($left), :right($right))
+	SubsetOrEqualOperator.new(:left($left), :right($right))
 }
 
 multi sub infix:<≡>(Mu $left, Mu $right) is export {
-    IdentityOperator.new(:left($left), :right($right))
+	IdentityOperator.new(:left($left), :right($right))
 }
 
 multi sub infix:<⨝>(Mu $left, Mu $right, &condition?) is export {
-    InnerJoinOperator.new(:left($left), :right($right), :condition(&condition))
+	InnerJoinOperator.new(:left($left), :right($right), :condition(&condition))
 }
 
 multi sub infix:<⟕>(Mu $left, Mu $right, &condition?) is export {
-    LeftOuterJoinOperator.new(:left($left), :right($right), :condition(&condition))
+	LeftOuterJoinOperator.new(:left($left), :right($right), :condition(&condition))
 }
 
 multi sub infix:<⟖>(Mu $left, Mu $right, &condition?) is export {
-    RightOuterJoinOperator.new(:left($left), :right($right), :condition(&condition))
+	RightOuterJoinOperator.new(:left($left), :right($right), :condition(&condition))
 }
 
 multi sub infix:<⟗>(Mu $left, Mu $right, &condition?) is export {
-    FullOuterJoinOperator.new(:left($left), :right($right), :condition(&condition))
+	FullOuterJoinOperator.new(:left($left), :right($right), :condition(&condition))
 }
 
 multi sub infix:<⋉>(Mu $left, Mu $right, &condition?) is export {
-    LeftSemijoinOperator.new(:left($left), :right($right), :condition(&condition))
+	LeftSemijoinOperator.new(:left($left), :right($right), :condition(&condition))
 }
 
 multi sub infix:<⋊>(Mu $left, Mu $right, &condition?) is export {
-    RightSemijoinOperator.new(:left($left), :right($right), :condition(&condition))
+	RightSemijoinOperator.new(:left($left), :right($right), :condition(&condition))
 }
 
 multi sub infix:<▷>(Mu $left, Mu $right, &condition?) is export {
-    LeftAntijoinOperator.new(:left($left), :right($right), :condition(&condition))
+	LeftAntijoinOperator.new(:left($left), :right($right), :condition(&condition))
 }
 
 multi sub infix:<◁>(Mu $left, Mu $right, &condition?) is export {
-    RightAntijoinOperator.new(:left($left), :right($right), :condition(&condition))
+	RightAntijoinOperator.new(:left($left), :right($right), :condition(&condition))
 }
 
 multi sub infix:<÷>(Mu $left, Mu $right) is export {
-    DivisionOperator.new(:left($left), :right($right))
+	DivisionOperator.new(:left($left), :right($right))
 }
 
 multi sub infix:<×>(Positional $left, Positional $right) is export {
-    CrossJoinOperator.new(:left($left), :right($right))
+	CrossJoinOperator.new(:left($left), :right($right))
 }
 
 multi sub infix:<×>(OperatorBase $left, Mu $right) is export {
-    CrossJoinOperator.new(:left($left), :right($right))
+	CrossJoinOperator.new(:left($left), :right($right))
 }
 
 multi sub infix:<×>(Mu $left, OperatorBase $right) is export {
-    CrossJoinOperator.new(:left($left), :right($right))
+	CrossJoinOperator.new(:left($left), :right($right))
 }
 
 multi sub prefix:<Π>(Mu $relation, *@columns) is export {
-    ProjectionOperator.new(:relation($relation), :columns(@columns))
+	ProjectionOperator.new(:relation($relation), :columns(@columns))
 }
 
 multi sub prefix:<ρ>(Mu $relation, *%renames) is export {
-    RenameOperator.new(:relation($relation), :renames(%renames))
+	RenameOperator.new(:relation($relation), :renames(%renames))
 }
 
 multi sub prefix:<⮳>(Mu $location) is export {
-    SourceOperator.new(location => ~$location)
+	SourceOperator.new(location => ~$location)
 }
 
 multi sub infix:<↱>(Mu $left, Mu $right) is export {
-    ParseOperator.new(:subject($left), :format(~$right))
+	ParseOperator.new(:subject($left), :format(~$right))
 }
 
 multi sub infix:<↴>(Mu $left, Mu $right, *%adverbs) is export {
-    RenderOperator.new(:subject($left), :format(~$right), :options(%adverbs))
+	RenderOperator.new(:subject($left), :format(~$right), :options(%adverbs))
 }
 
 multi sub infix:<⮷>(Mu $left, Mu $right) is export {
-    DestinationOperator.new(:subject($left), :location(~$right))
+	DestinationOperator.new(:subject($left), :location(~$right))
 }

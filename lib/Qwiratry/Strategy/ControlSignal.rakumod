@@ -27,10 +27,10 @@ These signals control traversal behaviour and rewrite scheduling.
 
 =end pod
 enum ControlSignal is export <
-    NO_REWRITE
-    REWRITE_IMMEDIATE
-    REWRITE_DEFERRED
-    SKIP_ELEMENT
-    STOP_TRAVERSAL
-    FINAL_RESULT
+	NO_REWRITE
+	REWRITE_IMMEDIATE
+	REWRITE_DEFERRED
+	SKIP_ELEMENT
+	STOP_TRAVERSAL
+	FINAL_RESULT
 >;

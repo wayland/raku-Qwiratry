@@ -51,48 +51,48 @@ Concrete implementations provide actual traversal logic via pull-one().
 
 =end pod
 role QueryIterator does Iterator is export {
-    =begin pod
+	=begin pod
 
-    The Context object for this traversal, containing mutable per-traversal state.
-    Must be provided via constructor. Enables coordination between
-    Qwiratry::Walker, Strategy hooks, and the iterator during traversal.
+	The Context object for this traversal, containing mutable per-traversal state.
+	Must be provided via constructor. Enables coordination between
+	Qwiratry::Walker, Strategy hooks, and the iterator during traversal.
 
-    =end pod
-    has Context $.context is required;
+	=end pod
+	has Context $.context is required;
     
-    =begin pod
+	=begin pod
 
-    Return the next matching result, or IterationEnd if exhausted.
+	Return the next matching result, or IterationEnd if exhausted.
 
-    This is the standard Raku Iterator method. Concrete implementations
-    MUST override this to provide actual iteration logic.
+	This is the standard Raku Iterator method. Concrete implementations
+	MUST override this to provide actual iteration logic.
 
-    Contract:
-      - Returns: Any value (the next result) or IterationEnd (exhausted)
-      - After returning IterationEnd once, must consistently return IterationEnd
-      - Test exhaustion with `$value ~~ IterationEnd` (not `=:=`) when storing pull-one in a variable
-      - Should support lazy evaluation when possible
-      - May coordinate with Context for state management
-      - May support backtracking per Qwiratry::Walker logic
+	Contract:
+	- Returns: Any value (the next result) or IterationEnd (exhausted)
+	- After returning IterationEnd once, must consistently return IterationEnd
+	- Test exhaustion with `$value ~~ IterationEnd` (not `=:=`) when storing pull-one in a variable
+	- Should support lazy evaluation when possible
+	- May coordinate with Context for state management
+	- May support backtracking per Qwiratry::Walker logic
 
-    @returns Mu - Next result value, or IterationEnd if no more results
+	@returns Mu - Next result value, or IterationEnd if no more results
 
-    =end pod
-    method pull-one(--> Mu) {
-        # Default implementation: empty iterator
-        # Concrete classes MUST override this method
-        IterationEnd
-    }
+	=end pod
+	method pull-one(--> Mu) {
+		# Default implementation: empty iterator
+		# Concrete classes MUST override this method
+		IterationEnd
+	}
 
-    =begin pod
+	=begin pod
 
-    Spec alias for C<pull-one> (Walker core infrastructure FR-004).
+	Spec alias for C<pull-one> (Walker core infrastructure FR-004).
 
-    Returns the next matching result, or C<Nil> when exhausted.
+	Returns the next matching result, or C<Nil> when exhausted.
 
-    =end pod
-    method next(--> Mu) {
-        my $value = self.pull-one;
-        $value ~~ IterationEnd ?? Nil !! $value
-    }
+	=end pod
+	method next(--> Mu) {
+		my $value = self.pull-one;
+		$value ~~ IterationEnd ?? Nil !! $value
+	}
 }

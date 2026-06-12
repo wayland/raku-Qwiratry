@@ -18,10 +18,10 @@ The APPLY method will use `make` to immediately replace the current node.
 
 =end pod
 role TreeRewrite is export {
-    # This role is a marker - the actual behavior is implemented
-    # in the Transformer class when TreeRewrite is detected
-    # The role itself doesn't need to define methods, as the
-    # mutation behavior is handled by the transformer's APPLY method
-    # when $.mutates-input is True
+	# This role is a marker - the actual behavior is implemented
+	# in the Transformer class when TreeRewrite is detected
+	# The role itself doesn't need to define methods, as the
+	# mutation behavior is handled by the transformer's APPLY method
+	# when $.mutates-input is True
 }
 

@@ -37,23 +37,23 @@ throughout the traversal, enabling state sharing between hooks.
 
 =end pod
 role Context is export {
-    =begin pod
+	=begin pod
 
-    The Strategy instance for this traversal (may be undefined).
+	The Strategy instance for this traversal (may be undefined).
 
-    Set by Qwiratry::Walker when creating Context for a traversal.
-    If undefined, no Strategy hooks will be called during traversal.
-    The same Strategy instance is shared across all hooks in a single traversal.
+	Set by Qwiratry::Walker when creating Context for a traversal.
+	If undefined, no Strategy hooks will be called during traversal.
+	The same Strategy instance is shared across all hooks in a single traversal.
 
-    Type: Should be Qwiratry::Strategy (left untyped to avoid circular dependency).
+	Type: Should be Qwiratry::Strategy (left untyped to avoid circular dependency).
 
-    =end pod
-    has $.strategy;
+	=end pod
+	has $.strategy;
     
-    # Concrete implementations define their own attributes for:
-    # - Counters and accumulators
-    # - Memoisation tables
-    # - Queues and stacks for traversal
-    # - Intermediate results
-    # - Any other mutable per-traversal state
+	# Concrete implementations define their own attributes for:
+	# - Counters and accumulators
+	# - Memoisation tables
+	# - Queues and stacks for traversal
+	# - Intermediate results
+	# - Any other mutable per-traversal state
 }

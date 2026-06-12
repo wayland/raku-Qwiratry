@@ -29,15 +29,15 @@ and objects with identity.
 proto sub copy(|) is export {*}
 
 multi sub copy(Mu $x --> Mu) {
-    # T042: Check for custom .copy() method first (for all types)
-    if $x.^find_method('copy', :no_fallback) -> $method {
-        # Custom method exists - call it
-        # Note: Custom method should still be O(1) per spec
-        return $x.copy();
-    }
+	# T042: Check for custom .copy() method first (for all types)
+	if $x.^find_method('copy', :no_fallback) -> $method {
+		# Custom method exists - call it
+		# Note: Custom method should still be O(1) per spec
+		return $x.copy();
+	}
     
-    # Default: identity (for immutable primitives and objects with identity)
-    $x
+	# Default: identity (for immutable primitives and objects with identity)
+	$x
 }
 
 =begin pod
@@ -53,15 +53,15 @@ Otherwise uses `clone` for shallow copy (O(1) operation).
 =end pod
 # T035: copy(Positional) multi sub - shallow copy via clone
 multi sub copy(Positional $p --> Positional) {
-    # T042: Check for custom .copy() method first
-    if $p.^find_method('copy', :no_fallback) -> $method {
-        # Custom method exists - call it
-        # Note: Custom method should still be O(1) per spec
-        return $p.copy();
-    }
+	# T042: Check for custom .copy() method first
+	if $p.^find_method('copy', :no_fallback) -> $method {
+		# Custom method exists - call it
+		# Note: Custom method should still be O(1) per spec
+		return $p.copy();
+	}
     
-    # Default: use clone for shallow copy (O(1))
-    $p.clone
+	# Default: use clone for shallow copy (O(1))
+	$p.clone
 }
 
 =begin pod
@@ -77,15 +77,15 @@ Otherwise uses `clone` for shallow copy (O(1) operation).
 =end pod
 # T036: copy(Associative) multi sub - shallow copy via clone
 multi sub copy(Associative $a --> Associative) {
-    # T042: Check for custom .copy() method first
-    if $a.^find_method('copy', :no_fallback) -> $method {
-        # Custom method exists - call it
-        # Note: Custom method should still be O(1) per spec
-        return $a.copy();
-    }
+	# T042: Check for custom .copy() method first
+	if $a.^find_method('copy', :no_fallback) -> $method {
+		# Custom method exists - call it
+		# Note: Custom method should still be O(1) per spec
+		return $a.copy();
+	}
     
-    # Default: use clone for shallow copy (O(1))
-    $a.clone
+	# Default: use clone for shallow copy (O(1))
+	$a.clone
 }
 
 =begin pod
@@ -105,7 +105,7 @@ Default identity case - returns value as-is for immutable primitives
 proto sub deepcopy(|) is export {*}
 
 multi sub deepcopy(Mu $x, :%visited = %() --> Mu) {
-    $x  # atoms, objects with identity
+	$x  # atoms, objects with identity
 }
 
 =begin pod
@@ -122,24 +122,24 @@ for cycle detection and DAG preservation.
 =end pod
 # T038: deepcopy(Positional) multi sub - recursive deep copy
 multi sub deepcopy(Positional $p, :%visited = %() --> Positional) {
-    # T040/T041: Check visited hash for cycle detection and DAG preservation
-    my $identity = $p.WHICH;
-    if %visited{$identity}:exists {
-        # Already visited - return existing clone (cycle detection / DAG preservation)
-        return %visited{$identity};
-    }
+	# T040/T041: Check visited hash for cycle detection and DAG preservation
+	my $identity = $p.WHICH;
+	if %visited{$identity}:exists {
+		# Already visited - return existing clone (cycle detection / DAG preservation)
+		return %visited{$identity};
+	}
     
-    # T040/T041: Create placeholder and store in visited hash BEFORE recursing
-    # This prevents infinite recursion when encountering cycles
-    my $cloned = Array.new;
-    %visited{$identity} = $cloned;
+	# T040/T041: Create placeholder and store in visited hash BEFORE recursing
+	# This prevents infinite recursion when encountering cycles
+	my $cloned = Array.new;
+	%visited{$identity} = $cloned;
     
-    # Now recursively deep-copy elements into the cloned array
-    for $p -> $elem {
-        $cloned.push(deepcopy($elem, :%visited));
-    }
+	# Now recursively deep-copy elements into the cloned array
+	for $p -> $elem {
+		$cloned.push(deepcopy($elem, :%visited));
+	}
     
-    return $cloned;
+	return $cloned;
 }
 
 =begin pod
@@ -156,22 +156,22 @@ for cycle detection and DAG preservation.
 =end pod
 # T039: deepcopy(Associative) multi sub - recursive deep copy with cycle detection
 multi sub deepcopy(Associative $a, :%visited = %() --> Associative) {
-    # T040/T041: Check visited hash for cycle detection and DAG preservation
-    my $identity = $a.WHICH;
-    if %visited{$identity}:exists {
-        # Already visited - return existing clone (cycle detection / DAG preservation)
-        return %visited{$identity};
-    }
+	# T040/T041: Check visited hash for cycle detection and DAG preservation
+	my $identity = $a.WHICH;
+	if %visited{$identity}:exists {
+		# Already visited - return existing clone (cycle detection / DAG preservation)
+		return %visited{$identity};
+	}
     
-    # T040/T041: Create placeholder and store in visited hash BEFORE recursing
-    # This prevents infinite recursion when encountering cycles
-    my $cloned = Hash.new;
-    %visited{$identity} = $cloned;
+	# T040/T041: Create placeholder and store in visited hash BEFORE recursing
+	# This prevents infinite recursion when encountering cycles
+	my $cloned = Hash.new;
+	%visited{$identity} = $cloned;
     
-    # Now recursively deep-copy values into the cloned hash
-    for $a.kv -> $key, $value {
-        $cloned{$key} = deepcopy($value, :%visited);
-    }
+	# Now recursively deep-copy values into the cloned hash
+	for $a.kv -> $key, $value {
+		$cloned{$key} = deepcopy($value, :%visited);
+	}
     
-    return $cloned;
+	return $cloned;
 }

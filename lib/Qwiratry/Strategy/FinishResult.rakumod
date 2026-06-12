@@ -19,17 +19,17 @@ Contains the traversal outcome with a type identifier and optional value.
 
 =end pod
 class FinishResult is export {
-    # Result type identifier (e.g., 'final-result', 'aggregated', 'error')
-    # This is a required parameter when constructing a FinishResult.
-    has Str $.type is required;
+	# Result type identifier (e.g., 'final-result', 'aggregated', 'error')
+	# This is a required parameter when constructing a FinishResult.
+	has Str $.type is required;
     
-    # The result value (can be any type including Nil)
-    # Optional - defaults to Nil if not provided.
-    has $.value;
+	# The result value (can be any type including Nil)
+	# Optional - defaults to Nil if not provided.
+	has $.value;
     
-    # Human-readable representation of the result.
-    # Format: FinishResult(type: <type>, value: <value.gist>)
-    method gist(--> Str) {
-        "FinishResult(type: $.type, value: {$.value.gist})"
-    }
+	# Human-readable representation of the result.
+	# Format: FinishResult(type: <type>, value: <value.gist>)
+	method gist(--> Str) {
+		"FinishResult(type: $.type, value: {$.value.gist})"
+	}
 }

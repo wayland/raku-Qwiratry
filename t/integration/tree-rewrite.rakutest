@@ -9,52 +9,52 @@ use Qwiratry::Query::Slang;
 plan 2;
 
 subtest 'make replaces node in-place when TreeRewrite enabled' => {
-    plan 2;
+	plan 2;
 
-    my $data = [
-        %(name => 'section', children => [
-            %(name => 'item', value => 1),
-            %(name => 'item', value => 2),
-        ]),
-    ];
+	my $data = [
+		%(name => 'section', children => [
+			%(name => 'item', value => 1),
+			%(name => 'item', value => 2),
+		]),
+	];
 
-    my $transformer = Transformer.new;
-    $transformer.mutates-input = True;
-    $transformer.add-template(Template.new(
-        when-block => -> $_ { $_<name> eq 'item' && $_<value> == 1 },
-        do-block => -> $_ {
-            make %(name => 'item', value => 100);
-        },
-    ));
+	my $transformer = Transformer.new;
+	$transformer.mutates-input = True;
+	$transformer.add-template(Template.new(
+		when-block => -> $_ { $_<name> eq 'item' && $_<value> == 1 },
+		do-block => -> $_ {
+			make %(name => 'item', value => 100);
+		},
+	));
 
-    my $item = $data[0]<children>[0];
-    my $*TRANSFORM-ROOT := $data;
-    $transformer.APPLY($item);
-    is $data[0]<children>[0]<value>, 100, 'make rewrites node in tree';
-    is $data[0]<children>[1]<value>, 2, 'sibling node unchanged';
+	my $item = $data[0]<children>[0];
+	my $*TRANSFORM-ROOT := $data;
+	$transformer.APPLY($item);
+	is $data[0]<children>[0]<value>, 100, 'make rewrites node in tree';
+	is $data[0]<children>[1]<value>, 2, 'sibling node unchanged';
 }
 
 subtest 'TRANSFORM with mutates-input replaces matched nodes' => {
-    plan 2;
+	plan 2;
 
-    my $data = [
-        %(name => 'section', children => [
-            %(name => 'item', value => 1),
-            %(name => 'item', value => 2),
-        ]),
-    ];
+	my $data = [
+		%(name => 'section', children => [
+			%(name => 'item', value => 1),
+			%(name => 'item', value => 2),
+		]),
+	];
 
-    my $transformer = Transformer.new;
-    $transformer.mutates-input = True;
-    $transformer.add-template(Template.new(
-        :when-query($data ⪪⪪ <item>),
-        do-block => -> $_ { %(name => 'item', value => $_<value> * 10) },
-    ));
+	my $transformer = Transformer.new;
+	$transformer.mutates-input = True;
+	$transformer.add-template(Template.new(
+		:when-query($data ⪪⪪ <item>),
+		do-block => -> $_ { %(name => 'item', value => $_<value> * 10) },
+	));
 
-    $transformer.TRANSFORM($data);
-    my @values = $data[0]<children>.map(*<value>);
-    is @values.sort, (10, 20), 'TRANSFORM rewrites item nodes in place';
-    ok $data[0]<children>[0] ~~ Associative, 'rewritten nodes remain Associative hashes';
+	$transformer.TRANSFORM($data);
+	my @values = $data[0]<children>.map(*<value>);
+	is @values.sort, (10, 20), 'TRANSFORM rewrites item nodes in place';
+	ok $data[0]<children>[0] ~~ Associative, 'rewritten nodes remain Associative hashes';
 }
 
 done-testing;

@@ -16,24 +16,24 @@ plan 7;
 
 #| Flatten one level of lazy-gather nesting from C<select> results.
 sub eager-rows($seq --> List) {
-    my @rows;
-    my $iter = $seq.iterator;
-    loop {
-        my $item = $iter.pull-one;
-        last if $item ~~ IterationEnd;
-        if $item ~~ Seq {
-            my $inner = $item.iterator;
-            loop {
-                my $row = $inner.pull-one;
-                last if $row ~~ IterationEnd;
-                @rows.push($row);
-            }
-        }
-        else {
-            @rows.push($item);
-        }
-    }
-    @rows
+	my @rows;
+	my $iter = $seq.iterator;
+	loop {
+		my $item = $iter.pull-one;
+		last if $item ~~ IterationEnd;
+		if $item ~~ Seq {
+			my $inner = $item.iterator;
+			loop {
+				my $row = $inner.pull-one;
+				last if $row ~~ IterationEnd;
+				@rows.push($row);
+			}
+		}
+		else {
+			@rows.push($item);
+		}
+	}
+	@rows
 }
 
 sub eager-elems($seq --> Int) { eager-rows($seq).elems }
@@ -42,115 +42,115 @@ sub eager-elems($seq --> Int) { eager-rows($seq).elems }
 sub eager-first($seq) { eager-rows($seq)[0] }
 
 subtest 'Creating navigation and selection operators' => {
-    plan 2;
+	plan 2;
 
-    my $child-op = ChildOperator.new(:selector('*'));
-    ok $child-op.capabilities<navigation>, 'ChildOperator declares navigation';
+	my $child-op = ChildOperator.new(:selector('*'));
+	ok $child-op.capabilities<navigation>, 'ChildOperator declares navigation';
 
-    my $select-op = SelectionOperator.new(:predicate(-> $_ { True }));
-    ok $select-op.capabilities<map-reduce>, 'SelectionOperator declares map-reduce';
+	my $select-op = SelectionOperator.new(:predicate(-> $_ { True }));
+	ok $select-op.capabilities<map-reduce>, 'SelectionOperator declares map-reduce';
 }
 
 subtest 'Operator composition from quickstart' => {
-    plan 3;
+	plan 3;
 
-    my $query1 = ChildOperator.new(:selector('a'));
-    my $query2 = ChildOperator.new(:selector('b'));
-    my $union-op = UnionOperator.new(:left($query1), :right($query2));
-    ok $union-op ~~ UnionOperator, 'UnionOperator composes two queries';
+	my $query1 = ChildOperator.new(:selector('a'));
+	my $query2 = ChildOperator.new(:selector('b'));
+	my $union-op = UnionOperator.new(:left($query1), :right($query2));
+	ok $union-op ~~ UnionOperator, 'UnionOperator composes two queries';
 
-    my $nested = ChildOperator.new(
-        :selector(ChildOperator.new(:selector('*'))),
-    );
-    ok $nested.selector ~~ ChildOperator, 'nested ChildOperator selector';
+	my $nested = ChildOperator.new(
+		:selector(ChildOperator.new(:selector('*'))),
+	);
+	ok $nested.selector ~~ ChildOperator, 'nested ChildOperator selector';
 
-    my $caps = $nested.capabilities;
-    ok $caps<navigation>, 'nested navigation still declares capability';
+	my $caps = $nested.capabilities;
+	ok $caps<navigation>, 'nested navigation still declares capability';
 }
 
 subtest 'Filtering and sorting patterns' => {
-    plan 2;
+	plan 2;
 
-    my @items = [%(price => 50, active => True), %(price => 150, active => True)];
-    my $filtered = @items σ -> $_ { $_<price> > 100 && $_<active> };
-    is eager-elems(select($filtered, @items)), 1, 'selection filters by price and active';
+	my @items = [%(price => 50, active => True), %(price => 150, active => True)];
+	my $filtered = @items σ -> $_ { $_<price> > 100 && $_<active> };
+	is eager-elems(select($filtered, @items)), 1, 'selection filters by price and active';
 
-    my $sorted = @items ⇅ -> $_ { $_<price> };
-    is select($sorted, @items)[*-1]<price>, 150, 'sort orders by price';
+	my $sorted = @items ⇅ -> $_ { $_<price> };
+	is select($sorted, @items)[*-1]<price>, 150, 'sort orders by price';
 }
 
 subtest 'Set operations pattern' => {
-    plan 2;
+	plan 2;
 
-    my $query1 = ChildOperator.new(:selector('a'));
-    my $query2 = ChildOperator.new(:selector('b'));
-    my $intersection = IntersectionOperator.new(:left($query1), :right($query2));
-    ok $intersection ~~ IntersectionOperator, 'intersection composes two queries';
+	my $query1 = ChildOperator.new(:selector('a'));
+	my $query2 = ChildOperator.new(:selector('b'));
+	my $intersection = IntersectionOperator.new(:left($query1), :right($query2));
+	ok $intersection ~~ IntersectionOperator, 'intersection composes two queries';
 
-    my @a = [(%(id => 1),)];
-    my @b = [(%(id => 2),)];
-    is eager-elems(select(UnionOperator.new(:left(@a), :right(@b)), @a)), 2,
-        'union combines two relations';
+	my @a = [(%(id => 1),)];
+	my @b = [(%(id => 2),)];
+	is eager-elems(select(UnionOperator.new(:left(@a), :right(@b)), @a)), 2,
+		'union combines two relations';
 }
 
 subtest 'I/O operator pattern constructs pipeline AST' => {
-    plan 4;
+	plan 4;
 
-    my $source = SourceOperator.new(:location('data.json'));
-    my $parsed = ParseOperator.new(:format('JSON'), :subject($source));
-    ok $parsed.subject ~~ SourceOperator, 'parse chains from source';
+	my $source = SourceOperator.new(:location('data.json'));
+	my $parsed = ParseOperator.new(:format('JSON'), :subject($source));
+	ok $parsed.subject ~~ SourceOperator, 'parse chains from source';
 
-    my $rendered = RenderOperator.new(:format('JSON'), :options(%(pretty => True)), :subject($parsed));
-    ok $rendered.options<pretty>, 'render stores pretty option';
+	my $rendered = RenderOperator.new(:format('JSON'), :options(%(pretty => True)), :subject($parsed));
+	ok $rendered.options<pretty>, 'render stores pretty option';
 
-    my $dest = DestinationOperator.new(:location('output.json'), :subject($rendered));
-    ok $dest.subject ~~ RenderOperator, 'destination chains from render';
+	my $dest = DestinationOperator.new(:location('output.json'), :subject($rendered));
+	ok $dest.subject ~~ RenderOperator, 'destination chains from render';
 
-    like $dest.describe, rx:s/output\.json/, 'destination describe mentions path';
+	like $dest.describe, rx:s/output\.json/, 'destination describe mentions path';
 }
 
 subtest 'Table FK navigation from quickstart' => {
-    plan 2;
+	plan 2;
 
-    use Qwiratry::Table;
+	use Qwiratry::Table;
 
-    my @orders = [(%(order_id => 1, customer_id => 10),)];
-    my @customers = [(%(customer_id => 10, name => 'Alice'),)];
-    my $catalog = make-catalog(
-        :orders(@orders), :customers(@customers),
-        :foreign-keys(
-            ForeignKey.new(
-                :from-table('orders'), :from-column('customer_id'),
-                :to-table('customers'), :to-column('customer_id'),
-            ),
-        ),
-        :active-table('orders'),
-    );
+	my @orders = [(%(order_id => 1, customer_id => 10),)];
+	my @customers = [(%(customer_id => 10, name => 'Alice'),)];
+	my $catalog = make-catalog(
+		:orders(@orders), :customers(@customers),
+		:foreign-keys(
+			ForeignKey.new(
+				:from-table('orders'), :from-column('customer_id'),
+				:to-table('customers'), :to-column('customer_id'),
+			),
+		),
+		:active-table('orders'),
+	);
 
-    is eager-first(select(@orders[0] ⪪ <customer_id>, $catalog))<name>, 'Alice',
-        'FK navigation resolves customer row';
+	is eager-first(select(@orders[0] ⪪ <customer_id>, $catalog))<name>, 'Alice',
+		'FK navigation resolves customer row';
 
-    is eager-first(select(@customers[0] ⪫ <*> :reference, $catalog))<order_id>, 1,
-        'reverse FK finds referencing order';
+	is eager-first(select(@customers[0] ⪫ <*> :reference, $catalog))<order_id>, 1,
+		'reverse FK finds referencing order';
 }
 
 subtest 'Ordered row and lazy patterns from quickstart' => {
-    plan 3;
+	plan 3;
 
-    use Qwiratry::Table;
+	use Qwiratry::Table;
 
-    my @rows = [
-        %(id => 1),
-        %(id => 2),
-        %(id => 3),
-    ];
-    my $catalog = make-catalog(:rows(@rows), :active-table('rows'));
+	my @rows = [
+		%(id => 1),
+		%(id => 2),
+		%(id => 3),
+	];
+	my $catalog = make-catalog(:rows(@rows), :active-table('rows'));
 
-    is eager-first(select(@rows[1] ⪨ <*>, $catalog))<id>, 3, 'following sibling';
-    is eager-first(select(@rows[1] ⪩ <*>, $catalog))<id>, 1, 'preceding sibling';
+	is eager-first(select(@rows[1] ⪨ <*>, $catalog))<id>, 3, 'following sibling';
+	is eager-first(select(@rows[1] ⪩ <*>, $catalog))<id>, 1, 'preceding sibling';
 
-    my $query = @rows σ -> $_ { True };
-    ok select($query, @rows) ~~ Seq, 'select returns lazy Seq';
+	my $query = @rows σ -> $_ { True };
+	ok select($query, @rows) ~~ Seq, 'select returns lazy Seq';
 }
 
 done-testing;

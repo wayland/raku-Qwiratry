@@ -21,6 +21,6 @@ Currently serves as a type marker for return values from on-match and after hook
 
 =end pod
 role RewriteSpec is export {
-    # Marker role - no methods required
-    # Concrete implementations will define rewrite specifications in future features
+	# Marker role - no methods required
+	# Concrete implementations will define rewrite specifications in future features
 }

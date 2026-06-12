@@ -27,25 +27,25 @@ our %PROVIDING-SCHEMA;
 our @PROVIDING-PENDING;  # queue of space-joined domain name strings
 
 sub normalize-providing-domains($providing --> List) {
-    my @raw = do given $providing {
-        when Positional { $providing.map({ ~$_ }) }
-        when Str { (~$providing).split(/\s+/) }
-        default { $providing.defined ?? (~$providing).split(/\s+/) !! () }
-    };
-    @raw.grep(*.chars).List;
+	my @raw = do given $providing {
+		when Positional { $providing.map({ ~$_ }) }
+		when Str { (~$providing).split(/\s+/) }
+		default { $providing.defined ?? (~$providing).split(/\s+/) !! () }
+	};
+	@raw.grep(*.chars).List;
 }
 
 sub providing-container($obj is raw) {
-    return $obj if $obj ~~ Positional || $obj ~~ Associative;
-    if (my $var = try { $obj.VAR }) {
-        return $var;
-    }
-    $obj
+	return $obj if $obj ~~ Positional || $obj ~~ Associative;
+	if (my $var = try { $obj.VAR }) {
+		return $var;
+	}
+	$obj
 }
 
 sub bind-providing-domains($obj is raw, @domains) {
-    my $key = providing-container($obj).WHICH;
-    %PROVIDING-METADATA{$key} = @domains.clone;
+	my $key = providing-container($obj).WHICH;
+	%PROVIDING-METADATA{$key} = @domains.clone;
 }
 
 =begin pod
@@ -56,14 +56,14 @@ Used by Master Walker handover detection on roots that may lack the trait.
 
 =end pod
 sub cached-providing-domains($obj is raw) is export {
-    my $key = providing-container($obj).WHICH;
+	my $key = providing-container($obj).WHICH;
 
-    if %PROVIDING-METADATA{$key}:exists {
-        my $result = %PROVIDING-METADATA{$key};
-        return $result if $result;
-    }
+	if %PROVIDING-METADATA{$key}:exists {
+		my $result = %PROVIDING-METADATA{$key};
+		return $result if $result;
+	}
 
-    Nil
+	Nil
 }
 
 =begin pod
@@ -74,20 +74,20 @@ Returns Array[Str] of domain names if metadata exists, Nil otherwise.
 
 =end pod
 sub providing-domains($obj is raw) is export {
-    my $key = providing-container($obj).WHICH;
+	my $key = providing-container($obj).WHICH;
 
-    if %PROVIDING-METADATA{$key}:exists {
-        my $result = %PROVIDING-METADATA{$key};
-        return $result if $result;
-    }
+	if %PROVIDING-METADATA{$key}:exists {
+		my $result = %PROVIDING-METADATA{$key};
+		return $result if $result;
+	}
 
-    if @PROVIDING-PENDING {
-        my @domains = @PROVIDING-PENDING.shift.split(/\s+/);
-        bind-providing-domains($obj, @domains);
-        return @domains if @domains;
-    }
+	if @PROVIDING-PENDING {
+		my @domains = @PROVIDING-PENDING.shift.split(/\s+/);
+		bind-providing-domains($obj, @domains);
+		return @domains if @domains;
+	}
 
-    Nil
+	Nil
 }
 
 =begin pod
@@ -96,8 +96,8 @@ Bind structured table schema metadata to a container (tables, foreign keys).
 
 =end pod
 our sub bind-providing-schema(Mu $obj is raw, Associative $schema) is export {
-    my $key = providing-container($obj).WHICH;
-    %PROVIDING-SCHEMA{$key} = %$schema;
+	my $key = providing-container($obj).WHICH;
+	%PROVIDING-SCHEMA{$key} = %$schema;
 }
 
 =begin pod
@@ -106,11 +106,11 @@ Look up schema metadata attached via L<bind-providing-schema>.
 
 =end pod
 our sub providing-schema(Mu $obj is raw --> Mu) is export {
-    my $key = providing-container($obj).WHICH;
-    %PROVIDING-SCHEMA{$key} if %PROVIDING-SCHEMA{$key}:exists;
+	my $key = providing-container($obj).WHICH;
+	%PROVIDING-SCHEMA{$key} if %PROVIDING-SCHEMA{$key}:exists;
 }
 
 multi sub trait_mod:<is>(Variable $declarand, :$providing) is export {
-    my @domain-names = normalize-providing-domains($providing);
-    @PROVIDING-PENDING.push(@domain-names.join(' '));
+	my @domain-names = normalize-providing-domains($providing);
+	@PROVIDING-PENDING.push(@domain-names.join(' '));
 }

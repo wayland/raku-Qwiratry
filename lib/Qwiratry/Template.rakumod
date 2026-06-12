@@ -50,17 +50,17 @@ Add a value to the current template's output stream.
 
 =end pod
 sub make(Mu $value) is export {
-    unless $*MAKE-OUTPUT.defined {
-        X::Qwiratry::Walker.new(
-            message => 'make() called outside template execution',
-            walker-type => 'Template',
-        ).throw;
-    }
-    $*MAKE-OUTPUT.push($value);
-    if $*TRANSFORM-REWRITE && $*TRANSFORM-NODE.defined && $*TRANSFORM-ROOT.defined {
-        replace-node-in-tree($*TRANSFORM-NODE, $value, $*TRANSFORM-ROOT);
-    }
-    $value;
+	unless $*MAKE-OUTPUT.defined {
+		X::Qwiratry::Walker.new(
+			message => 'make() called outside template execution',
+			walker-type => 'Template',
+		).throw;
+	}
+	$*MAKE-OUTPUT.push($value);
+	if $*TRANSFORM-REWRITE && $*TRANSFORM-NODE.defined && $*TRANSFORM-ROOT.defined {
+		replace-node-in-tree($*TRANSFORM-NODE, $value, $*TRANSFORM-ROOT);
+	}
+	$value;
 }
 
 =begin pod
@@ -69,12 +69,12 @@ Skip the current template action and continue with the next matching template.
 
 =end pod
 class NextTemplate is export {
-    method throw(NextTemplate:U: ) {
-        X::Qwiratry::NextTemplate.new(
-            message => 'Continue to next matching template',
-            walker-type => 'Template',
-        ).throw;
-    }
+	method throw(NextTemplate:U: ) {
+		X::Qwiratry::NextTemplate.new(
+			message => 'Continue to next matching template',
+			walker-type => 'Template',
+		).throw;
+	}
 }
 
 =begin pod
@@ -92,316 +92,316 @@ Example:
 
 =end pod
 class Template is export {
-    # Optional template name (makes template callable as method on transformer)
-    has Str $.name;
+	# Optional template name (makes template callable as method on transformer)
+	has Str $.name;
     
-    # Optional template signature (for parameters)
-    has Signature $.signature;
+	# Optional template signature (for parameters)
+	has Signature $.signature;
     
-    =begin pod
+	=begin pod
     
-    Code block for matching nodes (template matcher).
-    Evaluated against each node during transformation.
-    Returns True if template should apply to this node.
+	Code block for matching nodes (template matcher).
+	Evaluated against each node during transformation.
+	Returns True if template should apply to this node.
     
-    =end pod
-    has Block $.when-block;
+	=end pod
+	has Block $.when-block;
     
-    =begin pod
+	=begin pod
     
-    Code block for producing output (template action).
-    Executed when template matches a node.
-    Produces output via `make` or return value.
+	Code block for producing output (template action).
+	Executed when template matches a node.
+	Produces output via `make` or return value.
     
-    =end pod
-    has Block $.do-block;
+	=end pod
+	has Block $.do-block;
     
-    =begin pod
+	=begin pod
     
-    Template priority (from `:priority` trait, default 0).
-    Higher priority templates are tried first.
+	Template priority (from `:priority` trait, default 0).
+	Higher priority templates are tried first.
     
-    =end pod
-    has Int $.priority = 0;
+	=end pod
+	has Int $.priority = 0;
     
-    =begin pod
+	=begin pod
     
-    Calculated specificity score (cached after calculation).
-    Higher specificity templates are tried first when priority is equal.
+	Calculated specificity score (cached after calculation).
+	Higher specificity templates are tried first when priority is equal.
     
-    =end pod
-    has Int $.specificity;
+	=end pod
+	has Int $.specificity;
     
-    =begin pod
+	=begin pod
     
-    Tie-breaker value (from `:tie-breaker` trait, default 0).
-    Used to break ties when priority and specificity are equal.
+	Tie-breaker value (from `:tie-breaker` trait, default 0).
+	Used to break ties when priority and specificity are equal.
     
-    =end pod
-    has Int $.tie-breaker = 0;
+	=end pod
+	has Int $.tie-breaker = 0;
     
-    =begin pod
+	=begin pod
     
-    Whether template has `:streaming` trait.
-    Streaming templates can produce lazy iterators.
+	Whether template has `:streaming` trait.
+	Streaming templates can produce lazy iterators.
     
-    =end pod
-    has Bool $.streaming = False;
+	=end pod
+	has Bool $.streaming = False;
     
-    =begin pod
+	=begin pod
     
-    Output type constraint (from `returns(Type)` trait).
-    Enforces the type of output returned by template.
+	Output type constraint (from `returns(Type)` trait).
+	Enforces the type of output returned by template.
     
-    =end pod
-    has Mu $.returns-type;
+	=end pod
+	has Mu $.returns-type;
 
-    =begin pod
+	=begin pod
 
-    Optional Query AST extracted from the C<when> clause for specificity calculation.
+	Optional Query AST extracted from the C<when> clause for specificity calculation.
 
-    =end pod
-    has Mu $.when-query is rw;
+	=end pod
+	has Mu $.when-query is rw;
 
-    =begin pod
+	=begin pod
 
-    When True, C<when-query> and C<when-block> are both required to match (mixed query
-    + predicate). When False, a defined C<when-block> alone controls matching and
-    C<when-query> is used only for specificity ordering.
+	When True, C<when-query> and C<when-block> are both required to match (mixed query
+	+ predicate). When False, a defined C<when-block> alone controls matching and
+	C<when-query> is used only for specificity ordering.
 
-    =end pod
-    has Bool $.combine-when-query = False;
+	=end pod
+	has Bool $.combine-when-query = False;
     
-    # Constructor
-    submethod BUILD(
-        :$name,
-        :$signature,
-        :$when-block,
-        :$when-query,
-        :$combine-when-query = False,
-        :$!do-block!,
-        :$!priority = 0,
-        :$specificity,
-        :$!tie-breaker = 0,
-        :$!streaming = False,
-        :$returns-type
-    ) {
-        $!name = $name if $name.defined;
-        $!signature = $signature if $signature.defined;
-        $!when-block = $when-block if $when-block.defined;
-        $!when-query = $when-query if $when-query.defined;
-        $!combine-when-query = $combine-when-query;
-        $!specificity = $specificity if $specificity.defined;
-        $!returns-type = $returns-type if $returns-type.defined;
-    }
+	# Constructor
+	submethod BUILD(
+		:$name,
+		:$signature,
+		:$when-block,
+		:$when-query,
+		:$combine-when-query = False,
+		:$!do-block!,
+		:$!priority = 0,
+		:$specificity,
+		:$!tie-breaker = 0,
+		:$!streaming = False,
+		:$returns-type
+	) {
+		$!name = $name if $name.defined;
+		$!signature = $signature if $signature.defined;
+		$!when-block = $when-block if $when-block.defined;
+		$!when-query = $when-query if $when-query.defined;
+		$!combine-when-query = $combine-when-query;
+		$!specificity = $specificity if $specificity.defined;
+		$!returns-type = $returns-type if $returns-type.defined;
+	}
     
-    =begin pod
+	=begin pod
 
-    Evaluates `when` block against node, returns True if matches.
+	Evaluates `when` block against node, returns True if matches.
 
-    Sets magic variables ($*CONTEXT, $_) before evaluating the when block.
-    Handles errors gracefully by returning False if evaluation fails.
+	Sets magic variables ($*CONTEXT, $_) before evaluating the when block.
+	Handles errors gracefully by returning False if evaluation fails.
 
-    @param $node - Node to match against
-    @returns Bool - True if template matches node
+	@param $node - Node to match against
+	@returns Bool - True if template matches node
 
-    =end pod
-    method matches($node --> Bool) {
-        my $origin = $*TRANSFORM-ROOT // $node;
+	=end pod
+	method matches($node --> Bool) {
+		my $origin = $*TRANSFORM-ROOT // $node;
 
-        if $.combine-when-query && $!when-query.defined {
-            return False unless when-query-matches($!when-query, $node, :$origin);
-            return $!when-block.defined ?? self!evaluate-when-block($node) !! True;
-        }
+		if $.combine-when-query && $!when-query.defined {
+			return False unless when-query-matches($!when-query, $node, :$origin);
+			return $!when-block.defined ?? self!evaluate-when-block($node) !! True;
+		}
 
-        if $!when-query.defined && !$!when-block.defined {
-            return when-query-matches($!when-query, $node, :$origin);
-        }
+		if $!when-query.defined && !$!when-block.defined {
+			return when-query-matches($!when-query, $node, :$origin);
+		}
 
-        if !$!when-block.defined {
-            return True;
-        }
+		if !$!when-block.defined {
+			return True;
+		}
 
-        self!evaluate-when-block($node);
-    }
+		self!evaluate-when-block($node);
+	}
 
-    method !evaluate-when-block($node --> Bool) {
-        my $*MAKE-OUTPUT := Nil;
-        try {
-            return self!run-with-magic-variables(
-                $node,
-                { ?self!invoke-block($!when-block, $node) },
-                :setup-capture($!signature.defined),
-            );
-        }
-        False;
-    }
+	method !evaluate-when-block($node --> Bool) {
+		my $*MAKE-OUTPUT := Nil;
+		try {
+			return self!run-with-magic-variables(
+				$node,
+				{ ?self!invoke-block($!when-block, $node) },
+				:setup-capture($!signature.defined),
+			);
+		}
+		False;
+	}
 
-    method !run-with-magic-variables($node, &code, :$context, :$setup-capture = False, :$make-output) {
-        my $*CONTEXT = $context // $node;
-        my $*MAKE-OUTPUT := $make-output if $make-output.defined;
-        my $capture = self!capture-signature($node) if $setup-capture;
-        my $*CAPTURE = $capture if $capture.defined;
-        $/ = $capture if $capture.defined;
-        code();
-    }
+	method !run-with-magic-variables($node, &code, :$context, :$setup-capture = False, :$make-output) {
+		my $*CONTEXT = $context // $node;
+		my $*MAKE-OUTPUT := $make-output if $make-output.defined;
+		my $capture = self!capture-signature($node) if $setup-capture;
+		my $*CAPTURE = $capture if $capture.defined;
+		$/ = $capture if $capture.defined;
+		code();
+	}
 
-    method !param-field-name($param --> Str) {
-        my $name = $param.name;
-        $name.=subst(/^\$/, '');
-        $name.=subst(/^\@/, '');
-        $name.=subst(/^\%/, '');
-        $name eq '_' ?? 'topic' !! $name;
-    }
+	method !param-field-name($param --> Str) {
+		my $name = $param.name;
+		$name.=subst(/^\$/, '');
+		$name.=subst(/^\@/, '');
+		$name.=subst(/^\%/, '');
+		$name eq '_' ?? 'topic' !! $name;
+	}
 
-    method !capture-signature($node) {
-        return %() unless $!signature.defined;
+	method !capture-signature($node) {
+		return %() unless $!signature.defined;
 
-        my @params = $!signature.params;
-        if !@params || (@params == 1 && self!param-field-name(@params[0]) eq 'topic') {
-            return %(topic => $node);
-        }
+		my @params = $!signature.params;
+		if !@params || (@params == 1 && self!param-field-name(@params[0]) eq 'topic') {
+			return %(topic => $node);
+		}
 
-        my @pos;
-        my %named;
-        for @params -> $param {
-            next if $param.slurpy;
-            my $field = self!param-field-name($param);
-            if $param.named {
-                my $val = self!extract-field($node, $field);
-                next unless $val.defined;
-                %named{$field} = $val;
-            }
-            elsif $field eq 'topic' {
-                @pos.push($node);
-            }
-            else {
-                my $val = self!extract-field($node, $field);
-                next unless $val.defined;
-                %named{$field} = $val;
-                @pos.push($val);
-            }
-        }
+		my @pos;
+		my %named;
+		for @params -> $param {
+			next if $param.slurpy;
+			my $field = self!param-field-name($param);
+			if $param.named {
+				my $val = self!extract-field($node, $field);
+				next unless $val.defined;
+				%named{$field} = $val;
+			}
+			elsif $field eq 'topic' {
+				@pos.push($node);
+			}
+			else {
+				my $val = self!extract-field($node, $field);
+				next unless $val.defined;
+				%named{$field} = $val;
+				@pos.push($val);
+			}
+		}
 
-        return %named if @pos == 0;
-        return %(|%named, pos => @pos) if @pos;
-        %named;
-    }
+		return %named if @pos == 0;
+		return %(|%named, pos => @pos) if @pos;
+		%named;
+	}
 
-    method !extract-field($node, $field) {
-        return $node if $field eq 'topic';
-        if $node ~~ Associative {
-            return $node{$field} if $node{$field}:exists;
-        }
-        try {
-            return $node."$field"();
-        }
-        Nil;
-    }
+	method !extract-field($node, $field) {
+		return $node if $field eq 'topic';
+		if $node ~~ Associative {
+			return $node{$field} if $node{$field}:exists;
+		}
+		try {
+			return $node."$field"();
+		}
+		Nil;
+	}
 
-    method !invoke-arity0($node, &code) {
-        if $node.defined {
-            with $node { code() }
-        }
-        else {
-            $node.&({ code() })
-        }
-    }
+	method !invoke-arity0($node, &code) {
+		if $node.defined {
+			with $node { code() }
+		}
+		else {
+			$node.&({ code() })
+		}
+	}
 
-    method !invoke-block($block, $node) {
-        if $block.arity == 0 && $block.count == 0 {
-            return self!invoke-arity0($node, { $block() });
-        }
-        return $block($node) if $block.arity == 1;
-        $block($node);
-    }
+	method !invoke-block($block, $node) {
+		if $block.arity == 0 && $block.count == 0 {
+			return self!invoke-arity0($node, { $block() });
+		}
+		return $block($node) if $block.arity == 1;
+		$block($node);
+	}
 
-    method !invoke-do-block($block, $node, $transformer, :$context, :$make-output) {
-        my $template = self;
-        $template!run-with-magic-variables(
-            $node,
-            {
-                if $block ~~ Method && $transformer.defined {
-                    if $block.arity == 0 && $block.count == 0 {
-                        $template!invoke-arity0($node, { $block($transformer) });
-                    }
-                    elsif $block.arity >= 1 {
-                        $block($transformer, $node);
-                    }
-                    else {
-                        $block($transformer);
-                    }
-                }
-                elsif $block.arity == 0 && $block.count == 0 {
-                    $template!invoke-arity0($node, { $block() });
-                }
-                elsif $block.arity == 1 {
-                    $block($node);
-                }
-                else {
-                    $block($node);
-                }
-            },
-            :$context,
-            :setup-capture(True),
-            :$make-output,
-        );
-    }
+	method !invoke-do-block($block, $node, $transformer, :$context, :$make-output) {
+		my $template = self;
+		$template!run-with-magic-variables(
+			$node,
+			{
+				if $block ~~ Method && $transformer.defined {
+					if $block.arity == 0 && $block.count == 0 {
+						$template!invoke-arity0($node, { $block($transformer) });
+					}
+					elsif $block.arity >= 1 {
+						$block($transformer, $node);
+					}
+					else {
+						$block($transformer);
+					}
+				}
+				elsif $block.arity == 0 && $block.count == 0 {
+					$template!invoke-arity0($node, { $block() });
+				}
+				elsif $block.arity == 1 {
+					$block($node);
+				}
+				else {
+					$block($node);
+				}
+			},
+			:$context,
+			:setup-capture(True),
+			:$make-output,
+		);
+	}
 
-    method !finalize-result($block-result, @make-output) {
-        if @make-output {
-            return @make-output.elems == 1 ?? @make-output[0] !! @make-output.List;
-        }
-        $block-result;
-    }
+	method !finalize-result($block-result, @make-output) {
+		if @make-output {
+			return @make-output.elems == 1 ?? @make-output[0] !! @make-output.List;
+		}
+		$block-result;
+	}
     
-    =begin pod
+	=begin pod
 
-    Executes `do` block with magic variables set, returns result.
+	Executes `do` block with magic variables set, returns result.
 
-    Sets all magic variables ($*CONTEXT, $_, $*CAPTURE, $/, self) before
-    executing the do block. Handles both `make` calls and return values.
+	Sets all magic variables ($*CONTEXT, $_, $*CAPTURE, $/, self) before
+	executing the do block. Handles both `make` calls and return values.
 
-    @param $node - Node to transform
-    @param :$transformer - Transformer instance (for self reference)
-    @param :$context - Optional context (defaults to $node)
-    @returns Iterator|Mu|List|Nil - Transformation result
+	@param $node - Node to transform
+	@param :$transformer - Transformer instance (for self reference)
+	@param :$context - Optional context (defaults to $node)
+	@returns Iterator|Mu|List|Nil - Transformation result
 
-    =end pod
-    method execute($node, :$transformer, :$context --> Mu) {
-        if !$!do-block.defined {
-            return Nil;
-        }
+	=end pod
+	method execute($node, :$transformer, :$context --> Mu) {
+		if !$!do-block.defined {
+			return Nil;
+		}
 
-        my @make-output;
-        my $result = self!invoke-do-block(
-            $!do-block,
-            $node,
-            $transformer,
-            :$context,
-            :make-output(@make-output),
-        );
-        $result = self!finalize-result($result, @make-output);
+		my @make-output;
+		my $result = self!invoke-do-block(
+			$!do-block,
+			$node,
+			$transformer,
+			:$context,
+			:make-output(@make-output),
+		);
+		$result = self!finalize-result($result, @make-output);
 
-        if $transformer.defined {
-            try {
-                $result = $transformer.WRAP_TEMPLATE_ACTION($node, $result);
-                CATCH {
-                    when X::Method::NotFound { }
-                }
-            }
-        }
+		if $transformer.defined {
+			try {
+				$result = $transformer.WRAP_TEMPLATE_ACTION($node, $result);
+				CATCH {
+					when X::Method::NotFound { }
+				}
+			}
+		}
 
-        if $!returns-type.WHICH ne Mu.WHICH {
-            unless $result ~~ $!returns-type {
-                X::Qwiratry::TypeCheck.new(
-                    expected => $!returns-type,
-                    got => $result.WHAT,
-                    message => "Template result does not match returns type constraint"
-                ).throw;
-            }
-        }
+		if $!returns-type.WHICH ne Mu.WHICH {
+			unless $result ~~ $!returns-type {
+				X::Qwiratry::TypeCheck.new(
+					expected => $!returns-type,
+					got => $result.WHAT,
+					message => "Template result does not match returns type constraint"
+				).throw;
+			}
+		}
 
-        return $result;
-    }
+		return $result;
+	}
 }

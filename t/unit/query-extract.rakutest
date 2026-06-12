@@ -10,95 +10,95 @@ use Qwiratry::Operator::Navigation;
 plan 6;
 
 subtest 'extract-navigation-query captures topic-rooted query' => {
-    plan 3;
+	plan 3;
 
-    my $when = { $_ ⪪⪪ <item> };
-    my $query = extract-navigation-query($when);
-    ok $query ~~ DescendantOperator, 'descendant operator extracted';
-    ok $query.subject ~~ NavQueryTopic, 'subject is NavQueryTopic sentinel';
-    is $query.selector, 'item', 'selector preserved';
+	my $when = { $_ ⪪⪪ <item> };
+	my $query = extract-navigation-query($when);
+	ok $query ~~ DescendantOperator, 'descendant operator extracted';
+	ok $query.subject ~~ NavQueryTopic, 'subject is NavQueryTopic sentinel';
+	is $query.selector, 'item', 'selector preserved';
 }
 
 subtest 'is-navigation-query-when detects pure query when blocks' => {
-    plan 2;
+	plan 2;
 
-    my $pure = { $_ ⪪ <section> };
-    my $mixed = { $_ ⪪⪪ <item> && .<value>:exists };
+	my $pure = { $_ ⪪ <section> };
+	my $mixed = { $_ ⪪⪪ <item> && .<value>:exists };
 
-    ok is-navigation-query-when($pure), 'pure query when block recognized';
-    nok is-navigation-query-when($mixed), 'mixed predicate when block rejected';
+	ok is-navigation-query-when($pure), 'pure query when block recognized';
+	nok is-navigation-query-when($mixed), 'mixed predicate when block rejected';
 }
 
 subtest 'when-query-matches topic-rooted queries by selector' => {
-    plan 3;
+	plan 3;
 
-    my $query = extract-navigation-query({ $_ ⪪⪪ <item> });
-    my $item = %(name => 'item', value => 1);
-    my $other = %(name => 'footer');
+	my $query = extract-navigation-query({ $_ ⪪⪪ <item> });
+	my $item = %(name => 'item', value => 1);
+	my $other = %(name => 'footer');
 
-    ok when-query-matches($query, $item), 'item node matches topic query';
-    nok when-query-matches($query, $other), 'non-item node does not match';
-    ok when-query-matches($query, 'item'), 'string node name matches';
+	ok when-query-matches($query, $item), 'item node matches topic query';
+	nok when-query-matches($query, $other), 'non-item node does not match';
+	ok when-query-matches($query, 'item'), 'string node name matches';
 }
 
 subtest 'when-query-matches uses full select for explicit subjects' => {
-    plan 2;
+	plan 2;
 
-    my $tree = [
-        %(name => 'section', children => [
-            %(name => 'item', value => 1),
-        ]),
-    ];
-    my $query = $tree ⪪⪪ <item>;
-    my $item = $tree[0]<children>[0];
+	my $tree = [
+		%(name => 'section', children => [
+			%(name => 'item', value => 1),
+		]),
+	];
+	my $query = $tree ⪪⪪ <item>;
+	my $item = $tree[0]<children>[0];
 
-    ok when-query-matches($query, $item, :origin($tree)), 'explicit-subject query matches';
-    nok when-query-matches($query, $tree[0], :origin($tree)), 'parent node not in descendant results';
+	ok when-query-matches($query, $item, :origin($tree)), 'explicit-subject query matches';
+	nok when-query-matches($query, $tree[0], :origin($tree)), 'parent node not in descendant results';
 }
 
 subtest 'when-query-matches chained topic child operators' => {
-    plan 3;
+	plan 3;
 
-    my $tree = [
-        %(name => 'section', children => [
-            %(name => 'item', value => 1),
-            %(name => 'item', value => 2),
-        ]),
-    ];
-    my $query = extract-navigation-query({ $_ ⪪ <section> ⪪ <item> });
-    my $item = $tree[0]<children>[0];
-    my $section = $tree[0];
+	my $tree = [
+		%(name => 'section', children => [
+			%(name => 'item', value => 1),
+			%(name => 'item', value => 2),
+		]),
+	];
+	my $query = extract-navigation-query({ $_ ⪪ <section> ⪪ <item> });
+	my $item = $tree[0]<children>[0];
+	my $section = $tree[0];
 
-    ok when-query-matches($query, $item, :origin($tree)), 'item under section matches chain';
-    nok when-query-matches($query, $section, :origin($tree)), 'section alone does not match item chain';
-    nok when-query-matches($query, $item), 'chain requires transform root for parent lookup';
+	ok when-query-matches($query, $item, :origin($tree)), 'item under section matches chain';
+	nok when-query-matches($query, $section, :origin($tree)), 'section alone does not match item chain';
+	nok when-query-matches($query, $item), 'chain requires transform root for parent lookup';
 }
 
 subtest 'mixed query and predicate matching' => {
-    plan 3;
+	plan 3;
 
-    use Qwiratry::Template;
+	use Qwiratry::Template;
 
-    my $tree = [
-        %(name => 'section', children => [
-            %(name => 'item', value => 1),
-            %(name => 'item'),
-        ]),
-    ];
-    my $when-query = extract-navigation-query({ $_ ⪪⪪ <item> });
-    my $when-block = { .<value>:exists };
-    my $template = Template.new(
-        :$when-query,
-        :$when-block,
-        :combine-when-query(True),
-        do-block => { 'ok' },
-    );
+	my $tree = [
+		%(name => 'section', children => [
+			%(name => 'item', value => 1),
+			%(name => 'item'),
+		]),
+	];
+	my $when-query = extract-navigation-query({ $_ ⪪⪪ <item> });
+	my $when-block = { .<value>:exists };
+	my $template = Template.new(
+		:$when-query,
+		:$when-block,
+		:combine-when-query(True),
+		do-block => { 'ok' },
+	);
 
-    $*TRANSFORM-ROOT := $tree;
-    my $with-value = $tree[0]<children>[0];
-    my $without-value = $tree[0]<children>[1];
+	$*TRANSFORM-ROOT := $tree;
+	my $with-value = $tree[0]<children>[0];
+	my $without-value = $tree[0]<children>[1];
 
-    ok $template.matches($with-value), 'item with value matches mixed template';
-    nok $template.matches($without-value), 'item without value fails predicate';
-    nok $template.matches($tree[0]), 'section fails query match';
+	ok $template.matches($with-value), 'item with value matches mixed template';
+	nok $template.matches($without-value), 'item without value fails predicate';
+	nok $template.matches($tree[0]), 'section fails query match';
 }

@@ -16,46 +16,46 @@ my $tmpdir = 't/tmp'.IO;
 $tmpdir.mkdir unless $tmpdir.d;
 
 my @rows = [
-    %(name => 'alpha', dept => 'eng', score => 10),
-    %(name => 'beta', dept => 'ops', score => 5),
-    %(name => 'gamma', dept => 'eng', score => 20),
+	%(name => 'alpha', dept => 'eng', score => 10),
+	%(name => 'beta', dept => 'ops', score => 5),
+	%(name => 'gamma', dept => 'eng', score => 20),
 ];
 
 subtest 'navigation selection sort on in-memory table' => {
-    plan 2;
+	plan 2;
 
-    my $walker = Qwiratry::Walker::Implementation::Table.new;
-    my $query = (@rows σ -> $_ { $_<dept> eq 'eng' }) ⇅ -> $_ { $_<score> };
-    my @names = gather {
-        my $iter = $walker.start($query, @rows);
-        while (my $row = $iter.pull-one) !~~ IterationEnd {
-            take $row<name>;
-        }
-    };
-    is @names, <alpha gamma>, 'filter then sort orders engineering rows';
+	my $walker = Qwiratry::Walker::Implementation::Table.new;
+	my $query = (@rows σ -> $_ { $_<dept> eq 'eng' }) ⇅ -> $_ { $_<score> };
+	my @names = gather {
+		my $iter = $walker.start($query, @rows);
+		while (my $row = $iter.pull-one) !~~ IterationEnd {
+			take $row<name>;
+		}
+	};
+	is @names, <alpha gamma>, 'filter then sort orders engineering rows';
 
-    my $union = (@rows σ -> $_ { $_<score> >= 20 })
-        ∪ (@rows σ -> $_ { $_<name> eq 'beta' });
-    my @union-names = select($union, @rows).map(*<name>).sort.list;
-    is @union-names, <beta gamma>, 'set union combines filtered row sets';
+	my $union = (@rows σ -> $_ { $_<score> >= 20 })
+		∪ (@rows σ -> $_ { $_<name> eq 'beta' });
+	my @union-names = select($union, @rows).map(*<name>).sort.list;
+	is @union-names, <beta gamma>, 'set union combines filtered row sets';
 }
 
 subtest 'IO pipeline with filter and render' => {
-    plan 2;
+	plan 2;
 
-    my $input = $tmpdir.child("e2e-in-{$*PID}.json");
-    my $output = $tmpdir.child("e2e-out-{$*PID}.json");
-    $input.spurt(Qwiratry::IO::Render::JSON::render(@rows));
+	my $input = $tmpdir.child("e2e-in-{$*PID}.json");
+	my $output = $tmpdir.child("e2e-out-{$*PID}.json");
+	$input.spurt(Qwiratry::IO::Render::JSON::render(@rows));
 
-    my $pipeline = (⮳ $input.Str ↱ 'JSON' σ -> $_ { $_<dept> eq 'eng' } ⇅ -> $_ { $_<score> } ↴ 'JSON' ⮷ $output.Str);
+	my $pipeline = (⮳ $input.Str ↱ 'JSON' σ -> $_ { $_<dept> eq 'eng' } ⇅ -> $_ { $_<score> } ↴ 'JSON' ⮷ $output.Str);
 
-    execute($pipeline);
-    my @out = Qwiratry::IO::Parse::JSON::parse($output.slurp).list;
-    is @out.elems, 2, 'pipeline writes filtered engineering rows';
-    is @out[0]<name>, 'alpha', 'sorted output starts with lowest score';
+	execute($pipeline);
+	my @out = Qwiratry::IO::Parse::JSON::parse($output.slurp).list;
+	is @out.elems, 2, 'pipeline writes filtered engineering rows';
+	is @out[0]<name>, 'alpha', 'sorted output starts with lowest score';
 
-    $input.unlink if $input.e;
-    $output.unlink if $output.e;
+	$input.unlink if $input.e;
+	$output.unlink if $output.e;
 }
 
 done-testing;

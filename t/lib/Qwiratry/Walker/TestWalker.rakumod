@@ -13,9 +13,9 @@ use Qwiratry::QueryIterator;
 unit class Qwiratry::Walker::TestWalker does Qwiratry::Walker;
 
 method plan($query, $root --> Qwiratry::Walker::Plan) {
-    die "TestWalker.plan() not implemented for testing";
+	die "TestWalker.plan() not implemented for testing";
 }
 
 method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
-    die "TestWalker.iterator() not implemented for testing";
+	die "TestWalker.iterator() not implemented for testing";
 }

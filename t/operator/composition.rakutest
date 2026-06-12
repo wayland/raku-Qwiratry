@@ -10,84 +10,84 @@ use Qwiratry::Query::Slang;
 plan 7;
 
 subtest 'Nested selectors compose immutably' => {
-    plan 3;
+	plan 3;
 
-    my $inner = ChildOperator.new(:selector('*'));
-    my $outer = ChildOperator.new(:selector($inner));
-    ok $outer.selector ~~ ChildOperator, 'selector can hold nested operator';
-    is $outer.selector.selector, '*', 'nested selector preserved';
-    my $mutated = False;
-    try { $inner.selector = 'x'; $mutated = True; CATCH { default { } } }
-    nok $mutated, 'inner operator remains immutable after nesting';
+	my $inner = ChildOperator.new(:selector('*'));
+	my $outer = ChildOperator.new(:selector($inner));
+	ok $outer.selector ~~ ChildOperator, 'selector can hold nested operator';
+	is $outer.selector.selector, '*', 'nested selector preserved';
+	my $mutated = False;
+	try { $inner.selector = 'x'; $mutated = True; CATCH { default { } } }
+	nok $mutated, 'inner operator remains immutable after nesting';
 }
 
 subtest 'Subject chaining models operator pipelines' => {
-    plan 3;
+	plan 3;
 
-    my $root = %(name => 'root');
-    my $first = ChildOperator.new(:subject($root), :selector('*'));
-    my $second = ChildOperator.new(:subject($first), :selector('<item>'));
-    ok $second.subject ~~ ChildOperator, 'second operator subject is first operator';
-    is $second.subject.subject, $root, 'pipeline retains original subject';
-    is $second.selector, '<item>', 'outer selector preserved';
+	my $root = %(name => 'root');
+	my $first = ChildOperator.new(:subject($root), :selector('*'));
+	my $second = ChildOperator.new(:subject($first), :selector('<item>'));
+	ok $second.subject ~~ ChildOperator, 'second operator subject is first operator';
+	is $second.subject.subject, $root, 'pipeline retains original subject';
+	is $second.selector, '<item>', 'outer selector preserved';
 }
 
 subtest 'Query slang builds chained navigation AST' => {
-    plan 5;
+	plan 5;
 
-    my $root = %(name => 'root');
-    my $query = $root ⪪ <*> ⪪ <item>;
-    ok $query ~~ ChildOperator, 'chained ⪪ produces ChildOperator';
-    ok $query.subject ~~ ChildOperator, 'outer operator wraps inner ⪪';
-    is $query.selector, 'item', 'outer selector is preserved';
+	my $root = %(name => 'root');
+	my $query = $root ⪪ <*> ⪪ <item>;
+	ok $query ~~ ChildOperator, 'chained ⪪ produces ChildOperator';
+	ok $query.subject ~~ ChildOperator, 'outer operator wraps inner ⪪';
+	is $query.selector, 'item', 'outer selector is preserved';
 
-    my $parent = $root ⪫ <*> :reference;
-    ok $parent ~~ ParentOperator, '⪫ builds ParentOperator';
-    ok $parent.adverbs<reference>, '⪫ captures :reference adverb';
+	my $parent = $root ⪫ <*> :reference;
+	ok $parent ~~ ParentOperator, '⪫ builds ParentOperator';
+	ok $parent.adverbs<reference>, '⪫ captures :reference adverb';
 }
 
 subtest 'Root postfix and attribute infix compose with navigation' => {
-    plan 3;
+	plan 3;
 
-    my $node = %(name => 'node');
-    my $root-query = $node⇤;
-    ok $root-query ~~ RootOperator, 'postfix ⇤ builds RootOperator';
-    is $root-query.subject, $node, '⇤ stores subject';
+	my $node = %(name => 'node');
+	my $root-query = $node⇤;
+	ok $root-query ~~ RootOperator, 'postfix ⇤ builds RootOperator';
+	is $root-query.subject, $node, '⇤ stores subject';
 
-    my $attr = $node ⥷ <status>;
-    ok $attr ~~ AttributeOperator, '⥷ builds AttributeOperator';
+	my $attr = $node ⥷ <status>;
+	ok $attr ~~ AttributeOperator, '⥷ builds AttributeOperator';
 }
 
 subtest 'Navigation and selection compose immutably' => {
-    plan 3;
+	plan 3;
 
-    my $root = %(name => 'root');
-    my $nav = $root ⪪⪪ <item>;
-    my $query = $nav σ -> $_ { True };
-    ok $query ~~ SelectionOperator, 'selection wraps navigation query';
-    ok $query.subject ~~ DescendantOperator, 'selection subject is descendant operator';
-    is $query.subject.selector, 'item', 'navigation selector preserved under selection';
+	my $root = %(name => 'root');
+	my $nav = $root ⪪⪪ <item>;
+	my $query = $nav σ -> $_ { True };
+	ok $query ~~ SelectionOperator, 'selection wraps navigation query';
+	ok $query.subject ~~ DescendantOperator, 'selection subject is descendant operator';
+	is $query.subject.selector, 'item', 'navigation selector preserved under selection';
 }
 
 subtest 'Navigation and sort compose with subject chaining' => {
-    plan 3;
+	plan 3;
 
-    my $root = %(name => 'root');
-    my $nav = $root ⪪ <section>;
-    my $sorted = $nav ⇅ -> $_ { $_<name> };
-    ok $sorted ~~ SortOperator, 'sort follows navigation operator';
-    ok $sorted.subject ~~ ChildOperator, 'sort subject is child navigation';
-    is $sorted.subject.selector, 'section', 'child selector preserved';
+	my $root = %(name => 'root');
+	my $nav = $root ⪪ <section>;
+	my $sorted = $nav ⇅ -> $_ { $_<name> };
+	ok $sorted ~~ SortOperator, 'sort follows navigation operator';
+	ok $sorted.subject ~~ ChildOperator, 'sort subject is child navigation';
+	is $sorted.subject.selector, 'section', 'child selector preserved';
 }
 
 subtest 'Set operators compose with navigation branches' => {
-    plan 3;
+	plan 3;
 
-    my $tree = %(name => 'root');
-    my $left = $tree ⪪⪪ <item>;
-    my $right = $tree ⪪⪪ <meta>;
-    my $query = $left ∪ $right;
-    ok $query ~~ UnionOperator, 'union combines navigation queries';
-    ok $query.left ~~ DescendantOperator, 'left branch is descendant query';
-    is $query.right.selector, 'meta', 'right branch retains selector';
+	my $tree = %(name => 'root');
+	my $left = $tree ⪪⪪ <item>;
+	my $right = $tree ⪪⪪ <meta>;
+	my $query = $left ∪ $right;
+	ok $query ~~ UnionOperator, 'union combines navigation queries';
+	ok $query.left ~~ DescendantOperator, 'left branch is descendant query';
+	is $query.right.selector, 'meta', 'right branch retains selector';
 }

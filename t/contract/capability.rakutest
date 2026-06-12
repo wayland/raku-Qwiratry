@@ -15,28 +15,28 @@ class MockContext does Context { }
 
 # Create a mock Walker that checks capabilities
 class TestWalker does Qwiratry::Walker {
-    method plan($query, $root) {
-        class MockPlan does Qwiratry::Walker::Plan {
-            has $.query-ast = $query;
-            method iterator() { }
-            method query() { $!query-ast }
-            method describe() { "MockPlan" }
-        }
-        MockPlan.new
-    }
+	method plan($query, $root) {
+		class MockPlan does Qwiratry::Walker::Plan {
+			has $.query-ast = $query;
+			method iterator() { }
+			method query() { $!query-ast }
+			method describe() { "MockPlan" }
+		}
+		MockPlan.new
+	}
 
-    method iterator($plan) {
-        class MockIterator does QueryIterator {
-            method pull-one() { IterationEnd }
-        }
-        MockIterator.new(context => MockContext.new)
-    }
+	method iterator($plan) {
+		class MockIterator does QueryIterator {
+			method pull-one() { IterationEnd }
+		}
+		MockIterator.new(context => MockContext.new)
+	}
 
-    method supports($query --> Bool) {
-        return False unless $query.^can('capabilities');
-        my $caps = $query.capabilities;
-        return ?($caps<navigation> && 'tree' ∈ $caps<domains>);
-    }
+	method supports($query --> Bool) {
+		return False unless $query.^can('capabilities');
+		my $caps = $query.capabilities;
+		return ?($caps<navigation> && 'tree' ∈ $caps<domains>);
+	}
 }
 
 class TestNavigationOp does NavigationOperator does OperatorBase { }
@@ -46,143 +46,143 @@ class TestIOOp does IOOperator does OperatorBase { }
 class TestNoCapabilityOp does OperatorBase { }
 
 subtest 'Walker supports() checks navigation capabilities' => {
-    plan 3;
+	plan 3;
 
-    my $walker = TestWalker.new;
-    my $nav-op = TestNavigationOp.new;
+	my $walker = TestWalker.new;
+	my $nav-op = TestNavigationOp.new;
 
-    ok $nav-op.^can('capabilities'), 'Navigation operator has capabilities method';
-    my $caps = $nav-op.capabilities;
-    ok $caps<navigation>, 'Navigation capability is set';
-    ok $walker.supports($nav-op), 'Walker supports navigation operator';
+	ok $nav-op.^can('capabilities'), 'Navigation operator has capabilities method';
+	my $caps = $nav-op.capabilities;
+	ok $caps<navigation>, 'Navigation capability is set';
+	ok $walker.supports($nav-op), 'Walker supports navigation operator';
 }
 
 subtest 'Walker supports() rejects non-navigation operators' => {
-    plan 3;
+	plan 3;
 
-    my $walker = TestWalker.new;
-    my $mapreduce-op = TestMapReduceOp.new;
-    my $set-op = TestSetOp.new;
-    my $io-op = TestIOOp.new;
+	my $walker = TestWalker.new;
+	my $mapreduce-op = TestMapReduceOp.new;
+	my $set-op = TestSetOp.new;
+	my $io-op = TestIOOp.new;
 
-    nok $walker.supports($mapreduce-op), 'Walker does not support map-reduce operator';
-    nok $walker.supports($set-op), 'Walker does not support set operator';
-    nok $walker.supports($io-op), 'Walker does not support I/O operator';
+	nok $walker.supports($mapreduce-op), 'Walker does not support map-reduce operator';
+	nok $walker.supports($set-op), 'Walker does not support set operator';
+	nok $walker.supports($io-op), 'Walker does not support I/O operator';
 }
 
 subtest 'Walker supports() handles operators without capabilities' => {
-    plan 1;
+	plan 1;
 
-    my $walker = TestWalker.new;
-    my $no-cap-op = TestNoCapabilityOp.new;
+	my $walker = TestWalker.new;
+	my $no-cap-op = TestNoCapabilityOp.new;
 
-    nok $walker.supports($no-cap-op), 'Walker does not support operator without capabilities';
+	nok $walker.supports($no-cap-op), 'Walker does not support operator without capabilities';
 }
 
 subtest 'Walker can introspect operator capabilities' => {
-    plan 4;
+	plan 4;
 
-    my $nav-op = TestNavigationOp.new;
-    my $caps = $nav-op.capabilities;
+	my $nav-op = TestNavigationOp.new;
+	my $caps = $nav-op.capabilities;
 
-    ok $caps.defined, 'Capabilities can be retrieved';
-    ok $caps<navigation>, 'Can check navigation flag';
-    ok 'tree' ∈ $caps<domains>, 'Can check domain membership';
-    is $caps<domains>, ['tree', 'table', 'graph'], 'Can access domains array';
+	ok $caps.defined, 'Capabilities can be retrieved';
+	ok $caps<navigation>, 'Can check navigation flag';
+	ok 'tree' ∈ $caps<domains>, 'Can check domain membership';
+	is $caps<domains>, ['tree', 'table', 'graph'], 'Can access domains array';
 }
 
 subtest 'Walker can check domain support' => {
-    plan 3;
+	plan 3;
 
-    my $nav-op = TestNavigationOp.new;
-    my $caps = $nav-op.capabilities;
+	my $nav-op = TestNavigationOp.new;
+	my $caps = $nav-op.capabilities;
 
-    ok 'tree' ∈ $caps<domains>, 'Tree domain is supported';
-    ok 'table' ∈ $caps<domains>, 'Table domain is supported';
-    ok 'graph' ∈ $caps<domains>, 'Graph domain is supported';
+	ok 'tree' ∈ $caps<domains>, 'Tree domain is supported';
+	ok 'table' ∈ $caps<domains>, 'Table domain is supported';
+	ok 'graph' ∈ $caps<domains>, 'Graph domain is supported';
 }
 
 subtest 'Walker.plan() accepts operators with capabilities' => {
-    plan 2;
+	plan 2;
 
-    my $walker = TestWalker.new;
-    my $nav-op = TestNavigationOp.new;
-    my $root = { };
+	my $walker = TestWalker.new;
+	my $nav-op = TestNavigationOp.new;
+	my $root = { };
 
-    my $plan = $walker.plan($nav-op, $root);
-    ok $plan.defined, 'Walker.plan() returns plan for capability operator';
-    is $plan.query, $nav-op, 'Plan contains the operator';
+	my $plan = $walker.plan($nav-op, $root);
+	ok $plan.defined, 'Walker.plan() returns plan for capability operator';
+	is $plan.query, $nav-op, 'Plan contains the operator';
 }
 
 subtest 'Walker throws exception for unsupported operators' => {
-    plan 2;
+	plan 2;
 
-    class StrictWalker does Qwiratry::Walker {
-        method plan($query, $root) {
-            unless self.supports($query) {
-                die X::Qwiratry::UnknownQueryElement.new(
-                    query-ast => $query,
-                    message => 'Operator not supported',
-                    walker-type => 'StrictWalker'
-                );
-            }
-            class MockPlan does Qwiratry::Walker::Plan {
-                has $.query-ast = $query;
-                method iterator() { }
-                method query() { $!query-ast }
-                method describe() { "MockPlan" }
-            }
-            MockPlan.new
-        }
+	class StrictWalker does Qwiratry::Walker {
+		method plan($query, $root) {
+			unless self.supports($query) {
+				die X::Qwiratry::UnknownQueryElement.new(
+					query-ast => $query,
+					message => 'Operator not supported',
+					walker-type => 'StrictWalker'
+				);
+			}
+			class MockPlan does Qwiratry::Walker::Plan {
+				has $.query-ast = $query;
+				method iterator() { }
+				method query() { $!query-ast }
+				method describe() { "MockPlan" }
+			}
+			MockPlan.new
+		}
 
-        method iterator($plan) {
-            class MockIterator does QueryIterator {
-                method pull-one() { IterationEnd }
-            }
-            MockIterator.new(context => MockContext.new)
-        }
+		method iterator($plan) {
+			class MockIterator does QueryIterator {
+				method pull-one() { IterationEnd }
+			}
+			MockIterator.new(context => MockContext.new)
+		}
 
-        method supports($query --> Bool) {
-            return False unless $query.^can('capabilities');
-            my $caps = $query.capabilities;
-            return ?($caps<navigation> && 'tree' ∈ $caps<domains>);
-        }
-    }
+		method supports($query --> Bool) {
+			return False unless $query.^can('capabilities');
+			my $caps = $query.capabilities;
+			return ?($caps<navigation> && 'tree' ∈ $caps<domains>);
+		}
+	}
 
-    my $walker = StrictWalker.new;
-    my $nav-op = TestNavigationOp.new;
-    my $mapreduce-op = TestMapReduceOp.new;
-    my $root = { };
+	my $walker = StrictWalker.new;
+	my $nav-op = TestNavigationOp.new;
+	my $mapreduce-op = TestMapReduceOp.new;
+	my $root = { };
 
-    my $plan = $walker.plan($nav-op, $root);
-    ok $plan.defined, 'Supported operator creates plan';
+	my $plan = $walker.plan($nav-op, $root);
+	ok $plan.defined, 'Supported operator creates plan';
 
-    my $threw = False;
-    try {
-        $walker.plan($mapreduce-op, $root);
-        CATCH {
-            when X::Qwiratry::UnknownQueryElement { $threw = True }
-        }
-    }
-    ok $threw, 'Threw UnknownQueryElement for unsupported operator';
+	my $threw = False;
+	try {
+		$walker.plan($mapreduce-op, $root);
+		CATCH {
+			when X::Qwiratry::UnknownQueryElement { $threw = True }
+		}
+	}
+	ok $threw, 'Threw UnknownQueryElement for unsupported operator';
 }
 
 subtest 'Capability metadata structure matches data-model.md' => {
-    plan 6;
+	plan 6;
 
-    my $nav-op = TestNavigationOp.new;
-    my $mapreduce-op = TestMapReduceOp.new;
-    my $set-op = TestSetOp.new;
+	my $nav-op = TestNavigationOp.new;
+	my $mapreduce-op = TestMapReduceOp.new;
+	my $set-op = TestSetOp.new;
 
-    my $nav-caps = $nav-op.capabilities;
-    ok $nav-caps<navigation>:exists, 'NavigationOperator has navigation key';
-    ok $nav-caps<domains>:exists, 'NavigationOperator has domains key';
-    ok $nav-caps<lazy>:exists, 'NavigationOperator has lazy key';
+	my $nav-caps = $nav-op.capabilities;
+	ok $nav-caps<navigation>:exists, 'NavigationOperator has navigation key';
+	ok $nav-caps<domains>:exists, 'NavigationOperator has domains key';
+	ok $nav-caps<lazy>:exists, 'NavigationOperator has lazy key';
 
-    my $mr-caps = $mapreduce-op.capabilities;
-    ok $mr-caps<map-reduce>:exists, 'MapReduceOperator has map-reduce key';
+	my $mr-caps = $mapreduce-op.capabilities;
+	ok $mr-caps<map-reduce>:exists, 'MapReduceOperator has map-reduce key';
 
-    my $set-caps = $set-op.capabilities;
-    ok $set-caps<set-operation>:exists, 'SetOperator has set-operation key';
-    ok $set-caps<relational>:exists, 'SetOperator has relational key';
+	my $set-caps = $set-op.capabilities;
+	ok $set-caps<set-operation>:exists, 'SetOperator has set-operation key';
+	ok $set-caps<relational>:exists, 'SetOperator has relational key';
 }

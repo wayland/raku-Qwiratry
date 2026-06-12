@@ -8,49 +8,49 @@ use Qwiratry::Walker::Capabilities;
 plan 4;
 
 subtest 'lazy-capability builds nested metadata' => {
-    plan 2;
+	plan 2;
 
-    my %caps = lazy-capability(:enabled(True), :type('incremental'));
-    ok %caps<lazy><enabled>, 'lazy enabled flag set';
-    is %caps<lazy><type>, 'incremental', 'lazy type recorded';
+	my %caps = lazy-capability(:enabled(True), :type('incremental'));
+	ok %caps<lazy><enabled>, 'lazy enabled flag set';
+	is %caps<lazy><type>, 'incremental', 'lazy type recorded';
 }
 
 subtest 'merge-capabilities combines nested hashes' => {
-    plan 2;
+	plan 2;
 
-    my %merged = merge-capabilities(
-        lazy-capability(:enabled(True), :type('incremental')),
-        navigation-capability(:enabled(True), 'tree', 'table'),
-    );
-    ok %merged<lazy><enabled>, 'merged lazy metadata preserved';
-    is %merged<navigation><domains>, ('tree', 'table'), 'navigation domains merged';
+	my %merged = merge-capabilities(
+		lazy-capability(:enabled(True), :type('incremental')),
+		navigation-capability(:enabled(True), 'tree', 'table'),
+	);
+	ok %merged<lazy><enabled>, 'merged lazy metadata preserved';
+	is %merged<navigation><domains>, ('tree', 'table'), 'navigation domains merged';
 }
 
 subtest 'default walker and plan capabilities are structured' => {
-    plan 4;
+	plan 4;
 
-    my %walker = default-walker-capabilities;
-    ok %walker<lazy>:exists, 'default walker declares lazy capability';
-    nok %walker<lazy><enabled>, 'default walker lazy disabled';
+	my %walker = default-walker-capabilities;
+	ok %walker<lazy>:exists, 'default walker declares lazy capability';
+	nok %walker<lazy><enabled>, 'default walker lazy disabled';
 
-    my %plan = default-plan-capabilities(:lazy-enabled(True), :lazy-type('incremental'));
-    ok %plan<lazy><enabled>, 'default plan can enable lazy';
-    is %plan<lazy><type>, 'incremental', 'default plan lazy type set';
+	my %plan = default-plan-capabilities(:lazy-enabled(True), :lazy-type('incremental'));
+	ok %plan<lazy><enabled>, 'default plan can enable lazy';
+	is %plan<lazy><type>, 'incremental', 'default plan lazy type set';
 }
 
 subtest 'default-plan-capabilities replaces role default empty hash' => {
-    plan 1;
+	plan 1;
 
-    use Qwiratry::Walker;
+	use Qwiratry::Walker;
 
-    my class EmptyPlan does Qwiratry::Walker::Plan {
-        method iterator { die "not used" }
-        method query { Nil }
-        method describe { 'empty' }
-    }
+	my class EmptyPlan does Qwiratry::Walker::Plan {
+		method iterator { die "not used" }
+		method query { Nil }
+		method describe { 'empty' }
+	}
 
-    my %caps = EmptyPlan.new.capabilities;
-    ok %caps<lazy>:exists, 'Plan role default capabilities are structured';
+	my %caps = EmptyPlan.new.capabilities;
+	ok %caps<lazy>:exists, 'Plan role default capabilities are structured';
 }
 
 done-testing;

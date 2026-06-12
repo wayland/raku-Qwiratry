@@ -14,61 +14,61 @@ plan 2;
 class MockContext does Context { }
 
 class NavWalker does Qwiratry::Walker {
-    method plan($query, $root) {
-        class MockPlan does Qwiratry::Walker::Plan {
-            has $.query-ast = $query;
-            method iterator() { }
-            method query() { $!query-ast }
-            method describe() { "NavPlan" }
-        }
-        MockPlan.new
-    }
+	method plan($query, $root) {
+		class MockPlan does Qwiratry::Walker::Plan {
+			has $.query-ast = $query;
+			method iterator() { }
+			method query() { $!query-ast }
+			method describe() { "NavPlan" }
+		}
+		MockPlan.new
+	}
 
-    method iterator($plan) {
-        class MockIterator does QueryIterator {
-            method pull-one() { IterationEnd }
-        }
-        MockIterator.new(context => MockContext.new)
-    }
+	method iterator($plan) {
+		class MockIterator does QueryIterator {
+			method pull-one() { IterationEnd }
+		}
+		MockIterator.new(context => MockContext.new)
+	}
 
-    method supports($query --> Bool) {
-        return False unless $query.^can('capabilities');
-        my $caps = $query.capabilities;
-        return ?($caps<navigation> && 'tree' ∈ $caps<domains>);
-    }
+	method supports($query --> Bool) {
+		return False unless $query.^can('capabilities');
+		my $caps = $query.capabilities;
+		return ?($caps<navigation> && 'tree' ∈ $caps<domains>);
+	}
 }
 
 subtest 'Walker supports all navigation operator classes' => {
-    plan 10;
+	plan 10;
 
-    my $walker = NavWalker.new;
-    my @ops = (
-        ChildOperator.new(:selector('*')),
-        ParentOperator.new(:selector('*')),
-        DescendantOperator.new(:selector('*')),
-        AncestorOperator.new(:selector('*')),
-        FollowingSiblingOperator.new(:selector('*')),
-        PrecedingSiblingOperator.new(:selector('*')),
-        FollowingOperator.new(:selector('*')),
-        PrecedingOperator.new(:selector('*')),
-        RootOperator.new,
-        AttributeOperator.new(:key('<id>')),
-    );
+	my $walker = NavWalker.new;
+	my @ops = (
+		ChildOperator.new(:selector('*')),
+		ParentOperator.new(:selector('*')),
+		DescendantOperator.new(:selector('*')),
+		AncestorOperator.new(:selector('*')),
+		FollowingSiblingOperator.new(:selector('*')),
+		PrecedingSiblingOperator.new(:selector('*')),
+		FollowingOperator.new(:selector('*')),
+		PrecedingOperator.new(:selector('*')),
+		RootOperator.new,
+		AttributeOperator.new(:key('<id>')),
+	);
 
-    for @ops -> $op {
-        ok $walker.supports($op), "$op.^name supported by NavWalker";
-    }
+	for @ops -> $op {
+		ok $walker.supports($op), "$op.^name supported by NavWalker";
+	}
 }
 
 subtest 'Walker.plan accepts navigation operator AST' => {
-    plan 3;
+	plan 3;
 
-    my $walker = NavWalker.new;
-    my $root = %(name => 'root');
-    my $query = ChildOperator.new(:subject($root), :selector('<item>'));
+	my $walker = NavWalker.new;
+	my $root = %(name => 'root');
+	my $query = ChildOperator.new(:subject($root), :selector('<item>'));
 
-    my $plan = $walker.plan($query, $root);
-    ok $plan.defined, 'plan is created';
-    is $plan.query, $query, 'plan retains query AST';
-    ok $plan.query ~~ NavigationOperator, 'plan query is navigation operator';
+	my $plan = $walker.plan($query, $root);
+	ok $plan.defined, 'plan is created';
+	is $plan.query, $query, 'plan retains query AST';
+	ok $plan.query ~~ NavigationOperator, 'plan query is navigation operator';
 }

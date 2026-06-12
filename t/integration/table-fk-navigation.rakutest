@@ -10,135 +10,135 @@ use Qwiratry::Operator::MapReduce;
 use Qwiratry::Walker::Implementation::Table;
 
 my @orders = [
-    %(order_id => 1, customer_id => 10, total => 100),
-    %(order_id => 2, customer_id => 20, total => 50),
-    %(order_id => 3, customer_id => 10, total => 75),
-    %(order_id => 4, customer_id => Nil, total => 25),
+	%(order_id => 1, customer_id => 10, total => 100),
+	%(order_id => 2, customer_id => 20, total => 50),
+	%(order_id => 3, customer_id => 10, total => 75),
+	%(order_id => 4, customer_id => Nil, total => 25),
 ];
 
 my @customers = [
-    %(customer_id => 10, name => 'Alice'),
-    %(customer_id => 20, name => 'Bob'),
-    %(customer_id => 30, name => 'Carol'),
+	%(customer_id => 10, name => 'Alice'),
+	%(customer_id => 20, name => 'Bob'),
+	%(customer_id => 30, name => 'Carol'),
 ];
 
 my $catalog = make-catalog(
-    :orders(@orders), :customers(@customers),
-    :foreign-keys(
-        ForeignKey.new(
-            :from-table('orders'), :from-column('customer_id'),
-            :to-table('customers'), :to-column('customer_id'),
-        ),
-    ),
-    :active-table('orders'),
+	:orders(@orders), :customers(@customers),
+	:foreign-keys(
+		ForeignKey.new(
+			:from-table('orders'), :from-column('customer_id'),
+			:to-table('customers'), :to-column('customer_id'),
+		),
+	),
+	:active-table('orders'),
 );
 
 plan 11;
 
 subtest 'Child follows foreign key from row to related rows' => {
-    plan 2;
+	plan 2;
 
-    my $order = @orders[0];
-    my @related = select($order ⪪ <customer_id>, $catalog).List;
-    is @related.elems, 1, 'FK navigation returns one customer row';
-    is @related[0]<name>, 'Alice', 'matched customer name';
+	my $order = @orders[0];
+	my @related = select($order ⪪ <customer_id>, $catalog).List;
+	is @related.elems, 1, 'FK navigation returns one customer row';
+	is @related[0]<name>, 'Alice', 'matched customer name';
 }
 
 subtest 'Child on non-FK column returns empty' => {
-    plan 1;
+	plan 1;
 
-    my $order = @orders[0];
-    my @related = select($order ⪪ <total>, $catalog).List;
-    is @related.elems, 0, 'non-FK column yields no related rows';
+	my $order = @orders[0];
+	my @related = select($order ⪪ <total>, $catalog).List;
+	is @related.elems, 0, 'non-FK column yields no related rows';
 }
 
 subtest 'Null foreign key returns empty' => {
-    plan 1;
+	plan 1;
 
-    my $order = @orders[3];
-    my @related = select($order ⪪ <customer_id>, $catalog).List;
-    is @related.elems, 0, 'null FK value yields empty result';
+	my $order = @orders[3];
+	my @related = select($order ⪪ <customer_id>, $catalog).List;
+	is @related.elems, 0, 'null FK value yields empty result';
 }
 
 subtest 'Attribute returns column value without following FK' => {
-    plan 2;
+	plan 2;
 
-    my $order = @orders[0];
-    my @values = select($order ⥷ <customer_id>, $catalog).List;
-    is @values.elems, 1, 'attribute returns one value';
-    is @values[0], 10, 'attribute value is the FK column value';
+	my $order = @orders[0];
+	my @values = select($order ⥷ <customer_id>, $catalog).List;
+	is @values.elems, 1, 'attribute returns one value';
+	is @values[0], 10, 'attribute value is the FK column value';
 }
 
 subtest 'Parent with :reference returns referencing rows' => {
-    plan 2;
+	plan 2;
 
-    my $customer = @customers[0];
-    my @referencing = select($customer ⪫ <*> :reference, $catalog).List;
-    is @referencing.elems, 2, 'customer referenced by two orders';
-    ok @referencing.grep({ .<order_id> == any(1, 3) }), 'orders reference the customer';
+	my $customer = @customers[0];
+	my @referencing = select($customer ⪫ <*> :reference, $catalog).List;
+	is @referencing.elems, 2, 'customer referenced by two orders';
+	ok @referencing.grep({ .<order_id> == any(1, 3) }), 'orders reference the customer';
 }
 
 subtest 'Parent without :reference returns containing table' => {
-    plan 2;
+	plan 2;
 
-    my $order = @orders[0];
-    my @parents = select($order ⪫ <*>, $catalog).List;
-    is @parents.elems, 1, 'parent returns one container';
-    ok @parents[0] === @orders, 'container is the orders table';
+	my $order = @orders[0];
+	my @parents = select($order ⪫ <*>, $catalog).List;
+	is @parents.elems, 1, 'parent returns one container';
+	ok @parents[0] === @orders, 'container is the orders table';
 }
 
 subtest 'Descendant on row throws without :recursive' => {
-    plan 1;
+	plan 1;
 
-    my $order = @orders[0];
-    my $threw = False;
-    try {
-        select($order ⪪⪪ <customer_id>, $catalog).List;
-        CATCH {
-            default { $threw = True }
-        }
-    }
-    ok $threw, 'table-row descendant navigation throws by default';
+	my $order = @orders[0];
+	my $threw = False;
+	try {
+		select($order ⪪⪪ <customer_id>, $catalog).List;
+		CATCH {
+			default { $threw = True }
+		}
+	}
+	ok $threw, 'table-row descendant navigation throws by default';
 }
 
 subtest 'Descendant on table matches child wildcard' => {
-    plan 1;
+	plan 1;
 
-    my @rows = select($catalog ⪪⪪ <*>, $catalog).List;
-    is @rows.elems, @orders.elems, 'table descendant wildcard returns all rows';
+	my @rows = select($catalog ⪪⪪ <*>, $catalog).List;
+	is @rows.elems, @orders.elems, 'table descendant wildcard returns all rows';
 }
 
 subtest 'Descendant on row with :recursive follows foreign key' => {
-    plan 2;
+	plan 2;
 
-    my $order = @orders[0];
-    my @related = select($order ⪪⪪ <customer_id> :recursive, $catalog).List;
-    is @related.elems, 1, ':recursive follows FK once from order row';
-    is @related[0]<name>, 'Alice', ':recursive resolves customer row';
+	my $order = @orders[0];
+	my @related = select($order ⪪⪪ <customer_id> :recursive, $catalog).List;
+	is @related.elems, 1, ':recursive follows FK once from order row';
+	is @related[0]<name>, 'Alice', ':recursive resolves customer row';
 }
 
 subtest 'Child on table with wildcard returns all rows' => {
-    plan 1;
+	plan 1;
 
-    my @rows = select($catalog ⪪ <*>, $catalog).List;
-    is @rows.elems, @orders.elems, 'table child wildcard returns all rows';
+	my @rows = select($catalog ⪪ <*>, $catalog).List;
+	is @rows.elems, @orders.elems, 'table child wildcard returns all rows';
 }
 
 subtest 'Table walker scans catalog active table' => {
-    plan 1;
+	plan 1;
 
-    my $walker = Qwiratry::Walker::Implementation::Table.new;
-    my $query = SelectionOperator.new(
-        :subject($catalog),
-        :predicate(-> $_ { $_.<customer_id>.defined && $_<customer_id> == 10 }),
-    );
-    my @ids = gather {
-        my $iter = $walker.start($query, $catalog);
-        while (my $row = $iter.pull-one) !~~ IterationEnd {
-            take $row<order_id>;
-        }
-    }.sort;
-    is @ids, (1, 3), 'walker selects from catalog active table';
+	my $walker = Qwiratry::Walker::Implementation::Table.new;
+	my $query = SelectionOperator.new(
+		:subject($catalog),
+		:predicate(-> $_ { $_.<customer_id>.defined && $_<customer_id> == 10 }),
+	);
+	my @ids = gather {
+		my $iter = $walker.start($query, $catalog);
+		while (my $row = $iter.pull-one) !~~ IterationEnd {
+			take $row<order_id>;
+		}
+	}.sort;
+	is @ids, (1, 3), 'walker selects from catalog active table';
 }
 
 done-testing;

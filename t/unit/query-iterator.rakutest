@@ -14,26 +14,26 @@ plan 12;
 
 # Simple Context implementation for testing
 my class TestContext does Context {
-    has Int $.items-processed is rw = 0;
+	has Int $.items-processed is rw = 0;
 }
 
 # Simple QueryIterator implementation that iterates over a list
 my class ListIterator does QueryIterator {
-    has @.items;
-    has Int $!index = 0;
+	has @.items;
+	has Int $!index = 0;
     
-    method pull-one(--> Mu) {
-        if $!index >= @!items.elems {
-            return IterationEnd;
-        }
-        $.context.items-processed++;
-        @!items[$!index++]
-    }
+	method pull-one(--> Mu) {
+		if $!index >= @!items.elems {
+			return IterationEnd;
+		}
+		$.context.items-processed++;
+		@!items[$!index++]
+	}
 }
 
 # Empty QueryIterator (uses default implementation)
 my class EmptyIterator does QueryIterator {
-    # Uses default pull-one which returns IterationEnd immediately
+	# Uses default pull-one which returns IterationEnd immediately
 }
 
 # =============================================================================
@@ -41,34 +41,34 @@ my class EmptyIterator does QueryIterator {
 # =============================================================================
 
 subtest 'QueryIterator role exists' => {
-    plan 2;
+	plan 2;
     
-    ok QueryIterator.^name ~~ /QueryIterator$/, 'QueryIterator role exists';
-    ok QueryIterator.HOW.^name ~~ /Metamodel/, 'QueryIterator is a proper role';
+	ok QueryIterator.^name ~~ /QueryIterator$/, 'QueryIterator role exists';
+	ok QueryIterator.HOW.^name ~~ /Metamodel/, 'QueryIterator is a proper role';
 }
 
 subtest 'QueryIterator extends Iterator' => {
-    plan 2;
+	plan 2;
     
-    my $ctx = TestContext.new;
-    my $iter = EmptyIterator.new(context => $ctx);
+	my $ctx = TestContext.new;
+	my $iter = EmptyIterator.new(context => $ctx);
     
-    ok $iter ~~ Iterator, 'QueryIterator does Iterator role';
-    ok $iter ~~ QueryIterator, 'Instance does QueryIterator role';
+	ok $iter ~~ Iterator, 'QueryIterator does Iterator role';
+	ok $iter ~~ QueryIterator, 'Instance does QueryIterator role';
 }
 
 subtest 'Concrete class can compose QueryIterator' => {
-    plan 3;
+	plan 3;
     
-    my $ctx = TestContext.new;
-    my $iter = ListIterator.new(
-        context => $ctx,
-        items => [1, 2, 3]
-    );
+	my $ctx = TestContext.new;
+	my $iter = ListIterator.new(
+		context => $ctx,
+		items => [1, 2, 3]
+	);
     
-    ok $iter.defined, 'Concrete class can be instantiated';
-    ok $iter ~~ QueryIterator, 'Instance does QueryIterator role';
-    ok $iter ~~ Iterator, 'Instance does Iterator role';
+	ok $iter.defined, 'Concrete class can be instantiated';
+	ok $iter ~~ QueryIterator, 'Instance does QueryIterator role';
+	ok $iter ~~ Iterator, 'Instance does Iterator role';
 }
 
 # =============================================================================
@@ -76,43 +76,43 @@ subtest 'Concrete class can compose QueryIterator' => {
 # =============================================================================
 
 subtest 'QueryIterator receives Context via constructor' => {
-    plan 3;
+	plan 3;
     
-    my $ctx = TestContext.new;
-    my $iter = ListIterator.new(
-        context => $ctx,
-        items => ['a', 'b']
-    );
+	my $ctx = TestContext.new;
+	my $iter = ListIterator.new(
+		context => $ctx,
+		items => ['a', 'b']
+	);
     
-    ok $iter.context.defined, 'Context attribute is set';
-    ok $iter.context ~~ Context, 'Context is correct type';
-    ok $iter.context === $ctx, 'Context is the same object passed to constructor';
+	ok $iter.context.defined, 'Context attribute is set';
+	ok $iter.context ~~ Context, 'Context is correct type';
+	ok $iter.context === $ctx, 'Context is the same object passed to constructor';
 }
 
 subtest 'Context is accessible during iteration' => {
-    plan 3;
+	plan 3;
     
-    my $ctx = TestContext.new;
-    my $iter = ListIterator.new(
-        context => $ctx,
-        items => [1, 2, 3]
-    );
+	my $ctx = TestContext.new;
+	my $iter = ListIterator.new(
+		context => $ctx,
+		items => [1, 2, 3]
+	);
     
-    is $ctx.items-processed, 0, 'Initial count is 0';
+	is $ctx.items-processed, 0, 'Initial count is 0';
     
-    $iter.pull-one;
-    $iter.pull-one;
+	$iter.pull-one;
+	$iter.pull-one;
     
-    is $ctx.items-processed, 2, 'Context state updated during iteration';
-    is $iter.context.items-processed, 2, 'Can access Context via iterator';
+	is $ctx.items-processed, 2, 'Context state updated during iteration';
+	is $iter.context.items-processed, 2, 'Can access Context via iterator';
 }
 
 subtest 'Context required for construction' => {
-    plan 1;
+	plan 1;
     
-    dies-ok {
-        EmptyIterator.new();  # No context provided
-    }, 'Constructor fails without Context';
+	dies-ok {
+		EmptyIterator.new();  # No context provided
+	}, 'Constructor fails without Context';
 }
 
 # =============================================================================
@@ -120,45 +120,45 @@ subtest 'Context required for construction' => {
 # =============================================================================
 
 subtest 'pull-one() returns values then IterationEnd' => {
-    plan 4;
+	plan 4;
     
-    my $ctx = TestContext.new;
-    my $iter = ListIterator.new(
-        context => $ctx,
-        items => ['x', 'y']
-    );
+	my $ctx = TestContext.new;
+	my $iter = ListIterator.new(
+		context => $ctx,
+		items => ['x', 'y']
+	);
     
-    is $iter.pull-one, 'x', 'First value returned';
-    is $iter.pull-one, 'y', 'Second value returned';
-    ok $iter.pull-one =:= IterationEnd, 'IterationEnd returned when exhausted';
-    ok $iter.pull-one =:= IterationEnd, 'IterationEnd returned consistently';
+	is $iter.pull-one, 'x', 'First value returned';
+	is $iter.pull-one, 'y', 'Second value returned';
+	ok $iter.pull-one =:= IterationEnd, 'IterationEnd returned when exhausted';
+	ok $iter.pull-one =:= IterationEnd, 'IterationEnd returned consistently';
 }
 
 subtest 'Empty iterator returns IterationEnd immediately' => {
-    plan 2;
+	plan 2;
     
-    my $ctx = TestContext.new;
-    my $iter = EmptyIterator.new(context => $ctx);
+	my $ctx = TestContext.new;
+	my $iter = EmptyIterator.new(context => $ctx);
     
-    ok $iter.pull-one =:= IterationEnd, 'First pull-one returns IterationEnd';
-    ok $iter.pull-one =:= IterationEnd, 'Subsequent calls return IterationEnd';
+	ok $iter.pull-one =:= IterationEnd, 'First pull-one returns IterationEnd';
+	ok $iter.pull-one =:= IterationEnd, 'Subsequent calls return IterationEnd';
 }
 
 subtest 'Multiple calls after exhaustion return IterationEnd' => {
-    plan 4;
+	plan 4;
     
-    my $ctx = TestContext.new;
-    my $iter = ListIterator.new(
-        context => $ctx,
-        items => [1]
-    );
+	my $ctx = TestContext.new;
+	my $iter = ListIterator.new(
+		context => $ctx,
+		items => [1]
+	);
     
-    $iter.pull-one;  # Consume the single item
+	$iter.pull-one;  # Consume the single item
     
-    ok $iter.pull-one =:= IterationEnd, 'First exhaustion check';
-    ok $iter.pull-one =:= IterationEnd, 'Second exhaustion check';
-    ok $iter.pull-one =:= IterationEnd, 'Third exhaustion check';
-    ok $iter.pull-one =:= IterationEnd, 'Fourth exhaustion check';
+	ok $iter.pull-one =:= IterationEnd, 'First exhaustion check';
+	ok $iter.pull-one =:= IterationEnd, 'Second exhaustion check';
+	ok $iter.pull-one =:= IterationEnd, 'Third exhaustion check';
+	ok $iter.pull-one =:= IterationEnd, 'Fourth exhaustion check';
 }
 
 # =============================================================================
@@ -166,53 +166,53 @@ subtest 'Multiple calls after exhaustion return IterationEnd' => {
 # =============================================================================
 
 subtest 'Multiple iterators from same data are independent' => {
-    plan 4;
+	plan 4;
     
-    my @data = <a b c>;
-    my $ctx1 = TestContext.new;
-    my $ctx2 = TestContext.new;
+	my @data = <a b c>;
+	my $ctx1 = TestContext.new;
+	my $ctx2 = TestContext.new;
     
-    my $iter1 = ListIterator.new(context => $ctx1, items => @data);
-    my $iter2 = ListIterator.new(context => $ctx2, items => @data);
+	my $iter1 = ListIterator.new(context => $ctx1, items => @data);
+	my $iter2 = ListIterator.new(context => $ctx2, items => @data);
     
-    # Advance iter1 twice
-    $iter1.pull-one;
-    $iter1.pull-one;
+	# Advance iter1 twice
+	$iter1.pull-one;
+	$iter1.pull-one;
     
-    # iter2 should still be at start
-    is $iter2.pull-one, 'a', 'iter2 starts at beginning';
-    is $iter1.pull-one, 'c', 'iter1 continues from its position';
+	# iter2 should still be at start
+	is $iter2.pull-one, 'a', 'iter2 starts at beginning';
+	is $iter1.pull-one, 'c', 'iter1 continues from its position';
     
-    is $ctx1.items-processed, 3, 'ctx1 tracks iter1 progress';
-    is $ctx2.items-processed, 1, 'ctx2 tracks iter2 progress';
+	is $ctx1.items-processed, 3, 'ctx1 tracks iter1 progress';
+	is $ctx2.items-processed, 1, 'ctx2 tracks iter2 progress';
 }
 
 subtest 'Iterator can be used with for loop' => {
-    plan 2;
+	plan 2;
     
-    my $ctx = TestContext.new;
-    my $iter = ListIterator.new(
-        context => $ctx,
-        items => [10, 20, 30]
-    );
+	my $ctx = TestContext.new;
+	my $iter = ListIterator.new(
+		context => $ctx,
+		items => [10, 20, 30]
+	);
     
-    my @collected;
-    # Use Seq.new to create iterable from iterator (uses pull-one)
-    for Seq.new($iter) -> $item {
-        @collected.push($item);
-    }
+	my @collected;
+	# Use Seq.new to create iterable from iterator (uses pull-one)
+	for Seq.new($iter) -> $item {
+		@collected.push($item);
+	}
     
-    is @collected.elems, 3, 'All items collected';
-    is-deeply @collected, [10, 20, 30], 'Items in correct order';
+	is @collected.elems, 3, 'All items collected';
+	is-deeply @collected, [10, 20, 30], 'Items in correct order';
 }
 
 subtest 'next() alias returns Nil at exhaustion' => {
-    my $iter = ListIterator.new(
-        context => TestContext.new,
-        items => [1]
-    );
-    is $iter.next(), 1, 'next() returns first item';
-    is $iter.next(), Nil, 'next() returns Nil when exhausted';
+	my $iter = ListIterator.new(
+		context => TestContext.new,
+		items => [1]
+	);
+	is $iter.next(), 1, 'next() returns first item';
+	is $iter.next(), Nil, 'next() returns Nil when exhausted';
 }
 
 done-testing;

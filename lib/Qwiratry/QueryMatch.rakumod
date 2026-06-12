@@ -14,12 +14,12 @@ Match result for a query against a single element during traversal.
 
 =end pod
 class QueryMatch is export {
-    has Mu $.element is required;
-    has Mu $.query is required;
-    has Mu $.origin;
-    has Mu $.path;
+	has Mu $.element is required;
+	has Mu $.query is required;
+	has Mu $.origin;
+	has Mu $.path;
 
-    method gist(--> Str) {
-        "QueryMatch(element => {$!element.gist}, query => {$!query.^name})"
-    }
+	method gist(--> Str) {
+		"QueryMatch(element => {$!element.gist}, query => {$!query.^name})"
+	}
 }

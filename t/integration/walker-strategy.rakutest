@@ -18,178 +18,178 @@ plan 19;
 
 # Simple tree node for testing
 class TreeNode {
-    has Str $.name;
-    has @.children;
+	has Str $.name;
+	has @.children;
     
-    method new(:$name!, :@children = []) {
-        self.bless(:$name, :@children);
-    }
+	method new(:$name!, :@children = []) {
+		self.bless(:$name, :@children);
+	}
 }
 
 # Test Context that tracks hook calls
 class TestContext does Context {
-    has @.before-calls;
-    has @.on-match-calls;
-    has @.should-follow-calls;
-    has @.after-calls;
-    has $.finish-result is rw;
-    has Int $.should-continue-calls is rw = 0;
-    has Bool $.should-continue-result is rw = False;
-    has @.matches;
-    has Int $.depth is rw = 0;
-    has Int $.max-depth is rw = 0;
+	has @.before-calls;
+	has @.on-match-calls;
+	has @.should-follow-calls;
+	has @.after-calls;
+	has $.finish-result is rw;
+	has Int $.should-continue-calls is rw = 0;
+	has Bool $.should-continue-result is rw = False;
+	has @.matches;
+	has Int $.depth is rw = 0;
+	has Int $.max-depth is rw = 0;
 }
 
 # Simple QueryIterator that traverses a tree and calls Strategy hooks
 class TreeIterator does QueryIterator {
-    has TreeNode $.root;
-    has @!stack;
-    has Bool $!finished = False;
-    has Bool $!finish-called = False;
+	has TreeNode $.root;
+	has @!stack;
+	has Bool $!finished = False;
+	has Bool $!finish-called = False;
     
-    submethod BUILD(:$!root, :$!context) {
-        @!stack = [$!root] if $!root.defined;
-    }
+	submethod BUILD(:$!root, :$!context) {
+		@!stack = [$!root] if $!root.defined;
+	}
     
-    method !invoke-finish() {
-        return if $!finish-called;
-        $!finish-called = True;
-        if $!context.strategy.defined {
-            $!context.finish-result = $!context.strategy.finish($!root, $!context);
-        }
-    }
+	method !invoke-finish() {
+		return if $!finish-called;
+		$!finish-called = True;
+		if $!context.strategy.defined {
+			$!context.finish-result = $!context.strategy.finish($!root, $!context);
+		}
+	}
     
-    method !run-hooks($element, :$expand-children = True, :$yield = True --> Mu) {
-        if $!context.strategy.defined {
-            my $signal = $!context.strategy.before($element, $!context);
-            $!context.before-calls.push({ element => $element, signal => $signal });
+	method !run-hooks($element, :$expand-children = True, :$yield = True --> Mu) {
+		if $!context.strategy.defined {
+			my $signal = $!context.strategy.before($element, $!context);
+			$!context.before-calls.push({ element => $element, signal => $signal });
             
-            if $signal ~~ ControlSignal {
-                if $signal == STOP_TRAVERSAL {
-                    $!finished = True;
-                    @!stack = ();
-                    self!invoke-finish();
-                    return $element if $yield;
-                    return IterationEnd;
-                }
-                elsif $signal == SKIP_ELEMENT {
-                    return $element if $yield;
-                    return Nil;
-                }
-            }
+			if $signal ~~ ControlSignal {
+				if $signal == STOP_TRAVERSAL {
+					$!finished = True;
+					@!stack = ();
+					self!invoke-finish();
+					return $element if $yield;
+					return IterationEnd;
+				}
+				elsif $signal == SKIP_ELEMENT {
+					return $element if $yield;
+					return Nil;
+				}
+			}
             
-            my $match = QueryMatch.new(:element($element), :query({ type => 'test' }), :origin($!root));
-            my $result = $!context.strategy.on-match($element, $match, $!context);
-            $!context.on-match-calls.push({ element => $element, result => $result });
+			my $match = QueryMatch.new(:element($element), :query({ type => 'test' }), :origin($!root));
+			my $result = $!context.strategy.on-match($element, $match, $!context);
+			$!context.on-match-calls.push({ element => $element, result => $result });
             
-            if $result ~~ ControlSignal {
-                if $result == STOP_TRAVERSAL {
-                    $!finished = True;
-                    @!stack = ();
-                    self!invoke-finish();
-                    return $element if $yield;
-                    return IterationEnd;
-                }
-                elsif $result == SKIP_ELEMENT {
-                    return $element if $yield;
-                    return Nil;
-                }
-            }
-        }
+			if $result ~~ ControlSignal {
+				if $result == STOP_TRAVERSAL {
+					$!finished = True;
+					@!stack = ();
+					self!invoke-finish();
+					return $element if $yield;
+					return IterationEnd;
+				}
+				elsif $result == SKIP_ELEMENT {
+					return $element if $yield;
+					return Nil;
+				}
+			}
+		}
         
-        if $expand-children && $element.children.defined {
-            for $element.children -> $child {
-                my $should-follow = True;
-                if $!context.strategy.defined {
-                    $should-follow = $!context.strategy.should-follow($element, 'child', $child, $!context);
-                    $!context.should-follow-calls.push({ origin => $element, target => $child, result => $should-follow });
-                }
-                if $should-follow {
-                    @!stack.push($child);
-                } else {
-                    self!run-hooks($child, :expand-children(False), :yield(False));
-                }
-            }
-        }
+		if $expand-children && $element.children.defined {
+			for $element.children -> $child {
+				my $should-follow = True;
+				if $!context.strategy.defined {
+					$should-follow = $!context.strategy.should-follow($element, 'child', $child, $!context);
+					$!context.should-follow-calls.push({ origin => $element, target => $child, result => $should-follow });
+				}
+				if $should-follow {
+					@!stack.push($child);
+				} else {
+					self!run-hooks($child, :expand-children(False), :yield(False));
+				}
+			}
+		}
         
-        if $!context.strategy.defined {
-            my $signal = $!context.strategy.after($element, $!context);
-            $!context.after-calls.push({ element => $element, signal => $signal });
+		if $!context.strategy.defined {
+			my $signal = $!context.strategy.after($element, $!context);
+			$!context.after-calls.push({ element => $element, signal => $signal });
             
-            if $signal ~~ ControlSignal && $signal == STOP_TRAVERSAL {
-                $!finished = True;
-                @!stack = ();
-                self!invoke-finish();
-            }
-        }
+			if $signal ~~ ControlSignal && $signal == STOP_TRAVERSAL {
+				$!finished = True;
+				@!stack = ();
+				self!invoke-finish();
+			}
+		}
         
-        return $yield ?? $element !! Nil;
-    }
+		return $yield ?? $element !! Nil;
+	}
     
-    method pull-one(--> Mu) {
-        if $!finished && @!stack.elems == 0 {
-            return IterationEnd;
-        }
+	method pull-one(--> Mu) {
+		if $!finished && @!stack.elems == 0 {
+			return IterationEnd;
+		}
         
-        if @!stack.elems == 0 {
-            self!invoke-finish();
-            return IterationEnd;
-        }
+		if @!stack.elems == 0 {
+			self!invoke-finish();
+			return IterationEnd;
+		}
         
-        my $element = @!stack.shift;
-        my $result = self!run-hooks($element);
-        return $result if $result.defined;
-        return IterationEnd;
-    }
+		my $element = @!stack.shift;
+		my $result = self!run-hooks($element);
+		return $result if $result.defined;
+		return IterationEnd;
+	}
 }
 
 # Simple Walker::Plan for testing
 class TestPlan does Qwiratry::Walker::Plan {
-    has TreeNode $.root;
-    has $.walker;
-    has Int $.pass-count = 0;
+	has TreeNode $.root;
+	has $.walker;
+	has Int $.pass-count = 0;
     
-    method iterator(--> QueryIterator) {
-        my $ctx = $!walker.strategy.defined
-            ?? TestContext.new(strategy => $!walker.strategy)
-            !! TestContext.new;
-        TreeIterator.new(root => $!root, context => $ctx)
-    }
+	method iterator(--> QueryIterator) {
+		my $ctx = $!walker.strategy.defined
+			?? TestContext.new(strategy => $!walker.strategy)
+			!! TestContext.new;
+		TreeIterator.new(root => $!root, context => $ctx)
+	}
     
-    method query(--> Mu) { { type => 'test' } }
-    method describe(--> Str) { "TestPlan" }
+	method query(--> Mu) { { type => 'test' } }
+	method describe(--> Str) { "TestPlan" }
 }
 
 # Depth-tracking strategy stores depth on TestContext (see $.depth / $.max-depth)
 my class DepthTrackingStrategy does Strategy {
-    method before($element, Context $ctx) {
-        return Nil unless $ctx ~~ TestContext;
-        # Iterator calls after() before child nodes run, so track depth on entry only.
-        $ctx.depth++;
-        $ctx.max-depth = $ctx.depth if $ctx.depth > $ctx.max-depth;
-        Nil
-    }
+	method before($element, Context $ctx) {
+		return Nil unless $ctx ~~ TestContext;
+		# Iterator calls after() before child nodes run, so track depth on entry only.
+		$ctx.depth++;
+		$ctx.max-depth = $ctx.depth if $ctx.depth > $ctx.max-depth;
+		Nil
+	}
 
-    method after($element, Context $ctx) { Nil }
+	method after($element, Context $ctx) { Nil }
 }
 
 # Simple Walker for testing
 class TestTreeWalker does Qwiratry::Walker {
-    method plan($query, $root --> Qwiratry::Walker::Plan) {
-        TestPlan.new(root => $root, walker => self)
-    }
+	method plan($query, $root --> Qwiratry::Walker::Plan) {
+		TestPlan.new(root => $root, walker => self)
+	}
     
-    method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
-        $plan.iterator
-    }
+	method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
+		$plan.iterator
+	}
     
-    method POST-PASS(Context $ctx) {
-        if $ctx.strategy.defined {
-            my $should-continue = $ctx.strategy.should-continue($ctx.strategy, $ctx);
-            $ctx.should-continue-calls++;
-            $ctx.should-continue-result = $should-continue;
-        }
-    }
+	method POST-PASS(Context $ctx) {
+		if $ctx.strategy.defined {
+			my $should-continue = $ctx.strategy.should-continue($ctx.strategy, $ctx);
+			$ctx.should-continue-calls++;
+			$ctx.should-continue-result = $should-continue;
+		}
+	}
 }
 
 # =============================================================================
@@ -197,235 +197,235 @@ class TestTreeWalker does Qwiratry::Walker {
 # =============================================================================
 
 subtest 'User Story 1 - Basic Traversal Control (STOP_TRAVERSAL)' => {
-    plan 4;
+	plan 4;
     
-    my class FindFirstStrategy does Strategy {
-        has $.found;
-        method on-match($element, QueryMatch $match, Context $ctx) {
-            if $element.name eq 'target' {
-                $!found = $element;
-                STOP_TRAVERSAL
-            } else {
-                NO_REWRITE
-            }
-        }
-    }
+	my class FindFirstStrategy does Strategy {
+		has $.found;
+		method on-match($element, QueryMatch $match, Context $ctx) {
+			if $element.name eq 'target' {
+				$!found = $element;
+				STOP_TRAVERSAL
+			} else {
+				NO_REWRITE
+			}
+		}
+	}
     
-    my $strategy = FindFirstStrategy.new;
-    my $walker = TestTreeWalker.new(strategy => $strategy);
-    my $tree = TreeNode.new(name => 'root', children => [
-        TreeNode.new(name => 'a', children => []),
-        TreeNode.new(name => 'target', children => []),
-        TreeNode.new(name => 'b', children => []),
-    ]);
+	my $strategy = FindFirstStrategy.new;
+	my $walker = TestTreeWalker.new(strategy => $strategy);
+	my $tree = TreeNode.new(name => 'root', children => [
+		TreeNode.new(name => 'a', children => []),
+		TreeNode.new(name => 'target', children => []),
+		TreeNode.new(name => 'b', children => []),
+	]);
     
-    my $plan = $walker.plan({}, $tree);
-    my $iter = $walker.iterator($plan);
-    my @visited;
+	my $plan = $walker.plan({}, $tree);
+	my $iter = $walker.iterator($plan);
+	my @visited;
     
-    while (my $elem = $iter.pull-one) !~~ IterationEnd {
-        @visited.push($elem.name);
-    }
+	while (my $elem = $iter.pull-one) !~~ IterationEnd {
+		@visited.push($elem.name);
+	}
     
-    ok $strategy.found.defined, 'Target element found';
-    is $strategy.found.name, 'target', 'Found correct target element';
-    ok @visited.grep('target'), 'Target was visited';
-    nok @visited.grep('b'), 'Element after target not visited (STOP_TRAVERSAL worked)';
+	ok $strategy.found.defined, 'Target element found';
+	is $strategy.found.name, 'target', 'Found correct target element';
+	ok @visited.grep('target'), 'Target was visited';
+	nok @visited.grep('b'), 'Element after target not visited (STOP_TRAVERSAL worked)';
 }
 
 subtest 'User Story 2 - Element Skipping and Pruning' => {
-    plan 4;
+	plan 4;
     
-    my class SkipMetadataStrategy does Strategy {
-        has @.visited;
-        method should-follow($origin, $relation, $target, Context $ctx --> Bool) {
-            return False if $target.name eq 'metadata';
-            True
-        }
-        method before($element, Context $ctx) {
-            @!visited.push($element.name);
-            Nil
-        }
-    }
+	my class SkipMetadataStrategy does Strategy {
+		has @.visited;
+		method should-follow($origin, $relation, $target, Context $ctx --> Bool) {
+			return False if $target.name eq 'metadata';
+			True
+		}
+		method before($element, Context $ctx) {
+			@!visited.push($element.name);
+			Nil
+		}
+	}
     
-    my $strategy = SkipMetadataStrategy.new;
-    my $walker = TestTreeWalker.new(strategy => $strategy);
-    my $tree = TreeNode.new(name => 'root', children => [
-        TreeNode.new(name => 'content', children => []),
-        TreeNode.new(name => 'metadata', children => [
-            TreeNode.new(name => 'should-not-visit', children => [])
-        ]),
-    ]);
+	my $strategy = SkipMetadataStrategy.new;
+	my $walker = TestTreeWalker.new(strategy => $strategy);
+	my $tree = TreeNode.new(name => 'root', children => [
+		TreeNode.new(name => 'content', children => []),
+		TreeNode.new(name => 'metadata', children => [
+			TreeNode.new(name => 'should-not-visit', children => [])
+		]),
+	]);
     
-    my $plan = $walker.plan({}, $tree);
-    my $iter = $walker.iterator($plan);
+	my $plan = $walker.plan({}, $tree);
+	my $iter = $walker.iterator($plan);
     
-    while $iter.pull-one !~~ IterationEnd { }
+	while $iter.pull-one !~~ IterationEnd { }
     
-    ok $strategy.visited.grep('content'), 'Content branch visited';
-    ok $strategy.visited.grep('metadata'), 'Metadata node visited (but not its children)';
-    nok $strategy.visited.grep('should-not-visit'), 'Metadata branch was pruned';
+	ok $strategy.visited.grep('content'), 'Content branch visited';
+	ok $strategy.visited.grep('metadata'), 'Metadata node visited (but not its children)';
+	nok $strategy.visited.grep('should-not-visit'), 'Metadata branch was pruned';
     
-    # Test SKIP_ELEMENT
-    my class SkipCommentsStrategy does Strategy {
-        has @.visited;
-        method before($element, Context $ctx) {
-            if $element.name eq 'comment' {
-                @!visited.push('skipped-comment');
-                SKIP_ELEMENT
-            } else {
-                @!visited.push($element.name);
-                NO_REWRITE
-            }
-        }
-    }
+	# Test SKIP_ELEMENT
+	my class SkipCommentsStrategy does Strategy {
+		has @.visited;
+		method before($element, Context $ctx) {
+			if $element.name eq 'comment' {
+				@!visited.push('skipped-comment');
+				SKIP_ELEMENT
+			} else {
+				@!visited.push($element.name);
+				NO_REWRITE
+			}
+		}
+	}
     
-    my $skip-strategy = SkipCommentsStrategy.new;
-    my $comment-tree = TreeNode.new(name => 'root', children => [
-        TreeNode.new(name => 'comment', children => [
-            TreeNode.new(name => 'nested', children => [])
-        ]),
-        TreeNode.new(name => 'content', children => [])
-    ]);
+	my $skip-strategy = SkipCommentsStrategy.new;
+	my $comment-tree = TreeNode.new(name => 'root', children => [
+		TreeNode.new(name => 'comment', children => [
+			TreeNode.new(name => 'nested', children => [])
+		]),
+		TreeNode.new(name => 'content', children => [])
+	]);
     
-    my $skip-walker = TestTreeWalker.new(strategy => $skip-strategy);
-    my $skip-plan = $skip-walker.plan({}, $comment-tree);
-    my $skip-iter = $skip-walker.iterator($skip-plan);
+	my $skip-walker = TestTreeWalker.new(strategy => $skip-strategy);
+	my $skip-plan = $skip-walker.plan({}, $comment-tree);
+	my $skip-iter = $skip-walker.iterator($skip-plan);
     
-    while $skip-iter.pull-one !~~ IterationEnd { }
+	while $skip-iter.pull-one !~~ IterationEnd { }
     
-    ok $skip-strategy.visited.grep('content'), 'Content visited after skipping comment';
+	ok $skip-strategy.visited.grep('content'), 'Content visited after skipping comment';
 }
 
 subtest 'User Story 3 - Match Processing' => {
-    plan 3;
+	plan 3;
     
-    my class CollectMatchesStrategy does Strategy {
-        has @.matches;
-        method on-match($element, QueryMatch $match, Context $ctx) {
-            @!matches.push($element);
-            NO_REWRITE
-        }
-    }
+	my class CollectMatchesStrategy does Strategy {
+		has @.matches;
+		method on-match($element, QueryMatch $match, Context $ctx) {
+			@!matches.push($element);
+			NO_REWRITE
+		}
+	}
     
-    my $strategy = CollectMatchesStrategy.new;
-    my $walker = TestTreeWalker.new(strategy => $strategy);
-    my $tree = TreeNode.new(name => 'root', children => [
-        TreeNode.new(name => 'match1', children => []),
-        TreeNode.new(name => 'match2', children => []),
-        TreeNode.new(name => 'match3', children => [])
-    ]);
+	my $strategy = CollectMatchesStrategy.new;
+	my $walker = TestTreeWalker.new(strategy => $strategy);
+	my $tree = TreeNode.new(name => 'root', children => [
+		TreeNode.new(name => 'match1', children => []),
+		TreeNode.new(name => 'match2', children => []),
+		TreeNode.new(name => 'match3', children => [])
+	]);
     
-    my $plan = $walker.plan({}, $tree);
-    my $iter = $walker.iterator($plan);
+	my $plan = $walker.plan({}, $tree);
+	my $iter = $walker.iterator($plan);
     
-    while $iter.pull-one !~~ IterationEnd { }
+	while $iter.pull-one !~~ IterationEnd { }
     
-    is $strategy.matches.elems, 4, 'All matching elements collected';
-    ok $strategy.matches.grep({ $_.name eq 'match1' }), 'match1 collected';
-    ok $strategy.matches.grep({ $_.name eq 'root' }), 'root also collected';
+	is $strategy.matches.elems, 4, 'All matching elements collected';
+	ok $strategy.matches.grep({ $_.name eq 'match1' }), 'match1 collected';
+	ok $strategy.matches.grep({ $_.name eq 'root' }), 'root also collected';
 }
 
 subtest 'User Story 4 - Pre/Post Visit Processing' => {
-    plan 3;
+	plan 3;
     
-    my $strategy = DepthTrackingStrategy.new;
-    my $walker = TestTreeWalker.new(strategy => $strategy);
-    my $tree = TreeNode.new(name => 'root', children => [
-        TreeNode.new(name => 'level1', children => [
-            TreeNode.new(name => 'level2', children => [
-                TreeNode.new(name => 'level3', children => [])
-            ])
-        ])
-    ]);
+	my $strategy = DepthTrackingStrategy.new;
+	my $walker = TestTreeWalker.new(strategy => $strategy);
+	my $tree = TreeNode.new(name => 'root', children => [
+		TreeNode.new(name => 'level1', children => [
+			TreeNode.new(name => 'level2', children => [
+				TreeNode.new(name => 'level3', children => [])
+			])
+		])
+	]);
     
-    my $plan = $walker.plan({}, $tree);
-    my $iter = $walker.iterator($plan);
+	my $plan = $walker.plan({}, $tree);
+	my $iter = $walker.iterator($plan);
     
-    while $iter.pull-one !~~ IterationEnd { }
+	while $iter.pull-one !~~ IterationEnd { }
     
-    my $ctx = $iter.context;
-    is $ctx.before-calls.elems, 4, 'All four nodes received before hook';
-    is $ctx.max-depth, 4, 'Maximum depth tracked correctly';
-    is $ctx.before-calls.elems, $ctx.after-calls.elems, 'before and after calls balanced';
+	my $ctx = $iter.context;
+	is $ctx.before-calls.elems, 4, 'All four nodes received before hook';
+	is $ctx.max-depth, 4, 'Maximum depth tracked correctly';
+	is $ctx.before-calls.elems, $ctx.after-calls.elems, 'before and after calls balanced';
 }
 
 subtest 'User Story 5 - Traversal Completion' => {
-    plan 4;
+	plan 4;
     
-    my class CountingStrategy does Strategy {
-        has Int $.count = 0;
+	my class CountingStrategy does Strategy {
+		has Int $.count = 0;
         
-        method before($element, Context $ctx) {
-            $!count++;
-            Nil
-        }
-        method finish($root, Context $ctx --> FinishResult) {
-            FinishResult.new(type => 'counted', value => $.count)
-        }
-    }
+		method before($element, Context $ctx) {
+			$!count++;
+			Nil
+		}
+		method finish($root, Context $ctx --> FinishResult) {
+			FinishResult.new(type => 'counted', value => $.count)
+		}
+	}
     
-    my $strategy = CountingStrategy.new;
-    my $walker = TestTreeWalker.new(strategy => $strategy);
-    my $tree = TreeNode.new(name => 'root', children => [
-        TreeNode.new(name => 'a', children => []),
-        TreeNode.new(name => 'b', children => []),
-        TreeNode.new(name => 'c', children => [])
-    ]);
+	my $strategy = CountingStrategy.new;
+	my $walker = TestTreeWalker.new(strategy => $strategy);
+	my $tree = TreeNode.new(name => 'root', children => [
+		TreeNode.new(name => 'a', children => []),
+		TreeNode.new(name => 'b', children => []),
+		TreeNode.new(name => 'c', children => [])
+	]);
     
-    my $plan = $walker.plan({}, $tree);
-    my $iter = $walker.iterator($plan);
+	my $plan = $walker.plan({}, $tree);
+	my $iter = $walker.iterator($plan);
     
-    while $iter.pull-one !~~ IterationEnd { }
+	while $iter.pull-one !~~ IterationEnd { }
     
-    my $ctx = $iter.context;
-    ok $ctx.finish-result.defined, 'finish hook was called';
-    is $ctx.finish-result.type, 'counted', 'finish result has correct type';
-    is $ctx.finish-result.value, 4, 'finish result contains correct count (root + 3 children)';
-    is $strategy.count, 4, 'Strategy tracked count correctly';
+	my $ctx = $iter.context;
+	ok $ctx.finish-result.defined, 'finish hook was called';
+	is $ctx.finish-result.type, 'counted', 'finish result has correct type';
+	is $ctx.finish-result.value, 4, 'finish result contains correct count (root + 3 children)';
+	is $strategy.count, 4, 'Strategy tracked count correctly';
 }
 
 subtest 'User Story 6 - Fixed-Point Iteration' => {
-    plan 3;
+	plan 3;
     
-    my class MultiPassStrategy does Strategy {
-        has Int $.pass-count = 0;
-        has Int $.max-passes = 3;
+	my class MultiPassStrategy does Strategy {
+		has Int $.pass-count = 0;
+		has Int $.max-passes = 3;
         
-        method before($element, Context $ctx) {
-            # Track we're visiting elements
-            Nil
-        }
-        method should-continue($root, Context $ctx --> Bool) {
-            $!pass-count++;
-            $!pass-count < $!max-passes
-        }
-    }
+		method before($element, Context $ctx) {
+			# Track we're visiting elements
+			Nil
+		}
+		method should-continue($root, Context $ctx --> Bool) {
+			$!pass-count++;
+			$!pass-count < $!max-passes
+		}
+	}
     
-    my $strategy = MultiPassStrategy.new;
-    my $walker = TestTreeWalker.new(strategy => $strategy);
-    my $tree = TreeNode.new(name => 'root', children => [
-        TreeNode.new(name => 'child', children => [])
-    ]);
+	my $strategy = MultiPassStrategy.new;
+	my $walker = TestTreeWalker.new(strategy => $strategy);
+	my $tree = TreeNode.new(name => 'root', children => [
+		TreeNode.new(name => 'child', children => [])
+	]);
     
-    # Simulate multiple passes
-    my $plan = $walker.plan({}, $tree);
-    my $iter = $walker.iterator($plan);
+	# Simulate multiple passes
+	my $plan = $walker.plan({}, $tree);
+	my $iter = $walker.iterator($plan);
     
-    # First pass
-    while $iter.pull-one !~~ IterationEnd { }
-    $walker.POST-PASS($iter.context);
+	# First pass
+	while $iter.pull-one !~~ IterationEnd { }
+	$walker.POST-PASS($iter.context);
     
-    # Second pass (if should-continue)
-    if $iter.context.should-continue-result {
-        my $iter2 = $walker.iterator($plan);
-        while $iter2.pull-one !~~ IterationEnd { }
-        $walker.POST-PASS($iter2.context);
-    }
+	# Second pass (if should-continue)
+	if $iter.context.should-continue-result {
+		my $iter2 = $walker.iterator($plan);
+		while $iter2.pull-one !~~ IterationEnd { }
+		$walker.POST-PASS($iter2.context);
+	}
     
-    ok $strategy.pass-count >= 1, 'should-continue was called';
-    ok $iter.context.should-continue-calls > 0, 'POST-PASS called should-continue';
-    is $strategy.pass-count, 2, 'Multiple passes occurred (should-continue returned True then False)';
+	ok $strategy.pass-count >= 1, 'should-continue was called';
+	ok $iter.context.should-continue-calls > 0, 'POST-PASS called should-continue';
+	is $strategy.pass-count, 2, 'Multiple passes occurred (should-continue returned True then False)';
 }
 
 # =============================================================================
@@ -433,160 +433,160 @@ subtest 'User Story 6 - Fixed-Point Iteration' => {
 # =============================================================================
 
 subtest 'Edge case: Nil return treated as default' => {
-    plan 2;
+	plan 2;
     
-    my class NilReturnStrategy does Strategy {
-        method before($element, Context $ctx) {
-            Nil  # Should be treated as NO_REWRITE
-        }
-        method on-match($element, QueryMatch $match, Context $ctx) {
-            Nil  # Should be treated as NO_REWRITE
-        }
-    }
+	my class NilReturnStrategy does Strategy {
+		method before($element, Context $ctx) {
+			Nil  # Should be treated as NO_REWRITE
+		}
+		method on-match($element, QueryMatch $match, Context $ctx) {
+			Nil  # Should be treated as NO_REWRITE
+		}
+	}
     
-    my $strategy = NilReturnStrategy.new;
-    my $walker = TestTreeWalker.new(strategy => $strategy);
-    my $tree = TreeNode.new(name => 'root', children => [
-        TreeNode.new(name => 'child1'),
-        TreeNode.new(name => 'child2')
-    ]);
+	my $strategy = NilReturnStrategy.new;
+	my $walker = TestTreeWalker.new(strategy => $strategy);
+	my $tree = TreeNode.new(name => 'root', children => [
+		TreeNode.new(name => 'child1'),
+		TreeNode.new(name => 'child2')
+	]);
     
-    my $plan = $walker.plan({}, $tree);
-    my $iter = $walker.iterator($plan);
-    my @visited;
+	my $plan = $walker.plan({}, $tree);
+	my $iter = $walker.iterator($plan);
+	my @visited;
     
-    while (my $elem = $iter.pull-one) !~~ IterationEnd {
-        @visited.push($elem.name);
-    }
+	while (my $elem = $iter.pull-one) !~~ IterationEnd {
+		@visited.push($elem.name);
+	}
     
-    is @visited.elems, 3, 'All elements visited (Nil treated as continue)';
-    ok @visited.grep('child2'), 'All children visited despite Nil returns';
+	is @visited.elems, 3, 'All elements visited (Nil treated as continue)';
+	ok @visited.grep('child2'), 'All children visited despite Nil returns';
 }
 
 subtest 'Edge case: SKIP_ELEMENT prevents on-match' => {
-    plan 2;
+	plan 2;
     
-    my class SkipBeforeMatchStrategy does Strategy {
-        has @.on-match-calls;
-        method before($element, Context $ctx) {
-            return SKIP_ELEMENT if $element.name eq 'skip-me';
-            NO_REWRITE
-        }
-        method on-match($element, QueryMatch $match, Context $ctx) {
-            @!on-match-calls.push($element.name);
-            NO_REWRITE
-        }
-    }
+	my class SkipBeforeMatchStrategy does Strategy {
+		has @.on-match-calls;
+		method before($element, Context $ctx) {
+			return SKIP_ELEMENT if $element.name eq 'skip-me';
+			NO_REWRITE
+		}
+		method on-match($element, QueryMatch $match, Context $ctx) {
+			@!on-match-calls.push($element.name);
+			NO_REWRITE
+		}
+	}
     
-    my $strategy = SkipBeforeMatchStrategy.new;
-    my $walker = TestTreeWalker.new(strategy => $strategy);
-    my $tree = TreeNode.new(name => 'root', children => [
-        TreeNode.new(name => 'skip-me', children => []),
-        TreeNode.new(name => 'visit-me', children => [])
-    ]);
+	my $strategy = SkipBeforeMatchStrategy.new;
+	my $walker = TestTreeWalker.new(strategy => $strategy);
+	my $tree = TreeNode.new(name => 'root', children => [
+		TreeNode.new(name => 'skip-me', children => []),
+		TreeNode.new(name => 'visit-me', children => [])
+	]);
     
-    my $plan = $walker.plan({}, $tree);
-    my $iter = $walker.iterator($plan);
+	my $plan = $walker.plan({}, $tree);
+	my $iter = $walker.iterator($plan);
     
-    while $iter.pull-one !~~ IterationEnd { }
+	while $iter.pull-one !~~ IterationEnd { }
     
-    nok $strategy.on-match-calls.grep('skip-me'), 'on-match not called for skipped element';
-    ok $strategy.on-match-calls.grep('visit-me'), 'on-match called for non-skipped element';
+	nok $strategy.on-match-calls.grep('skip-me'), 'on-match not called for skipped element';
+	ok $strategy.on-match-calls.grep('visit-me'), 'on-match called for non-skipped element';
 }
 
 subtest 'Edge case: Signal precedence (STOP > SKIP)' => {
-    plan 2;
+	plan 2;
     
-    my class PrecedenceStrategy does Strategy {
-        method before($element, Context $ctx) {
-            return SKIP_ELEMENT if $element.name eq 'skip';
-            NO_REWRITE
-        }
-        method on-match($element, QueryMatch $match, Context $ctx) {
-            return STOP_TRAVERSAL if $element.name eq 'stop';
-            NO_REWRITE
-        }
-    }
+	my class PrecedenceStrategy does Strategy {
+		method before($element, Context $ctx) {
+			return SKIP_ELEMENT if $element.name eq 'skip';
+			NO_REWRITE
+		}
+		method on-match($element, QueryMatch $match, Context $ctx) {
+			return STOP_TRAVERSAL if $element.name eq 'stop';
+			NO_REWRITE
+		}
+	}
     
-    my $strategy = PrecedenceStrategy.new;
-    my $walker = TestTreeWalker.new(strategy => $strategy);
-    my $tree = TreeNode.new(name => 'root', children => [
-        TreeNode.new(name => 'skip', children => []),
-        TreeNode.new(name => 'stop', children => []),
-        TreeNode.new(name => 'after', children => [])
-    ]);
+	my $strategy = PrecedenceStrategy.new;
+	my $walker = TestTreeWalker.new(strategy => $strategy);
+	my $tree = TreeNode.new(name => 'root', children => [
+		TreeNode.new(name => 'skip', children => []),
+		TreeNode.new(name => 'stop', children => []),
+		TreeNode.new(name => 'after', children => [])
+	]);
     
-    my $plan = $walker.plan({}, $tree);
-    my $iter = $walker.iterator($plan);
-    my @visited;
+	my $plan = $walker.plan({}, $tree);
+	my $iter = $walker.iterator($plan);
+	my @visited;
     
-    while (my $elem = $iter.pull-one) !~~ IterationEnd {
-        @visited.push($elem.name);
-    }
+	while (my $elem = $iter.pull-one) !~~ IterationEnd {
+		@visited.push($elem.name);
+	}
     
-    ok @visited.grep('stop'), 'Stop element visited';
-    nok @visited.grep('after'), 'Element after stop not visited (STOP_TRAVERSAL takes precedence)';
+	ok @visited.grep('stop'), 'Stop element visited';
+	nok @visited.grep('after'), 'Element after stop not visited (STOP_TRAVERSAL takes precedence)';
 }
 
 subtest 'Edge case: finish called after STOP_TRAVERSAL' => {
-    plan 2;
+	plan 2;
     
-    my class StopWithFinishStrategy does Strategy {
-        has $.finish-called = False;
-        method on-match($element, QueryMatch $match, Context $ctx) {
-            return STOP_TRAVERSAL if $element.name eq 'target';
-            NO_REWRITE
-        }
-        method finish($root, Context $ctx --> FinishResult) {
-            $!finish-called = True;
-            FinishResult.new(type => 'stopped', value => 'early-stop')
-        }
-    }
+	my class StopWithFinishStrategy does Strategy {
+		has $.finish-called = False;
+		method on-match($element, QueryMatch $match, Context $ctx) {
+			return STOP_TRAVERSAL if $element.name eq 'target';
+			NO_REWRITE
+		}
+		method finish($root, Context $ctx --> FinishResult) {
+			$!finish-called = True;
+			FinishResult.new(type => 'stopped', value => 'early-stop')
+		}
+	}
     
-    my $strategy = StopWithFinishStrategy.new;
-    my $walker = TestTreeWalker.new(strategy => $strategy);
-    my $tree = TreeNode.new(name => 'root', children => [
-        TreeNode.new(name => 'target', children => []),
-        TreeNode.new(name => 'never-visited', children => [])
-    ]);
+	my $strategy = StopWithFinishStrategy.new;
+	my $walker = TestTreeWalker.new(strategy => $strategy);
+	my $tree = TreeNode.new(name => 'root', children => [
+		TreeNode.new(name => 'target', children => []),
+		TreeNode.new(name => 'never-visited', children => [])
+	]);
     
-    my $plan = $walker.plan({}, $tree);
-    my $iter = $walker.iterator($plan);
+	my $plan = $walker.plan({}, $tree);
+	my $iter = $walker.iterator($plan);
     
-    while $iter.pull-one !~~ IterationEnd { }
+	while $iter.pull-one !~~ IterationEnd { }
     
-    my $ctx = $iter.context;
-    ok $ctx.finish-result.defined, 'finish called after STOP_TRAVERSAL';
-    is $ctx.finish-result.type, 'stopped', 'finish result reflects early stop';
+	my $ctx = $iter.context;
+	ok $ctx.finish-result.defined, 'finish called after STOP_TRAVERSAL';
+	is $ctx.finish-result.type, 'stopped', 'finish result reflects early stop';
 }
 
 subtest 'Edge case: should-follow default True' => {
-    plan 2;
+	plan 2;
     
-    my class DefaultFollowStrategy does Strategy {
-        # No should-follow implementation - should default to True
-        has @.visited;
-        method before($element, Context $ctx) {
-            @!visited.push($element.name);
-            NO_REWRITE
-        }
-    }
+	my class DefaultFollowStrategy does Strategy {
+		# No should-follow implementation - should default to True
+		has @.visited;
+		method before($element, Context $ctx) {
+			@!visited.push($element.name);
+			NO_REWRITE
+		}
+	}
     
-    my $strategy = DefaultFollowStrategy.new;
-    my $walker = TestTreeWalker.new(strategy => $strategy);
-    my $tree = TreeNode.new(name => 'root', children => [
-        TreeNode.new(name => 'child1', children => [
-            TreeNode.new(name => 'grandchild', children => [])
-        ])
-    ]);
+	my $strategy = DefaultFollowStrategy.new;
+	my $walker = TestTreeWalker.new(strategy => $strategy);
+	my $tree = TreeNode.new(name => 'root', children => [
+		TreeNode.new(name => 'child1', children => [
+			TreeNode.new(name => 'grandchild', children => [])
+		])
+	]);
     
-    my $plan = $walker.plan({}, $tree);
-    my $iter = $walker.iterator($plan);
+	my $plan = $walker.plan({}, $tree);
+	my $iter = $walker.iterator($plan);
     
-    while $iter.pull-one !~~ IterationEnd { }
+	while $iter.pull-one !~~ IterationEnd { }
     
-    is $strategy.visited.elems, 3, 'All elements visited (default should-follow = True)';
-    ok $strategy.visited.grep('grandchild'), 'Grandchild visited (default follows all relations)';
+	is $strategy.visited.elems, 3, 'All elements visited (default should-follow = True)';
+	ok $strategy.visited.grep('grandchild'), 'Grandchild visited (default follows all relations)';
 }
 
 # =============================================================================
@@ -594,219 +594,219 @@ subtest 'Edge case: should-follow default True' => {
 # =============================================================================
 
 subtest 'before hook is called for each element' => {
-    plan 3;
+	plan 3;
     
-    my class TrackingStrategy does Strategy {
-        has @.before-elements;
-        method before($element, Context $ctx) {
-            @!before-elements.push($element.name);
-            NO_REWRITE
-        }
-    }
+	my class TrackingStrategy does Strategy {
+		has @.before-elements;
+		method before($element, Context $ctx) {
+			@!before-elements.push($element.name);
+			NO_REWRITE
+		}
+	}
     
-    my $strategy = TrackingStrategy.new;
-    my $walker = TestTreeWalker.new(strategy => $strategy);
-    my $tree = TreeNode.new(name => 'root', children => [
-        TreeNode.new(name => 'child1'),
-        TreeNode.new(name => 'child2')
-    ]);
+	my $strategy = TrackingStrategy.new;
+	my $walker = TestTreeWalker.new(strategy => $strategy);
+	my $tree = TreeNode.new(name => 'root', children => [
+		TreeNode.new(name => 'child1'),
+		TreeNode.new(name => 'child2')
+	]);
     
-    my $plan = $walker.plan({}, $tree);
-    my $iter = $walker.iterator($plan);
+	my $plan = $walker.plan({}, $tree);
+	my $iter = $walker.iterator($plan);
     
-    while $iter.pull-one !~~ IterationEnd { }
+	while $iter.pull-one !~~ IterationEnd { }
     
-    is $strategy.before-elements.elems, 3, 'before called for all elements';
-    is $strategy.before-elements[0], 'root', 'before called for root';
-    ok $strategy.before-elements.grep('child1'), 'before called for child1';
+	is $strategy.before-elements.elems, 3, 'before called for all elements';
+	is $strategy.before-elements[0], 'root', 'before called for root';
+	ok $strategy.before-elements.grep('child1'), 'before called for child1';
 }
 
 subtest 'on-match hook is called when element matches' => {
-    plan 2;
+	plan 2;
     
-    my class MatchStrategy does Strategy {
-        has @.matched;
-        method on-match($element, QueryMatch $match, Context $ctx) {
-            @!matched.push($element.name);
-            NO_REWRITE
-        }
-    }
+	my class MatchStrategy does Strategy {
+		has @.matched;
+		method on-match($element, QueryMatch $match, Context $ctx) {
+			@!matched.push($element.name);
+			NO_REWRITE
+		}
+	}
     
-    my $strategy = MatchStrategy.new;
-    my $walker = TestTreeWalker.new(strategy => $strategy);
-    my $tree = TreeNode.new(name => 'root', children => [
-        TreeNode.new(name => 'child1')
-    ]);
+	my $strategy = MatchStrategy.new;
+	my $walker = TestTreeWalker.new(strategy => $strategy);
+	my $tree = TreeNode.new(name => 'root', children => [
+		TreeNode.new(name => 'child1')
+	]);
     
-    my $plan = $walker.plan({}, $tree);
-    my $iter = $walker.iterator($plan);
+	my $plan = $walker.plan({}, $tree);
+	my $iter = $walker.iterator($plan);
     
-    while $iter.pull-one !~~ IterationEnd { }
+	while $iter.pull-one !~~ IterationEnd { }
     
-    is $strategy.matched.elems, 2, 'on-match called for all elements';
-    ok $strategy.matched.grep('root'), 'on-match called for root';
+	is $strategy.matched.elems, 2, 'on-match called for all elements';
+	ok $strategy.matched.grep('root'), 'on-match called for root';
 }
 
 subtest 'should-follow hook controls relation traversal' => {
-    plan 3;
+	plan 3;
     
-    my class PruningStrategy does Strategy {
-        method should-follow($origin, $relation, $target, Context $ctx --> Bool) {
-            $target.name ne 'child2'
-        }
-    }
+	my class PruningStrategy does Strategy {
+		method should-follow($origin, $relation, $target, Context $ctx --> Bool) {
+			$target.name ne 'child2'
+		}
+	}
     
-    my $strategy = PruningStrategy.new;
-    my $walker = TestTreeWalker.new(strategy => $strategy);
-    my $tree = TreeNode.new(name => 'root', children => [
-        TreeNode.new(name => 'child1'),
-        TreeNode.new(name => 'child2')
-    ]);
+	my $strategy = PruningStrategy.new;
+	my $walker = TestTreeWalker.new(strategy => $strategy);
+	my $tree = TreeNode.new(name => 'root', children => [
+		TreeNode.new(name => 'child1'),
+		TreeNode.new(name => 'child2')
+	]);
     
-    my $plan = $walker.plan({}, $tree);
-    my $iter = $walker.iterator($plan);
-    my @results;
+	my $plan = $walker.plan({}, $tree);
+	my $iter = $walker.iterator($plan);
+	my @results;
     
-    while (my $elem = $iter.pull-one) !~~ IterationEnd {
-        @results.push($elem.name);
-    }
+	while (my $elem = $iter.pull-one) !~~ IterationEnd {
+		@results.push($elem.name);
+	}
     
-    ok @results.grep('root'), 'root visited';
-    ok @results.grep('child1'), 'child1 visited (should-follow returned True)';
-    nok @results.grep('child2'), 'child2 not visited (should-follow returned False)';
+	ok @results.grep('root'), 'root visited';
+	ok @results.grep('child1'), 'child1 visited (should-follow returned True)';
+	nok @results.grep('child2'), 'child2 not visited (should-follow returned False)';
 }
 
 subtest 'after hook is called after processing element' => {
-    plan 2;
+	plan 2;
     
-    my class AfterStrategy does Strategy {
-        has @.after-elements;
-        method after($element, Context $ctx) {
-            @!after-elements.push($element.name);
-            NO_REWRITE
-        }
-    }
+	my class AfterStrategy does Strategy {
+		has @.after-elements;
+		method after($element, Context $ctx) {
+			@!after-elements.push($element.name);
+			NO_REWRITE
+		}
+	}
     
-    my $strategy = AfterStrategy.new;
-    my $walker = TestTreeWalker.new(strategy => $strategy);
-    my $tree = TreeNode.new(name => 'root', children => [
-        TreeNode.new(name => 'child1')
-    ]);
+	my $strategy = AfterStrategy.new;
+	my $walker = TestTreeWalker.new(strategy => $strategy);
+	my $tree = TreeNode.new(name => 'root', children => [
+		TreeNode.new(name => 'child1')
+	]);
     
-    my $plan = $walker.plan({}, $tree);
-    my $iter = $walker.iterator($plan);
+	my $plan = $walker.plan({}, $tree);
+	my $iter = $walker.iterator($plan);
     
-    while $iter.pull-one !~~ IterationEnd { }
+	while $iter.pull-one !~~ IterationEnd { }
     
-    is $strategy.after-elements.elems, 2, 'after called for all elements';
-    ok $strategy.after-elements.grep('root'), 'after called for root';
+	is $strategy.after-elements.elems, 2, 'after called for all elements';
+	ok $strategy.after-elements.grep('root'), 'after called for root';
 }
 
 subtest 'finish hook is called when traversal completes' => {
-    plan 2;
+	plan 2;
     
-    my class FinishStrategy does Strategy {
-        has $.finish-called = False;
-        method finish($root, Context $ctx --> FinishResult) {
-            $!finish-called = True;
-            FinishResult.new(type => 'complete', value => $root.name)
-        }
-    }
+	my class FinishStrategy does Strategy {
+		has $.finish-called = False;
+		method finish($root, Context $ctx --> FinishResult) {
+			$!finish-called = True;
+			FinishResult.new(type => 'complete', value => $root.name)
+		}
+	}
     
-    my $strategy = FinishStrategy.new;
-    my $walker = TestTreeWalker.new(strategy => $strategy);
-    my $tree = TreeNode.new(name => 'root');
+	my $strategy = FinishStrategy.new;
+	my $walker = TestTreeWalker.new(strategy => $strategy);
+	my $tree = TreeNode.new(name => 'root');
     
-    my $plan = $walker.plan({}, $tree);
-    my $iter = $walker.iterator($plan);
+	my $plan = $walker.plan({}, $tree);
+	my $iter = $walker.iterator($plan);
     
-    while $iter.pull-one !~~ IterationEnd { }
+	while $iter.pull-one !~~ IterationEnd { }
     
-    my $ctx = $iter.context;
-    ok $ctx.finish-result.defined, 'finish hook was called';
-    is $ctx.finish-result.type, 'complete', 'finish result has correct type';
+	my $ctx = $iter.context;
+	ok $ctx.finish-result.defined, 'finish hook was called';
+	is $ctx.finish-result.type, 'complete', 'finish result has correct type';
 }
 
 subtest 'STOP_TRAVERSAL from before halts immediately' => {
-    plan 3;
+	plan 3;
     
-    my class StopStrategy does Strategy {
-        has Int $.before-calls = 0;
-        method before($element, Context $ctx) {
-            $!before-calls++;
-            return STOP_TRAVERSAL if $element.name eq 'child1';
-            NO_REWRITE
-        }
-    }
+	my class StopStrategy does Strategy {
+		has Int $.before-calls = 0;
+		method before($element, Context $ctx) {
+			$!before-calls++;
+			return STOP_TRAVERSAL if $element.name eq 'child1';
+			NO_REWRITE
+		}
+	}
     
-    my $strategy = StopStrategy.new;
-    my $walker = TestTreeWalker.new(strategy => $strategy);
-    my $tree = TreeNode.new(name => 'root', children => [
-        TreeNode.new(name => 'child1'),
-        TreeNode.new(name => 'child2')
-    ]);
+	my $strategy = StopStrategy.new;
+	my $walker = TestTreeWalker.new(strategy => $strategy);
+	my $tree = TreeNode.new(name => 'root', children => [
+		TreeNode.new(name => 'child1'),
+		TreeNode.new(name => 'child2')
+	]);
     
-    my $plan = $walker.plan({}, $tree);
-    my $iter = $walker.iterator($plan);
-    my @results;
+	my $plan = $walker.plan({}, $tree);
+	my $iter = $walker.iterator($plan);
+	my @results;
     
-    while (my $elem = $iter.pull-one) !~~ IterationEnd {
-        @results.push($elem.name);
-    }
+	while (my $elem = $iter.pull-one) !~~ IterationEnd {
+		@results.push($elem.name);
+	}
     
-    ok @results.grep('root'), 'root visited before stop';
-    ok @results.grep('child1'), 'child1 visited (where stop occurred)';
-    nok @results.grep('child2'), 'child2 not visited (stopped before)';
+	ok @results.grep('root'), 'root visited before stop';
+	ok @results.grep('child1'), 'child1 visited (where stop occurred)';
+	nok @results.grep('child2'), 'child2 not visited (stopped before)';
 }
 
 subtest 'SKIP_ELEMENT from before skips element relations' => {
-    plan 3;
+	plan 3;
     
-    my class SkipStrategy does Strategy {
-        method before($element, Context $ctx) {
-            return SKIP_ELEMENT if $element.name eq 'root';
-            NO_REWRITE
-        }
-    }
+	my class SkipStrategy does Strategy {
+		method before($element, Context $ctx) {
+			return SKIP_ELEMENT if $element.name eq 'root';
+			NO_REWRITE
+		}
+	}
     
-    my $strategy = SkipStrategy.new;
-    my $walker = TestTreeWalker.new(strategy => $strategy);
-    my $tree = TreeNode.new(name => 'root', children => [
-        TreeNode.new(name => 'child1'),
-        TreeNode.new(name => 'child2')
-    ]);
+	my $strategy = SkipStrategy.new;
+	my $walker = TestTreeWalker.new(strategy => $strategy);
+	my $tree = TreeNode.new(name => 'root', children => [
+		TreeNode.new(name => 'child1'),
+		TreeNode.new(name => 'child2')
+	]);
     
-    my $plan = $walker.plan({}, $tree);
-    my $iter = $walker.iterator($plan);
-    my @results;
+	my $plan = $walker.plan({}, $tree);
+	my $iter = $walker.iterator($plan);
+	my @results;
     
-    while (my $elem = $iter.pull-one) !~~ IterationEnd {
-        @results.push($elem.name);
-    }
+	while (my $elem = $iter.pull-one) !~~ IterationEnd {
+		@results.push($elem.name);
+	}
     
-    ok @results.grep('root'), 'root visited';
-    nok @results.grep('child1'), 'child1 not visited (skipped)';
-    nok @results.grep('child2'), 'child2 not visited (skipped)';
+	ok @results.grep('root'), 'root visited';
+	nok @results.grep('child1'), 'child1 not visited (skipped)';
+	nok @results.grep('child2'), 'child2 not visited (skipped)';
 }
 
 subtest 'Walker without strategy works (backward compatibility)' => {
-    plan 2;
+	plan 2;
     
-    my $walker = TestTreeWalker.new;  # No strategy
-    my $tree = TreeNode.new(name => 'root', children => [
-        TreeNode.new(name => 'child1')
-    ]);
+	my $walker = TestTreeWalker.new;  # No strategy
+	my $tree = TreeNode.new(name => 'root', children => [
+		TreeNode.new(name => 'child1')
+	]);
     
-    my $plan = $walker.plan({}, $tree);
-    my $iter = $walker.iterator($plan);
-    my @results;
+	my $plan = $walker.plan({}, $tree);
+	my $iter = $walker.iterator($plan);
+	my @results;
     
-    while (my $elem = $iter.pull-one) !~~ IterationEnd {
-        @results.push($elem.name);
-    }
+	while (my $elem = $iter.pull-one) !~~ IterationEnd {
+		@results.push($elem.name);
+	}
     
-    is @results.elems, 2, 'All elements visited without strategy';
-    ok @results.grep('root'), 'root visited';
+	is @results.elems, 2, 'All elements visited without strategy';
+	ok @results.grep('root'), 'root visited';
 }
 
 done-testing;

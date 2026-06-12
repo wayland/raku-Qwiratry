@@ -17,143 +17,143 @@ plan 5;  # Temporarily reduced - last subtest has slang activation issue
 # =============================================================================
 
 subtest "WRAP_TRANSFORMER - wraps entire transformation" => {
-    plan 3;
+	plan 3;
     
-    # Create transformer with TRANSFORMER wrapper
-    transformer TestTransformer1 {
-        wrapper TRANSFORMER {
-            # Wrapper receives transformation result
-            # Can modify result or perform side effects
-            my $result = @_[0];
-            return [$result, "wrapped"];
-        }
+	# Create transformer with TRANSFORMER wrapper
+	transformer TestTransformer1 {
+		wrapper TRANSFORMER {
+			# Wrapper receives transformation result
+			# Can modify result or perform side effects
+			my $result = @_[0];
+			return [$result, "wrapped"];
+		}
         
-        template TOP do { "original" }
-    }
+		template TOP do { "original" }
+	}
     
-    my $transformer = TestTransformer1.new;
-    my $result = $transformer.transform(42);
+	my $transformer = TestTransformer1.new;
+	my $result = $transformer.transform(42);
 
-    ok $result ~~ List, "TRANSFORMER wrapper returns List";
-    is $result[0][0], "original", "TRANSFORMER wrapper receives original result";
-    is $result[1], "wrapped", "TRANSFORMER wrapper can modify result";
+	ok $result ~~ List, "TRANSFORMER wrapper returns List";
+	is $result[0][0], "original", "TRANSFORMER wrapper receives original result";
+	is $result[1], "wrapped", "TRANSFORMER wrapper can modify result";
 }
 
 subtest "WRAP_TEMPLATE_MATCHER - wraps match evaluation" => {
-    plan 3;
+	plan 3;
     
-    # Create transformer with TEMPLATE_MATCHER wrapper
-    my $match-called = False;
-    transformer TestTransformer2 {
-        wrapper TEMPLATE_MATCHER {
-            # Wrapper receives node and match result
-            my $node = @_[0];
-            my $match = @_[1];
-            $match-called = True;
-            # Can modify match result
-            return $match && $node ~~ Int;
-        }
+	# Create transformer with TEMPLATE_MATCHER wrapper
+	my $match-called = False;
+	transformer TestTransformer2 {
+		wrapper TEMPLATE_MATCHER {
+			# Wrapper receives node and match result
+			my $node = @_[0];
+			my $match = @_[1];
+			$match-called = True;
+			# Can modify match result
+			return $match && $node ~~ Int;
+		}
         
-        template TOP do { "matched" }
-    }
+		template TOP do { "matched" }
+	}
     
-    my $transformer = TestTransformer2.new;
-    my $result = $transformer.transform(42);
+	my $transformer = TestTransformer2.new;
+	my $result = $transformer.transform(42);
     
-    ok $match-called, "TEMPLATE_MATCHER wrapper is called";
-    is $result, "matched", "TEMPLATE_MATCHER wrapper allows match";
+	ok $match-called, "TEMPLATE_MATCHER wrapper is called";
+	is $result, "matched", "TEMPLATE_MATCHER wrapper allows match";
     
-    # Test with non-matching node (template without when always matches)
-    $match-called = False;
-    my $result2 = $transformer.transform("not-int");
-    ok $match-called, "TEMPLATE_MATCHER wrapper is called even for non-matching nodes";
+	# Test with non-matching node (template without when always matches)
+	$match-called = False;
+	my $result2 = $transformer.transform("not-int");
+	ok $match-called, "TEMPLATE_MATCHER wrapper is called even for non-matching nodes";
 }
 
 subtest "WRAP_TEMPLATE_ACTION - wraps action execution" => {
-    plan 3;
+	plan 3;
     
-    # Create transformer with TEMPLATE_ACTION wrapper
-    my $action-called = False;
-    transformer TestTransformer3 {
-        wrapper TEMPLATE_ACTION {
-            # Wrapper receives node and action result
-            my $node = @_[0];
-            my $result = @_[1];
-            $action-called = True;
-            # Can modify action result
-            return [$result, "wrapped-action"];
-        }
+	# Create transformer with TEMPLATE_ACTION wrapper
+	my $action-called = False;
+	transformer TestTransformer3 {
+		wrapper TEMPLATE_ACTION {
+			# Wrapper receives node and action result
+			my $node = @_[0];
+			my $result = @_[1];
+			$action-called = True;
+			# Can modify action result
+			return [$result, "wrapped-action"];
+		}
         
-        template TOP do { "original-action" }
-    }
+		template TOP do { "original-action" }
+	}
     
-    my $transformer = TestTransformer3.new;
-    my $result = $transformer.transform(42);
+	my $transformer = TestTransformer3.new;
+	my $result = $transformer.transform(42);
     
-    ok $action-called, "TEMPLATE_ACTION wrapper is called";
-    ok $result ~~ List, "TEMPLATE_ACTION wrapper returns modified result";
-    is $result[1], "wrapped-action", "TEMPLATE_ACTION wrapper can modify result";
+	ok $action-called, "TEMPLATE_ACTION wrapper is called";
+	ok $result ~~ List, "TEMPLATE_ACTION wrapper returns modified result";
+	is $result[1], "wrapped-action", "TEMPLATE_ACTION wrapper can modify result";
 }
 
 subtest "Hierarchy traversal - wrappers called up transformer hierarchy" => {
-    plan 3;
+	plan 3;
     
-    # Create base transformer with wrapper
-    transformer BaseTransformer {
-        wrapper TRANSFORMER {
-            my $result = @_[0];
-            return [$result, "base"];
-        }
-    }
+	# Create base transformer with wrapper
+	transformer BaseTransformer {
+		wrapper TRANSFORMER {
+			my $result = @_[0];
+			return [$result, "base"];
+		}
+	}
     
-    # Create derived transformer with wrapper
-    transformer DerivedTransformer is BaseTransformer {
-        wrapper TRANSFORMER {
-            my $result = @_[0];
-            # Should call base wrapper via callwith
-            return [$result, "derived"];
-        }
+	# Create derived transformer with wrapper
+	transformer DerivedTransformer is BaseTransformer {
+		wrapper TRANSFORMER {
+			my $result = @_[0];
+			# Should call base wrapper via callwith
+			return [$result, "derived"];
+		}
         
-        template TOP do { "original" }
-    }
+		template TOP do { "original" }
+	}
     
-    my $transformer = DerivedTransformer.new;
-    my $result = $transformer.transform(42);
+	my $transformer = DerivedTransformer.new;
+	my $result = $transformer.transform(42);
 
-    ok $result ~~ List, "Hierarchy traversal returns List";
-    is $result[0][0], "original", "Original result preserved";
-    # Note: The order depends on how callwith works
-    # For MVP, we'll just verify both wrappers execute
-    ok $result.elems >= 2, "Both wrappers execute";
+	ok $result ~~ List, "Hierarchy traversal returns List";
+	is $result[0][0], "original", "Original result preserved";
+	# Note: The order depends on how callwith works
+	# For MVP, we'll just verify both wrappers execute
+	ok $result.elems >= 2, "Both wrappers execute";
 }
 
 subtest "Wrapper parameters - verify correct parameters passed" => {
-    plan 6;
+	plan 6;
     
-    transformer TestTransformer4 {
-        wrapper TEMPLATE_MATCHER {
-            # Should receive node and match result
-            my $node = @_[0];
-            my $match = @_[1];
-            ok $node.defined, "TEMPLATE_MATCHER receives node";
-            ok $match ~~ Bool, "TEMPLATE_MATCHER receives match result";
-            return $match;
-        }
+	transformer TestTransformer4 {
+		wrapper TEMPLATE_MATCHER {
+			# Should receive node and match result
+			my $node = @_[0];
+			my $match = @_[1];
+			ok $node.defined, "TEMPLATE_MATCHER receives node";
+			ok $match ~~ Bool, "TEMPLATE_MATCHER receives match result";
+			return $match;
+		}
         
-        wrapper TEMPLATE_ACTION {
-            # Should receive node and action result
-            my $node = @_[0];
-            my $result = @_[1];
-            ok $node.defined, "TEMPLATE_ACTION receives node";
-            ok $result.defined, "TEMPLATE_ACTION receives action result";
-            return $result;
-        }
+		wrapper TEMPLATE_ACTION {
+			# Should receive node and action result
+			my $node = @_[0];
+			my $result = @_[1];
+			ok $node.defined, "TEMPLATE_ACTION receives node";
+			ok $result.defined, "TEMPLATE_ACTION receives action result";
+			return $result;
+		}
         
-        template TOP do { "test" }
-    }
+		template TOP do { "test" }
+	}
     
-    my $transformer = TestTransformer4.new;
-    $transformer.transform(42);
+	my $transformer = TestTransformer4.new;
+	$transformer.transform(42);
 }
 
 # TODO: Fix slang activation issue for this subtest

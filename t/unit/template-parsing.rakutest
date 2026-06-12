@@ -19,40 +19,40 @@ plan 3;
 # =============================================================================
 
 subtest "Template parsing from transformer body" => {
-    plan 5;
+	plan 5;
     
-    # Clear any previously collected templates
-    clear-collected-templates();
+	# Clear any previously collected templates
+	clear-collected-templates();
     
-    # Declare a transformer with templates
-    # The slang should parse the template declarations and collect them
-    # Note: Slang activation works when Qwiratry is used, but template syntax
-    # in test files may have parsing limitations. The infrastructure is complete.
-    transformer TestTransform is Transformer {
-        template TOP do { "top" }
-    }
+	# Declare a transformer with templates
+	# The slang should parse the template declarations and collect them
+	# Note: Slang activation works when Qwiratry is used, but template syntax
+	# in test files may have parsing limitations. The infrastructure is complete.
+	transformer TestTransform is Transformer {
+		template TOP do { "top" }
+	}
     
-    # Verify transformer was created
-    ok TestTransform.^name eq 'TestTransform', "Transformer class created";
-    ok TestTransform.^does(Transformer), "Transformer inherits from Transformer base class";
+	# Verify transformer was created
+	ok TestTransform.^name eq 'TestTransform', "Transformer class created";
+	ok TestTransform.^does(Transformer), "Transformer inherits from Transformer base class";
     
-    # Create an instance and check templates
-    my $t = TestTransform.new;
+	# Create an instance and check templates
+	my $t = TestTransform.new;
     
-    # Templates should be collected and stored
-    # The infrastructure is complete: slang extracts templates, HOW class stores them
-    ok $t.templates.defined, "Templates array is defined";
+	# Templates should be collected and stored
+	# The infrastructure is complete: slang extracts templates, HOW class stores them
+	ok $t.templates.defined, "Templates array is defined";
     
-    # Note: Template parsing via slang works when transformers are declared in user code
-    # where the slang is active. In test files, we verify the infrastructure is ready.
-    # Full end-to-end testing will be done in integration tests.
-    if $t.templates.elems > 0 {
-        pass "Templates were collected from transformer body";
-        is $t.templates.elems, 1, "Template was collected";
-    }
-    else {
-        skip-rest "Template parsing infrastructure ready (slang activation works in user code)";
-    }
+	# Note: Template parsing via slang works when transformers are declared in user code
+	# where the slang is active. In test files, we verify the infrastructure is ready.
+	# Full end-to-end testing will be done in integration tests.
+	if $t.templates.elems > 0 {
+		pass "Templates were collected from transformer body";
+		is $t.templates.elems, 1, "Template was collected";
+	}
+	else {
+		skip-rest "Template parsing infrastructure ready (slang activation works in user code)";
+	}
 }
 
 # =============================================================================
@@ -60,24 +60,24 @@ subtest "Template parsing from transformer body" => {
 # =============================================================================
 
 subtest "Named template method creation" => {
-    plan 1;
+	plan 1;
     
-    clear-collected-templates();
+	clear-collected-templates();
     
-    transformer TestNamedTransform is Transformer {
-        template my-template do { "result" }
-    }
+	transformer TestNamedTransform is Transformer {
+		template my-template do { "result" }
+	}
     
-    my $t = TestNamedTransform.new;
+	my $t = TestNamedTransform.new;
     
-    # Infrastructure is ready: named templates become methods via !create-template-method
-    # This will work when templates are collected from transformer bodies
-    if $t.templates.elems > 0 {
-        ok $t.^find_method('my-template').defined, "Named template became callable method";
-    }
-    else {
-        skip-rest "Template parsing infrastructure ready (method creation implemented)";
-    }
+	# Infrastructure is ready: named templates become methods via !create-template-method
+	# This will work when templates are collected from transformer bodies
+	if $t.templates.elems > 0 {
+		ok $t.^find_method('my-template').defined, "Named template became callable method";
+	}
+	else {
+		skip-rest "Template parsing infrastructure ready (method creation implemented)";
+	}
 }
 
 # =============================================================================
@@ -85,25 +85,25 @@ subtest "Named template method creation" => {
 # =============================================================================
 
 subtest "Template collection via slang functions" => {
-    plan 3;
+	plan 3;
     
-    clear-collected-templates();
+	clear-collected-templates();
     
-    # Manually create a template to test the collection mechanism
-    use Qwiratry::Template;
-    my $template = Template.new(
-        name => 'test',
-        when-block => { True },
-        do-block => { "result" }
-    );
+	# Manually create a template to test the collection mechanism
+	use Qwiratry::Template;
+	my $template = Template.new(
+		name => 'test',
+		when-block => { True },
+		do-block => { "result" }
+	);
     
-    # Manually add to collection (simulating slang collection)
-    # This tests the infrastructure, not the actual parsing
-    my $t = Transformer.new;
-    $t.add-template($template);
+	# Manually add to collection (simulating slang collection)
+	# This tests the infrastructure, not the actual parsing
+	my $t = Transformer.new;
+	$t.add-template($template);
     
-    is $t.templates.elems, 1, "Template can be manually added";
-    is $t.templates[0].name, 'test', "Template name is correct";
-    ok $t.templates[0].do-block.defined, "Template do-block is stored";
+	is $t.templates.elems, 1, "Template can be manually added";
+	is $t.templates[0].name, 'test', "Template name is correct";
+	ok $t.templates[0].do-block.defined, "Template do-block is stored";
 }
 

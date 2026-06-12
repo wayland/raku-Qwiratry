@@ -15,122 +15,122 @@ use Qwiratry::Strategy::Traversal;
 plan 6;
 
 class CountingRows does Positional {
-    has @.rows;
-    has Int $.at-pos-calls is rw = 0;
+	has @.rows;
+	has Int $.at-pos-calls is rw = 0;
 
-    method elems { @!rows.elems }
-    method AT-POS(int $index) {
-        $.at-pos-calls++;
-        @!rows[$index]
-    }
+	method elems { @!rows.elems }
+	method AT-POS(int $index) {
+		$.at-pos-calls++;
+		@!rows[$index]
+	}
 }
 
 my class MatchAllStrategy does Strategy { }
 
 subtest 'Independent iterators from the same plan' => {
-    plan 2;
+	plan 2;
 
-    my $walker = Qwiratry::Walker::Implementation::Table.new;
-    my @rows = [%(id => 1), %(id => 2), %(id => 3)];
-    my $query = @rows σ -> $_ { True };
-    my $plan = $walker.plan($query, @rows);
+	my $walker = Qwiratry::Walker::Implementation::Table.new;
+	my @rows = [%(id => 1), %(id => 2), %(id => 3)];
+	my $query = @rows σ -> $_ { True };
+	my $plan = $walker.plan($query, @rows);
 
-    my $iter1 = $plan.iterator;
-    my $iter2 = $plan.iterator;
+	my $iter1 = $plan.iterator;
+	my $iter2 = $plan.iterator;
 
-    is $iter1.pull-one<id>, 1, 'first iterator yields first row';
-    is $iter2.pull-one<id>, 1, 'second iterator starts independently';
+	is $iter1.pull-one<id>, 1, 'first iterator yields first row';
+	is $iter2.pull-one<id>, 1, 'second iterator starts independently';
 }
 
 subtest 'Table walker declares incremental lazy capabilities' => {
-    plan 3;
+	plan 3;
 
-    my $walker = Qwiratry::Walker::Implementation::Table.new;
-    my %caps = $walker.capabilities;
+	my $walker = Qwiratry::Walker::Implementation::Table.new;
+	my %caps = $walker.capabilities;
 
-    ok %caps<lazy><enabled>, 'table walker enables lazy evaluation';
-    is %caps<lazy><type>, 'incremental', 'lazy type is incremental';
+	ok %caps<lazy><enabled>, 'table walker enables lazy evaluation';
+	is %caps<lazy><type>, 'incremental', 'lazy type is incremental';
 
-    my $plan = $walker.plan(RootOperator.new, [%(id => 1)]);
-    ok $plan.capabilities<lazy><enabled>, 'table plan inherits lazy capability';
+	my $plan = $walker.plan(RootOperator.new, [%(id => 1)]);
+	ok $plan.capabilities<lazy><enabled>, 'table plan inherits lazy capability';
 }
 
 subtest 'Strategy table scan uses indexed access without list materialization' => {
-    plan 2;
+	plan 2;
 
-    my $source = CountingRows.new(:rows[
-        %(id => 1, pick => False),
-        %(id => 2, pick => True),
-        %(id => 3, pick => False),
-    ]);
-    my $walker = Qwiratry::Walker::Implementation::Table.new(
-        :strategy(MatchAllStrategy.new),
-    );
-    my $query = SelectionOperator.new(
-        :subject($source.rows),
-        :predicate(-> $_ { $_<pick> }),
-    );
-    my $plan = $walker.plan($query, $source);
-    my $iter = $plan.iterator;
+	my $source = CountingRows.new(:rows[
+		%(id => 1, pick => False),
+		%(id => 2, pick => True),
+		%(id => 3, pick => False),
+	]);
+	my $walker = Qwiratry::Walker::Implementation::Table.new(
+		:strategy(MatchAllStrategy.new),
+	);
+	my $query = SelectionOperator.new(
+		:subject($source.rows),
+		:predicate(-> $_ { $_<pick> }),
+	);
+	my $plan = $walker.plan($query, $source);
+	my $iter = $plan.iterator;
 
-    my $first = $iter.pull-one;
-    ok $first.defined && $first<id> == 2, 'lazy scan finds first matching row';
-    ok $source.at-pos-calls <= 3, 'rows accessed via AT-POS, not full list copy per pull';
+	my $first = $iter.pull-one;
+	ok $first.defined && $first<id> == 2, 'lazy scan finds first matching row';
+	ok $source.at-pos-calls <= 3, 'rows accessed via AT-POS, not full list copy per pull';
 }
 
 subtest 'Tree walker declares incremental lazy capabilities' => {
-    plan 3;
+	plan 3;
 
-    my $walker = Qwiratry::Walker::Implementation::Tree.new;
-    my %caps = $walker.capabilities;
+	my $walker = Qwiratry::Walker::Implementation::Tree.new;
+	my %caps = $walker.capabilities;
 
-    ok %caps<lazy><enabled>, 'tree walker enables lazy evaluation';
-    is %caps<lazy><type>, 'incremental', 'lazy type is incremental';
+	ok %caps<lazy><enabled>, 'tree walker enables lazy evaluation';
+	is %caps<lazy><type>, 'incremental', 'lazy type is incremental';
 
-    my $tree = [%(name => 'root')];
-    my $plan = $walker.plan(RootOperator.new, $tree);
-    ok $plan.capabilities<lazy><enabled>, 'tree plan inherits lazy capability';
+	my $tree = [%(name => 'root')];
+	my $plan = $walker.plan(RootOperator.new, $tree);
+	ok $plan.capabilities<lazy><enabled>, 'tree plan inherits lazy capability';
 }
 
 subtest 'Tree strategy traversal yields incrementally' => {
-    plan 2;
+	plan 2;
 
-    my class VisitCounter does Strategy {
-        has Int $.before-calls is rw = 0;
-        method before($element, $ctx) {
-            $.before-calls++;
-            Nil
-        }
-    }
+	my class VisitCounter does Strategy {
+		has Int $.before-calls is rw = 0;
+		method before($element, $ctx) {
+			$.before-calls++;
+			Nil
+		}
+	}
 
-    my $tree = [
-        %(name => 'root', children => [
-            %(name => 'a'),
-            %(name => 'b'),
-            %(name => 'c'),
-        ]),
-    ];
-    my $strategy = VisitCounter.new;
-    my $walker = Qwiratry::Walker::Implementation::Tree.new(:strategy($strategy));
-    my $query = DescendantOperator.new(:subject($tree), :selector('*'));
-    my $iter = $walker.plan($query, $tree).iterator;
+	my $tree = [
+		%(name => 'root', children => [
+			%(name => 'a'),
+			%(name => 'b'),
+			%(name => 'c'),
+		]),
+	];
+	my $strategy = VisitCounter.new;
+	my $walker = Qwiratry::Walker::Implementation::Tree.new(:strategy($strategy));
+	my $query = DescendantOperator.new(:subject($tree), :selector('*'));
+	my $iter = $walker.plan($query, $tree).iterator;
 
-    my $first = $iter.pull-one;
-    ok $first.defined, 'first tree match yielded before traversal completes';
-    ok $strategy.before-calls < 4, 'not every node visited before first yield';
+	my $first = $iter.pull-one;
+	ok $first.defined, 'first tree match yielded before traversal completes';
+	ok $strategy.before-calls < 4, 'not every node visited before first yield';
 }
 
 subtest 'next() works through Walker plan iterator' => {
-    plan 3;
+	plan 3;
 
-    my $walker = Qwiratry::Walker::Implementation::Table.new;
-    my @rows = [%(id => 10), %(id => 20)];
-    my $query = @rows σ -> $_ { True };
-    my $iter = $walker.plan($query, @rows).iterator;
+	my $walker = Qwiratry::Walker::Implementation::Table.new;
+	my @rows = [%(id => 10), %(id => 20)];
+	my $query = @rows σ -> $_ { True };
+	my $iter = $walker.plan($query, @rows).iterator;
 
-    is $iter.next<id>, 10, 'next() returns first row from plan iterator';
-    is $iter.next<id>, 20, 'next() returns second row from plan iterator';
-    is $iter.next(), Nil, 'next() returns Nil when plan iterator exhausted';
+	is $iter.next<id>, 10, 'next() returns first row from plan iterator';
+	is $iter.next<id>, 20, 'next() returns second row from plan iterator';
+	is $iter.next(), Nil, 'next() returns Nil when plan iterator exhausted';
 }
 
 done-testing;

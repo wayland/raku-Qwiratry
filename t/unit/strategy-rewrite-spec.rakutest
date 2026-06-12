@@ -6,19 +6,19 @@ use Qwiratry::Strategy::RewriteSpec;
 plan 2;
 
 subtest 'RewriteSpec can be composed', {
-    plan 2;
-    my class TestRewrite does RewriteSpec { }
-    my $r = TestRewrite.new;
-    ok $r.defined, 'Can create instance of class doing RewriteSpec';
-    ok $r ~~ RewriteSpec, 'Instance does RewriteSpec role';
+	plan 2;
+	my class TestRewrite does RewriteSpec { }
+	my $r = TestRewrite.new;
+	ok $r.defined, 'Can create instance of class doing RewriteSpec';
+	ok $r ~~ RewriteSpec, 'Instance does RewriteSpec role';
 }
 
 subtest 'Type checking works', {
-    plan 1;
-    my class TestRewrite does RewriteSpec { }
-    my sub takes-rewrite(RewriteSpec $r) { $r }
-    my $r = TestRewrite.new;
-    is takes-rewrite($r), $r, 'Can pass to typed parameter';
+	plan 1;
+	my class TestRewrite does RewriteSpec { }
+	my sub takes-rewrite(RewriteSpec $r) { $r }
+	my $r = TestRewrite.new;
+	is takes-rewrite($r), $r, 'Can pass to typed parameter';
 }
 
 done-testing;

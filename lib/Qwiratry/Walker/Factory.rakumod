@@ -15,11 +15,11 @@ use Qwiratry::Walker::Implementation::Tree;
 use Qwiratry::Walker::Implementation::Table;
 
 sub is-table-data($data --> Bool) {
-    return False unless $data ~~ Positional;
-    return False if $data.elems == 0;
-    return False unless $data[0] ~~ Associative;
-    return False if $data[0]<children>:exists;
-    True
+	return False unless $data ~~ Positional;
+	return False if $data.elems == 0;
+	return False unless $data[0] ~~ Associative;
+	return False if $data[0]<children>:exists;
+	True
 }
 
 =begin pod
@@ -31,164 +31,164 @@ Supports automatic discovery and explicit registration.
 
 =end pod
 class Qwiratry::Walker::Factory {
-    # Registry of Walker types keyed by data type/role
-    has %!walker-registry;
+	# Registry of Walker types keyed by data type/role
+	has %!walker-registry;
     
-    # Cached discovered walkers (lazy initialization)
-    has @!discovered-walkers;
+	# Cached discovered walkers (lazy initialization)
+	has @!discovered-walkers;
     
-    # Flag indicating if discovery has been performed
-    has Bool $!discovery-performed = False;
+	# Flag indicating if discovery has been performed
+	has Bool $!discovery-performed = False;
     
-    # Singleton instance (optional - can also instantiate directly)
-    my $instance;
+	# Singleton instance (optional - can also instantiate directly)
+	my $instance;
     
-    =begin pod
+	=begin pod
 
-    Get or create singleton instance of Qwiratry::Walker::Factory.
+	Get or create singleton instance of Qwiratry::Walker::Factory.
 
-    @returns Qwiratry::Walker::Factory - Singleton instance
+	@returns Qwiratry::Walker::Factory - Singleton instance
 
-    =end pod
-    method instance(--> Qwiratry::Walker::Factory) {
-        $instance //= Qwiratry::Walker::Factory.new;
-    }
+	=end pod
+	method instance(--> Qwiratry::Walker::Factory) {
+		$instance //= Qwiratry::Walker::Factory.new;
+	}
     
-    =begin pod
+	=begin pod
 
-    Get appropriate Walker for given data.
+	Get appropriate Walker for given data.
 
-    Selection logic:
-    1. Check explicit registry entries (by type name or role)
-    2. Use type-based heuristics (e.g., Positional for arrays)
-    3. Return Nil if no Walker found
+	Selection logic:
+	1. Check explicit registry entries (by type name or role)
+	2. Use type-based heuristics (e.g., Positional for arrays)
+	3. Return Nil if no Walker found
 
-    @param $data - Data structure to get Walker for
-    @returns Qwiratry::Walker? - Walker instance or Nil if none found
+	@param $data - Data structure to get Walker for
+	@returns Qwiratry::Walker? - Walker instance or Nil if none found
 
-    =end pod
-    method get-walker($data --> Mu) {
-        # T028: Get Walker for data type
-        # Check explicit registry first
-        my $type = $data.WHAT;
-        my $type-name = $type.^name;
+	=end pod
+	method get-walker($data --> Mu) {
+		# T028: Get Walker for data type
+		# Check explicit registry first
+		my $type = $data.WHAT;
+		my $type-name = $type.^name;
         
-        # Check registry by type name
-        if %!walker-registry{$type-name}:exists {
-            my $walker-type = %!walker-registry{$type-name};
-            return $walker-type.new;
-        }
+		# Check registry by type name
+		if %!walker-registry{$type-name}:exists {
+			my $walker-type = %!walker-registry{$type-name};
+			return $walker-type.new;
+		}
         
-        # Check registry by role composition
-        # Iterate through roles that $data does
-        for $type.^roles -> $role {
-            my $role-name = $role.^name;
-            if %!walker-registry{$role-name}:exists {
-                my $walker-type = %!walker-registry{$role-name};
-                return $walker-type.new;
-            }
-        }
+		# Check registry by role composition
+		# Iterate through roles that $data does
+		for $type.^roles -> $role {
+			my $role-name = $role.^name;
+			if %!walker-registry{$role-name}:exists {
+				my $walker-type = %!walker-registry{$role-name};
+				return $walker-type.new;
+			}
+		}
         
-        # Use heuristics for common types
-        # Positional (arrays, lists) - could use a default array walker
-        if $data ~~ Positional {
-            # For MVP, return Nil - specific walkers can be registered
-            # Future: return default Positional walker if available
-        }
+		# Use heuristics for common types
+		# Positional (arrays, lists) - could use a default array walker
+		if $data ~~ Positional {
+			# For MVP, return Nil - specific walkers can be registered
+			# Future: return default Positional walker if available
+		}
         
-        # Associative (hashes, maps) - could use a default hash walker
-        if $data ~~ Associative {
-            # For MVP, return Nil - specific walkers can be registered
-            # Future: return default Associative walker if available
-        }
+		# Associative (hashes, maps) - could use a default hash walker
+		if $data ~~ Associative {
+			# For MVP, return Nil - specific walkers can be registered
+			# Future: return default Associative walker if available
+		}
 
-        if $data.defined {
-            if is-table-data($data) {
-                return Qwiratry::Walker::Implementation::Table.new;
-            }
-            return Qwiratry::Walker::Implementation::Tree.new;
-        }
+		if $data.defined {
+			if is-table-data($data) {
+				return Qwiratry::Walker::Implementation::Table.new;
+			}
+			return Qwiratry::Walker::Implementation::Tree.new;
+		}
 
-        # No Walker found
-        # Explicitly return Nil to avoid returning Any (type object)
-        return Nil;
-    }
+		# No Walker found
+		# Explicitly return Nil to avoid returning Any (type object)
+		return Nil;
+	}
     
-    =begin pod
+	=begin pod
 
-    Register a Walker type for a specific data type or role.
+	Register a Walker type for a specific data type or role.
 
-    @param $type - Type or role to register Walker for (can be type object or string name)
-    @param $walker-type - Walker type (class that does Qwiratry::Walker role)
+	@param $type - Type or role to register Walker for (can be type object or string name)
+	@param $walker-type - Walker type (class that does Qwiratry::Walker role)
 
-    =end pod
-    method register-walker($type, $walker-type) {
-        # T028: Register Walker for type
-        my $type-name = $type ~~ Str ?? $type !! $type.^name;
-        %!walker-registry{$type-name} = $walker-type;
-    }
+	=end pod
+	method register-walker($type, $walker-type) {
+		# T028: Register Walker for type
+		my $type-name = $type ~~ Str ?? $type !! $type.^name;
+		%!walker-registry{$type-name} = $walker-type;
+	}
     
-    =begin pod
+	=begin pod
 
-    Discover available Walkers via Implementation::Loader.
+	Discover available Walkers via Implementation::Loader.
 
-    Scans for classes matching the Qwiratry::Walker::Implementation::* pattern in the specified
-    directories using Implementation::Loader. Results are cached for performance.
-    Discovered classes are assumed to implement Qwiratry::Walker role without runtime
-    verification.
+	Scans for classes matching the Qwiratry::Walker::Implementation::* pattern in the specified
+	directories using Implementation::Loader. Results are cached for performance.
+	Discovered classes are assumed to implement Qwiratry::Walker role without runtime
+	verification.
 
-    @param :@paths - List of directory paths to scan (default: ['lib'])
-    @param :$refresh - If True, forces re-discovery and updates cache. If False,
-                      returns cached results if available.
-    @returns Array[Qwiratry::Walker] - Array of discovered Walker type objects (not instances)
+	@param :@paths - List of directory paths to scan (default: ['lib'])
+	@param :$refresh - If True, forces re-discovery and updates cache. If False,
+					returns cached results if available.
+	@returns Array[Qwiratry::Walker] - Array of discovered Walker type objects (not instances)
 
-    =end pod
-    method !extract-walker-types(@raw --> Array) {
-        my @found;
-        for @raw -> $item {
-            next unless $item ~~ Associative;
-            for $item.keys -> $name {
-                my $value = $item{$name};
-                next if $value ~~ Exception;
-                try {
-                    my $type = ::($name);
-                    @found.push($type) if $type.does(Qwiratry::Walker);
-                }
-            }
-        }
-        return @found;
-    }
+	=end pod
+	method !extract-walker-types(@raw --> Array) {
+		my @found;
+		for @raw -> $item {
+			next unless $item ~~ Associative;
+			for $item.keys -> $name {
+				my $value = $item{$name};
+				next if $value ~~ Exception;
+				try {
+					my $type = ::($name);
+					@found.push($type) if $type.does(Qwiratry::Walker);
+				}
+			}
+		}
+		return @found;
+	}
 
-    method discover-walkers(:@paths = ['lib'], Bool :$refresh = False) {
-        # Return cached result if discovery already performed and refresh not requested
-        if $!discovery-performed && !$refresh {
-            return @!discovered-walkers;
-        }
+	method discover-walkers(:@paths = ['lib'], Bool :$refresh = False) {
+		# Return cached result if discovery already performed and refresh not requested
+		if $!discovery-performed && !$refresh {
+			return @!discovered-walkers;
+		}
 
-        my @search-paths = @paths;
-        @search-paths.push('lib') unless @search-paths.grep(* eq 'lib');
+		my @search-paths = @paths;
+		@search-paths.push('lib') unless @search-paths.grep(* eq 'lib');
 
-        try {
-            my $discoverer = Implementation::Loader.new;
-            my @raw = $discoverer.load-module-pattern(
-                :globs([
-                    'Qwiratry::Walker::Implementation::*',
-                    'Qwiratry::Walker::Test*',
-                ]),
-                :paths(@search-paths)
-            );
-            @!discovered-walkers = self!extract-walker-types(@raw).sort(*.^name);
-            $!discovery-performed = True;
-        }
-        CATCH {
-            default {
-                X::Qwiratry::Walker.new(
-                    message => "Implementation::Loader discovery failed. Version 0.0.7 or higher is required. Error: {.message}",
-                    walker-type => 'Qwiratry::Walker::Factory'
-                ).throw;
-            }
-        }
+		try {
+			my $discoverer = Implementation::Loader.new;
+			my @raw = $discoverer.load-module-pattern(
+				:globs([
+					'Qwiratry::Walker::Implementation::*',
+					'Qwiratry::Walker::Test*',
+				]),
+				:paths(@search-paths)
+			);
+			@!discovered-walkers = self!extract-walker-types(@raw).sort(*.^name);
+			$!discovery-performed = True;
+		}
+		CATCH {
+			default {
+				X::Qwiratry::Walker.new(
+					message => "Implementation::Loader discovery failed. Version 0.0.7 or higher is required. Error: {.message}",
+					walker-type => 'Qwiratry::Walker::Factory'
+				).throw;
+			}
+		}
 
-        return @!discovered-walkers;
-    }
+		return @!discovered-walkers;
+	}
 }

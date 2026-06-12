@@ -18,74 +18,74 @@ plan 14;
 
 # Simple Context for testing
 my class TestContext does Context {
-    has Int $.iterations is rw = 0;
+	has Int $.iterations is rw = 0;
 }
 
 # Simple QueryIterator for testing
 my class TestIterator does QueryIterator {
-    has @.items;
-    has Int $!index = 0;
+	has @.items;
+	has Int $!index = 0;
     
-    method pull-one(--> Mu) {
-        return IterationEnd if $!index >= @!items.elems;
-        $.context.iterations++;
-        @!items[$!index++]
-    }
+	method pull-one(--> Mu) {
+		return IterationEnd if $!index >= @!items.elems;
+		$.context.iterations++;
+		@!items[$!index++]
+	}
 }
 
 # Concrete Qwiratry::Walker::Plan implementation for testing
 # Note: query() returns Mu for testing flexibility; spec requires RakuAST::Node
 my class TestPlan does Qwiratry::Walker::Plan {
-    has $.query-ast;
-    has @.data;
-    has Bool $.cloned = False;
+	has $.query-ast;
+	has @.data;
+	has Bool $.cloned = False;
     
-    method iterator(--> QueryIterator) {
-        my $ctx = TestContext.new;
-        TestIterator.new(context => $ctx, items => @!data);
-    }
+	method iterator(--> QueryIterator) {
+		my $ctx = TestContext.new;
+		TestIterator.new(context => $ctx, items => @!data);
+	}
     
-    # Return Mu for testing; spec requires RakuAST::Node
-    method query(--> Mu) {
-        $!query-ast
-    }
+	# Return Mu for testing; spec requires RakuAST::Node
+	method query(--> Mu) {
+		$!query-ast
+	}
     
-    method describe(--> Str) {
-        "TestPlan with {+@!data} items"
-    }
+	method describe(--> Str) {
+		"TestPlan with {+@!data} items"
+	}
     
-    method optimise(&modification) {
-        # Apply modification and return result
-        modification(self)
-    }
+	method optimise(&modification) {
+		# Apply modification and return result
+		modification(self)
+	}
     
-    method subplans(--> Array[Qwiratry::Walker::Plan]) {
-        # Return empty array (non-composite)
-        Array[Qwiratry::Walker::Plan].new
-    }
+	method subplans(--> Array[Qwiratry::Walker::Plan]) {
+		# Return empty array (non-composite)
+		Array[Qwiratry::Walker::Plan].new
+	}
     
-    method capabilities(--> Associative) {
-        { lazy => { enabled => True } }
-    }
+	method capabilities(--> Associative) {
+		{ lazy => { enabled => True } }
+	}
 }
 
 # Plan with subplans for composite testing
 my class CompositePlan does Qwiratry::Walker::Plan {
-    has @.child-plans;
-    has $.query-ast;
+	has @.child-plans;
+	has $.query-ast;
     
-    method iterator(--> QueryIterator) {
-        my $ctx = TestContext.new;
-        TestIterator.new(context => $ctx, items => []);
-    }
+	method iterator(--> QueryIterator) {
+		my $ctx = TestContext.new;
+		TestIterator.new(context => $ctx, items => []);
+	}
     
-    method query(--> Mu) { $!query-ast }
-    method describe(--> Str) { "CompositePlan with {+@!child-plans} subplans" }
+	method query(--> Mu) { $!query-ast }
+	method describe(--> Str) { "CompositePlan with {+@!child-plans} subplans" }
     
-    method subplans(--> Array[Qwiratry::Walker::Plan]) { 
-        my Qwiratry::Walker::Plan @result = @!child-plans;
-        @result
-    }
+	method subplans(--> Array[Qwiratry::Walker::Plan]) { 
+		my Qwiratry::Walker::Plan @result = @!child-plans;
+		@result
+	}
 }
 
 # =============================================================================
@@ -93,19 +93,19 @@ my class CompositePlan does Qwiratry::Walker::Plan {
 # =============================================================================
 
 subtest 'Qwiratry::Walker::Plan role exists' => {
-    plan 2;
+	plan 2;
     
-    ok Qwiratry::Walker::Plan.^name ~~ /Qwiratry '::' Walker '::' Plan$/, 'Qwiratry::Walker::Plan role exists';
-    ok Qwiratry::Walker::Plan.HOW.^name ~~ /Metamodel/, 'Qwiratry::Walker::Plan is a proper role';
+	ok Qwiratry::Walker::Plan.^name ~~ /Qwiratry '::' Walker '::' Plan$/, 'Qwiratry::Walker::Plan role exists';
+	ok Qwiratry::Walker::Plan.HOW.^name ~~ /Metamodel/, 'Qwiratry::Walker::Plan is a proper role';
 }
 
 subtest 'Concrete class can compose Qwiratry::Walker::Plan' => {
-    plan 2;
+	plan 2;
     
-    my $plan = TestPlan.new(query-ast => 'test-query', data => [1, 2, 3]);
+	my $plan = TestPlan.new(query-ast => 'test-query', data => [1, 2, 3]);
     
-    ok $plan.defined, 'Concrete class can be instantiated';
-    ok $plan ~~ Qwiratry::Walker::Plan, 'Instance does Qwiratry::Walker::Plan role';
+	ok $plan.defined, 'Concrete class can be instantiated';
+	ok $plan ~~ Qwiratry::Walker::Plan, 'Instance does Qwiratry::Walker::Plan role';
 }
 
 # =============================================================================
@@ -113,34 +113,34 @@ subtest 'Concrete class can compose Qwiratry::Walker::Plan' => {
 # =============================================================================
 
 subtest 'iterator() returns QueryIterator' => {
-    plan 3;
+	plan 3;
     
-    my $plan = TestPlan.new(query-ast => 'q', data => [1, 2]);
-    my $iter = $plan.iterator;
+	my $plan = TestPlan.new(query-ast => 'q', data => [1, 2]);
+	my $iter = $plan.iterator;
     
-    ok $iter.defined, 'iterator() returns defined value';
-    ok $iter ~~ QueryIterator, 'Return type is QueryIterator';
-    ok $iter ~~ Iterator, 'QueryIterator does Iterator';
+	ok $iter.defined, 'iterator() returns defined value';
+	ok $iter ~~ QueryIterator, 'Return type is QueryIterator';
+	ok $iter ~~ Iterator, 'QueryIterator does Iterator';
 }
 
 subtest 'query() returns Query AST' => {
-    plan 2;
+	plan 2;
     
-    my $query-ast = 'my-query-ast';
-    my $plan = TestPlan.new(query-ast => $query-ast, data => []);
+	my $query-ast = 'my-query-ast';
+	my $plan = TestPlan.new(query-ast => $query-ast, data => []);
     
-    ok $plan.query.defined, 'query() returns defined value';
-    is $plan.query, $query-ast, 'query() returns correct AST';
+	ok $plan.query.defined, 'query() returns defined value';
+	is $plan.query, $query-ast, 'query() returns correct AST';
 }
 
 subtest 'describe() returns Str' => {
-    plan 2;
+	plan 2;
     
-    my $plan = TestPlan.new(query-ast => 'q', data => [1, 2, 3]);
-    my $desc = $plan.describe;
+	my $plan = TestPlan.new(query-ast => 'q', data => [1, 2, 3]);
+	my $desc = $plan.describe;
     
-    ok $desc ~~ Str, 'describe() returns Str';
-    ok $desc.chars > 0, 'describe() returns non-empty string';
+	ok $desc ~~ Str, 'describe() returns Str';
+	ok $desc.chars > 0, 'describe() returns non-empty string';
 }
 
 # =============================================================================
@@ -148,54 +148,54 @@ subtest 'describe() returns Str' => {
 # =============================================================================
 
 subtest 'optimise() with callback' => {
-    plan 3;
+	plan 3;
     
-    my $plan = TestPlan.new(query-ast => 'q', data => [1, 2, 3]);
-    my $callback-called = False;
-    my $received-plan;
+	my $plan = TestPlan.new(query-ast => 'q', data => [1, 2, 3]);
+	my $callback-called = False;
+	my $received-plan;
     
-    my $result = $plan.optimise(-> Qwiratry::Walker::Plan $p {
-        $callback-called = True;
-        $received-plan = $p;
-        # Return a new plan (modified version)
-        TestPlan.new(query-ast => 'optimized', data => [10, 20], cloned => True);
-    });
+	my $result = $plan.optimise(-> Qwiratry::Walker::Plan $p {
+		$callback-called = True;
+		$received-plan = $p;
+		# Return a new plan (modified version)
+		TestPlan.new(query-ast => 'optimized', data => [10, 20], cloned => True);
+	});
     
-    ok $callback-called, 'Callback was called';
-    ok $received-plan === $plan, 'Callback received original plan';
-    ok $result ~~ Qwiratry::Walker::Plan, 'Result is Qwiratry::Walker::Plan';
+	ok $callback-called, 'Callback was called';
+	ok $received-plan === $plan, 'Callback received original plan';
+	ok $result ~~ Qwiratry::Walker::Plan, 'Result is Qwiratry::Walker::Plan';
 }
 
 subtest 'subplans() returns Array[Qwiratry::Walker::Plan]' => {
-    plan 3;
+	plan 3;
     
-    my $simple-plan = TestPlan.new(query-ast => 'q', data => []);
-    my @simple-subplans = $simple-plan.subplans;
+	my $simple-plan = TestPlan.new(query-ast => 'q', data => []);
+	my @simple-subplans = $simple-plan.subplans;
     
-    is @simple-subplans.elems, 0, 'Simple plan has no subplans';
+	is @simple-subplans.elems, 0, 'Simple plan has no subplans';
     
-    # Test composite plan
-    my $child1 = TestPlan.new(query-ast => 'c1', data => [1]);
-    my $child2 = TestPlan.new(query-ast => 'c2', data => [2]);
-    my $composite = CompositePlan.new(
-        query-ast => 'composite',
-        child-plans => [$child1, $child2]
-    );
+	# Test composite plan
+	my $child1 = TestPlan.new(query-ast => 'c1', data => [1]);
+	my $child2 = TestPlan.new(query-ast => 'c2', data => [2]);
+	my $composite = CompositePlan.new(
+		query-ast => 'composite',
+		child-plans => [$child1, $child2]
+	);
     
-    my @subplans = $composite.subplans;
-    is @subplans.elems, 2, 'Composite plan has 2 subplans';
-    ok @subplans[0] ~~ Qwiratry::Walker::Plan, 'Subplans are Qwiratry::Walker::Plan';
+	my @subplans = $composite.subplans;
+	is @subplans.elems, 2, 'Composite plan has 2 subplans';
+	ok @subplans[0] ~~ Qwiratry::Walker::Plan, 'Subplans are Qwiratry::Walker::Plan';
 }
 
 subtest 'capabilities() returns Associative' => {
-    plan 3;
+	plan 3;
     
-    my $plan = TestPlan.new(query-ast => 'q', data => []);
-    my %caps = $plan.capabilities;
+	my $plan = TestPlan.new(query-ast => 'q', data => []);
+	my %caps = $plan.capabilities;
     
-    ok %caps ~~ Associative, 'capabilities() returns Associative';
-    ok %caps<lazy>:exists, 'Capabilities include expected keys';
-    ok %caps<lazy><enabled>, 'Capability metadata accessible';
+	ok %caps ~~ Associative, 'capabilities() returns Associative';
+	ok %caps<lazy>:exists, 'Capabilities include expected keys';
+	ok %caps<lazy><enabled>, 'Capability metadata accessible';
 }
 
 # =============================================================================
@@ -203,43 +203,43 @@ subtest 'capabilities() returns Associative' => {
 # =============================================================================
 
 subtest 'Multiple iterators from same plan are independent' => {
-    plan 6;
+	plan 6;
     
-    my $plan = TestPlan.new(query-ast => 'q', data => <a b c d>);
+	my $plan = TestPlan.new(query-ast => 'q', data => <a b c d>);
     
-    my $iter1 = $plan.iterator;
-    my $iter2 = $plan.iterator;
+	my $iter1 = $plan.iterator;
+	my $iter2 = $plan.iterator;
     
-    # Advance iter1 twice using pull-one() (Raku Iterator protocol)
-    is $iter1.pull-one, 'a', 'iter1 first item';
-    is $iter1.pull-one, 'b', 'iter1 second item';
+	# Advance iter1 twice using pull-one() (Raku Iterator protocol)
+	is $iter1.pull-one, 'a', 'iter1 first item';
+	is $iter1.pull-one, 'b', 'iter1 second item';
     
-    # iter2 should still be at start
-    is $iter2.pull-one, 'a', 'iter2 starts fresh';
-    is $iter2.pull-one, 'b', 'iter2 second item';
+	# iter2 should still be at start
+	is $iter2.pull-one, 'a', 'iter2 starts fresh';
+	is $iter2.pull-one, 'b', 'iter2 second item';
     
-    # iter1 continues
-    is $iter1.pull-one, 'c', 'iter1 continues independently';
+	# iter1 continues
+	is $iter1.pull-one, 'c', 'iter1 continues independently';
     
-    # Verify contexts are independent
-    is $iter2.context.iterations, 2, 'iter2 context tracks its own iterations';
+	# Verify contexts are independent
+	is $iter2.context.iterations, 2, 'iter2 context tracks its own iterations';
 }
 
 subtest 'Each iterator has its own Context' => {
-    plan 3;
+	plan 3;
     
-    my $plan = TestPlan.new(query-ast => 'q', data => [1, 2, 3]);
+	my $plan = TestPlan.new(query-ast => 'q', data => [1, 2, 3]);
     
-    my $iter1 = $plan.iterator;
-    my $iter2 = $plan.iterator;
+	my $iter1 = $plan.iterator;
+	my $iter2 = $plan.iterator;
     
-    ok $iter1.context !=== $iter2.context, 'Iterators have different Context instances';
+	ok $iter1.context !=== $iter2.context, 'Iterators have different Context instances';
     
-    $iter1.pull-one;
-    $iter1.pull-one;
+	$iter1.pull-one;
+	$iter1.pull-one;
     
-    is $iter1.context.iterations, 2, 'iter1 context has 2 iterations';
-    is $iter2.context.iterations, 0, 'iter2 context has 0 iterations';
+	is $iter1.context.iterations, 2, 'iter1 context has 2 iterations';
+	is $iter2.context.iterations, 0, 'iter2 context has 0 iterations';
 }
 
 # =============================================================================
@@ -247,36 +247,36 @@ subtest 'Each iterator has its own Context' => {
 # =============================================================================
 
 subtest 'Plan does not mutate original Query AST' => {
-    plan 3;
+	plan 3;
     
-    # Use a mutable structure to test immutability
-    my @original-query = <select from where>;
-    my $plan = TestPlan.new(query-ast => @original-query, data => [1, 2]);
+	# Use a mutable structure to test immutability
+	my @original-query = <select from where>;
+	my $plan = TestPlan.new(query-ast => @original-query, data => [1, 2]);
     
-    # Perform operations
-    my $iter = $plan.iterator;
-    $iter.pull-one;
-    $iter.pull-one;
+	# Perform operations
+	my $iter = $plan.iterator;
+	$iter.pull-one;
+	$iter.pull-one;
     
-    # Verify original is unchanged
-    is @original-query.elems, 3, 'Original query length unchanged';
-    is @original-query[0], 'select', 'Original query content unchanged';
+	# Verify original is unchanged
+	is @original-query.elems, 3, 'Original query length unchanged';
+	is @original-query[0], 'select', 'Original query content unchanged';
     
-    # Get query from plan
-    is $plan.query.elems, 3, 'Plan query() returns same structure';
+	# Get query from plan
+	is $plan.query.elems, 3, 'Plan query() returns same structure';
 }
 
 subtest 'Query returns same reference' => {
-    plan 2;
+	plan 2;
     
-    my $query-ast = { type => 'select', fields => ['a', 'b'] };
-    my $plan = TestPlan.new(query-ast => $query-ast, data => []);
+	my $query-ast = { type => 'select', fields => ['a', 'b'] };
+	my $plan = TestPlan.new(query-ast => $query-ast, data => []);
     
-    my $query1 = $plan.query;
-    my $query2 = $plan.query;
+	my $query1 = $plan.query;
+	my $query2 = $plan.query;
     
-    ok $query1 === $query2, 'Multiple query() calls return same reference';
-    ok $query1 === $query-ast, 'query() returns original reference';
+	ok $query1 === $query2, 'Multiple query() calls return same reference';
+	ok $query1 === $query-ast, 'query() returns original reference';
 }
 
 # =============================================================================
@@ -284,42 +284,42 @@ subtest 'Query returns same reference' => {
 # =============================================================================
 
 subtest 'Default optimise returns self' => {
-    plan 2;
+	plan 2;
     
-    # Create a minimal plan that uses default optimise
-    my class MinimalPlan does Qwiratry::Walker::Plan {
-        method iterator(--> QueryIterator) {
-            TestIterator.new(context => TestContext.new, items => []);
-        }
-        method query(--> Mu) { 'minimal' }
-        method describe(--> Str) { 'MinimalPlan' }
-        # Note: uses default optimise, subplans, capabilities
-    }
+	# Create a minimal plan that uses default optimise
+	my class MinimalPlan does Qwiratry::Walker::Plan {
+		method iterator(--> QueryIterator) {
+			TestIterator.new(context => TestContext.new, items => []);
+		}
+		method query(--> Mu) { 'minimal' }
+		method describe(--> Str) { 'MinimalPlan' }
+		# Note: uses default optimise, subplans, capabilities
+	}
     
-    my $plan = MinimalPlan.new;
-    my $result = $plan.optimise(-> $p { TestPlan.new(query-ast => 'x', data => []) });
+	my $plan = MinimalPlan.new;
+	my $result = $plan.optimise(-> $p { TestPlan.new(query-ast => 'x', data => []) });
     
-    # Default optimise returns self, ignoring callback
-    ok $result === $plan, 'Default optimise returns self';
-    ok $result ~~ Qwiratry::Walker::Plan, 'Result is still Qwiratry::Walker::Plan';
+	# Default optimise returns self, ignoring callback
+	ok $result === $plan, 'Default optimise returns self';
+	ok $result ~~ Qwiratry::Walker::Plan, 'Result is still Qwiratry::Walker::Plan';
 }
 
 subtest 'Default subplans returns empty array' => {
-    plan 2;
+	plan 2;
     
-    my class MinimalPlan does Qwiratry::Walker::Plan {
-        method iterator(--> QueryIterator) {
-            TestIterator.new(context => TestContext.new, items => []);
-        }
-        method query(--> Mu) { 'minimal' }
-        method describe(--> Str) { 'MinimalPlan' }
-    }
+	my class MinimalPlan does Qwiratry::Walker::Plan {
+		method iterator(--> QueryIterator) {
+			TestIterator.new(context => TestContext.new, items => []);
+		}
+		method query(--> Mu) { 'minimal' }
+		method describe(--> Str) { 'MinimalPlan' }
+	}
     
-    my $plan = MinimalPlan.new;
-    my @subplans = $plan.subplans;
+	my $plan = MinimalPlan.new;
+	my @subplans = $plan.subplans;
     
-    ok @subplans ~~ Array, 'subplans returns Array';
-    is @subplans.elems, 0, 'Default subplans is empty';
+	ok @subplans ~~ Array, 'subplans returns Array';
+	is @subplans.elems, 0, 'Default subplans is empty';
 }
 
 done-testing;

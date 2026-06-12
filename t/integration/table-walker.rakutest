@@ -11,53 +11,53 @@ use Qwiratry::Operator::Set;
 plan 3;
 
 my @rows = [
-    %(name => 'alpha', status => 'active', score => 10),
-    %(name => 'beta', status => 'inactive', score => 5),
-    %(name => 'gamma', status => 'active', score => 20),
+	%(name => 'alpha', status => 'active', score => 10),
+	%(name => 'beta', status => 'inactive', score => 5),
+	%(name => 'gamma', status => 'active', score => 20),
 ];
 
 subtest 'factory selects table Walker for flat row data' => {
-    plan 1;
-    my $walker = Qwiratry::Walker::Factory.instance.get-walker(@rows);
-    ok $walker ~~ Qwiratry::Walker::Implementation::Table, 'flat Associative rows use Table walker';
+	plan 1;
+	my $walker = Qwiratry::Walker::Factory.instance.get-walker(@rows);
+	ok $walker ~~ Qwiratry::Walker::Implementation::Table, 'flat Associative rows use Table walker';
 }
 
 subtest 'table Walker scans rows matching query' => {
-    plan 2;
-    my $walker = Qwiratry::Walker::Implementation::Table.new;
-    my $query = @rows σ -> $_ { $_<status> eq 'active' };
-    my $iter = $walker.start($query, @rows);
-    my @names = gather {
-        while (my $row = $iter.pull-one) !~~ IterationEnd {
-            take $row<name>;
-        }
-    };
-    is @names.sort, <alpha gamma>, 'selection predicate filters active rows';
+	plan 2;
+	my $walker = Qwiratry::Walker::Implementation::Table.new;
+	my $query = @rows σ -> $_ { $_<status> eq 'active' };
+	my $iter = $walker.start($query, @rows);
+	my @names = gather {
+		while (my $row = $iter.pull-one) !~~ IterationEnd {
+			take $row<name>;
+		}
+	};
+	is @names.sort, <alpha gamma>, 'selection predicate filters active rows';
 
-    my $high = @rows σ -> $_ { $_<score> >= 10 };
-    my $iter2 = $walker.start($high, @rows);
-    @names = gather {
-        while (my $row = $iter2.pull-one) !~~ IterationEnd {
-            take $row<name>;
-        }
-    };
-    is @names.sort, <alpha gamma>, 'selection filters by numeric predicate';
+	my $high = @rows σ -> $_ { $_<score> >= 10 };
+	my $iter2 = $walker.start($high, @rows);
+	@names = gather {
+		while (my $row = $iter2.pull-one) !~~ IterationEnd {
+			take $row<name>;
+		}
+	};
+	is @names.sort, <alpha gamma>, 'selection filters by numeric predicate';
 }
 
 subtest 'table Walker supports union of row selectors' => {
-    plan 1;
-    my $walker = Qwiratry::Walker::Implementation::Table.new;
-    my $query = UnionOperator.new(
-        :left(SelectionOperator.new(:subject(@rows), :predicate(-> $_ { $_<name> eq 'alpha' }))),
-        :right(SelectionOperator.new(:subject(@rows), :predicate(-> $_ { $_<score> > 15 }))),
-    );
-    my $iter = $walker.start($query, @rows);
-    my @names = gather {
-        while (my $row = $iter.pull-one) !~~ IterationEnd {
-            take $row<name>;
-        }
-    };
-    is @names.sort, <alpha gamma>, 'union combines filtered row sets';
+	plan 1;
+	my $walker = Qwiratry::Walker::Implementation::Table.new;
+	my $query = UnionOperator.new(
+		:left(SelectionOperator.new(:subject(@rows), :predicate(-> $_ { $_<name> eq 'alpha' }))),
+		:right(SelectionOperator.new(:subject(@rows), :predicate(-> $_ { $_<score> > 15 }))),
+	);
+	my $iter = $walker.start($query, @rows);
+	my @names = gather {
+		while (my $row = $iter.pull-one) !~~ IterationEnd {
+			take $row<name>;
+		}
+	};
+	is @names.sort, <alpha gamma>, 'union combines filtered row sets';
 }
 
 done-testing;

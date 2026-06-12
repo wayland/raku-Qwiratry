@@ -13,45 +13,45 @@ plan 11;
 # =============================================================================
 
 subtest 'Context role exists and can be composed' => {
-    plan 2;
+	plan 2;
     
-    ok Context.^name.contains('Context'), 'Context role exists';
-    ok Context.HOW.^name ~~ /Metamodel/, 'Context is a proper role';
+	ok Context.^name.contains('Context'), 'Context role exists';
+	ok Context.HOW.^name ~~ /Metamodel/, 'Context is a proper role';
 }
 
 subtest 'Concrete class can compose Context' => {
-    plan 3;
+	plan 3;
     
-    my class SimpleContext does Context {
-        has Int $.counter = 0;
-    }
+	my class SimpleContext does Context {
+		has Int $.counter = 0;
+	}
     
-    my $ctx = SimpleContext.new;
+	my $ctx = SimpleContext.new;
     
-    ok $ctx.defined, 'Concrete class can be instantiated';
-    ok $ctx ~~ Context, 'Instance does Context role';
-    is $ctx.counter, 0, 'Concrete attribute accessible';
+	ok $ctx.defined, 'Concrete class can be instantiated';
+	ok $ctx ~~ Context, 'Instance does Context role';
+	is $ctx.counter, 0, 'Concrete attribute accessible';
 }
 
 subtest 'Context concrete class with mutable state' => {
-    plan 4;
+	plan 4;
     
-    my class MutableContext does Context {
-        has Int $.visit-count is rw = 0;
-        has @.results;
-    }
+	my class MutableContext does Context {
+		has Int $.visit-count is rw = 0;
+		has @.results;
+	}
     
-    my $ctx = MutableContext.new;
+	my $ctx = MutableContext.new;
     
-    is $ctx.visit-count, 0, 'Initial value correct';
+	is $ctx.visit-count, 0, 'Initial value correct';
     
-    $ctx.visit-count = 5;
-    is $ctx.visit-count, 5, 'Mutable attribute can be changed';
+	$ctx.visit-count = 5;
+	is $ctx.visit-count, 5, 'Mutable attribute can be changed';
     
-    $ctx.results.push('result1');
-    $ctx.results.push('result2');
-    is $ctx.results.elems, 2, 'Array attribute can accumulate';
-    is $ctx.results[0], 'result1', 'Array contents preserved';
+	$ctx.results.push('result1');
+	$ctx.results.push('result2');
+	is $ctx.results.elems, 2, 'Array attribute can accumulate';
+	is $ctx.results[0], 'result1', 'Array contents preserved';
 }
 
 # =============================================================================
@@ -59,63 +59,63 @@ subtest 'Context concrete class with mutable state' => {
 # =============================================================================
 
 subtest 'Multiple Context instances are independent' => {
-    plan 4;
+	plan 4;
     
-    my class CounterContext does Context {
-        has Int $.count is rw = 0;
-    }
+	my class CounterContext does Context {
+		has Int $.count is rw = 0;
+	}
     
-    my $ctx1 = CounterContext.new;
-    my $ctx2 = CounterContext.new;
+	my $ctx1 = CounterContext.new;
+	my $ctx2 = CounterContext.new;
     
-    $ctx1.count = 10;
-    $ctx2.count = 20;
+	$ctx1.count = 10;
+	$ctx2.count = 20;
     
-    is $ctx1.count, 10, 'First context has correct value';
-    is $ctx2.count, 20, 'Second context has correct value';
+	is $ctx1.count, 10, 'First context has correct value';
+	is $ctx2.count, 20, 'Second context has correct value';
     
-    $ctx1.count++;
-    is $ctx1.count, 11, 'First context incremented';
-    is $ctx2.count, 20, 'Second context unchanged';
+	$ctx1.count++;
+	is $ctx1.count, 11, 'First context incremented';
+	is $ctx2.count, 20, 'Second context unchanged';
 }
 
 subtest 'Fresh Context per traversal simulation' => {
-    plan 3;
+	plan 3;
     
-    my class TraversalContext does Context {
-        has Int $.nodes-visited is rw = 0;
-    }
+	my class TraversalContext does Context {
+		has Int $.nodes-visited is rw = 0;
+	}
     
-    # Simulate first traversal
-    my $traversal1 = TraversalContext.new;
-    $traversal1.nodes-visited++ for ^5;
+	# Simulate first traversal
+	my $traversal1 = TraversalContext.new;
+	$traversal1.nodes-visited++ for ^5;
     
-    # Simulate second traversal (fresh context)
-    my $traversal2 = TraversalContext.new;
-    $traversal2.nodes-visited++ for ^3;
+	# Simulate second traversal (fresh context)
+	my $traversal2 = TraversalContext.new;
+	$traversal2.nodes-visited++ for ^3;
     
-    is $traversal1.nodes-visited, 5, 'First traversal count correct';
-    is $traversal2.nodes-visited, 3, 'Second traversal count correct';
+	is $traversal1.nodes-visited, 5, 'First traversal count correct';
+	is $traversal2.nodes-visited, 3, 'Second traversal count correct';
     
-    # Contexts are independent
-    ok $traversal1.nodes-visited != $traversal2.nodes-visited, 
-       'Traversals have independent state';
+	# Contexts are independent
+	ok $traversal1.nodes-visited != $traversal2.nodes-visited, 
+	'Traversals have independent state';
 }
 
 subtest 'Context does not share state across instances' => {
-    plan 2;
+	plan 2;
     
-    my class HashContext does Context {
-        has %.cache;
-    }
+	my class HashContext does Context {
+		has %.cache;
+	}
     
-    my $ctx1 = HashContext.new;
-    my $ctx2 = HashContext.new;
+	my $ctx1 = HashContext.new;
+	my $ctx2 = HashContext.new;
     
-    $ctx1.cache<key1> = 'value1';
+	$ctx1.cache<key1> = 'value1';
     
-    ok $ctx1.cache<key1>:exists, 'First context has key';
-    nok $ctx2.cache<key1>:exists, 'Second context does not have key';
+	ok $ctx1.cache<key1>:exists, 'First context has key';
+	nok $ctx2.cache<key1>:exists, 'Second context does not have key';
 }
 
 # =============================================================================
@@ -123,60 +123,60 @@ subtest 'Context does not share state across instances' => {
 # =============================================================================
 
 subtest 'State persists across operations' => {
-    plan 4;
+	plan 4;
     
-    my class OperationContext does Context {
-        has @.operations;
-        has Int $.total is rw = 0;
-    }
+	my class OperationContext does Context {
+		has @.operations;
+		has Int $.total is rw = 0;
+	}
     
-    my $ctx = OperationContext.new;
+	my $ctx = OperationContext.new;
     
-    # Simulate multiple operations
-    sub perform-operation($ctx, $op) {
-        $ctx.operations.push($op);
-        $ctx.total++;
-    }
+	# Simulate multiple operations
+	sub perform-operation($ctx, $op) {
+		$ctx.operations.push($op);
+		$ctx.total++;
+	}
     
-    perform-operation($ctx, 'op1');
-    perform-operation($ctx, 'op2');
-    perform-operation($ctx, 'op3');
+	perform-operation($ctx, 'op1');
+	perform-operation($ctx, 'op2');
+	perform-operation($ctx, 'op3');
     
-    is $ctx.operations.elems, 3, 'Operations accumulated';
-    is $ctx.total, 3, 'Total tracked';
-    is $ctx.operations[0], 'op1', 'First operation preserved';
-    is $ctx.operations[2], 'op3', 'Last operation preserved';
+	is $ctx.operations.elems, 3, 'Operations accumulated';
+	is $ctx.total, 3, 'Total tracked';
+	is $ctx.operations[0], 'op1', 'First operation preserved';
+	is $ctx.operations[2], 'op3', 'Last operation preserved';
 }
 
 subtest 'Complex state management' => {
-    plan 5;
+	plan 5;
     
-    my class ComplexContext does Context {
-        has @.stack;
-        has %.memo;
-        has Int $.depth is rw = 0;
-    }
+	my class ComplexContext does Context {
+		has @.stack;
+		has %.memo;
+		has Int $.depth is rw = 0;
+	}
     
-    my $ctx = ComplexContext.new;
+	my $ctx = ComplexContext.new;
     
-    # Simulate tree traversal
-    $ctx.stack.push('root');
-    $ctx.depth++;
-    $ctx.memo<root> = True;
+	# Simulate tree traversal
+	$ctx.stack.push('root');
+	$ctx.depth++;
+	$ctx.memo<root> = True;
     
-    $ctx.stack.push('child1');
-    $ctx.depth++;
-    $ctx.memo<child1> = True;
+	$ctx.stack.push('child1');
+	$ctx.depth++;
+	$ctx.memo<child1> = True;
     
-    is $ctx.depth, 2, 'Depth tracked';
-    is $ctx.stack.elems, 2, 'Stack has entries';
-    ok $ctx.memo<root>, 'Root memoized';
-    ok $ctx.memo<child1>, 'Child memoized';
+	is $ctx.depth, 2, 'Depth tracked';
+	is $ctx.stack.elems, 2, 'Stack has entries';
+	ok $ctx.memo<root>, 'Root memoized';
+	ok $ctx.memo<child1>, 'Child memoized';
     
-    # Pop back
-    $ctx.stack.pop;
-    $ctx.depth--;
-    is $ctx.depth, 1, 'Depth decremented';
+	# Pop back
+	$ctx.stack.pop;
+	$ctx.depth--;
+	is $ctx.depth, 1, 'Depth decremented';
 }
 
 # =============================================================================
@@ -184,40 +184,40 @@ subtest 'Complex state management' => {
 # =============================================================================
 
 subtest 'Context can be used as type constraint' => {
-    plan 2;
+	plan 2;
     
-    my class TypedContext does Context {
-        has Str $.name = 'test';
-    }
+	my class TypedContext does Context {
+		has Str $.name = 'test';
+	}
     
-    sub accepts-context(Context $ctx) {
-        $ctx ~~ Context;
-    }
+	sub accepts-context(Context $ctx) {
+		$ctx ~~ Context;
+	}
     
-    my $ctx = TypedContext.new;
+	my $ctx = TypedContext.new;
     
-    ok accepts-context($ctx), 'Context passes type constraint';
-    lives-ok { accepts-context($ctx) }, 'No exception with Context type';
+	ok accepts-context($ctx), 'Context passes type constraint';
+	lives-ok { accepts-context($ctx) }, 'No exception with Context type';
 }
 
 subtest 'Multiple classes can implement Context' => {
-    plan 4;
+	plan 4;
     
-    my class ContextA does Context {
-        has Int $.a = 1;
-    }
+	my class ContextA does Context {
+		has Int $.a = 1;
+	}
     
-    my class ContextB does Context {
-        has Str $.b = 'B';
-    }
+	my class ContextB does Context {
+		has Str $.b = 'B';
+	}
     
-    my $a = ContextA.new;
-    my $b = ContextB.new;
+	my $a = ContextA.new;
+	my $b = ContextB.new;
     
-    ok $a ~~ Context, 'ContextA does Context';
-    ok $b ~~ Context, 'ContextB does Context';
-    is $a.a, 1, 'ContextA has own attributes';
-    is $b.b, 'B', 'ContextB has own attributes';
+	ok $a ~~ Context, 'ContextA does Context';
+	ok $b ~~ Context, 'ContextB does Context';
+	is $a.a, 1, 'ContextA has own attributes';
+	is $b.b, 'B', 'ContextB has own attributes';
 }
 
 # =============================================================================
@@ -225,19 +225,19 @@ subtest 'Multiple classes can implement Context' => {
 # =============================================================================
 
 subtest 'Context strategy accessor' => {
-    plan 3;
+	plan 3;
     
-    my class TestStrategy does Strategy { }
-    my class TestContext does Context { }
+	my class TestStrategy does Strategy { }
+	my class TestContext does Context { }
     
-    my $strategy = TestStrategy.new;
-    my $ctx = TestContext.new(strategy => $strategy);
+	my $strategy = TestStrategy.new;
+	my $ctx = TestContext.new(strategy => $strategy);
     
-    ok $ctx.strategy.defined, 'strategy accessor returns defined value';
-    ok $ctx.strategy === $strategy, 'strategy accessor returns injected strategy';
+	ok $ctx.strategy.defined, 'strategy accessor returns defined value';
+	ok $ctx.strategy === $strategy, 'strategy accessor returns injected strategy';
     
-    my $ctx2 = TestContext.new;
-    ok !$ctx2.strategy.defined, 'strategy undefined when not provided';
+	my $ctx2 = TestContext.new;
+	ok !$ctx2.strategy.defined, 'strategy undefined when not provided';
 }
 
 done-testing;

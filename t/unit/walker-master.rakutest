@@ -18,28 +18,28 @@ plan 16;
 
 # Mock Walker implementations for testing discovery
 my class MockWalker1 does Qwiratry::Walker {
-    method plan($query, $root --> Qwiratry::Walker::Plan) {
-        die "Not implemented for testing";
-    }
-    method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
-        die "Not implemented for testing";
-    }
+	method plan($query, $root --> Qwiratry::Walker::Plan) {
+		die "Not implemented for testing";
+	}
+	method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
+		die "Not implemented for testing";
+	}
 }
 
 my class MockWalker2 does Qwiratry::Walker {
-    method plan($query, $root --> Qwiratry::Walker::Plan) {
-        die "Not implemented for testing";
-    }
-    method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
-        die "Not implemented for testing";
-    }
+	method plan($query, $root --> Qwiratry::Walker::Plan) {
+		die "Not implemented for testing";
+	}
+	method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
+		die "Not implemented for testing";
+	}
 }
 
 # Stand-in query AST types for tests (avoid anonymous classes overriding ^name)
 my class MockQuery { }
 my class MockAST { }
 my class OriginalQuery {
-    has $.value = "original";
+	has $.value = "original";
 }
 
 # =============================================================================
@@ -47,70 +47,70 @@ my class OriginalQuery {
 # =============================================================================
 
 subtest 'Qwiratry::Walker::Master class structure' => {
-    plan 3;
+	plan 3;
     
-    my $master = Qwiratry::Walker::Master.new;
-    ok $master ~~ Qwiratry::Walker, 'Qwiratry::Walker::Master implements Qwiratry::Walker role';
-    ok $master ~~ Qwiratry::Walker::Master, 'Instance is Qwiratry::Walker::Master';
-    ok $master.^can('discover-walkers'), 'discover-walkers method exists';
+	my $master = Qwiratry::Walker::Master.new;
+	ok $master ~~ Qwiratry::Walker, 'Qwiratry::Walker::Master implements Qwiratry::Walker role';
+	ok $master ~~ Qwiratry::Walker::Master, 'Instance is Qwiratry::Walker::Master';
+	ok $master.^can('discover-walkers'), 'discover-walkers method exists';
 }
 
 subtest 'Discovery mechanism (T015)' => {
-    plan 4;
+	plan 4;
 
-    my $master = Qwiratry::Walker::Master.new;
-    my @walkers = $master.discover-walkers();
+	my $master = Qwiratry::Walker::Master.new;
+	my @walkers = $master.discover-walkers();
 
-    ok @walkers ~~ Array, 'discover-walkers returns Array';
-    ok @walkers.elems > 0, 'discovery finds Walker implementations';
-    ok @walkers[0] ~~ Qwiratry::Walker, 'discovered entries are Walker instances';
+	ok @walkers ~~ Array, 'discover-walkers returns Array';
+	ok @walkers.elems > 0, 'discovery finds Walker implementations';
+	ok @walkers[0] ~~ Qwiratry::Walker, 'discovered entries are Walker instances';
 
-    my @walkers2 = $master.discover-walkers();
-    is-deeply @walkers2, @walkers, 'Discovery returns consistent results';
+	my @walkers2 = $master.discover-walkers();
+	is-deeply @walkers2, @walkers, 'Discovery returns consistent results';
 }
 
 subtest 'Explicit registration override (T016)' => {
-    plan 4;
+	plan 4;
     
-    my $walker1 = MockWalker1.new;
-    my $walker2 = MockWalker2.new;
-    my @explicit-walkers = [$walker1, $walker2];
+	my $walker1 = MockWalker1.new;
+	my $walker2 = MockWalker2.new;
+	my @explicit-walkers = [$walker1, $walker2];
     
-    my $master = Qwiratry::Walker::Master.new(:candidate-walkers(@explicit-walkers));
-    my @candidates = $master.candidate-walkers();
+	my $master = Qwiratry::Walker::Master.new(:candidate-walkers(@explicit-walkers));
+	my @candidates = $master.candidate-walkers();
     
-    is @candidates.elems, 2, 'Explicit registration provides 2 walkers';
-    ok @candidates[0] ~~ MockWalker1, 'First walker is MockWalker1';
-    ok @candidates[1] ~~ MockWalker2, 'Second walker is MockWalker2';
+	is @candidates.elems, 2, 'Explicit registration provides 2 walkers';
+	ok @candidates[0] ~~ MockWalker1, 'First walker is MockWalker1';
+	ok @candidates[1] ~~ MockWalker2, 'Second walker is MockWalker2';
     
-    # Verify explicit list is used, not discovery
-    is-deeply @candidates, @explicit-walkers, 'Explicit list matches provided walkers';
+	# Verify explicit list is used, not discovery
+	is-deeply @candidates, @explicit-walkers, 'Explicit list matches provided walkers';
 }
 
 subtest 'Discovery caching (T017)' => {
-    plan 4;
+	plan 4;
     
-    my $master = Qwiratry::Walker::Master.new;
+	my $master = Qwiratry::Walker::Master.new;
     
-    my $walkers1 = $master.discover-walkers();
-    my $walkers2 = $master.discover-walkers();
-    my $walkers3 = $master.discover-walkers();
+	my $walkers1 = $master.discover-walkers();
+	my $walkers2 = $master.discover-walkers();
+	my $walkers3 = $master.discover-walkers();
     
-    is-deeply $walkers2, $walkers1, 'Second call returns cached result';
-    is-deeply $walkers3, $walkers1, 'Third call returns cached result';
-    ok $walkers2 === $walkers1, 'Cached result is same reference';
-    ok $walkers3 === $walkers1, 'Third call also returns same cached reference';
+	is-deeply $walkers2, $walkers1, 'Second call returns cached result';
+	is-deeply $walkers3, $walkers1, 'Third call returns cached result';
+	ok $walkers2 === $walkers1, 'Cached result is same reference';
+	ok $walkers3 === $walkers1, 'Third call also returns same cached reference';
 }
 
 subtest 'Constructor with candidate-walkers' => {
-    plan 2;
+	plan 2;
     
-    my $walker1 = MockWalker1.new;
-    my $master = Qwiratry::Walker::Master.new(:candidate-walkers([$walker1]));
+	my $walker1 = MockWalker1.new;
+	my $master = Qwiratry::Walker::Master.new(:candidate-walkers([$walker1]));
     
-    ok $master.^can('candidate-walkers'), 'candidate-walkers method exists';
-    my @candidates = $master.candidate-walkers();
-    is @candidates.elems, 1, 'Constructor stores candidate walkers';
+	ok $master.^can('candidate-walkers'), 'candidate-walkers method exists';
+	my @candidates = $master.candidate-walkers();
+	is @candidates.elems, 1, 'Constructor stores candidate walkers';
 }
 
 # =============================================================================
@@ -118,159 +118,159 @@ subtest 'Constructor with candidate-walkers' => {
 # =============================================================================
 
 subtest 'check-domain-metadata() method (T018)' => {
-    plan 3;
+	plan 3;
     
-    use Qwiratry::Walker::Providing;
+	use Qwiratry::Walker::Providing;
     
-    my $master = Qwiratry::Walker::Master.new;
+	my $master = Qwiratry::Walker::Master.new;
     
-    # Test with providing trait
-    my $root1 is providing<sql> = "test";
-    providing-domains($root1);
-    my $domains1 = $master.check-domain-metadata($root1);
-    ok $domains1, 'check-domain-metadata returns domains for providing trait';
-    is-deeply $domains1, ['sql'], 'Domain metadata correct for single domain';
+	# Test with providing trait
+	my $root1 is providing<sql> = "test";
+	providing-domains($root1);
+	my $domains1 = $master.check-domain-metadata($root1);
+	ok $domains1, 'check-domain-metadata returns domains for providing trait';
+	is-deeply $domains1, ['sql'], 'Domain metadata correct for single domain';
     
-    # Test without provides trait
-    my $root2 = "plain";
-    my $domains2 = $master.check-domain-metadata($root2);
-    nok $domains2, 'check-domain-metadata returns Nil for object without trait';
+	# Test without provides trait
+	my $root2 = "plain";
+	my $domains2 = $master.check-domain-metadata($root2);
+	nok $domains2, 'check-domain-metadata returns Nil for object without trait';
 }
 
 subtest 'Domain metadata fast path (T019, T024)' => {
-    plan 4;
+	plan 4;
     
-    use Qwiratry::Walker::Providing;
+	use Qwiratry::Walker::Providing;
     
-    # Create walker with SQL in name (for domain matching heuristic)
-    my class SQLWalker does Qwiratry::Walker {
-        method plan($query, $root --> Qwiratry::Walker::Plan) {
-            die "Not implemented";
-        }
-        method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
-            die "Not implemented";
-        }
-    }
+	# Create walker with SQL in name (for domain matching heuristic)
+	my class SQLWalker does Qwiratry::Walker {
+		method plan($query, $root --> Qwiratry::Walker::Plan) {
+			die "Not implemented";
+		}
+		method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
+			die "Not implemented";
+		}
+	}
     
-    my $sql-walker = SQLWalker.new;
-    my $master = Qwiratry::Walker::Master.new(:candidate-walkers([$sql-walker]));
+	my $sql-walker = SQLWalker.new;
+	my $master = Qwiratry::Walker::Master.new(:candidate-walkers([$sql-walker]));
     
-    # Create root with providing<sql> trait
-    my $root is providing<sql> = "test";
+	# Create root with providing<sql> trait
+	my $root is providing<sql> = "test";
     
-    # Test find-walker-by-domain
-    my @domains = ['sql'];
-    my $found = $master.find-walker-by-domain(@domains);
+	# Test find-walker-by-domain
+	my @domains = ['sql'];
+	my $found = $master.find-walker-by-domain(@domains);
     
-    ok $found, 'find-walker-by-domain finds walker for domain';
-    ok $found ~~ SQLWalker, 'Found walker is SQLWalker';
+	ok $found, 'find-walker-by-domain finds walker for domain';
+	ok $found ~~ SQLWalker, 'Found walker is SQLWalker';
     
-    # Test detect-handover with domain metadata
-    # Note: detect-handover requires RakuAST::Node, but for testing we'll use Mu
-    # In production, this would be a real RakuAST::Node
-    # We'll test the method signature accepts the parameter
-    # For actual functionality testing, we'd need real RakuAST nodes
-    # Skip actual call since we need proper RakuAST::Node - test structure instead
-    ok $master.^can('detect-handover'), 'detect-handover method exists';
-    ok $master.^can('find-walker-by-domain'), 'find-walker-by-domain method exists';
+	# Test detect-handover with domain metadata
+	# Note: detect-handover requires RakuAST::Node, but for testing we'll use Mu
+	# In production, this would be a real RakuAST::Node
+	# We'll test the method signature accepts the parameter
+	# For actual functionality testing, we'd need real RakuAST nodes
+	# Skip actual call since we need proper RakuAST::Node - test structure instead
+	ok $master.^can('detect-handover'), 'detect-handover method exists';
+	ok $master.^can('find-walker-by-domain'), 'find-walker-by-domain method exists';
 }
 
 subtest 'Early failure for missing walkers (T020, T025)' => {
-    plan 3;
+	plan 3;
     
-    use Qwiratry::Walker::Providing;
-    use X::Qwiratry;
+	use Qwiratry::Walker::Providing;
+	use X::Qwiratry;
     
-    # Create walker that doesn't match domain
-    my class JSONWalker does Qwiratry::Walker {
-        method plan($query, $root --> Qwiratry::Walker::Plan) {
-            die "Not implemented";
-        }
-        method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
-            die "Not implemented";
-        }
-    }
+	# Create walker that doesn't match domain
+	my class JSONWalker does Qwiratry::Walker {
+		method plan($query, $root --> Qwiratry::Walker::Plan) {
+			die "Not implemented";
+		}
+		method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
+			die "Not implemented";
+		}
+	}
     
-    my $json-walker = JSONWalker.new;
-    my $master = Qwiratry::Walker::Master.new(:candidate-walkers([$json-walker]));
+	my $json-walker = JSONWalker.new;
+	my $master = Qwiratry::Walker::Master.new(:candidate-walkers([$json-walker]));
     
-    # Create root with providing<sql> trait (but only JSON walker available)
-    my $root is providing<sql> = "test";
+	# Create root with providing<sql> trait (but only JSON walker available)
+	my $root is providing<sql> = "test";
     
-    # Test early failure via find-walker-by-domain directly
-    # (since detect-handover requires RakuAST::Node)
-    my @domains = ['sql'];
-    my $found = $master.find-walker-by-domain(@domains);
+	# Test early failure via find-walker-by-domain directly
+	# (since detect-handover requires RakuAST::Node)
+	my @domains = ['sql'];
+	my $found = $master.find-walker-by-domain(@domains);
     
-    nok $found, 'find-walker-by-domain returns Nil when no suitable walker';
+	nok $found, 'find-walker-by-domain returns Nil when no suitable walker';
     
-    # Test that early failure would be thrown in detect-handover
-    # (we verify the exception would be thrown by checking the logic)
-    ok True, 'Early failure logic verified (would throw in detect-handover)';
-    ok True, 'Exception would include domain information';
+	# Test that early failure would be thrown in detect-handover
+	# (we verify the exception would be thrown by checking the logic)
+	ok True, 'Early failure logic verified (would throw in detect-handover)';
+	ok True, 'Exception would include domain information';
 }
 
 subtest 'Capability check (T021, T026)' => {
-    plan 4;
+	plan 4;
     
-    # Create walker with supports() method
-    my class CapableWalker does Qwiratry::Walker {
-        has $.supports-query = False;
+	# Create walker with supports() method
+	my class CapableWalker does Qwiratry::Walker {
+		has $.supports-query = False;
         
-        method plan($query, $root --> Qwiratry::Walker::Plan) {
-            die "Not implemented";
-        }
-        method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
-            die "Not implemented";
-        }
-        method supports($query --> Bool) {
-            return $!supports-query;
-        }
-    }
+		method plan($query, $root --> Qwiratry::Walker::Plan) {
+			die "Not implemented";
+		}
+		method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
+			die "Not implemented";
+		}
+		method supports($query --> Bool) {
+			return $!supports-query;
+		}
+	}
     
-    my $walker1 = CapableWalker.new(:supports-query(True));
-    my $walker2 = CapableWalker.new(:supports-query(False));
-    my $master = Qwiratry::Walker::Master.new(:candidate-walkers([$walker1, $walker2]));
+	my $walker1 = CapableWalker.new(:supports-query(True));
+	my $walker2 = CapableWalker.new(:supports-query(False));
+	my $master = Qwiratry::Walker::Master.new(:candidate-walkers([$walker1, $walker2]));
     
-    # For testing, we'll use Mu instead of RakuAST::Node
-    # In production, this would be a real RakuAST::Node
-    my $mock-ast = MockAST.new;
+	# For testing, we'll use Mu instead of RakuAST::Node
+	# In production, this would be a real RakuAST::Node
+	my $mock-ast = MockAST.new;
     
-    # Test check-capability (this should work with any type)
-    # Note: check-capability signature requires RakuAST::Node, but for testing
-    # we'll verify the method exists and can be called
-    ok $master.^can('check-capability'), 'check-capability method exists';
-    ok True, 'check-capability method structure verified';
-    ok True, 'Capability check logic verified';
-    ok True, 'Capability check supports mock AST objects';
+	# Test check-capability (this should work with any type)
+	# Note: check-capability signature requires RakuAST::Node, but for testing
+	# we'll verify the method exists and can be called
+	ok $master.^can('check-capability'), 'check-capability method exists';
+	ok True, 'check-capability method structure verified';
+	ok True, 'Capability check logic verified';
+	ok True, 'Capability check supports mock AST objects';
 }
 
 subtest 'Capability delegation (T022, T027)' => {
-    plan 3;
+	plan 3;
     
-    # Create multiple walkers that all support
-    my class SupportingWalker does Qwiratry::Walker {
-        method plan($query, $root --> Qwiratry::Walker::Plan) {
-            die "Not implemented";
-        }
-        method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
-            die "Not implemented";
-        }
-        method supports($query --> Bool) {
-            return True;
-        }
-    }
+	# Create multiple walkers that all support
+	my class SupportingWalker does Qwiratry::Walker {
+		method plan($query, $root --> Qwiratry::Walker::Plan) {
+			die "Not implemented";
+		}
+		method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
+			die "Not implemented";
+		}
+		method supports($query --> Bool) {
+			return True;
+		}
+	}
     
-    my $walker1 = SupportingWalker.new;
-    my $walker2 = SupportingWalker.new;
-    my $walker3 = SupportingWalker.new;
-    my $master = Qwiratry::Walker::Master.new(:candidate-walkers([$walker1, $walker2, $walker3]));
+	my $walker1 = SupportingWalker.new;
+	my $walker2 = SupportingWalker.new;
+	my $walker3 = SupportingWalker.new;
+	my $master = Qwiratry::Walker::Master.new(:candidate-walkers([$walker1, $walker2, $walker3]));
     
-    # Test capability delegation logic
-    # Note: Full test requires RakuAST::Node, but we verify the structure
-    ok $master.^can('detect-handover'), 'detect-handover method exists';
-    ok True, 'Capability delegation logic verified (first walker selected)';
-    ok True, 'Multiple walker support handling verified';
+	# Test capability delegation logic
+	# Note: Full test requires RakuAST::Node, but we verify the structure
+	ok $master.^can('detect-handover'), 'detect-handover method exists';
+	ok True, 'Capability delegation logic verified (first walker selected)';
+	ok True, 'Multiple walker support handling verified';
 }
 
 # =============================================================================
@@ -278,198 +278,198 @@ subtest 'Capability delegation (T022, T027)' => {
 # =============================================================================
 
 subtest 'Qwiratry::Walker::Master::Plan class structure (T028)' => {
-    plan 4;
+	plan 4;
     
-    use Qwiratry::Walker::Master;
+	use Qwiratry::Walker::Master;
     
-    # Create a mock query AST (using a simple class for testing)
-    my $mock-query = MockQuery.new;
+	# Create a mock query AST (using a simple class for testing)
+	my $mock-query = MockQuery.new;
     
-    # Create Qwiratry::Walker::Master::Plan
-    my $plan = Qwiratry::Walker::Master::Plan.new(query-ast => $mock-query);
+	# Create Qwiratry::Walker::Master::Plan
+	my $plan = Qwiratry::Walker::Master::Plan.new(query-ast => $mock-query);
     
-    ok $plan ~~ Qwiratry::Walker::Plan, 'Qwiratry::Walker::Master::Plan implements Qwiratry::Walker::Plan role';
-    ok $plan.^can('subplans'), 'Qwiratry::Walker::Master::Plan has subplans() method';
-    ok $plan.^can('query'), 'Qwiratry::Walker::Master::Plan has query() method';
-    ok $plan.^can('describe'), 'Qwiratry::Walker::Master::Plan has describe() method';
+	ok $plan ~~ Qwiratry::Walker::Plan, 'Qwiratry::Walker::Master::Plan implements Qwiratry::Walker::Plan role';
+	ok $plan.^can('subplans'), 'Qwiratry::Walker::Master::Plan has subplans() method';
+	ok $plan.^can('query'), 'Qwiratry::Walker::Master::Plan has query() method';
+	ok $plan.^can('describe'), 'Qwiratry::Walker::Master::Plan has describe() method';
 }
 
 subtest 'Qwiratry::Walker::Master::Plan attributes (T029)' => {
-    plan 3;
+	plan 3;
     
-    use Qwiratry::Walker::Master;
-    use Qwiratry::Walker;
+	use Qwiratry::Walker::Master;
+	use Qwiratry::Walker;
     
-    my $mock-query = MockQuery.new;
+	my $mock-query = MockQuery.new;
     
-    # Create mock subplan
-    my class MockPlan does Qwiratry::Walker::Plan {
-        has $.query-ast;
-        method iterator { die "Not implemented" }
-        method query { $!query-ast }
-        method describe { "MockPlan" }
-    }
+	# Create mock subplan
+	my class MockPlan does Qwiratry::Walker::Plan {
+		has $.query-ast;
+		method iterator { die "Not implemented" }
+		method query { $!query-ast }
+		method describe { "MockPlan" }
+	}
     
-    my $subplan1 = MockPlan.new(query-ast => $mock-query);
-    my $subplan2 = MockPlan.new(query-ast => $mock-query);
+	my $subplan1 = MockPlan.new(query-ast => $mock-query);
+	my $subplan2 = MockPlan.new(query-ast => $mock-query);
     
-    my $plan = Qwiratry::Walker::Master::Plan.new(
-        query-ast => $mock-query,
-        subplans => [$subplan1, $subplan2]
-    );
+	my $plan = Qwiratry::Walker::Master::Plan.new(
+		query-ast => $mock-query,
+		subplans => [$subplan1, $subplan2]
+	);
     
-    is $plan.query, $mock-query, 'Qwiratry::Walker::Master::Plan stores query-ast';
-    is $plan.subplans.elems, 2, 'Qwiratry::Walker::Master::Plan stores subplans';
-    ok $plan.subplans[0] ~~ MockPlan, 'Subplan is correct type';
+	is $plan.query, $mock-query, 'Qwiratry::Walker::Master::Plan stores query-ast';
+	is $plan.subplans.elems, 2, 'Qwiratry::Walker::Master::Plan stores subplans';
+	ok $plan.subplans[0] ~~ MockPlan, 'Subplan is correct type';
 }
 
 subtest 'Qwiratry::Walker::Master::Plan.subplans() method (T030, T036)' => {
-    plan 4;
+	plan 4;
     
-    use Qwiratry::Walker::Master;
-    use Qwiratry::Walker;
+	use Qwiratry::Walker::Master;
+	use Qwiratry::Walker;
     
-    my $mock-query = MockQuery.new;
+	my $mock-query = MockQuery.new;
     
-    my class MockPlan does Qwiratry::Walker::Plan {
-        has $.query-ast;
-        method iterator { die "Not implemented" }
-        method query { $!query-ast }
-        method describe { "MockPlan" }
-    }
+	my class MockPlan does Qwiratry::Walker::Plan {
+		has $.query-ast;
+		method iterator { die "Not implemented" }
+		method query { $!query-ast }
+		method describe { "MockPlan" }
+	}
     
-    my $subplan1 = MockPlan.new(query-ast => $mock-query);
-    my $subplan2 = MockPlan.new(query-ast => $mock-query);
-    my @subplans = [$subplan1, $subplan2];
+	my $subplan1 = MockPlan.new(query-ast => $mock-query);
+	my $subplan2 = MockPlan.new(query-ast => $mock-query);
+	my @subplans = [$subplan1, $subplan2];
     
-    my $plan = Qwiratry::Walker::Master::Plan.new(
-        query-ast => $mock-query,
-        subplans => @subplans
-    );
+	my $plan = Qwiratry::Walker::Master::Plan.new(
+		query-ast => $mock-query,
+		subplans => @subplans
+	);
     
-    my @returned = $plan.subplans();
-    ok @returned ~~ Array, 'subplans() returns Array';
-    is @returned.elems, 2, 'subplans() returns correct count';
-    ok @returned[0] ~~ Qwiratry::Walker::Plan, 'Subplan implements Qwiratry::Walker::Plan';
-    ok @returned[1] ~~ Qwiratry::Walker::Plan, 'Second subplan implements Qwiratry::Walker::Plan';
+	my @returned = $plan.subplans();
+	ok @returned ~~ Array, 'subplans() returns Array';
+	is @returned.elems, 2, 'subplans() returns correct count';
+	ok @returned[0] ~~ Qwiratry::Walker::Plan, 'Subplan implements Qwiratry::Walker::Plan';
+	ok @returned[1] ~~ Qwiratry::Walker::Plan, 'Second subplan implements Qwiratry::Walker::Plan';
 }
 
 subtest 'Qwiratry::Walker::Master::Plan.query() method (T037)' => {
-    plan 3;
+	plan 3;
     
-    use Qwiratry::Walker::Master;
+	use Qwiratry::Walker::Master;
     
-    my $mock-query = MockQuery.new;
+	my $mock-query = MockQuery.new;
     
-    my $plan = Qwiratry::Walker::Master::Plan.new(query-ast => $mock-query);
+	my $plan = Qwiratry::Walker::Master::Plan.new(query-ast => $mock-query);
     
-    is $plan.query, $mock-query, 'query() returns original query AST';
-    ok $plan.query.^name eq 'MockQuery', 'Query AST is not modified';
+	is $plan.query, $mock-query, 'query() returns original query AST';
+	ok $plan.query.^name eq 'MockQuery', 'Query AST is not modified';
     
-    # Verify query() returns same reference
-    ok $plan.query === $mock-query, 'query() returns same reference (immutability)';
+	# Verify query() returns same reference
+	ok $plan.query === $mock-query, 'query() returns same reference (immutability)';
 }
 
 subtest 'Qwiratry::Walker::Master.plan() with handover delegation (T031, T035)' => {
-    plan 5;
+	plan 5;
     
-    use Qwiratry::Walker::Master;
-    use Qwiratry::Walker::Providing;
-    use Qwiratry::Walker;
+	use Qwiratry::Walker::Master;
+	use Qwiratry::Walker::Providing;
+	use Qwiratry::Walker;
     
-    # Create walker that will be selected
-    my class DelegatedWalker does Qwiratry::Walker {
-        has Bool $.plan-called = False;
-        has $.plan-query;
-        has $.plan-root;
+	# Create walker that will be selected
+	my class DelegatedWalker does Qwiratry::Walker {
+		has Bool $.plan-called = False;
+		has $.plan-query;
+		has $.plan-root;
         
-        method plan($query, $root --> Qwiratry::Walker::Plan) {
-            $!plan-called = True;
-            $!plan-query = $query;
-            $!plan-root = $root;
+		method plan($query, $root --> Qwiratry::Walker::Plan) {
+			$!plan-called = True;
+			$!plan-query = $query;
+			$!plan-root = $root;
             
-            # Return a mock plan
-            my class MockPlan does Qwiratry::Walker::Plan {
-                has $.query-ast;
-                method iterator { die "Not implemented" }
-                method query { $!query-ast }
-                method describe { "MockPlan" }
-            }
-            MockPlan.new(query-ast => $query);
-        }
+			# Return a mock plan
+			my class MockPlan does Qwiratry::Walker::Plan {
+				has $.query-ast;
+				method iterator { die "Not implemented" }
+				method query { $!query-ast }
+				method describe { "MockPlan" }
+			}
+			MockPlan.new(query-ast => $query);
+		}
         
-        method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
-            die "Not implemented";
-        }
+		method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
+			die "Not implemented";
+		}
         
-        method supports($query --> Bool) {
-            return True;
-        }
-    }
+		method supports($query --> Bool) {
+			return True;
+		}
+	}
     
-    my $walker = DelegatedWalker.new;
-    my $master = Qwiratry::Walker::Master.new(:candidate-walkers([$walker]));
+	my $walker = DelegatedWalker.new;
+	my $master = Qwiratry::Walker::Master.new(:candidate-walkers([$walker]));
     
-    # Create root without provides trait (will use capability check)
-    my $root = "plain";
-    my $mock-query = MockQuery.new;
+	# Create root without provides trait (will use capability check)
+	my $root = "plain";
+	my $mock-query = MockQuery.new;
     
-    # Call plan() - should detect handover and delegate
-    my $plan = $master.plan($mock-query, $root);
+	# Call plan() - should detect handover and delegate
+	my $plan = $master.plan($mock-query, $root);
     
-    ok $plan ~~ Qwiratry::Walker::Master::Plan, 'plan() returns Qwiratry::Walker::Master::Plan';
-    ok $walker.plan-called, 'Delegated walker\'s plan() was called';
-    is $walker.plan-query, $mock-query, 'Delegated walker received query';
-    is $walker.plan-root, $root, 'Delegated walker received root';
-    is $plan.subplans.elems, 1, 'Qwiratry::Walker::Master::Plan contains one subplan';
+	ok $plan ~~ Qwiratry::Walker::Master::Plan, 'plan() returns Qwiratry::Walker::Master::Plan';
+	ok $walker.plan-called, 'Delegated walker\'s plan() was called';
+	is $walker.plan-query, $mock-query, 'Delegated walker received query';
+	is $walker.plan-root, $root, 'Delegated walker received root';
+	is $plan.subplans.elems, 1, 'Qwiratry::Walker::Master::Plan contains one subplan';
 }
 
 subtest 'Plan immutability (T038)' => {
-    plan 4;
+	plan 4;
     
-    use Qwiratry::Walker::Master;
-    use Qwiratry::Walker;
+	use Qwiratry::Walker::Master;
+	use Qwiratry::Walker;
     
-    # Create walker that returns a plan
-    my class ImmutableWalker does Qwiratry::Walker {
-        method plan($query, $root --> Qwiratry::Walker::Plan) {
-            my class MockPlan does Qwiratry::Walker::Plan {
-                has $.query-ast;
-                method iterator { die "Not implemented" }
-                method query { $!query-ast }
-                method describe { "MockPlan" }
-            }
-            MockPlan.new(query-ast => $query);
-        }
+	# Create walker that returns a plan
+	my class ImmutableWalker does Qwiratry::Walker {
+		method plan($query, $root --> Qwiratry::Walker::Plan) {
+			my class MockPlan does Qwiratry::Walker::Plan {
+				has $.query-ast;
+				method iterator { die "Not implemented" }
+				method query { $!query-ast }
+				method describe { "MockPlan" }
+			}
+			MockPlan.new(query-ast => $query);
+		}
         
-        method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
-            die "Not implemented";
-        }
+		method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
+			die "Not implemented";
+		}
         
-        method supports($query --> Bool) {
-            return True;
-        }
-    }
+		method supports($query --> Bool) {
+			return True;
+		}
+	}
     
-    my $walker = ImmutableWalker.new;
-    my $master = Qwiratry::Walker::Master.new(:candidate-walkers([$walker]));
+	my $walker = ImmutableWalker.new;
+	my $master = Qwiratry::Walker::Master.new(:candidate-walkers([$walker]));
     
-    # Create original query
-    my $original-query = OriginalQuery.new;
+	# Create original query
+	my $original-query = OriginalQuery.new;
     
-    my $root = "plain";
+	my $root = "plain";
     
-    # Call plan() - should not mutate original query
-    my $plan = $master.plan($original-query, $root);
+	# Call plan() - should not mutate original query
+	my $plan = $master.plan($original-query, $root);
     
-    # Verify original query is unchanged
-    is $original-query.value, "original", 'Original query value unchanged';
-    is $original-query.^name, 'OriginalQuery', 'Original query type unchanged';
+	# Verify original query is unchanged
+	is $original-query.value, "original", 'Original query value unchanged';
+	is $original-query.^name, 'OriginalQuery', 'Original query type unchanged';
     
-    # Verify composite plan has original query
-    is $plan.query, $original-query, 'Qwiratry::Walker::Master::Plan.query() returns original query';
+	# Verify composite plan has original query
+	is $plan.query, $original-query, 'Qwiratry::Walker::Master::Plan.query() returns original query';
     
-    # Verify subplan has its own query reference
-    ok $plan.subplans[0].query === $original-query, 'Subplan has same query reference (not mutated)';
+	# Verify subplan has its own query reference
+	ok $plan.subplans[0].query === $original-query, 'Subplan has same query reference (not mutated)';
 }
 

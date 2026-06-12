@@ -23,10 +23,10 @@ unit module Qwiratry;
 # Activate template slang and transformer declarator in callers.
 # Slangify must run in the caller; see Qwiratry::Template::Slang.
 sub IMPORT(::(?Mu) $, |) {
-    # Slangify must be loaded in the importer's compunit (Piersing pattern).
-    use Qwiratry::Template::Slang;
-    use Qwiratry::Transformer;
-    use Qwiratry::Template;
+	# Slangify must be loaded in the importer's compunit (Piersing pattern).
+	use Qwiratry::Template::Slang;
+	use Qwiratry::Transformer;
+	use Qwiratry::Template;
 }
 
 use Qwiratry::Template::Slang;

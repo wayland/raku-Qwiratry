@@ -11,86 +11,86 @@ use Qwiratry::Query::Match;
 plan 4;
 
 my $tree = [
-    %(name => 'section', children => [
-        %(name => 'item', value => 1),
-        %(name => 'item', value => 2),
-    ]),
+	%(name => 'section', children => [
+		%(name => 'item', value => 1),
+		%(name => 'item', value => 2),
+	]),
 ];
 
 subtest 'Template slang extracts when-query from navigation when blocks' => {
-    plan 4;
+	plan 4;
 
-    clear-collected-templates();
-    transformer QueryWhenTest is Transformer {
-        template item when { $_ ⪪⪪ <item> } do { "item-{$_<value>}" }
-        template section when { $_ ⪪ <section> } do { 'section' }
-    }
+	clear-collected-templates();
+	transformer QueryWhenTest is Transformer {
+		template item when { $_ ⪪⪪ <item> } do { "item-{$_<value>}" }
+		template section when { $_ ⪪ <section> } do { 'section' }
+	}
 
-    my $t = QueryWhenTest.new;
-    my $item-template = $t.templates.first({ $_.name eq 'item' });
-    my $section-template = $t.templates.first({ $_.name eq 'section' });
+	my $t = QueryWhenTest.new;
+	my $item-template = $t.templates.first({ $_.name eq 'item' });
+	my $section-template = $t.templates.first({ $_.name eq 'section' });
 
-    ok $item-template.when-query.defined, 'item template has extracted when-query';
-    nok $item-template.when-block.defined, 'pure query when block replaced by when-query';
-    ok $section-template.when-query.defined, 'section template has extracted when-query';
-    ok $item-template.when-query.subject ~~ NavQueryTopic, 'topic sentinel preserved in query';
+	ok $item-template.when-query.defined, 'item template has extracted when-query';
+	nok $item-template.when-block.defined, 'pure query when block replaced by when-query';
+	ok $section-template.when-query.defined, 'section template has extracted when-query';
+	ok $item-template.when-query.subject ~~ NavQueryTopic, 'topic sentinel preserved in query';
 }
 
 subtest 'Slang-defined templates match and transform via extracted queries' => {
-    plan 3;
+	plan 3;
 
-    clear-collected-templates();
-    transformer QueryTransformTest is Transformer {
-        template item when { $_ ⪪⪪ <item> } do { "v{$_<value>}" }
-    }
+	clear-collected-templates();
+	transformer QueryTransformTest is Transformer {
+		template item when { $_ ⪪⪪ <item> } do { "v{$_<value>}" }
+	}
 
-    my $t = QueryTransformTest.new;
-    my $item = $tree[0]<children>[0];
-    my $section = $tree[0];
+	my $t = QueryTransformTest.new;
+	my $item = $tree[0]<children>[0];
+	my $section = $tree[0];
 
-    is $t.APPLY($item), 'v1', 'APPLY matches item via extracted when-query';
-    ok !$t.APPLY($section).defined, 'section does not match item query';
-    is $t.TRANSFORM($tree).sort, ('v1', 'v2'), 'TRANSFORM visits matching item nodes only';
+	is $t.APPLY($item), 'v1', 'APPLY matches item via extracted when-query';
+	ok !$t.APPLY($section).defined, 'section does not match item query';
+	is $t.TRANSFORM($tree).sort, ('v1', 'v2'), 'TRANSFORM visits matching item nodes only';
 }
 
 subtest 'Chained child when queries use parent lookup during TRANSFORM' => {
-    plan 2;
+	plan 2;
 
-    clear-collected-templates();
-    transformer ChainWhenTest is Transformer {
-        template section-item when { $_ ⪪ <section> ⪪ <item> } do { "s{$_<value>}" }
-    }
+	clear-collected-templates();
+	transformer ChainWhenTest is Transformer {
+		template section-item when { $_ ⪪ <section> ⪪ <item> } do { "s{$_<value>}" }
+	}
 
-    my $t = ChainWhenTest.new;
-    my $item = $tree[0]<children>[0];
-    $*TRANSFORM-ROOT := $tree;
+	my $t = ChainWhenTest.new;
+	my $item = $tree[0]<children>[0];
+	$*TRANSFORM-ROOT := $tree;
 
-    is $t.APPLY($item), 's1', 'chained child query matches nested item';
-    is $t.TRANSFORM($tree).sort, ('s1', 's2'), 'TRANSFORM applies chained child template';
+	is $t.APPLY($item), 's1', 'chained child query matches nested item';
+	is $t.TRANSFORM($tree).sort, ('s1', 's2'), 'TRANSFORM applies chained child template';
 }
 
 subtest 'Slang extracts mixed when blocks into query and predicate' => {
-    plan 4;
+	plan 4;
 
-    my $mixed-tree = [
-        %(name => 'section', children => [
-            %(name => 'item', value => 1),
-            %(name => 'item'),
-        ]),
-    ];
+	my $mixed-tree = [
+		%(name => 'section', children => [
+			%(name => 'item', value => 1),
+			%(name => 'item'),
+		]),
+	];
 
-    clear-collected-templates();
-    transformer MixedWhenTest is Transformer {
-        template active-item when { $_ ⪪⪪ <item> && .<value>:exists } do { "v{$_<value>}" }
-    }
+	clear-collected-templates();
+	transformer MixedWhenTest is Transformer {
+		template active-item when { $_ ⪪⪪ <item> && .<value>:exists } do { "v{$_<value>}" }
+	}
 
-    my $t = MixedWhenTest.new;
-    my $tpl = $t.templates.first({ $_.name eq 'active-item' });
+	my $t = MixedWhenTest.new;
+	my $tpl = $t.templates.first({ $_.name eq 'active-item' });
 
-    ok $tpl.when-query.defined, 'mixed when block yields when-query';
-    ok $tpl.when-block.defined, 'mixed when block keeps predicate when-block';
-    ok $tpl.when-query.subject ~~ NavQueryTopic, 'extracted query is topic-rooted';
+	ok $tpl.when-query.defined, 'mixed when block yields when-query';
+	ok $tpl.when-block.defined, 'mixed when block keeps predicate when-block';
+	ok $tpl.when-query.subject ~~ NavQueryTopic, 'extracted query is topic-rooted';
 
-    my $*TRANSFORM-ROOT := $mixed-tree;
-    is $t.TRANSFORM($mixed-tree), ('v1'), 'mixed when matches only items that pass predicate';
+	my $*TRANSFORM-ROOT := $mixed-tree;
+	is $t.TRANSFORM($mixed-tree), ('v1'), 'mixed when matches only items that pass predicate';
 }

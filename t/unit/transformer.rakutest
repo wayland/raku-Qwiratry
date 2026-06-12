@@ -17,13 +17,13 @@ plan 7; # Updated to include new template parsing tests
 # =============================================================================
 
 subtest "EXPORTHOW::DECLARE export" => {
-    plan 1;
+	plan 1;
     
-    # Verify EXPORTHOW::DECLARE is set up
-    # Note: EXPORTHOW::DECLARE::transformer is scoped to the module and may not be
-    # directly accessible from test scope, but the declarator mechanism is in place.
-    # The actual declarator functionality will be tested when transformer keyword is used.
-    ok True, "EXPORTHOW::DECLARE mechanism is set up in Transformer.rakumod (verified by module loading)";
+	# Verify EXPORTHOW::DECLARE is set up
+	# Note: EXPORTHOW::DECLARE::transformer is scoped to the module and may not be
+	# directly accessible from test scope, but the declarator mechanism is in place.
+	# The actual declarator functionality will be tested when transformer keyword is used.
+	ok True, "EXPORTHOW::DECLARE mechanism is set up in Transformer.rakumod (verified by module loading)";
 }
 
 # =============================================================================
@@ -31,14 +31,14 @@ subtest "EXPORTHOW::DECLARE export" => {
 # =============================================================================
 
 subtest "Transformer base class structure" => {
-    plan 4;
+	plan 4;
     
-    my $t = Transformer.new;
+	my $t = Transformer.new;
     
-    ok $t.templates.defined, "Transformer has templates attribute";
-    is $t.templates.elems, 0, "Templates array is empty initially";
-    ok $t.streaming.defined, "Transformer has streaming attribute";
-    is $t.streaming, False, "Streaming defaults to False";
+	ok $t.templates.defined, "Transformer has templates attribute";
+	is $t.templates.elems, 0, "Templates array is empty initially";
+	ok $t.streaming.defined, "Transformer has streaming attribute";
+	is $t.streaming, False, "Streaming defaults to False";
 }
 
 # =============================================================================
@@ -46,13 +46,13 @@ subtest "Transformer base class structure" => {
 # =============================================================================
 
 subtest "Template collection methods (placeholder)" => {
-    plan 1;
+	plan 1;
     
-    my $t = Transformer.new;
+	my $t = Transformer.new;
     
-    # Template collection will be tested in WP03
-    # For now, just verify the structure exists
-    ok $t.^can('add-template'), "Transformer has add-template method for manual template registration";
+	# Template collection will be tested in WP03
+	# For now, just verify the structure exists
+	ok $t.^can('add-template'), "Transformer has add-template method for manual template registration";
 }
 
 # =============================================================================
@@ -60,15 +60,15 @@ subtest "Template collection methods (placeholder)" => {
 # =============================================================================
 
 subtest "Transformer declarator - basic declaration" => {
-    plan 3;
+	plan 3;
     
-    # Declare a transformer
-    transformer MyTestTransform { }
+	# Declare a transformer
+	transformer MyTestTransform { }
     
-    # Verify it creates a class
-    ok MyTestTransform.^name eq 'MyTestTransform', "Transformer creates class with correct name";
-    ok MyTestTransform ~~ Transformer, "Transformer inherits from Transformer base class";
-    ok MyTestTransform.^can('CALL-ME'), "Transformer has CALL-ME method";
+	# Verify it creates a class
+	ok MyTestTransform.^name eq 'MyTestTransform', "Transformer creates class with correct name";
+	ok MyTestTransform ~~ Transformer, "Transformer inherits from Transformer base class";
+	ok MyTestTransform.^can('CALL-ME'), "Transformer has CALL-ME method";
 }
 
 # =============================================================================
@@ -76,17 +76,17 @@ subtest "Transformer declarator - basic declaration" => {
 # =============================================================================
 
 subtest "Transformer callable behavior" => {
-    plan 2;
+	plan 2;
     
-    transformer MyCallableTransform { }
+	transformer MyCallableTransform { }
     
-    my $t = MyCallableTransform.new;
-    ok $t ~~ Transformer, "Transformer can be instantiated";
+	my $t = MyCallableTransform.new;
+	ok $t ~~ Transformer, "Transformer can be instantiated";
     
-    # Test callable syntax (CALL-ME method)
-    # CALL-ME now delegates to transform() method
-    my $result = $t('test-data');
-    ok $result.defined, "Transformer CALL-ME works (delegates to transform)";
+	# Test callable syntax (CALL-ME method)
+	# CALL-ME now delegates to transform() method
+	my $result = $t('test-data');
+	ok $result.defined, "Transformer CALL-ME works (delegates to transform)";
 }
 
 # =============================================================================
@@ -99,18 +99,18 @@ subtest "Transformer callable behavior" => {
 # - Named template method creation
 
 subtest "Template storage infrastructure" => {
-    plan 3;
+	plan 3;
     
-    # Test that templates can be manually added and stored
-    my $t = Transformer.new;
+	# Test that templates can be manually added and stored
+	my $t = Transformer.new;
     
-    # Verify template storage works
-    ok $t.templates.defined, "Templates array is defined";
-    is $t.templates.elems, 0, "Templates array starts empty";
+	# Verify template storage works
+	ok $t.templates.defined, "Templates array is defined";
+	is $t.templates.elems, 0, "Templates array starts empty";
     
-    # Test that templates can be added manually (for now)
-    # This will be replaced by automatic collection from transformer body
-    ok True, "Template storage infrastructure is ready (automatic collection pending)";
+	# Test that templates can be added manually (for now)
+	# This will be replaced by automatic collection from transformer body
+	ok True, "Template storage infrastructure is ready (automatic collection pending)";
 }
 
 # =============================================================================
@@ -118,9 +118,9 @@ subtest "Template storage infrastructure" => {
 # =============================================================================
 
 subtest "Template collection mechanism" => {
-    plan 2;
+	plan 2;
     
-    # Verify that the template collection functions exist
-    ok &get-collected-templates.defined, "get-collected-templates function exists";
-    ok &clear-collected-templates.defined, "clear-collected-templates function exists";
+	# Verify that the template collection functions exist
+	ok &get-collected-templates.defined, "get-collected-templates function exists";
+	ok &clear-collected-templates.defined, "clear-collected-templates function exists";
 }

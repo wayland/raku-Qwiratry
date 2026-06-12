@@ -12,28 +12,28 @@ plan 12;
 # =============================================================================
 
 subtest 'OperatorBase describe method' => {
-    plan 2;
+	plan 2;
     
-    # Create a test class implementing OperatorBase
-    class TestOperator does OperatorBase { }
+	# Create a test class implementing OperatorBase
+	class TestOperator does OperatorBase { }
     
-    my $op = TestOperator.new;
-    ok $op.defined, 'Operator can be created';
-    is $op.describe, 'TestOperator', 'Default describe() returns class name';
+	my $op = TestOperator.new;
+	ok $op.defined, 'Operator can be created';
+	is $op.describe, 'TestOperator', 'Default describe() returns class name';
 }
 
 subtest 'OperatorBase describe can be overridden' => {
-    plan 1;
+	plan 1;
     
-    # Create a test class that overrides describe
-    class CustomOperator does OperatorBase {
-        method describe(--> Str) {
-            "Custom description for {self.^name}"
-        }
-    }
+	# Create a test class that overrides describe
+	class CustomOperator does OperatorBase {
+		method describe(--> Str) {
+			"Custom description for {self.^name}"
+		}
+	}
     
-    my $op = CustomOperator.new;
-    like $op.describe, rx:s/Custom description/, 'describe() can be overridden';
+	my $op = CustomOperator.new;
+	like $op.describe, rx:s/Custom description/, 'describe() can be overridden';
 }
 
 # =============================================================================
@@ -41,28 +41,28 @@ subtest 'OperatorBase describe can be overridden' => {
 # =============================================================================
 
 subtest 'NavigationOperator capabilities' => {
-    plan 4;
+	plan 4;
     
-    # Create a test class implementing NavigationOperator
-    class TestNavigationOperator does NavigationOperator { }
+	# Create a test class implementing NavigationOperator
+	class TestNavigationOperator does NavigationOperator { }
     
-    my $op = TestNavigationOperator.new;
-    my $caps = $op.capabilities;
+	my $op = TestNavigationOperator.new;
+	my $caps = $op.capabilities;
     
-    ok $caps.defined, 'Capabilities method returns value';
-    ok $caps<navigation>, 'Navigation capability is True';
-    is $caps<domains>, ['tree', 'table', 'graph'], 'Domains array is correct';
-    ok $caps<lazy>, 'Lazy evaluation is supported';
+	ok $caps.defined, 'Capabilities method returns value';
+	ok $caps<navigation>, 'Navigation capability is True';
+	is $caps<domains>, ['tree', 'table', 'graph'], 'Domains array is correct';
+	ok $caps<lazy>, 'Lazy evaluation is supported';
 }
 
 subtest 'NavigationOperator role composition' => {
-    plan 2;
+	plan 2;
     
-    class TestNavOp does NavigationOperator { }
+	class TestNavOp does NavigationOperator { }
     
-    my $op = TestNavOp.new;
-    ok $op ~~ NavigationOperator, 'Operator does NavigationOperator role';
-    ok $op.capabilities<navigation>, 'Capabilities method works';
+	my $op = TestNavOp.new;
+	ok $op ~~ NavigationOperator, 'Operator does NavigationOperator role';
+	ok $op.capabilities<navigation>, 'Capabilities method works';
 }
 
 # =============================================================================
@@ -70,25 +70,25 @@ subtest 'NavigationOperator role composition' => {
 # =============================================================================
 
 subtest 'MapReduceOperator capabilities' => {
-    plan 3;
+	plan 3;
     
-    class TestMapReduceOperator does MapReduceOperator { }
+	class TestMapReduceOperator does MapReduceOperator { }
     
-    my $op = TestMapReduceOperator.new;
-    my $caps = $op.capabilities;
+	my $op = TestMapReduceOperator.new;
+	my $caps = $op.capabilities;
     
-    ok $caps<map-reduce>, 'Map-reduce capability is True';
-    ok $caps<lazy>, 'Lazy evaluation is supported';
-    ok $caps.defined, 'Capabilities method returns value';
+	ok $caps<map-reduce>, 'Map-reduce capability is True';
+	ok $caps<lazy>, 'Lazy evaluation is supported';
+	ok $caps.defined, 'Capabilities method returns value';
 }
 
 subtest 'MapReduceOperator role composition' => {
-    plan 1;
+	plan 1;
     
-    class TestMapReduceOp does MapReduceOperator { }
+	class TestMapReduceOp does MapReduceOperator { }
     
-    my $op = TestMapReduceOp.new;
-    ok $op ~~ MapReduceOperator, 'Operator does MapReduceOperator role';
+	my $op = TestMapReduceOp.new;
+	ok $op ~~ MapReduceOperator, 'Operator does MapReduceOperator role';
 }
 
 # =============================================================================
@@ -96,26 +96,26 @@ subtest 'MapReduceOperator role composition' => {
 # =============================================================================
 
 subtest 'SetOperator capabilities' => {
-    plan 4;
+	plan 4;
     
-    class TestSetOperator does SetOperator { }
+	class TestSetOperator does SetOperator { }
     
-    my $op = TestSetOperator.new;
-    my $caps = $op.capabilities;
+	my $op = TestSetOperator.new;
+	my $caps = $op.capabilities;
     
-    ok $caps<set-operation>, 'Set-operation capability is True';
-    ok $caps<relational>, 'Relational flag is True';
-    ok $caps<lazy>, 'Lazy evaluation is supported';
-    ok $caps.defined, 'Capabilities method returns value';
+	ok $caps<set-operation>, 'Set-operation capability is True';
+	ok $caps<relational>, 'Relational flag is True';
+	ok $caps<lazy>, 'Lazy evaluation is supported';
+	ok $caps.defined, 'Capabilities method returns value';
 }
 
 subtest 'SetOperator role composition' => {
-    plan 1;
+	plan 1;
     
-    class TestSetOp does SetOperator { }
+	class TestSetOp does SetOperator { }
     
-    my $op = TestSetOp.new;
-    ok $op ~~ SetOperator, 'Operator does SetOperator role';
+	my $op = TestSetOp.new;
+	ok $op ~~ SetOperator, 'Operator does SetOperator role';
 }
 
 # =============================================================================
@@ -123,26 +123,26 @@ subtest 'SetOperator role composition' => {
 # =============================================================================
 
 subtest 'IOOperator capabilities' => {
-    plan 4;
+	plan 4;
     
-    class TestIOOperator does IOOperator { }
+	class TestIOOperator does IOOperator { }
     
-    my $op = TestIOOperator.new;
-    my $caps = $op.capabilities;
+	my $op = TestIOOperator.new;
+	my $caps = $op.capabilities;
     
-    ok $caps<io>, 'IO capability is True';
-    is $caps<formats>, ['json', 'xml', 'csv'], 'Formats array is correct';
-    ok !$caps<lazy>, 'Lazy evaluation is False (I/O is eager)';
-    ok $caps.defined, 'Capabilities method returns value';
+	ok $caps<io>, 'IO capability is True';
+	is $caps<formats>, ['json', 'xml', 'csv'], 'Formats array is correct';
+	ok !$caps<lazy>, 'Lazy evaluation is False (I/O is eager)';
+	ok $caps.defined, 'Capabilities method returns value';
 }
 
 subtest 'IOOperator role composition' => {
-    plan 1;
+	plan 1;
     
-    class TestIOOp does IOOperator { }
+	class TestIOOp does IOOperator { }
     
-    my $op = TestIOOp.new;
-    ok $op ~~ IOOperator, 'Operator does IOOperator role';
+	my $op = TestIOOp.new;
+	ok $op ~~ IOOperator, 'Operator does IOOperator role';
 }
 
 # =============================================================================
@@ -150,17 +150,17 @@ subtest 'IOOperator role composition' => {
 # =============================================================================
 
 subtest 'Capability roles can be composed with class hierarchy' => {
-    plan 3;
+	plan 3;
     
-    # Create a mock RakuAST::Node-like class
-    class MockASTNode { }
+	# Create a mock RakuAST::Node-like class
+	class MockASTNode { }
 
-    class TestOperatorNode is MockASTNode does NavigationOperator does OperatorBase { }
+	class TestOperatorNode is MockASTNode does NavigationOperator does OperatorBase { }
     
-    my $op = TestOperatorNode.new;
-    ok $op ~~ NavigationOperator, 'Operator does NavigationOperator role';
-    ok $op ~~ OperatorBase, 'Operator does OperatorBase role';
-    ok $op.capabilities<navigation>, 'Capabilities method works with composition';
+	my $op = TestOperatorNode.new;
+	ok $op ~~ NavigationOperator, 'Operator does NavigationOperator role';
+	ok $op ~~ OperatorBase, 'Operator does OperatorBase role';
+	ok $op.capabilities<navigation>, 'Capabilities method works with composition';
 }
 
 # =============================================================================
@@ -168,15 +168,15 @@ subtest 'Capability roles can be composed with class hierarchy' => {
 # =============================================================================
 
 subtest 'Operator can implement multiple roles (if needed)' => {
-    plan 2;
+	plan 2;
     
-    # Note: In practice, operators typically implement one capability role
-    # But the system should support composition if needed
-    class TestMultiRoleOperator does OperatorBase does NavigationOperator {
-    }
+	# Note: In practice, operators typically implement one capability role
+	# But the system should support composition if needed
+	class TestMultiRoleOperator does OperatorBase does NavigationOperator {
+	}
     
-    my $op = TestMultiRoleOperator.new;
-    ok $op ~~ NavigationOperator, 'Operator does NavigationOperator';
-    ok $op ~~ OperatorBase, 'Operator does OperatorBase';
+	my $op = TestMultiRoleOperator.new;
+	ok $op ~~ NavigationOperator, 'Operator does NavigationOperator';
+	ok $op ~~ OperatorBase, 'Operator does OperatorBase';
 }
 

@@ -6,8 +6,8 @@ Minimal XML render format module.
 unit module Qwiratry::IO::Render::XML;
 
 our sub render(Mu $data, Associative :%options --> Str) is export {
-    if $data ~~ Associative && $data<xml>:exists {
-        return ~$data<xml>;
-    }
-    "<data>{$data.raku}</data>"
+	if $data ~~ Associative && $data<xml>:exists {
+		return ~$data<xml>;
+	}
+	"<data>{$data.raku}</data>"
 }

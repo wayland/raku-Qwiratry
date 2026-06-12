@@ -9,40 +9,40 @@ plan 6;
 
 # Test T007: Trait application compiles successfully
 {
-    my $table is providing<sql> = "test";
-    ok True, "Trait application to variable with single domain compiles";
+	my $table is providing<sql> = "test";
+	ok True, "Trait application to variable with single domain compiles";
 }
 
 {
-    my $hybrid is providing<sql json> = "test";
-    ok True, "Trait application to variable with multiple domains compiles";
+	my $hybrid is providing<sql json> = "test";
+	ok True, "Trait application to variable with multiple domains compiles";
 }
 
 # Test T008: Single domain discovery
 {
-    my $table is providing<sql> = "test";
-    my @domains = providing-domains($table);
-    is-deeply @domains, ['sql'], "Single domain discovery returns correct array";
+	my $table is providing<sql> = "test";
+	my @domains = providing-domains($table);
+	is-deeply @domains, ['sql'], "Single domain discovery returns correct array";
 }
 
 # Test T009: Multiple domain discovery
 {
-    my $hybrid is providing<sql json> = "test";
-    my @domains = providing-domains($hybrid);
-    if @domains {
-        is-deeply @domains.sort, ['json', 'sql'].sort, "Multiple domain discovery returns correct array";
-    } else {
-        skip "Discovery mechanism needs refinement", 1;
-    }
+	my $hybrid is providing<sql json> = "test";
+	my @domains = providing-domains($hybrid);
+	if @domains {
+		is-deeply @domains.sort, ['json', 'sql'].sort, "Multiple domain discovery returns correct array";
+	} else {
+		skip "Discovery mechanism needs refinement", 1;
+	}
 }
 
 # Test T010: Trait runtime semantics (no side effects)
 {
-    class TestClass {
-        method test() { "works" }
-    }
+	class TestClass {
+		method test() { "works" }
+	}
     
-    my $obj is providing<test> = TestClass.new;
-    is $obj.test(), "works", "Method dispatch works normally with trait";
-    is $obj.^name, "TestClass", "Type identity unchanged with trait";
+	my $obj is providing<test> = TestClass.new;
+	is $obj.test(), "works", "Method dispatch works normally with trait";
+	is $obj.^name, "TestClass", "Type identity unchanged with trait";
 }

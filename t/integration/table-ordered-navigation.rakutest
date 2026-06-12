@@ -8,10 +8,10 @@ use Qwiratry::Query::Slang;
 use Qwiratry::Query::Match;
 
 my @orders = [
-    %(order_id => 1, customer_id => 10, total => 100),
-    %(order_id => 2, customer_id => 20, total => 50),
-    %(order_id => 3, customer_id => 10, total => 75),
-    %(order_id => 4, customer_id => Nil, total => 25),
+	%(order_id => 1, customer_id => 10, total => 100),
+	%(order_id => 2, customer_id => 20, total => 50),
+	%(order_id => 3, customer_id => 10, total => 75),
+	%(order_id => 4, customer_id => Nil, total => 25),
 ];
 
 my $catalog = make-catalog(:orders(@orders), :active-table('orders'));
@@ -19,50 +19,50 @@ my $catalog = make-catalog(:orders(@orders), :active-table('orders'));
 plan 6;
 
 subtest 'Following sibling returns next row' => {
-    plan 2;
+	plan 2;
 
-    my $order = @orders[0];
-    my @next = select($order ⪨ <*>, $catalog).List;
-    is @next.elems, 1, 'one following sibling';
-    is @next[0]<order_id>, 2, 'next row in table order';
+	my $order = @orders[0];
+	my @next = select($order ⪨ <*>, $catalog).List;
+	is @next.elems, 1, 'one following sibling';
+	is @next[0]<order_id>, 2, 'next row in table order';
 }
 
 subtest 'Preceding sibling returns previous row' => {
-    plan 2;
+	plan 2;
 
-    my $order = @orders[2];
-    my @prev = select($order ⪩ <*>, $catalog).List;
-    is @prev.elems, 1, 'one preceding sibling';
-    is @prev[0]<order_id>, 2, 'previous row in table order';
+	my $order = @orders[2];
+	my @prev = select($order ⪩ <*>, $catalog).List;
+	is @prev.elems, 1, 'one preceding sibling';
+	is @prev[0]<order_id>, 2, 'previous row in table order';
 }
 
 subtest 'Following returns all later rows' => {
-    plan 1;
+	plan 1;
 
-    my $order = @orders[1];
-    my @later = select($order ⪨⪨ <*>, $catalog).List;
-    is [@later.map(*<order_id>)], (3, 4), 'all rows after current position';
+	my $order = @orders[1];
+	my @later = select($order ⪨⪨ <*>, $catalog).List;
+	is [@later.map(*<order_id>)], (3, 4), 'all rows after current position';
 }
 
 subtest 'Preceding returns all earlier rows' => {
-    plan 1;
+	plan 1;
 
-    my $order = @orders[2];
-    my @earlier = select($order ⪩⪩ <*>, $catalog).List;
-    is [@earlier.map(*<order_id>)], (1, 2), 'all rows before current position';
+	my $order = @orders[2];
+	my @earlier = select($order ⪩⪩ <*>, $catalog).List;
+	is [@earlier.map(*<order_id>)], (1, 2), 'all rows before current position';
 }
 
 subtest 'Last row has no following sibling' => {
-    plan 1;
+	plan 1;
 
-    my $order = @orders[3];
-    is select($order ⪨ <*>, $catalog).elems, 0, 'no following sibling on last row';
+	my $order = @orders[3];
+	is select($order ⪨ <*>, $catalog).elems, 0, 'no following sibling on last row';
 }
 
 subtest 'Table base returns empty for sibling operators' => {
-    plan 1;
+	plan 1;
 
-    is select($catalog ⪨ <*>, $catalog).elems, 0, 'sibling operator on table returns empty';
+	is select($catalog ⪨ <*>, $catalog).elems, 0, 'sibling operator on table returns empty';
 }
 
 done-testing;

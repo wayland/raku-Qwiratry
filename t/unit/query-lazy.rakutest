@@ -9,45 +9,45 @@ use Qwiratry::Query::Match;
 plan 2;
 
 my class CountingRows does Iterator {
-    has Str $.label is required;
-    has Int $.max = 5;
-    has Int $.pulls is rw = 0;
-    has Int $!index = 0;
+	has Str $.label is required;
+	has Int $.max = 5;
+	has Int $.pulls is rw = 0;
+	has Int $!index = 0;
 
-    method pull-one(--> Mu) {
-        return IterationEnd if $!index >= $.max;
-        $.pulls++;
-        %(id => $!index++)
-    }
+	method pull-one(--> Mu) {
+		return IterationEnd if $!index >= $.max;
+		$.pulls++;
+		%(id => $!index++)
+	}
 }
 
 subtest 'Inner join pulls operands incrementally' => {
-    plan 3;
+	plan 3;
 
-    my $left = CountingRows.new(:label('left'));
-    my $right = CountingRows.new(:label('right'), :max(4));
-    my $query = InnerJoinOperator.new(:left($left), :right($right));
+	my $left = CountingRows.new(:label('left'));
+	my $right = CountingRows.new(:label('right'), :max(4));
+	my $query = InnerJoinOperator.new(:left($left), :right($right));
 
-    my $iter = select($query, $left).iterator;
-    my $first = $iter.pull-one;
+	my $iter = select($query, $left).iterator;
+	my $first = $iter.pull-one;
 
-    ok $first !~~ IterationEnd, 'lazy join yields a first row';
-    is $left.pulls, 1, 'left operand pulled once for first result';
-    ok $right.pulls <= 4, 'right operand not fully scanned before first result';
+	ok $first !~~ IterationEnd, 'lazy join yields a first row';
+	is $left.pulls, 1, 'left operand pulled once for first result';
+	ok $right.pulls <= 4, 'right operand not fully scanned before first result';
 }
 
 subtest 'Union does not pre-scan both branches' => {
-    plan 2;
+	plan 2;
 
-    my $left = CountingRows.new(:label('a'), :max(3));
-    my $right = CountingRows.new(:label('b'), :max(3));
-    my $query = UnionOperator.new(:left($left), :right($right));
+	my $left = CountingRows.new(:label('a'), :max(3));
+	my $right = CountingRows.new(:label('b'), :max(3));
+	my $query = UnionOperator.new(:left($left), :right($right));
 
-    my $iter = select($query, $left).iterator;
-    my $first = $iter.pull-one;
+	my $iter = select($query, $left).iterator;
+	my $first = $iter.pull-one;
 
-    ok $first !~~ IterationEnd, 'lazy union yields first row';
-    is $left.pulls, 1, 'only first left row consumed initially';
+	ok $first !~~ IterationEnd, 'lazy union yields first row';
+	is $left.pulls, 1, 'only first left row consumed initially';
 }
 
 done-testing;
