@@ -238,7 +238,9 @@ sub select-seq(Mu $query, Mu $origin --> Seq) {
             return lazy-filter($source, -> $base { selection-predicate-matches(&pred, $base) });
         }
         default {
-            return select-list-eager($query, $origin).Seq;
+            my @items = select-list-eager($query, $origin);
+            return ().Seq unless @items;
+            return lazy-from-list(@items);
         }
     }
 }
@@ -701,15 +703,6 @@ sub unique-nodes(*@nodes --> List) {
     @unique
 }
 
-sub node-in-list(Mu $node, @list --> Bool) {
-    for @list -> $candidate {
-        return True if $candidate === $node;
-        return True if $node ~~ Associative && $candidate ~~ Associative
-            && row-equal($node, $candidate);
-    }
-    False
-}
-
 sub selection-predicate-matches(&pred, Mu $base --> Bool) {
     my $result = try {
         if &pred.arity == 1 {
@@ -769,6 +762,11 @@ sub reduce-with(&op, Mu $acc, Mu $item --> Mu) {
     } orelse $acc
 }
 
+sub relation-row-snapshot(Mu $source) {
+    return Array.new($source.list) if $source ~~ Positional;
+    $source
+}
+
 sub selection-relation-source(Mu $query, Mu $origin) {
     if $query.subject ~~ NavigationOperator | RootOperator {
         return select-seq($query.subject, $origin);
@@ -783,7 +781,7 @@ sub selection-relation-source(Mu $query, Mu $origin) {
         return $query.subject;
     }
     if $query.subject ~~ Positional {
-        return $query.subject;
+        return relation-row-snapshot($query.subject);
     }
     if $query.subject.defined {
         return ($query.subject,);
@@ -792,7 +790,7 @@ sub selection-relation-source(Mu $query, Mu $origin) {
         return $origin.active-rows;
     }
     if $origin ~~ Positional {
-        return $origin;
+        return relation-row-snapshot($origin);
     }
     ($origin,);
 }

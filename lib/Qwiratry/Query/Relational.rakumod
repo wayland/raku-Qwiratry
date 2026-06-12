@@ -6,13 +6,16 @@ Relational-algebra helpers for set operator execution in L<Qwiratry::Query::Matc
 unit module Qwiratry::Query::Relational;
 
 our sub row-equal(Mu $a, Mu $b --> Bool) is export {
-    return $a === $b if $a ~~ Mu && $b ~~ Mu;
+    return True if $a === $b;
     if $a ~~ Associative && $b ~~ Associative {
-        my @keys = ($a.keys.sort, $b.keys.sort).unique;
-        for @keys -> $key {
-            my $name = normalize-key-name($key);
+        my @keys = ($a.keys, $b.keys).flat.map(&normalize-key-name).unique.sort;
+        for @keys -> $name {
             next unless $a{$name}:exists && $b{$name}:exists;
-            return False unless ~($a{$name}) eq ~($b{$name});
+            my $va = $a{$name};
+            my $vb = $b{$name};
+            return False unless $va.defined == $vb.defined;
+            next unless $va.defined;
+            return False unless ~$va eq ~$vb;
         }
         return True;
     }
@@ -22,6 +25,15 @@ our sub row-equal(Mu $a, Mu $b --> Bool) is export {
 our sub row-in-list(Mu $row, @list --> Bool) is export {
     for @list -> $candidate {
         return True if row-equal($row, $candidate);
+    }
+    False
+}
+
+our sub node-in-list(Mu $node, @list --> Bool) is export {
+    for @list -> $candidate {
+        return True if $candidate === $node;
+        return True if $node ~~ Associative && $candidate ~~ Associative
+            && row-equal($node, $candidate);
     }
     False
 }
