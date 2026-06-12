@@ -14,7 +14,3 @@ class Qwiratry::IO::Render::XML is Qwiratry::IO::Render::Base {
 		"<data>{$data.raku}</data>"
 	}
 }
-
-our sub render(Mu $data, Associative :%options --> Str) is export {
-	Qwiratry::IO::Render::XML.new.render($data, :%options)
-}

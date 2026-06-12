@@ -108,7 +108,3 @@ class Qwiratry::IO::Parse::JSON is Qwiratry::IO::Parse::Base {
 		($value, $pos)
 	}
 }
-
-our sub parse(Str $text --> Mu) is export {
-	Qwiratry::IO::Parse::JSON.new.parse($text)
-}

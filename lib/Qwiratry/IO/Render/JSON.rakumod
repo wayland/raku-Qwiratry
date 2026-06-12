@@ -51,7 +51,3 @@ class Qwiratry::IO::Render::JSON is Qwiratry::IO::Render::Base {
 		$value.raku
 	}
 }
-
-our sub render(Mu $data, Associative :%options --> Str) is export {
-	Qwiratry::IO::Render::JSON.new.render($data, :%options)
-}

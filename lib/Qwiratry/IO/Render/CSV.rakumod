@@ -18,7 +18,3 @@ class Qwiratry::IO::Render::CSV is Qwiratry::IO::Render::Base {
 		@lines.join("\n")
 	}
 }
-
-our sub render(Mu $data, Associative :%options --> Str) is export {
-	Qwiratry::IO::Render::CSV.new.render($data, :%options)
-}

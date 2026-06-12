@@ -23,7 +23,3 @@ class Qwiratry::IO::Parse::CSV is Qwiratry::IO::Parse::Base {
 		@rows
 	}
 }
-
-our sub parse(Str $text --> Mu) is export {
-	Qwiratry::IO::Parse::CSV.new.parse($text)
-}

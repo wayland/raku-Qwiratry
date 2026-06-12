@@ -11,7 +11,3 @@ class Qwiratry::IO::Parse::XML is Qwiratry::IO::Parse::Base {
 		%(xml => $text)
 	}
 }
-
-our sub parse(Str $text --> Mu) is export {
-	Qwiratry::IO::Parse::XML.new.parse($text)
-}

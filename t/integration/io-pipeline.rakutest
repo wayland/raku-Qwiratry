@@ -27,7 +27,7 @@ subtest 'source parse render destination round-trip with temp files' => {
 	ok $output.e, 'destination file was written';
 	ok $result.defined, 'execute returns rendered content';
 
-	my $parsed = Qwiratry::IO::Parse::JSON::parse($output.slurp);
+	my $parsed = Qwiratry::IO::Parse::JSON.new.parse($output.slurp);
 	my @rows = $parsed ~~ Positional ?? $parsed.list !! ($parsed,);
 	is @rows.elems, 1, 'pipeline filtered to active rows only';
 
