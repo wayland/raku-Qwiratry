@@ -58,7 +58,7 @@ sub make(Mu $value) is export {
 	}
 	$*MAKE-OUTPUT.push($value);
 	if $*TRANSFORM-REWRITE && $*TRANSFORM-NODE.defined && $*TRANSFORM-ROOT.defined {
-		replace-node-in-tree($*TRANSFORM-NODE, $value, $*TRANSFORM-ROOT);
+		Qwiratry::Tree::Replace.instance.replace-node($*TRANSFORM-NODE, $value, $*TRANSFORM-ROOT);
 	}
 	$value;
 }

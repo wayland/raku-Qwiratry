@@ -353,7 +353,7 @@ class Transformer is export {
 			my $result = self.APPLY($node);
 			if $.mutates-input && $result.defined && $result !~~ Iterator {
 				unless $result === $node {
-					replace-node-in-tree($node, $result, $data);
+					Qwiratry::Tree::Replace.instance.replace-node($node, $result, $data);
 				}
 			}
 			if $result.defined {
@@ -592,7 +592,7 @@ class Transformer is export {
 	=end pod
 	method !calculate-specificity(Template $template --> Int) {
 		if $template.when-query.defined {
-			return score($template.when-query);
+			return Qwiratry::Query::Specificity.instance.score($template.when-query);
 		}
 
 		if !$template.when-block.defined {

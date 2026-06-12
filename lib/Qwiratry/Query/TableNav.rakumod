@@ -19,7 +19,7 @@ Discover or return the L<Qwiratry::Table::Catalog> for C<$origin>.
 
 =end pod
 our sub table-catalog(Mu $origin is raw --> Mu) is export {
-	discover-catalog($origin)
+	Qwiratry::Table::Schema.instance.discover($origin)
 }
 
 =begin pod
@@ -293,7 +293,8 @@ sub table-row-order-context(Associative $row, Qwiratry::Table::Catalog $catalog 
 	return unless $table-name.defined && $catalog.tables{$table-name}:exists;
 	my @rows = $catalog.tables{$table-name}.list;
 	for 0..^@rows -> $i {
-		return %(rows => @rows, index => $i) if @rows[$i] === $row || row-equal(@rows[$i], $row);
+		return %(rows => @rows, index => $i) if @rows[$i] === $row
+			|| Qwiratry::Query::Relational.instance.row-equal(@rows[$i], $row);
 	}
 	Nil
 }

@@ -1,55 +1,46 @@
 =begin pod
 
-Execute I/O operator pipelines (source, parse, query, render, destination).
+Pipeline evaluation for operator AST nodes.
 
-Walks a chain of L<Qwiratry::Operator::IO> AST nodes: reads files, parses and
-renders via L<Qwiratry::IO::Parse> / L<Qwiratry::IO::Render>, runs query operators
-through L<select|Qwiratry::Query::Match>, and writes results to disk.
+L<PipelineStep> provides the default C<evaluate> path (resolve root, C<select>,
+materialize). Capability roles compose it; I/O operator classes override C<evaluate>.
+C<execute> is the recursive entry point that dispatches to C<evaluate>.
 
 =end pod
-unit module Qwiratry::IO::Pipeline;
+unit module Qwiratry::Operator::PipelineStep;
 
 use Qwiratry::IO::Parse;
 use Qwiratry::IO::Render;
-use Qwiratry::Operator::IO;
-use Qwiratry::Operator::Capability;
-use Qwiratry::Operator::MapReduce;
-use Qwiratry::Query::Match;
 use Qwiratry::Exception::Operator;
+
+=begin pod
+
+Default pipeline step for query operators: resolve data root, run C<select>, materialize.
+
+=end pod
+role PipelineStep is export {
+	=begin pod
+
+	Evaluate this operator node in a pipeline context.
+
+	=end pod
+	method evaluate(Mu :$origin, :&execute) {
+		my $root = pipeline-root(self, $origin, :&execute);
+		require Qwiratry::Query::Match;
+		seq-to-pipeline-value(Qwiratry::Query::Match::select(self, $root))
+	}
+}
 
 =begin pod
 
 Recursively evaluate an operator AST node and return the pipeline result.
 
-I/O operators delegate to helpers; query operators call C<select> on the resolved root.
+Delegates to each operator's C<evaluate> method.
 
 =end pod
 our sub execute(Mu $op, Mu :$origin) is export {
-	given $op {
-		when DestinationOperator {
-			my $content = execute($op.subject // $origin, :$origin);
-			write-location($op.location, $content);
-			$content
-		}
-		when RenderOperator {
-			my $data = execute($op.subject // $origin, :$origin);
-			render-data($op.format, $data, $op.options)
-		}
-		when ParseOperator {
-			my $text = execute($op.subject // $origin, :$origin);
-			parse-data($op.format, $text)
-		}
-		when SourceOperator {
-			read-location($op.location)
-		}
-		when IOOperator | NavigationOperator | SetOperator | MapReduceOperator {
-			my $root = pipeline-root($op, $origin);
-			seq-to-pipeline-value(select($op, $root))
-		}
-		default {
-			$op
-		}
-	}
+	return $op.evaluate(:$origin, :&execute) if $op.can('evaluate');
+	$op
 }
 
 =begin pod
@@ -57,13 +48,17 @@ our sub execute(Mu $op, Mu :$origin) is export {
 Resolve the data root for a query operator by walking C<subject> links leftward.
 
 =end pod
-sub pipeline-root(Mu $op, Mu $origin --> Mu) {
+our sub pipeline-root(Mu $op, Mu $origin, :&execute --> Mu) is export {
 	if $op.can('subject') && $op.subject.defined {
-		return execute($op.subject, :$origin) if $op.subject ~~ IOOperator;
-		return pipeline-root($op.subject, $origin) if $op.subject.can('subject');
+		return execute($op.subject, :$origin) if is-io-operator($op.subject);
+		return pipeline-root($op.subject, $origin, :&execute) if $op.subject.can('subject');
 		return $op.subject;
 	}
 	$origin // $op
+}
+
+sub is-io-operator(Mu $subject --> Bool) {
+	so $subject.^roles.map(*.^name).grep(*.ends-with('IOOperator'))
 }
 
 =begin pod
@@ -72,7 +67,7 @@ Read text from a file location. Throws L<X::Qwiratry::IO::LocationError> for
 network URLs or missing files.
 
 =end pod
-sub read-location(Str $location --> Str) {
+our sub read-location(Str $location --> Str) is export {
 	if $location.starts-with(any('http://', 'https://')) {
 		X::Qwiratry::IO::LocationError.new(
 			:message("Cannot fetch network location: $location"),
@@ -97,7 +92,7 @@ sub read-location(Str $location --> Str) {
 Write pipeline output to a file, creating parent directories when needed.
 
 =end pod
-sub write-location(Str $location, Mu $content) {
+our sub write-location(Str $location, Mu $content) is export {
 	my $text = $content ~~ Str ?? $content !! ~$content;
 	my $path = $location;
 	$path.IO.parent.mkdir unless $path.IO.parent.d;
@@ -109,7 +104,7 @@ sub write-location(Str $location, Mu $content) {
 Parse external text via L<Qwiratry::IO::Parse>.
 
 =end pod
-sub parse-data(Str $format, Str $text) {
+our sub parse-data(Str $format, Str $text) is export {
 	Qwiratry::IO::Parse.instance.parse($format, $text)
 }
 
@@ -118,7 +113,7 @@ sub parse-data(Str $format, Str $text) {
 Render in-memory data via L<Qwiratry::IO::Render>.
 
 =end pod
-sub render-data(Str $format, Mu $data, Associative $options) {
+our sub render-data(Str $format, Mu $data, Associative $options) is export {
 	Qwiratry::IO::Render.instance.render($format, pipeline-render-payload($data), |%($options // %()))
 }
 
@@ -127,7 +122,7 @@ sub render-data(Str $format, Mu $data, Associative $options) {
 Normalize lazy C<Seq> results from C<select> into a plain list for rendering.
 
 =end pod
-sub pipeline-render-payload(Mu $data --> Mu) {
+our sub pipeline-render-payload(Mu $data --> Mu) is export {
 	return $data.list if $data ~~ Seq;
 	$data
 }
@@ -137,7 +132,7 @@ sub pipeline-render-payload(Mu $data --> Mu) {
 Materialize a C<Seq> from C<select>: empty, singleton, or list (never a bare Seq).
 
 =end pod
-sub seq-to-pipeline-value(Seq $seq --> Mu) {
+our sub seq-to-pipeline-value(Seq $seq --> Mu) is export {
 	my $iter = $seq.iterator;
 	my $first = $iter.pull-one;
 	return () if $first ~~ IterationEnd;

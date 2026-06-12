@@ -6,30 +6,32 @@ use Qwiratry::Query::Specificity;
 use Qwiratry::Query::Slang;
 use Qwiratry::Operator::Navigation;
 
+my constant specificity = Qwiratry::Query::Specificity.instance;
+
 plan 5;
 
 subtest 'wildcard and explicit child selectors' => {
 	plan 2;
 
-	is score(ChildOperator.new(:selector('*'))), -10,
+	is specificity.score(ChildOperator.new(:selector('*'))), -10,
 		'wildcard child selector scores -10';
-	is score(ChildOperator.new(:selector('item'))), 5,
+	is specificity.score(ChildOperator.new(:selector('item'))), 5,
 		'explicit child selector scores +5';
 }
 
 subtest 'multilevel axes reduce specificity' => {
 	plan 2;
 
-	is score(DescendantOperator.new(:selector('*'))), -110,
+	is specificity.score(DescendantOperator.new(:selector('*'))), -110,
 		'descendant wildcard combines -100 axis and -10 wildcard';
-	is score(DescendantOperator.new(:selector('section'))), -95,
+	is specificity.score(DescendantOperator.new(:selector('section'))), -95,
 		'descendant explicit path combines -100 axis and +5 path';
 }
 
 subtest 'attribute axes add specificity' => {
 	plan 1;
 
-	is score(AttributeOperator.new(:key('name'))), 10,
+	is specificity.score(AttributeOperator.new(:key('name'))), 10,
 		'attribute key scores +5 axis and +5 explicit path';
 }
 
@@ -38,7 +40,7 @@ subtest 'chained navigation accumulates scores' => {
 
 	my $root = %(name => 'root');
 	my $query = $root ⪪ <*> ⪪ <item>;
-	is score($query), -5,
+	is specificity.score($query), -5,
 		'chained child operators accumulate subject and selector scores';
 }
 
@@ -49,5 +51,5 @@ subtest 'union branches use maximum score' => {
 		ChildOperator.new(:selector('*')),
 		ChildOperator.new(:selector('item')),
 	);
-	is score(@union), 5, 'positional query list uses max branch score';
+	is specificity.score(@union), 5, 'positional query list uses max branch score';
 }

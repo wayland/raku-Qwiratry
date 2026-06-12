@@ -139,9 +139,9 @@ unit class Qwiratry::Walker::Implementation::Table does Qwiratry::Walker {
 		method describe(--> Str) { "TablePlan({$!query-ast.^name})" }
 
 		method capabilities(--> Associative) {
-			merge-capabilities(
-				navigation-capability(:enabled(True), 'table'),
-				lazy-capability(:enabled(True), :type('incremental')),
+			Qwiratry::Walker::Capabilities.instance.merge(
+				Qwiratry::Walker::Capabilities.instance.navigation(:enabled(True), 'table'),
+				Qwiratry::Walker::Capabilities.instance.lazy(:enabled(True), :type('incremental')),
 			)
 		}
 	}
@@ -178,9 +178,9 @@ unit class Qwiratry::Walker::Implementation::Table does Qwiratry::Walker {
 	}
 
 	method capabilities(--> Associative) {
-		merge-capabilities(
-			navigation-capability(:enabled(True), 'table'),
-			lazy-capability(:enabled(True), :type('incremental')),
+		Qwiratry::Walker::Capabilities.instance.merge(
+			Qwiratry::Walker::Capabilities.instance.navigation(:enabled(True), 'table'),
+			Qwiratry::Walker::Capabilities.instance.lazy(:enabled(True), :type('incremental')),
 		)
 	}
 }

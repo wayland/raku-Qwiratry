@@ -11,6 +11,7 @@ unit module Qwiratry::Operator::IO;
 use Qwiratry::IO::Parse;
 use Qwiratry::IO::Render;
 use Qwiratry::Operator::Capability;
+use Qwiratry::Operator::PipelineStep;
 use Qwiratry::Exception::Operator;
 
 role IOOperatorNode does IOOperator does OperatorBase {
@@ -49,6 +50,10 @@ class SourceOperator is RakuAST::Node does IOOperator does OperatorBase is expor
 	method describe(--> Str) {
 		"SourceOperator(location: '$!location')"
 	}
+
+	method evaluate(Mu :$origin, :&execute) {
+		read-location($!location)
+	}
 }
 
 class ParseOperator is RakuAST::Node does IOOperatorNode is export {
@@ -60,6 +65,11 @@ class ParseOperator is RakuAST::Node does IOOperatorNode is export {
 
 	method describe(--> Str) {
 		self.io-describe("format: '{$!format.lc}'")
+	}
+
+	method evaluate(Mu :$origin, :&execute) {
+		my $text = execute($!subject // $origin, :$origin);
+		parse-data($!format, $text)
 	}
 }
 
@@ -74,6 +84,11 @@ class RenderOperator is RakuAST::Node does IOOperatorNode is export {
 	method describe(--> Str) {
 		self.io-describe("format: '{$!format.lc}', options: {%.options.raku}")
 	}
+
+	method evaluate(Mu :$origin, :&execute) {
+		my $data = execute($!subject // $origin, :$origin);
+		render-data($!format, $data, %.options)
+	}
 }
 
 class DestinationOperator is RakuAST::Node does IOOperatorNode is export {
@@ -85,5 +100,11 @@ class DestinationOperator is RakuAST::Node does IOOperatorNode is export {
 
 	method describe(--> Str) {
 		self.io-describe("location: '$!location'")
+	}
+
+	method evaluate(Mu :$origin, :&execute) {
+		my $content = execute($!subject // $origin, :$origin);
+		write-location($!location, $content);
+		$content
 	}
 }

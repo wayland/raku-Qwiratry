@@ -6,33 +6,29 @@ Locates a node under a root container and swaps it for a new value without
 rebuilding the entire tree.
 
 =end pod
-unit module Qwiratry::Tree::Replace;
-
 use Qwiratry::Query::Match;
 
-=begin pod
+unit class Qwiratry::Tree::Replace;
 
-Replace C<$old> with C<$new> under C<$root>. Returns True when replacement succeeded.
+my $instance;
 
-=end pod
-our sub replace-node-in-tree(Mu $old, Mu $new, Mu $root --> Bool) is export {
+method instance(--> Qwiratry::Tree::Replace) {
+	$instance //= self.new
+}
+
+method replace-node(Mu $old, Mu $new, Mu $root --> Bool) {
 	return False unless $old.defined && $new.defined && $root.defined;
 
 	if $old === $root {
-		return merge-into-container($root, $new);
+		return self!merge-into-container($root, $new);
 	}
 
 	my $parent = find-parent-in-tree($old, $root);
 	return False unless $parent.defined;
-	replace-in-parent($parent, $old, $new);
+	self!replace-in-parent($parent, $old, $new);
 }
 
-=begin pod
-
-Replace C<$old> with C<$new> in C<$parent> (positional slot, C<children>, or hash value).
-
-=end pod
-sub replace-in-parent(Mu $parent, Mu $old, Mu $new --> Bool) {
+method !replace-in-parent(Mu $parent, Mu $old, Mu $new --> Bool) {
 	if $parent ~~ Positional {
 		for 0..^$parent.elems -> $i {
 			next unless $parent[$i] === $old;
@@ -57,12 +53,7 @@ sub replace-in-parent(Mu $parent, Mu $old, Mu $new --> Bool) {
 	False
 }
 
-=begin pod
-
-When C<$old> is the root, merge C<$new> into the existing container in place.
-
-=end pod
-sub merge-into-container(Mu $container, Mu $new --> Bool) {
+method !merge-into-container(Mu $container, Mu $new --> Bool) {
 	if $container ~~ Associative && $new ~~ Associative {
 		for $new.keys -> $key {
 			$container{$key} = $new{$key};

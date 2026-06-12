@@ -138,7 +138,7 @@ role Qwiratry::Walker::Plan {
 
 	=end pod
 	method capabilities(--> Associative) {
-		default-plan-capabilities()
+		Qwiratry::Walker::Capabilities.instance.default-plan()
 	}
 }
 
@@ -304,7 +304,7 @@ role Qwiratry::Walker does Iterable {
 
 	=end pod
 	method capabilities(--> Associative) {
-		default-walker-capabilities()
+		Qwiratry::Walker::Capabilities.instance.default-walker()
 	}
     
 	=begin pod

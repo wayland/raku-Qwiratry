@@ -76,8 +76,8 @@ class Qwiratry::Walker::Master::Plan does Qwiratry::Walker::Plan {
 
 	method capabilities(--> Associative) {
 		my @subcaps = @!subplans.map(*.capabilities);
-		merge-capabilities(
-			lazy-capability(:enabled(True), :type('incremental')),
+		Qwiratry::Walker::Capabilities.instance.merge(
+			Qwiratry::Walker::Capabilities.instance.lazy(:enabled(True), :type('incremental')),
 			|@subcaps,
 		)
 	}
@@ -428,9 +428,9 @@ class Qwiratry::Walker::Master does Qwiratry::Walker {
 	}
 
 	method capabilities(--> Associative) {
-		merge-capabilities(
-			lazy-capability(:enabled(True), :type('incremental')),
-			navigation-capability(:enabled(True), 'composite'),
+		Qwiratry::Walker::Capabilities.instance.merge(
+			Qwiratry::Walker::Capabilities.instance.lazy(:enabled(True), :type('incremental')),
+			Qwiratry::Walker::Capabilities.instance.navigation(:enabled(True), 'composite'),
 		)
 	}
 }

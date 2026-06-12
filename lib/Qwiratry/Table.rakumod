@@ -46,7 +46,7 @@ class Catalog is export {
 		for $!tables.pairs -> $pair {
 			for $pair.value.list -> $candidate {
 				return $pair.key if $candidate === $row;
-				return $pair.key if row-equal($candidate, $row);
+				return $pair.key if Qwiratry::Query::Relational.instance.row-equal($candidate, $row);
 			}
 		}
 		Nil

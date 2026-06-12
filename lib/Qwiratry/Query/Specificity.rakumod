@@ -12,46 +12,34 @@ Scoring follows Specification.md section 3.3.2.4 (ORDER-TEMPLATES):
 Higher scores mean more specific templates and win ordering ties.
 
 =end pod
-unit module Qwiratry::Query::Specificity;
-
 use Qwiratry::Operator::Navigation;
 use Qwiratry::Operator::Capability;
 use Qwiratry::Operator::Set;
 use Qwiratry::Operator::MapReduce;
 
-=begin pod
+unit class Qwiratry::Query::Specificity;
 
-Return True when C<$query> is a positional list of navigation operators (union syntax).
+my $instance;
 
-=end pod
-sub is-union-query(Mu $query --> Bool) {
-	return False unless $query.WHAT === Array || $query.WHAT === List;
-	$query.elems > 0 && $query[0] ~~ NavigationOperator;
+method instance(--> Qwiratry::Query::Specificity) {
+	$instance //= self.new
 }
 
-=begin pod
-
-Return a specificity score for a query AST fragment. Higher scores are more specific.
-
-Nested navigation operators accumulate scores from subject chains. Union-like
-structures use the maximum branch score.
-
-=end pod
-our sub score(Mu $query --> Int) is export {
+method score(Mu $query --> Int) {
 	return 0 unless $query.defined;
 
 	if $query ~~ NavigationOperator {
-		my $total = operator-contribution($query);
+		my $total = self!operator-contribution($query);
 		if $query.can('subject') && $query.subject.defined {
-			$total += score($query.subject);
+			$total += self.score($query.subject);
 		}
 		return $total;
 	}
 
-	if is-union-query($query) {
+	if self!is-union-query($query) {
 		my $max = 0;
 		for $query.list -> $branch {
-			my $branch-score = score($branch);
+			my $branch-score = self.score($branch);
 			$max = $branch-score if $branch-score > $max;
 		}
 		return $max;
@@ -59,37 +47,37 @@ our sub score(Mu $query --> Int) is export {
 
 	if $query ~~ UnionOperator | IntersectionOperator | SetDifferenceOperator
 			| SymmetricDifferenceOperator {
-		my $left = score($query.left);
-		my $right = score($query.right);
+		my $left = self.score($query.left);
+		my $right = self.score($query.right);
 		return $left > $right ?? $left !! $right;
 	}
 
 	if $query ~~ SelectionOperator | SortOperator | MapOperator | ReduceOperator {
-		return score($query.subject) if $query.can('subject') && $query.subject.defined;
+		return self.score($query.subject) if $query.can('subject') && $query.subject.defined;
 		return 0;
 	}
 
 	0;
 }
 
-=begin pod
+method !is-union-query(Mu $query --> Bool) {
+	return False unless $query.WHAT === Array || $query.WHAT === List;
+	$query.elems > 0 && $query[0] ~~ NavigationOperator;
+}
 
-Score contribution from a single navigation operator node.
-
-=end pod
-sub operator-contribution(Mu $op --> Int) {
+method !operator-contribution(Mu $op --> Int) {
 	given $op {
 		when DescendantOperator | AncestorOperator | FollowingOperator | PrecedingOperator {
-			selector-contribution($op.selector) - 100;
+			self!selector-contribution($op.selector) - 100;
 		}
 		when AttributeOperator {
-			selector-contribution($op.key) + 5;
+			self!selector-contribution($op.key) + 5;
 		}
 		when RootOperator {
 			0;
 		}
 		when ChildOperator | ParentOperator | FollowingSiblingOperator | PrecedingSiblingOperator {
-			selector-contribution($op.selector);
+			self!selector-contribution($op.selector);
 		}
 		default {
 			0;
@@ -97,36 +85,21 @@ sub operator-contribution(Mu $op --> Int) {
 	}
 }
 
-=begin pod
-
-Score a navigation selector (wildcard, explicit path, or other).
-
-=end pod
-sub selector-contribution(Mu $selector --> Int) {
-	return -10 if is-wildcard-selector($selector);
-	return 5 if is-explicit-path-selector($selector);
+method !selector-contribution(Mu $selector --> Int) {
+	return -10 if self!is-wildcard-selector($selector);
+	return 5 if self!is-explicit-path-selector($selector);
 	0;
 }
 
-=begin pod
-
-Return True for C<*> / C<**> or C<Whatever> selectors.
-
-=end pod
-sub is-wildcard-selector(Mu $selector --> Bool) {
+method !is-wildcard-selector(Mu $selector --> Bool) {
 	return True if $selector ~~ Whatever;
 	return True if $selector ~~ Str && $selector eq any(<* **>);
 	False;
 }
 
-=begin pod
-
-Return True for non-wildcard string or Callable selectors.
-
-=end pod
-sub is-explicit-path-selector(Mu $selector --> Bool) {
+method !is-explicit-path-selector(Mu $selector --> Bool) {
 	return False unless $selector.defined;
-	return False if is-wildcard-selector($selector);
+	return False if self!is-wildcard-selector($selector);
 	return True if $selector ~~ Str && $selector.chars > 0;
 	return True if $selector ~~ Callable;
 	False;

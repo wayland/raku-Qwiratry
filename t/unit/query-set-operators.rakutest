@@ -8,6 +8,8 @@ use Qwiratry::Query::Specificity;
 use Qwiratry::Operator::Navigation;
 use Qwiratry::Operator::Set;
 
+my constant specificity = Qwiratry::Query::Specificity.instance;
+
 plan 4;
 
 my $tree = [
@@ -44,7 +46,8 @@ subtest 'selection predicate filters results' => {
 subtest 'set operator specificity uses max branch' => {
 	plan 1;
 	my $union = ($tree ⪪ <section>) ∪ ($tree ⪪⪪ <item>);
-	ok score($union) >= score($tree ⪪⪪ <item>), 'union specificity at least as specific as strongest branch';
+	ok specificity.score($union) >= specificity.score($tree ⪪⪪ <item>),
+		'union specificity at least as specific as strongest branch';
 }
 
 done-testing;

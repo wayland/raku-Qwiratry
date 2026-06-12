@@ -5,7 +5,7 @@ use lib 'lib';
 
 use Qwiratry::IO::Parse::JSON;
 use Qwiratry::IO::Render::JSON;
-use Qwiratry::IO::Pipeline;
+use Qwiratry::Operator::PipelineStep;
 use Qwiratry::Query::Slang;
 use Qwiratry::Query::Match;
 

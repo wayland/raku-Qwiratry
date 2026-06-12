@@ -161,9 +161,9 @@ unit class Qwiratry::Walker::Implementation::Tree does Qwiratry::Walker {
 		method describe(--> Str) { "TreePlan({$!query-ast.^name})" }
 
 		method capabilities(--> Associative) {
-			merge-capabilities(
-				navigation-capability(:enabled(True), 'tree'),
-				lazy-capability(:enabled(True), :type('incremental')),
+			Qwiratry::Walker::Capabilities.instance.merge(
+				Qwiratry::Walker::Capabilities.instance.navigation(:enabled(True), 'tree'),
+				Qwiratry::Walker::Capabilities.instance.lazy(:enabled(True), :type('incremental')),
 			)
 		}
 	}
@@ -201,9 +201,9 @@ unit class Qwiratry::Walker::Implementation::Tree does Qwiratry::Walker {
 	}
 
 	method capabilities(--> Associative) {
-		merge-capabilities(
-			navigation-capability(:enabled(True), 'tree'),
-			lazy-capability(:enabled(True), :type('incremental')),
+		Qwiratry::Walker::Capabilities.instance.merge(
+			Qwiratry::Walker::Capabilities.instance.navigation(:enabled(True), 'tree'),
+			Qwiratry::Walker::Capabilities.instance.lazy(:enabled(True), :type('incremental')),
 			%(supports-rewrite => %(enabled => True)),
 		)
 	}

@@ -8,6 +8,8 @@ support. Walkers use C<capabilities()> metadata during C<supports()> checks.
 =end pod
 unit module Qwiratry::Operator::Capability;
 
+use Qwiratry::Operator::PipelineStep;
+
 =begin pod
 
 Base capability role mixed into all operator AST nodes.
@@ -29,7 +31,7 @@ role OperatorBase is export {
 Marks an operator as a navigation query (tree, table, or graph axes).
 
 =end pod
-role NavigationOperator is export {
+role NavigationOperator does PipelineStep is export {
 	=begin pod
 
 	Declare navigation support and supported domains for walker matching.
@@ -49,7 +51,7 @@ role NavigationOperator is export {
 Marks an operator as map, reduce, sort, or selection (relational algebra on streams).
 
 =end pod
-role MapReduceOperator is export {
+role MapReduceOperator does PipelineStep is export {
 	=begin pod
 
 	Declare map-reduce and lazy-evaluation support.
@@ -68,7 +70,7 @@ role MapReduceOperator is export {
 Marks an operator as a set or join operation over relations.
 
 =end pod
-role SetOperator is export {
+role SetOperator does PipelineStep is export {
 	=begin pod
 
 	Declare set-operation and relational-algebra support.
@@ -88,7 +90,7 @@ role SetOperator is export {
 Marks an operator as part of an I/O pipeline (source, parse, render, destination).
 
 =end pod
-role IOOperator is export {
+role IOOperator does PipelineStep is export {
 	=begin pod
 
 	Declare I/O support and the set of data formats available for parse/render.

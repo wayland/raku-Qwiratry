@@ -14,6 +14,8 @@ use Qwiratry::Operator::MapReduce;
 use Qwiratry::Operator::IO;
 use Qwiratry::Query::Relational;
 
+my sub relational() { Qwiratry::Query::Relational.instance }
+
 sub iterator-for(Mu $source --> Iterator) {
 	return $source if $source ~~ Iterator;
 	if $source ~~ Seq {
@@ -79,7 +81,7 @@ class UnionIterator does Iterator {
 				$!iter = Nil;
 				next;
 			}
-			next if node-in-list($row, @!seen);
+			next if relational.node-in-list($row, @!seen);
 			@!seen.push($row);
 			return $row;
 		}
@@ -102,7 +104,7 @@ class IntersectionIterator does Iterator {
 		loop {
 			my $lrow = pull-next($!left-iter);
 			return IterationEnd if $lrow ~~ IterationEnd;
-			return $lrow if node-in-list($lrow, @!right-list);
+			return $lrow if relational.node-in-list($lrow, @!right-list);
 		}
 	}
 }
@@ -123,7 +125,7 @@ class SetDifferenceIterator does Iterator {
 		loop {
 			my $lrow = pull-next($!left-iter);
 			return IterationEnd if $lrow ~~ IterationEnd;
-			return $lrow unless row-in-list($lrow, @!right-list);
+			return $lrow unless relational.row-in-list($lrow, @!right-list);
 		}
 	}
 }
@@ -159,8 +161,8 @@ class NaturalJoinIterator does Iterator {
 			next unless $rrow ~~ Associative;
 			my $matches = &!condition.defined
 				?? &!condition($!current-left, $rrow)
-				!! join-on-common-keys($!current-left, $rrow);
-			return merge-rows($!current-left, $rrow) if $matches;
+				!! relational.join-on-common-keys($!current-left, $rrow);
+			return relational.merge-rows($!current-left, $rrow) if $matches;
 		}
 	}
 }
@@ -188,8 +190,8 @@ class LeftOuterJoinIterator does Iterator {
 				last if $rrow ~~ IterationEnd;
 				my $ok = &!condition.defined
 					?? &!condition($!current-left, $rrow)
-					!! join-on-common-keys($!current-left, $rrow);
-				@matches.push(merge-rows($!current-left, $rrow)) if $ok;
+					!! relational.join-on-common-keys($!current-left, $rrow);
+				@matches.push(relational.merge-rows($!current-left, $rrow)) if $ok;
 			}
 			if @matches {
 				@!pending = @matches;
@@ -223,8 +225,8 @@ class RightOuterJoinIterator does Iterator {
 				last if $lrow ~~ IterationEnd;
 				my $ok = &!condition.defined
 					?? &!condition($lrow, $!current-right)
-					!! join-on-common-keys($lrow, $!current-right);
-				@matches.push(merge-rows($lrow, $!current-right)) if $ok;
+					!! relational.join-on-common-keys($lrow, $!current-right);
+				@matches.push(relational.merge-rows($lrow, $!current-right)) if $ok;
 			}
 			if @matches {
 				@!pending = @matches;
@@ -252,7 +254,7 @@ class LeftSemijoinIterator does Iterator {
 				last if $rrow ~~ IterationEnd;
 				my $ok = &!condition.defined
 					?? &!condition($lrow, $rrow)
-					!! join-on-common-keys($lrow, $rrow);
+					!! relational.join-on-common-keys($lrow, $rrow);
 				return %($lrow) if $ok;
 			}
 		}
@@ -277,7 +279,7 @@ class LeftAntijoinIterator does Iterator {
 				last if $rrow ~~ IterationEnd;
 				my $ok = &!condition.defined
 					?? &!condition($lrow, $rrow)
-					!! join-on-common-keys($lrow, $rrow);
+					!! relational.join-on-common-keys($lrow, $rrow);
 				if $ok {
 					$matched = True;
 					last;
@@ -309,7 +311,7 @@ class CrossJoinIterator does Iterator {
 				$!right-iter = Nil;
 				next;
 			}
-			return merge-rows($!current-left, $rrow);
+			return relational.merge-rows($!current-left, $rrow);
 		}
 	}
 }
@@ -324,7 +326,7 @@ class ProjectionIterator does Iterator {
 		loop {
 			my $row = pull-next($!iter);
 			return IterationEnd if $row ~~ IterationEnd;
-			return $row ~~ Associative ?? project-row($row, @.columns) !! $row;
+			return $row ~~ Associative ?? relational.project-row($row, @.columns) !! $row;
 		}
 	}
 }
@@ -339,7 +341,7 @@ class RenameIterator does Iterator {
 		loop {
 			my $row = pull-next($!iter);
 			return IterationEnd if $row ~~ IterationEnd;
-			return $row ~~ Associative ?? rename-row($row, %.renames) !! $row;
+			return $row ~~ Associative ?? relational.rename-row($row, %.renames) !! $row;
 		}
 	}
 }
@@ -388,10 +390,10 @@ our sub lazy-symmetric-difference($left, $right) is export {
 	my @left-list = iterator-for($left).list;
 	my @items = gather {
 		for @left-list -> $row {
-			take $row unless row-in-list($row, @right-list);
+			take $row unless relational.row-in-list($row, @right-list);
 		}
 		for @right-list -> $row {
-			take $row unless row-in-list($row, @left-list);
+			take $row unless relational.row-in-list($row, @left-list);
 		}
 	};
 	lazy-seq ListIterator.new(items => @items)

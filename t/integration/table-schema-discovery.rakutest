@@ -35,7 +35,7 @@ subtest 'Providing schema metadata enables FK navigation' => {
 	plan 2;
 
 	my @orders-only = @orders.clone;
-	attach-schema(@orders-only, %(
+	Qwiratry::Table::Schema.instance.attach(@orders-only, %(
 		table-name => 'orders',
 		tables => %(orders => @orders-only, customers => @customers),
 	));
