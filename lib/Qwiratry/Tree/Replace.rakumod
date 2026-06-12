@@ -12,10 +12,20 @@ unit class Qwiratry::Tree::Replace;
 
 my $instance;
 
+=begin pod
+
+Return the shared Tree::Replace service instance.
+
+=end pod
 method instance(--> Qwiratry::Tree::Replace) {
 	$instance //= self.new
 }
 
+=begin pod
+
+Replace C<$old> with C<$new> under C<$root>. Returns True when replacement succeeded.
+
+=end pod
 method replace-node(Mu $old, Mu $new, Mu $root --> Bool) {
 	return False unless $old.defined && $new.defined && $root.defined;
 
@@ -28,6 +38,11 @@ method replace-node(Mu $old, Mu $new, Mu $root --> Bool) {
 	self!replace-in-parent($parent, $old, $new);
 }
 
+=begin pod
+
+Replace C<$old> with C<$new> in C<$parent> (positional slot, C<children>, or hash value).
+
+=end pod
 method !replace-in-parent(Mu $parent, Mu $old, Mu $new --> Bool) {
 	if $parent ~~ Positional {
 		for 0..^$parent.elems -> $i {
@@ -53,6 +68,11 @@ method !replace-in-parent(Mu $parent, Mu $old, Mu $new --> Bool) {
 	False
 }
 
+=begin pod
+
+When C<$old> is the root, merge C<$new> into the existing container in place.
+
+=end pod
 method !merge-into-container(Mu $container, Mu $new --> Bool) {
 	if $container ~~ Associative && $new ~~ Associative {
 		for $new.keys -> $key {

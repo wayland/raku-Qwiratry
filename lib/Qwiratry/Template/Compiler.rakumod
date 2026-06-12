@@ -2,6 +2,9 @@
 
 Compile RakuAST template components into runtime blocks and structures.
 
+Handles blockoid compilation, signature lowering, trait application, and
+conceptual method transformation for templates parsed by L<Qwiratry::Template::Slang>.
+
 =end pod
 use v6.e.PREVIEW;
 use Qwiratry::Template;
@@ -10,10 +13,20 @@ unit class Qwiratry::Template::Compiler;
 
 my $instance;
 
+=begin pod
+
+Return the shared template compiler instance.
+
+=end pod
 method instance(--> Qwiratry::Template::Compiler) {
 	$instance //= self.new
 }
 
+=begin pod
+
+Compile a RakuAST blockoid capture to an executable C<Block>.
+
+=end pod
 method compile-blockoid(Mu $cap) {
 	return Nil unless $cap.defined;
 	my $body = try $cap.ast;
@@ -21,12 +34,22 @@ method compile-blockoid(Mu $cap) {
 	self!compile-block-body($body);
 }
 
+=begin pod
+
+Compile a single expression as a one-statement block.
+
+=end pod
 method compile-block-expr(Mu $expr) {
 	self!compile-block-body(RakuAST::StatementList.new(
 		RakuAST::Statement::Expression.new(:expression($expr)),
 	));
 }
 
+=begin pod
+
+Default C<$_> signature for templates without an explicit signature.
+
+=end pod
 method implicit-template-signature() {
 	RakuAST::Signature.new(
 		parameters => (
@@ -38,6 +61,11 @@ method implicit-template-signature() {
 	);
 }
 
+=begin pod
+
+Compile a RakuAST signature node to a runtime C<Signature> object.
+
+=end pod
 method compile-signature($sig-ast) {
 	return Nil unless $sig-ast.defined;
 	return $sig-ast if $sig-ast ~~ Signature;
@@ -48,6 +76,11 @@ method compile-signature($sig-ast) {
 	try $stub.compile-time-value.signature // Nil
 }
 
+=begin pod
+
+Build conceptual method structure from template name, signature, and blocks.
+
+=end pod
 method transform-to-method(
 	:$name,
 	:$signature,
@@ -63,15 +96,30 @@ method transform-to-method(
 	)
 }
 
+=begin pod
+
+Extract compiled do-block from transformed method structure.
+
+=end pod
 method compile-rakuast-method(%method-structure) {
 	return Nil unless %method-structure<transformed>;
 	%method-structure<body>
 }
 
+=begin pod
+
+Human-readable label for error messages.
+
+=end pod
 method display-name($name) {
 	$name.defined ?? "template $name" !! "unnamed template"
 }
 
+=begin pod
+
+Apply C<is streaming>, C<is priority>, C<is tie-breaker>, and C<returns> traits to a template.
+
+=end pod
 method apply-traits(Template $template, $routine) {
 	return unless $routine.traits.defined;
 	for $routine.traits -> $trait {
@@ -97,6 +145,11 @@ method apply-traits(Template $template, $routine) {
 	}
 }
 
+=begin pod
+
+Compile a RakuAST statement list body to a C<Block> at begin time.
+
+=end pod
 method !compile-block-body(Mu $body) {
 	my $block = RakuAST::Block.new(body => $body);
 	try {

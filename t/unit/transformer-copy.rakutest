@@ -10,60 +10,62 @@ use lib 'lib';
 use Qwiratry::Transformer::Copy;
 use Qwiratry::Transformer;
 
+my constant copy-service = Qwiratry::Transformer::Copy.instance;
+
 plan 10;
 
 # =============================================================================
-# Test T034-T036: copy() multi subs
+# Test T034-T036: copy-service.copy() multi subs
 # =============================================================================
 
-subtest "copy() - shallow copy" => {
+subtest "copy-service.copy() - shallow copy" => {
 	plan 7;
     
-	# Test copy(Mu) - identity
+	# Test copy-service.copy(Mu) - identity
 	my $str = "test";
-	my $copy1 = copy($str);
-	is $copy1, $str, "copy(Mu) returns identity for immutable primitives";
+	my $copy1 = copy-service.copy($str);
+	is $copy1, $str, "copy-service.copy(Mu) returns identity for immutable primitives";
     
-	# Test copy(Positional) - shallow copy
+	# Test copy-service.copy(Positional) - shallow copy
 	my @arr = [1, 2, 3];
-	my $copy2 = copy(@arr);
-	ok $copy2 ~~ Positional, "copy(Positional) returns Positional";
-	ok @arr !=== $copy2, "copy(Positional) creates new object";
-	is $copy2[0], @arr[0], "copy(Positional) shares children (shallow copy)";
+	my $copy2 = copy-service.copy(@arr);
+	ok $copy2 ~~ Positional, "copy-service.copy(Positional) returns Positional";
+	ok @arr !=== $copy2, "copy-service.copy(Positional) creates new object";
+	is $copy2[0], @arr[0], "copy-service.copy(Positional) shares children (shallow copy)";
     
-	# Test copy(Associative) - shallow copy
+	# Test copy-service.copy(Associative) - shallow copy
 	my %hash = a => 1, b => 2;
-	my $copy3 = copy(%hash);
-	ok $copy3 ~~ Associative, "copy(Associative) returns Associative";
-	ok %hash !=== $copy3, "copy(Associative) creates new object";
-	is $copy3<a>, %hash<a>, "copy(Associative) shares children (shallow copy)";
+	my $copy3 = copy-service.copy(%hash);
+	ok $copy3 ~~ Associative, "copy-service.copy(Associative) returns Associative";
+	ok %hash !=== $copy3, "copy-service.copy(Associative) creates new object";
+	is $copy3<a>, %hash<a>, "copy-service.copy(Associative) shares children (shallow copy)";
 }
 
 # =============================================================================
-# Test T037-T039: deepcopy() multi subs
+# Test T037-T039: copy-service.deepcopy() multi subs
 # =============================================================================
 
-subtest "deepcopy() - recursive deep copy" => {
+subtest "copy-service.deepcopy() - recursive deep copy" => {
 	plan 7;
     
-	# Test deepcopy(Mu) - identity
+	# Test copy-service.deepcopy(Mu) - identity
 	my $str = "test";
-	my $deep1 = deepcopy($str);
-	is $deep1, $str, "deepcopy(Mu) returns identity for immutable primitives";
+	my $deep1 = copy-service.deepcopy($str);
+	is $deep1, $str, "copy-service.deepcopy(Mu) returns identity for immutable primitives";
     
-	# Test deepcopy(Positional) - recursive deep copy
+	# Test copy-service.deepcopy(Positional) - recursive deep copy
 	my @arr = [1, [2, 3], 4];
-	my $deep2 = deepcopy(@arr);
-	ok $deep2 ~~ Positional, "deepcopy(Positional) returns Positional";
-	ok @arr !=== $deep2, "deepcopy(Positional) creates new object";
-	ok @arr[1] !=== $deep2[1], "deepcopy(Positional) recursively copies children";
+	my $deep2 = copy-service.deepcopy(@arr);
+	ok $deep2 ~~ Positional, "copy-service.deepcopy(Positional) returns Positional";
+	ok @arr !=== $deep2, "copy-service.deepcopy(Positional) creates new object";
+	ok @arr[1] !=== $deep2[1], "copy-service.deepcopy(Positional) recursively copies children";
     
-	# Test deepcopy(Associative) - recursive deep copy
+	# Test copy-service.deepcopy(Associative) - recursive deep copy
 	my %hash = a => 1, b => [2, 3];
-	my $deep3 = deepcopy(%hash);
-	ok $deep3 ~~ Associative, "deepcopy(Associative) returns Associative";
-	ok %hash !=== $deep3, "deepcopy(Associative) creates new object";
-	ok %hash<b> !=== $deep3<b>, "deepcopy(Associative) recursively copies values";
+	my $deep3 = copy-service.deepcopy(%hash);
+	ok $deep3 ~~ Associative, "copy-service.deepcopy(Associative) returns Associative";
+	ok %hash !=== $deep3, "copy-service.deepcopy(Associative) creates new object";
+	ok %hash<b> !=== $deep3<b>, "copy-service.deepcopy(Associative) recursively copies values";
 }
 
 # =============================================================================
@@ -78,7 +80,7 @@ subtest "Cycle detection" => {
 	@arr.push(@arr);  # Create cycle
     
 	# deepcopy should handle cycle without infinite recursion
-	my $deep = deepcopy(@arr);
+	my $deep = copy-service.deepcopy(@arr);
 	ok $deep ~~ Positional, "deepcopy handles cycles without infinite recursion";
 	is $deep.elems, 3, "deepcopy preserves cycle structure";
 }
@@ -96,8 +98,8 @@ subtest "DAG preservation" => {
 	my @arr2 = [4, $shared];
     
 	# Deep copy both arrays
-	my $deep1 = deepcopy(@arr1);
-	my $deep2 = deepcopy(@arr2);
+	my $deep1 = copy-service.deepcopy(@arr1);
+	my $deep2 = copy-service.deepcopy(@arr2);
     
 	# In DAG, shared children should be cloned once per parent
 	# But when deepcopying separately, they won't share the clone
@@ -115,7 +117,7 @@ subtest "DAG preservation" => {
 
 subtest "Custom .copy() method" => {
 	plan 2;
-    
+
 	# Create class with custom .copy() method
 	class CustomCopy {
 		has $.value;
@@ -125,11 +127,9 @@ subtest "Custom .copy() method" => {
 	}
     
 	my $obj = CustomCopy.new(value => 5);
-	my $copy = copy($obj);
+	my $copy = copy-service.copy($obj);
     
 	ok $copy ~~ CustomCopy, "Custom .copy() method is called";
-	# Note: Custom method should be called, but if it's not Positional/Associative,
-	# it falls through to copy(Mu) which should also check for custom method
 	is $copy.value, 10, "Custom .copy() method result is used";
 }
 
@@ -139,16 +139,14 @@ subtest "Custom .copy() method" => {
 
 subtest "Transformer copy() and deepcopy() methods" => {
 	plan 4;
-    
+
 	my $transformer = Transformer.new;
-    
-	# Test Transformer.copy()
+
 	my @arr = [1, 2, 3];
 	my $copy = $transformer.copy(@arr);
 	ok $copy ~~ Positional, "Transformer.copy() works";
 	ok @arr !=== $copy, "Transformer.copy() creates new object";
-    
-	# Test Transformer.deepcopy()
+
 	my @arr2 = [1, [2, 3], 4];
 	my $deep = $transformer.deepcopy(@arr2);
 	ok $deep ~~ Positional, "Transformer.deepcopy() works";
@@ -167,11 +165,11 @@ subtest "Performance - copy is O(1)" => {
     
 	# copy should be fast (O(1)) regardless of size
 	my $start = now;
-	my $copy = copy(@large);
+	my $copy = copy-service.copy(@large);
 	my $duration = now - $start;
     
 	# Should complete quickly (less than 0.1 seconds for O(1) operation)
-	ok $duration < 0.1, "copy() is O(1) - completes quickly even for large arrays";
+	ok $duration < 0.1, "copy-service.copy() is O(1) - completes quickly even for large arrays";
 }
 
 # =============================================================================
@@ -183,18 +181,18 @@ subtest "Edge cases" => {
     
 	# Empty array
 	my @empty = [];
-	my $copy1 = copy(@empty);
-	ok $copy1 ~~ Positional, "copy() handles empty arrays";
+	my $copy1 = copy-service.copy(@empty);
+	ok $copy1 ~~ Positional, "copy-service.copy() handles empty arrays";
     
 	# Empty hash
 	my %empty;
-	my $copy2 = copy(%empty);
-	ok $copy2 ~~ Associative, "copy() handles empty hashes";
+	my $copy2 = copy-service.copy(%empty);
+	ok $copy2 ~~ Associative, "copy-service.copy() handles empty hashes";
     
 	# Nested structures
 	my @nested = [[1, 2], [3, 4]];
-	my $deep = deepcopy(@nested);
-	ok $deep[0] !=== @nested[0], "deepcopy() handles nested structures";
+	my $deep = copy-service.deepcopy(@nested);
+	ok $deep[0] !=== @nested[0], "copy-service.deepcopy() handles nested structures";
 }
 
 # =============================================================================
@@ -206,17 +204,17 @@ subtest "Immutable primitives" => {
     
 	# String
 	my $str = "test";
-	my $copy1 = copy($str);
-	my $deep1 = deepcopy($str);
-	is $copy1, $str, "copy() returns identity for strings";
-	is $deep1, $str, "deepcopy() returns identity for strings";
+	my $copy1 = copy-service.copy($str);
+	my $deep1 = copy-service.deepcopy($str);
+	is $copy1, $str, "copy-service.copy() returns identity for strings";
+	is $deep1, $str, "copy-service.deepcopy() returns identity for strings";
     
 	# Number
 	my $num = 42;
-	my $copy2 = copy($num);
-	my $deep2 = deepcopy($num);
-	is $copy2, $num, "copy() returns identity for numbers";
-	is $deep2, $num, "deepcopy() returns identity for numbers";
+	my $copy2 = copy-service.copy($num);
+	my $deep2 = copy-service.deepcopy($num);
+	is $copy2, $num, "copy-service.copy() returns identity for numbers";
+	is $deep2, $num, "copy-service.deepcopy() returns identity for numbers";
 }
 
 # =============================================================================
@@ -231,7 +229,7 @@ subtest "Complex structures" => {
 		a => [1, 2],
 		b => { x => [3, 4], y => 5 };
     
-	my $deep = deepcopy(%complex);
-	ok $deep ~~ Associative, "deepcopy() handles complex structures";
-	ok $deep<a> !=== %complex<a>, "deepcopy() recursively copies nested structures";
+	my $deep = copy-service.deepcopy(%complex);
+	ok $deep ~~ Associative, "copy-service.deepcopy() handles complex structures";
+	ok $deep<a> !=== %complex<a>, "copy-service.deepcopy() recursively copies nested structures";
 }

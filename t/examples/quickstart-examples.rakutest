@@ -162,16 +162,17 @@ subtest "Copy Operations" => {
     
 	# Example: Copy operations
 	use Qwiratry::Transformer::Copy;
-    
+	my constant copy-service = Qwiratry::Transformer::Copy.instance;
+
 	my $original = [1, 2, 3];
-    
+
 	# Shallow copy
-	my $shallow = copy($original);
+	my $shallow = copy-service.copy($original);
 	ok $shallow.defined, "Shallow copy works";
 	is-deeply $shallow, $original, "Shallow copy preserves structure";
-    
+
 	# Deep copy
-	my $deep = deepcopy($original);
+	my $deep = copy-service.deepcopy($original);
 	ok $deep.defined, "Deep copy works";
 	is-deeply $deep, $original, "Deep copy preserves structure";
 }

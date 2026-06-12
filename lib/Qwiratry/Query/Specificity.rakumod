@@ -24,10 +24,23 @@ my constant selector = Qwiratry::Query::Selector.instance;
 
 my $instance;
 
+=begin pod
+
+Return the shared Specificity scorer instance.
+
+=end pod
 method instance(--> Qwiratry::Query::Specificity) {
 	$instance //= self.new
 }
 
+=begin pod
+
+Return a specificity score for a query AST fragment. Higher scores are more specific.
+
+Nested navigation operators accumulate scores from subject chains. Union-like
+structures use the maximum branch score.
+
+=end pod
 method score(Mu $query --> Int) {
 	return 0 unless $query.defined;
 
@@ -63,11 +76,21 @@ method score(Mu $query --> Int) {
 	0;
 }
 
+=begin pod
+
+Return True when C<$query> is a positional list of navigation operators (union syntax).
+
+=end pod
 method !is-union-query(Mu $query --> Bool) {
 	return False unless $query.WHAT === Array || $query.WHAT === List;
 	$query.elems > 0 && $query[0] ~~ NavigationOperator;
 }
 
+=begin pod
+
+Score contribution from a single navigation operator node.
+
+=end pod
 method !operator-contribution(Mu $op --> Int) {
 	given $op {
 		when DescendantOperator | AncestorOperator | FollowingOperator | PrecedingOperator {
@@ -88,6 +111,11 @@ method !operator-contribution(Mu $op --> Int) {
 	}
 }
 
+=begin pod
+
+Score a navigation selector (wildcard, explicit path, or other).
+
+=end pod
 method !selector-contribution(Mu $selector --> Int) {
 	return -10 if selector.is-wildcard($selector);
 	return 5 if selector.is-explicit-path($selector);

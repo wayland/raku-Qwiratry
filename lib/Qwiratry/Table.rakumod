@@ -107,10 +107,22 @@ class Catalog is export {
 		@results
 	}
 
+
+=begin pod
+
+Return True when C<$base> is a single table row (associative, not a catalog).
+
+=end pod
 	method is-table-row(Mu $base --> Bool) {
 		$base ~~ Associative && !($base ~~ Catalog)
 	}
 
+
+=begin pod
+
+Child-axis navigation: active table rows, FK follow, or column filter.
+
+=end pod
 	method child-results(Mu $base, Mu $op --> List) {
 		my $sel = $op.selector;
 
@@ -140,6 +152,12 @@ class Catalog is export {
 		()
 	}
 
+
+=begin pod
+
+Parent-axis navigation: owning table or referencing rows when C<:reference>.
+
+=end pod
 	method parent-results(Mu $base, Mu $op --> List) {
 		my $reference = self!parent-has-reference($op);
 		my $sel = $op.selector;
@@ -162,6 +180,12 @@ class Catalog is export {
 		()
 	}
 
+
+=begin pod
+
+Descendant-axis navigation; table rows require C<:recursive> for FK walks.
+
+=end pod
 	method descendant-results(Mu $base, Mu $op --> List) {
 		if self.is-table-row($base) {
 			unless self!descendant-has-recursive($op) {
@@ -172,6 +196,12 @@ class Catalog is export {
 		self.child-results($base, $op);
 	}
 
+
+=begin pod
+
+Sibling-axis navigation within a table's ordered row list.
+
+=end pod
 	method sibling-results(Mu $base, Mu $op --> List) {
 		if $base ~~ Catalog || ($base ~~ Positional && !($base ~~ Associative)) {
 			return ();
@@ -191,16 +221,34 @@ class Catalog is export {
 		}.List
 	}
 
+
+=begin pod
+
+Return True when a parent operator requests C<:reference> (incoming FK lookup).
+
+=end pod
 	method !parent-has-reference(Mu $op --> Bool) {
 		return True if $op.adverbs.defined && $op.adverbs<reference>;
 		try { $op.reference } orelse False
 	}
 
+
+=begin pod
+
+Return True when a descendant operator requests C<:recursive> FK traversal.
+
+=end pod
 	method !descendant-has-recursive(Mu $op --> Bool) {
 		return True if $op.adverbs.defined && $op.adverbs<recursive>;
 		try { $op.recursive } orelse False
 	}
 
+
+=begin pod
+
+Recursively follow foreign keys from a row for descendant queries.
+
+=end pod
 	method !recursive-fk-results(Associative $row, Mu $op --> List) {
 		my $from-table = self.table-name-for($row);
 		return () unless $from-table.defined;
@@ -214,6 +262,12 @@ class Catalog is export {
 		}.List
 	}
 
+
+=begin pod
+
+Depth-first FK walk helper for L<table-recursive-fk-results>.
+
+=end pod
 	method !recursive-fk-walk(
 		Associative $row,
 		@columns,
@@ -234,6 +288,12 @@ class Catalog is export {
 		}
 	}
 
+
+=begin pod
+
+Columns to follow for recursive descendant navigation from C<$from-table>.
+
+=end pod
 	method !descendant-fk-columns(Mu $op, Str $from-table --> List) {
 		my $sel = $op.selector;
 		if selector.is-wildcard($sel) {
@@ -251,6 +311,12 @@ class Catalog is export {
 		()
 	}
 
+
+=begin pod
+
+Build a visit key for cycle detection during recursive FK walks.
+
+=end pod
 	method !row-visit-key(Associative $row --> Str) {
 		my $table = self.table-name-for($row);
 		return $row.WHICH unless $table.defined;
@@ -266,6 +332,12 @@ class Catalog is export {
 		"$table|$pk"
 	}
 
+
+=begin pod
+
+Locate a row's index and table row list for ordered-row sibling navigation.
+
+=end pod
 	method !row-order-context(Associative $row --> Mu) {
 		my $table-name = self.table-name-for($row);
 		return unless $table-name.defined && self.tables{$table-name}:exists;
@@ -277,6 +349,12 @@ class Catalog is export {
 		Nil
 	}
 
+
+=begin pod
+
+Return candidate sibling rows for following/preceding operators.
+
+=end pod
 	method !sibling-candidates(Mu $op, @rows, Int $index --> List) {
 		given $op {
 			when FollowingSiblingOperator {
@@ -299,6 +377,12 @@ class Catalog is export {
 		}
 	}
 
+
+=begin pod
+
+Filter sibling candidates by selector match.
+
+=end pod
 	method !sibling-matches-selector(Associative $row, Mu $sel --> Bool) {
 		return True if selector.is-wildcard($sel);
 		selector.table-row-matches($row, $sel);

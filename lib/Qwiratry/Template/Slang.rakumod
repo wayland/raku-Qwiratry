@@ -44,26 +44,56 @@ Collected L<Qwiratry::Template> instances registered during transformer parsing.
 =end pod
 my $activation-status;
 
+=begin pod
+
+Register a compiled template with the module-level collection.
+
+=end pod
 sub register-template(Template $template) is export {
 	registry.register-template($template);
 }
 
+=begin pod
+
+Register a wrapper block of the given C<$type> (TRANSFORMER, TEMPLATE_MATCHER, etc.).
+
+=end pod
 sub register-wrapper(Str $type, Block $block) is export {
 	registry.register-wrapper($type, $block);
 }
 
+=begin pod
+
+Return collected templates and clear the module-level list.
+
+=end pod
 sub get-collected-templates() is export {
 	registry.collected-templates;
 }
 
+=begin pod
+
+Clear the template collection without returning it.
+
+=end pod
 sub clear-collected-templates() is export {
 	registry.clear-templates;
 }
 
+=begin pod
+
+Return collected wrappers and clear the module-level list.
+
+=end pod
 sub get-collected-wrappers() is export {
 	registry.collected-wrappers;
 }
 
+=begin pod
+
+Clear the wrapper collection without returning it.
+
+=end pod
 sub clear-collected-wrappers() is export {
 	registry.clear-wrappers;
 }
@@ -118,12 +148,6 @@ Ensure template slang is activated (idempotent).
 sub attempt-slangify-activation() is export {
 	activate-template-slang();
 }
-
-=begin pod
-
-Compile a RakuAST blockoid capture to an executable C<Block>.
-
-=end pod
 
 =begin pod
 

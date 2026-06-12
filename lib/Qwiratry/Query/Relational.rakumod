@@ -10,10 +10,22 @@ unit class Qwiratry::Query::Relational;
 
 my $instance;
 
+
+=begin pod
+
+Return the shared Relational service instance.
+
+=end pod
 method instance(--> Qwiratry::Query::Relational) {
 	$instance //= self.new
 }
 
+
+=begin pod
+
+Compare two rows or scalars for equality (associative rows compare normalized keys).
+
+=end pod
 method row-equal(Mu $a, Mu $b --> Bool) {
 	return True if $a === $b;
 	if $a ~~ Associative && $b ~~ Associative {
@@ -31,6 +43,12 @@ method row-equal(Mu $a, Mu $b --> Bool) {
 	~$a eq ~$b
 }
 
+
+=begin pod
+
+Return True when C<$row> matches any row in C<@list> via L<row-equal>.
+
+=end pod
 method row-in-list(Mu $row, @list --> Bool) {
 	for @list -> $candidate {
 		return True if self.row-equal($row, $candidate);
@@ -38,6 +56,12 @@ method row-in-list(Mu $row, @list --> Bool) {
 	False
 }
 
+
+=begin pod
+
+Return True when C<$node> is in C<@list> by identity or row equality.
+
+=end pod
 method node-in-list(Mu $node, @list --> Bool) {
 	for @list -> $candidate {
 		return True if $candidate === $node;
@@ -47,6 +71,12 @@ method node-in-list(Mu $node, @list --> Bool) {
 	False
 }
 
+
+=begin pod
+
+Return sorted column names present in both associative rows.
+
+=end pod
 method common-keys(Mu $left, Mu $right --> List) {
 	return () unless $left ~~ Associative && $right ~~ Associative;
 	my @left-keys = $left.keys.map({ self!normalize-key-name($_) });
@@ -54,6 +84,12 @@ method common-keys(Mu $left, Mu $right --> List) {
 	(@left-keys (&) @right-keys).sort.List
 }
 
+
+=begin pod
+
+Merge two associative rows; conflicting values must stringify equally.
+
+=end pod
 method merge-rows(Associative $left, Associative $right --> Hash) {
 	my %merged = %($left);
 	for $right.pairs -> $p {
@@ -65,6 +101,12 @@ method merge-rows(Associative $left, Associative $right --> Hash) {
 	%merged
 }
 
+
+=begin pod
+
+Natural (inner) join of two row lists on common keys or a custom condition.
+
+=end pod
 method natural-join(@left, @right, &condition?) {
 	my @result;
 	for @left -> $lrow {
@@ -80,6 +122,12 @@ method natural-join(@left, @right, &condition?) {
 	@result
 }
 
+
+=begin pod
+
+Return True when all common keys between two rows have equal string values.
+
+=end pod
 method join-on-common-keys(Associative $l, Associative $r --> Bool) {
 	my @keys = self.common-keys($l, $r);
 	return False unless @keys;
@@ -91,6 +139,12 @@ method join-on-common-keys(Associative $l, Associative $r --> Bool) {
 	True
 }
 
+
+=begin pod
+
+Left outer join: all left rows, merged matches or bare left row when none match.
+
+=end pod
 method left-outer-join(@left, @right, &condition?) {
 	my @result;
 	for @left -> $lrow {
@@ -109,6 +163,12 @@ method left-outer-join(@left, @right, &condition?) {
 	@result
 }
 
+
+=begin pod
+
+Right outer join: all right rows, merged matches or bare right row when none match.
+
+=end pod
 method right-outer-join(@left, @right, &condition?) {
 	my @result;
 	for @right -> $rrow {
@@ -127,6 +187,12 @@ method right-outer-join(@left, @right, &condition?) {
 	@result
 }
 
+
+=begin pod
+
+Full outer join: inner join plus unmatched rows from both sides.
+
+=end pod
 method full-outer-join(@left, @right, &condition?) {
 	my @inner = self.natural-join(@left, @right, &condition);
 	my @left-only = self.left-antijoin(@left, @right, &condition);
@@ -137,6 +203,12 @@ method full-outer-join(@left, @right, &condition?) {
 	@result
 }
 
+
+=begin pod
+
+Left semijoin: left rows that have at least one matching right row (left projected).
+
+=end pod
 method left-semijoin(@left, @right, &condition?) {
 	my @result;
 	for @left -> $lrow {
@@ -151,10 +223,22 @@ method left-semijoin(@left, @right, &condition?) {
 	@result
 }
 
+
+=begin pod
+
+Right semijoin: mirror of L<left-semijoin> with sides swapped.
+
+=end pod
 method right-semijoin(@left, @right, &condition?) {
 	self.left-semijoin(@right, @left, &condition)
 }
 
+
+=begin pod
+
+Left antijoin: left rows with no matching right row.
+
+=end pod
 method left-antijoin(@left, @right, &condition?) {
 	my @result;
 	for @left -> $lrow {
@@ -171,10 +255,22 @@ method left-antijoin(@left, @right, &condition?) {
 	@result
 }
 
+
+=begin pod
+
+Right antijoin: mirror of L<left-antijoin> with sides swapped.
+
+=end pod
 method right-antijoin(@left, @right, &condition?) {
 	self.left-antijoin(@right, @left, &condition)
 }
 
+
+=begin pod
+
+Cartesian product of two row lists (pairwise merge).
+
+=end pod
 method cross-join(@left, @right) {
 	my @result;
 	for @left -> $lrow {
@@ -185,6 +281,12 @@ method cross-join(@left, @right) {
 	@result
 }
 
+
+=begin pod
+
+Project associative C<$row> onto the listed C<@columns>.
+
+=end pod
 method project-row(Associative $row, @columns) {
 	my %proj;
 	for @columns -> $col {
@@ -194,6 +296,12 @@ method project-row(Associative $row, @columns) {
 	%proj
 }
 
+
+=begin pod
+
+Rename columns in an associative row according to C<%renames>.
+
+=end pod
 method rename-row(Associative $row, %renames) {
 	my %result = %($row);
 	for %renames.pairs -> $p {
@@ -204,6 +312,12 @@ method rename-row(Associative $row, %renames) {
 	%result
 }
 
+
+=begin pod
+
+Return True when every left row appears in the right collection.
+
+=end pod
 method is-subset-of(@left, @right --> Bool) {
 	for @left -> $lrow {
 		return False unless self.row-in-list($lrow, @right);
@@ -211,6 +325,12 @@ method is-subset-of(@left, @right --> Bool) {
 	True
 }
 
+
+=begin pod
+
+Return True when two row collections have the same multiset of rows.
+
+=end pod
 method collections-equal(@left, @right --> Bool) {
 	return False unless @left.elems == @right.elems;
 	for @left -> $lrow {
@@ -219,6 +339,12 @@ method collections-equal(@left, @right --> Bool) {
 	True
 }
 
+
+=begin pod
+
+Rows in either list that do not appear in the other (symmetric difference).
+
+=end pod
 method symmetric-difference(@left, @right) {
 	my @result;
 	for @left -> $row {
@@ -230,6 +356,12 @@ method symmetric-difference(@left, @right) {
 	@result
 }
 
+
+=begin pod
+
+Relational division: left rows paired with every right row via join keys.
+
+=end pod
 method relational-division(@left, @right) {
 	return () unless @right;
 	my @result;
@@ -252,12 +384,24 @@ method relational-division(@left, @right) {
 	@result
 }
 
+
+=begin pod
+
+Normalize a hash key, pair, or string to a string column name.
+
+=end pod
 method !normalize-key-name(Mu $key --> Str) {
 	return $key if $key ~~ Str;
 	return $key.key if $key ~~ Pair;
 	~$key
 }
 
+
+=begin pod
+
+Normalize a projection column specifier (string, angle-bracket name, or list).
+
+=end pod
 method !normalize-col-name(Mu $col --> Str) {
 	return $col if $col ~~ Str;
 	if $col ~~ List && $col.elems == 1 {

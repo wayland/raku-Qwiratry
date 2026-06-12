@@ -16,7 +16,9 @@ use Qwiratry::Walker::Factory;  # For Qwiratry::Walker selection
 use Qwiratry::Operator::Navigation;
 use Qwiratry::Query::Specificity;
 use Qwiratry::QueryIterator;
-use Qwiratry::Transformer::Copy;  # For copy() and deepcopy() service functions (exported by default)
+use Qwiratry::Transformer::Copy;
+
+my constant copy-service = Qwiratry::Transformer::Copy.instance;
 use Qwiratry::Tree::Replace;
 # Note: Template slang activation requires `use Qwiratry::Template::Slang` in the caller compunit.
 
@@ -648,36 +650,30 @@ class Transformer is export {
 
 	Shallow copy a node.
 
-	Delegates to Qwiratry::Transformer::Copy::copy() service function.
-	Provides convenient access: $transformer.copy($node)
+	Delegates to L<Qwiratry::Transformer::Copy>.
+	Provides convenient access: C<$transformer.copy($node)>
 
 	@param $node - Node to copy
 	@returns Mu - Shallow copy of node
 
 	=end pod
-	# T043: Attach copy() method to Transformer
 	method copy($node --> Mu) {
-		# Delegate to Qwiratry::Transformer::Copy::copy() service function
-		# copy() is imported from Qwiratry::Transformer::Copy
-		copy($node);
+		copy-service.copy($node);
 	}
     
 	=begin pod
 
 	Deep copy a node.
 
-	Delegates to Qwiratry::Transformer::Copy::deepcopy() service function.
-	Provides convenient access: $transformer.deepcopy($node)
+	Delegates to L<Qwiratry::Transformer::Copy>.
+	Provides convenient access: C<$transformer.deepcopy($node)>
 
 	@param $node - Node to deep copy
 	@returns Mu - Deep copy of node
 
 	=end pod
-	# T043: Attach deepcopy() method to Transformer
 	method deepcopy($node --> Mu) {
-		# Delegate to Qwiratry::Transformer::Copy::deepcopy() service function
-		# deepcopy() is imported from Qwiratry::Transformer::Copy
-		deepcopy($node);
+		copy-service.deepcopy($node);
 	}
     
 	=begin pod
