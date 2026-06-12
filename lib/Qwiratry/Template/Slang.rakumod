@@ -10,16 +10,6 @@ Template syntax (Specification.md section 3.3.3):
 
   template [name] [signature] [traits] when { ... } do { ... }
 
-Example:
-
-  use Qwiratry::Template::Slang;
-  use Qwiratry::Transformer;
-
-  transformer transform-the-tree {
-      template TOP do { return Node.new(); }
-      template section() when { .name eq 'section' } do { make Node.new(); }
-  }
-
 =head2 RakuAST implementation
 
 - Components are extracted from RakuAST blockoid/signature nodes
@@ -34,41 +24,92 @@ use Qwiratry::Template;
 use Qwiratry::Query::Slang;
 use Qwiratry::Query::Extract;
 
+=begin pod
+
+Slang activation method label recorded after Slangify runs (usually C<slangify>).
+
+=end pod
 our $SLANG-ACTIVATION-METHOD = 'slangify';
 
+=begin pod
+
+Collected L<Qwiratry::Template> instances registered during transformer parsing.
+
+=end pod
 our @TEMPLATES;
+
+=begin pod
+
+Collected wrapper blocks registered during transformer parsing.
+
+=end pod
 our @WRAPPERS;
 
 my $activation-status;
 
+=begin pod
+
+Register a compiled template with the module-level collection.
+
+=end pod
 sub register-template(Template $template) is export {
 	@TEMPLATES.push($template);
 }
 
+=begin pod
+
+Register a wrapper block of the given C<$type> (TRANSFORMER, TEMPLATE_MATCHER, etc.).
+
+=end pod
 sub register-wrapper(Str $type, Block $block) is export {
 	@WRAPPERS.push(%(type => $type, block => $block));
 }
 
+=begin pod
+
+Return collected templates and clear the module-level list.
+
+=end pod
 sub get-collected-templates() is export {
 	my @result = @TEMPLATES;
 	@TEMPLATES = [];
 	return @result;
 }
 
+=begin pod
+
+Clear the template collection without returning it.
+
+=end pod
 sub clear-collected-templates() is export {
 	@TEMPLATES = [];
 }
 
+=begin pod
+
+Return collected wrappers and clear the module-level list.
+
+=end pod
 sub get-collected-wrappers() is export {
 	my @wrappers = @WRAPPERS;
 	@WRAPPERS = [];
 	@wrappers
 }
 
+=begin pod
+
+Clear the wrapper collection without returning it.
+
+=end pod
 sub clear-collected-wrappers() is export {
 	@WRAPPERS = [];
 }
 
+=begin pod
+
+Return True when MAIN slang grammar is already the template grammar.
+
+=end pod
 sub slang-already-active() {
 	try {
 		my $grammar-name = $*LANG.slang_grammar('MAIN').^name;
@@ -77,24 +118,49 @@ sub slang-already-active() {
 	False
 }
 
+=begin pod
+
+Return the recorded slang activation method name.
+
+=end pod
 sub get-slang-activation-method() is export {
 	$SLANG-ACTIVATION-METHOD
 }
 
+=begin pod
+
+Activate template slang once and cache the activation status.
+
+=end pod
 sub activate-template-slang() is export {
 	return $activation-status if $activation-status.defined;
 	$activation-status = slang-already-active() ?? 'slangify' !! 'slangify';
 	$activation-status
 }
 
+=begin pod
+
+Return cached slang activation status, if any.
+
+=end pod
 sub get-activation-status() is export {
 	$activation-status
 }
 
+=begin pod
+
+Ensure template slang is activated (idempotent).
+
+=end pod
 sub attempt-slangify-activation() is export {
 	activate-template-slang();
 }
 
+=begin pod
+
+Compile a RakuAST blockoid capture to an executable C<Block>.
+
+=end pod
 sub compile-blockoid(Mu $cap) {
 	return Nil unless $cap.defined;
 	my $body = try $cap.ast;
@@ -102,6 +168,11 @@ sub compile-blockoid(Mu $cap) {
 	_q_compile_block_body($body);
 }
 
+=begin pod
+
+Compile a RakuAST statement list body to a C<Block> at begin time.
+
+=end pod
 sub _q_compile_block_body(Mu $body) {
 	my $block = RakuAST::Block.new(body => $body);
 	try {
@@ -112,12 +183,22 @@ sub _q_compile_block_body(Mu $body) {
 	Nil
 }
 
+=begin pod
+
+Compile a single expression as a one-statement block.
+
+=end pod
 sub _q_compile_block_expr(Mu $expr) {
 	_q_compile_block_body(RakuAST::StatementList.new(
 		RakuAST::Statement::Expression.new(:expression($expr)),
 	));
 }
 
+=begin pod
+
+Default C<$_> signature for templates without an explicit signature.
+
+=end pod
 sub implicit-template-signature() {
 	RakuAST::Signature.new(
 		parameters => (
@@ -129,6 +210,11 @@ sub implicit-template-signature() {
 	);
 }
 
+=begin pod
+
+Compile a RakuAST signature node to a runtime C<Signature> object.
+
+=end pod
 sub compile-signature($sig-ast) {
 	return Nil unless $sig-ast.defined;
 	return $sig-ast if $sig-ast ~~ Signature;
@@ -139,6 +225,11 @@ sub compile-signature($sig-ast) {
 	try $stub.compile-time-value.signature // Nil
 }
 
+=begin pod
+
+Build conceptual method structure from template name, signature, and blocks.
+
+=end pod
 sub transform-template-to-method(
 	:$name,
 	:$signature,
@@ -154,19 +245,39 @@ sub transform-template-to-method(
 	);
 }
 
+=begin pod
+
+Placeholder for converting a C<when> block to a where-constraint (identity today).
+
+=end pod
 sub convert-when-to-where($when-block) {
 	$when-block
 }
 
+=begin pod
+
+Extract compiled do-block from transformed method structure.
+
+=end pod
 sub compile-rakuast-method(%method-structure) {
 	return Nil unless %method-structure<transformed>;
 	%method-structure<body>
 }
 
+=begin pod
+
+Human-readable label for error messages.
+
+=end pod
 sub template-display-name($name) {
 	$name.defined ?? "template $name" !! "unnamed template"
 }
 
+=begin pod
+
+Apply C<is streaming>, C<is priority>, C<is tie-breaker>, and C<returns> traits to a template.
+
+=end pod
 sub apply-template-traits(Template $template, $routine) {
 	return unless $routine.traits.defined;
 	for $routine.traits -> $trait {
@@ -192,7 +303,17 @@ sub apply-template-traits(Template $template, $routine) {
 	}
 }
 
+=begin pod
+
+Slang grammar role: C<template> and C<wrapper> routine declarators.
+
+=end pod
 our role TemplateGrammar {
+	=begin pod
+
+	Grammar rule for C<template name (sig) [traits] [when { }] do { }>.
+
+	=end pod
 	rule template-def($declarator) {
 		:my $*BLOCK;
 		<.enter-block-scope('Sub')>
@@ -208,12 +329,22 @@ our role TemplateGrammar {
 		<.leave-block-scope>
 	}
 
+	=begin pod
+
+	Declare C<template> as a routine declarator keyword.
+
+	=end pod
 	token routine-declarator:sym<template> {
 		'template'
 		<.end-keyword>
 		<template-def=.key-origin('template-def', 'template')>
 	}
 
+	=begin pod
+
+	Grammar rule for C<wrapper TYPE { ... }>.
+
+	=end pod
 	rule wrapper-def($declarator) {
 		:my $*BLOCK;
 		<.enter-block-scope('Sub')>
@@ -222,22 +353,47 @@ our role TemplateGrammar {
 		<.leave-block-scope>
 	}
 
+	=begin pod
+
+	Declare C<wrapper> as a routine declarator keyword.
+
+	=end pod
 	token routine-declarator:sym<wrapper> {
 		'wrapper'
 		<.end-keyword>
 		<wrapper-def=.key-origin('wrapper-def', 'wrapper')>
 	}
 
+	=begin pod
+
+	Allowed wrapper type names.
+
+	=end pod
 	token wrapper-type {
 		'TRANSFORMER' | 'TEMPLATE_MATCHER' | 'TEMPLATE_ACTION'
 	}
 }
 
+=begin pod
+
+Slang actions role: compile templates and wrappers into registry entries.
+
+=end pod
 our role TemplateActions {
+	=begin pod
+
+	Attach parsed template definition AST to the current parse tree.
+
+	=end pod
 	method routine-declarator:sym<template>(Mu $/) {
 		self.attach: $/, $<template-def>.ast;
 	}
 
+	=begin pod
+
+	Build a L<Qwiratry::Template> from parsed template definition tokens.
+
+	=end pod
 	method template-def(Mu $/) {
 		my $name = $<name>.defined ?? ~$<name> !! Nil;
 		my $signature = $<signature>.defined ?? compile-signature($<signature>.ast) !! Nil;
@@ -298,10 +454,20 @@ our role TemplateActions {
 		register-template($template);
 	}
 
+	=begin pod
+
+	Attach parsed wrapper definition AST to the current parse tree.
+
+	=end pod
 	method routine-declarator:sym<wrapper>(Mu $/) {
 		self.attach: $/, $<wrapper-def>.ast;
 	}
 
+	=begin pod
+
+	Compile and register a wrapper block for the given wrapper type.
+
+	=end pod
 	method wrapper-def(Mu $/) {
 		my $type = ~$<wrapper-type>;
 		unless $type eq any(<TRANSFORMER TEMPLATE_MATCHER TEMPLATE_ACTION>) {

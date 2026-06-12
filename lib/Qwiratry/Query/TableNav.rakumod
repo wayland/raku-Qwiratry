@@ -2,6 +2,9 @@
 
 Table-domain navigation helpers used by L<Qwiratry::Query::Match>.
 
+Resolves child, parent, descendant, and sibling navigation against
+L<Qwiratry::Table::Catalog> foreign keys and ordered row lists.
+
 =end pod
 unit module Qwiratry::Query::TableNav;
 
@@ -10,28 +13,58 @@ use Qwiratry::Table;
 use Qwiratry::Table::Schema;
 use Qwiratry::Query::Relational;
 
+=begin pod
+
+Discover or return the L<Qwiratry::Table::Catalog> for C<$origin>.
+
+=end pod
 our sub table-catalog(Mu $origin is raw --> Mu) is export {
 	discover-catalog($origin)
 }
 
+=begin pod
+
+Return True when a parent operator requests C<:reference> (incoming FK lookup).
+
+=end pod
 sub parent-has-reference(Mu $op --> Bool) {
 	return True if $op.adverbs.defined && $op.adverbs<reference>;
 	try { $op.reference } orelse False
 }
 
+=begin pod
+
+Return True when a descendant operator requests C<:recursive> FK traversal.
+
+=end pod
 sub descendant-has-recursive(Mu $op --> Bool) {
 	return True if $op.adverbs.defined && $op.adverbs<recursive>;
 	try { $op.recursive } orelse False
 }
 
+=begin pod
+
+Return True when C<$base> is a single table row (associative, not a catalog).
+
+=end pod
 our sub table-row-base(Mu $base --> Bool) is export {
 	$base ~~ Associative && !($base ~~ Qwiratry::Table::Catalog)
 }
 
+=begin pod
+
+Normalize a navigation selector to a column name string.
+
+=end pod
 sub table-column-name(Mu $selector --> Str) {
 	normalize-key($selector)
 }
 
+=begin pod
+
+Normalize key, list, or scalar to a string column name.
+
+=end pod
 sub normalize-key(Mu $key --> Str) {
 	return $key if $key ~~ Str;
 	if $key ~~ List && $key.elems == 1 {
@@ -40,6 +73,11 @@ sub normalize-key(Mu $key --> Str) {
 	~$key
 }
 
+=begin pod
+
+Child-axis navigation: active table rows, FK follow, or column filter.
+
+=end pod
 our sub table-child-results(Mu $base, Mu $op, Qwiratry::Table::Catalog $catalog --> List) is export {
 	my $selector = $op.selector;
 
@@ -71,6 +109,11 @@ our sub table-child-results(Mu $base, Mu $op, Qwiratry::Table::Catalog $catalog 
 	()
 }
 
+=begin pod
+
+Parent-axis navigation: owning table or referencing rows when C<:reference>.
+
+=end pod
 our sub table-parent-results(Mu $base, Mu $op, Qwiratry::Table::Catalog $catalog --> List) is export {
 	my $reference = parent-has-reference($op);
 	my $selector = $op.selector;
@@ -93,6 +136,11 @@ our sub table-parent-results(Mu $base, Mu $op, Qwiratry::Table::Catalog $catalog
 	()
 }
 
+=begin pod
+
+Descendant-axis navigation; table rows require C<:recursive> for FK walks.
+
+=end pod
 our sub table-descendant-results(Mu $base, Mu $op, Qwiratry::Table::Catalog $catalog --> List) is export {
 	if table-row-base($base) {
 		unless descendant-has-recursive($op) {
@@ -103,6 +151,11 @@ our sub table-descendant-results(Mu $base, Mu $op, Qwiratry::Table::Catalog $cat
 	table-child-results($base, $op, $catalog);
 }
 
+=begin pod
+
+Recursively follow foreign keys from a row for descendant queries.
+
+=end pod
 sub table-recursive-fk-results(Associative $row, Mu $op, Qwiratry::Table::Catalog $catalog --> List) {
 	my $from-table = $catalog.table-name-for($row);
 	return () unless $from-table.defined;
@@ -116,6 +169,11 @@ sub table-recursive-fk-results(Associative $row, Mu $op, Qwiratry::Table::Catalo
 	}.List
 }
 
+=begin pod
+
+Depth-first FK walk helper for L<table-recursive-fk-results>.
+
+=end pod
 sub table-recursive-fk-walk(
 	Associative $row,
 	Qwiratry::Table::Catalog $catalog,
@@ -137,6 +195,11 @@ sub table-recursive-fk-walk(
 	}
 }
 
+=begin pod
+
+Columns to follow for recursive descendant navigation from C<$from-table>.
+
+=end pod
 sub descendant-fk-columns(Mu $op, Qwiratry::Table::Catalog $catalog, Str $from-table --> List) {
 	my $selector = $op.selector;
 	if is-wildcard-selector($selector) {
@@ -154,6 +217,11 @@ sub descendant-fk-columns(Mu $op, Qwiratry::Table::Catalog $catalog, Str $from-t
 	()
 }
 
+=begin pod
+
+Build a visit key for cycle detection during recursive FK walks.
+
+=end pod
 sub row-visit-key(Associative $row, Qwiratry::Table::Catalog $catalog --> Str) {
 	my $table = $catalog.table-name-for($row);
 	return $row.WHICH unless $table.defined;
@@ -169,6 +237,11 @@ sub row-visit-key(Associative $row, Qwiratry::Table::Catalog $catalog --> Str) {
 	"$table|$pk"
 }
 
+=begin pod
+
+Return True when a table row matches a child/sibling selector.
+
+=end pod
 sub table-row-matches-selector(Associative $row, Mu $selector --> Bool) {
 	return True if is-wildcard-selector($selector);
 	if $selector ~~ Str {
@@ -178,23 +251,43 @@ sub table-row-matches-selector(Associative $row, Mu $selector --> Bool) {
 	False
 }
 
+=begin pod
+
+Strip angle brackets from selector strings.
+
+=end pod
 sub normalize-selector-name(Str $selector --> Str) {
 	return $selector.substr(1, *-2) if $selector.starts-with('<') && $selector.ends-with('>');
 	$selector
 }
 
+=begin pod
+
+Return True for wildcard selectors (C<*>, C<**>, C<Whatever>).
+
+=end pod
 sub is-wildcard-selector(Mu $selector --> Bool) {
 	return True if $selector ~~ Whatever;
 	return True if $selector ~~ Str && $selector eq any(<* **>);
 	False
 }
 
+=begin pod
+
+Return row list for a catalog active table or a positional origin.
+
+=end pod
 sub catalog-rows(Mu $origin --> List) {
 	return $origin.active-rows if $origin ~~ Qwiratry::Table::Catalog;
 	return $origin.list if $origin ~~ Positional;
 	($origin,);
 }
 
+=begin pod
+
+Locate a row's index and table row list for ordered-row sibling navigation.
+
+=end pod
 sub table-row-order-context(Associative $row, Qwiratry::Table::Catalog $catalog --> Mu) {
 	my $table-name = $catalog.table-name-for($row);
 	return unless $table-name.defined && $catalog.tables{$table-name}:exists;
@@ -205,6 +298,11 @@ sub table-row-order-context(Associative $row, Qwiratry::Table::Catalog $catalog 
 	Nil
 }
 
+=begin pod
+
+Return candidate sibling rows for following/preceding operators.
+
+=end pod
 sub table-sibling-candidates(Mu $op, @rows, Int $index --> List) {
 	given $op {
 		when FollowingSiblingOperator {
@@ -227,11 +325,21 @@ sub table-sibling-candidates(Mu $op, @rows, Int $index --> List) {
 	}
 }
 
+=begin pod
+
+Filter sibling candidates by selector match.
+
+=end pod
 sub table-sibling-matches-selector(Associative $row, Mu $selector --> Bool) {
 	return True if is-wildcard-selector($selector);
 	table-row-matches-selector($row, $selector);
 }
 
+=begin pod
+
+Sibling-axis navigation within a table's ordered row list.
+
+=end pod
 our sub table-sibling-results(Mu $base, Mu $op, Qwiratry::Table::Catalog $catalog --> List) is export {
 	if $base ~~ Qwiratry::Table::Catalog
 			|| ($base ~~ Positional && !($base ~~ Associative)) {

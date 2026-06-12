@@ -12,6 +12,11 @@ use Qwiratry::Table;
 use Qwiratry::Walker::Providing;
 use Qwiratry::Query::Relational;
 
+=begin pod
+
+Build a catalog from explicit table map, foreign keys, and active table name.
+
+=end pod
 our sub catalog-from-tables(
 	Associative $tables!,
 	:@foreign-keys,
@@ -32,11 +37,21 @@ our sub catalog-from-tables(
 	);
 }
 
+=begin pod
+
+Attach schema metadata to a container via the providing-schema registry.
+
+=end pod
 our sub attach-schema(Mu $container is raw, Associative $schema!) is export {
 	bind-providing-schema($container, %$schema);
 	$container
 }
 
+=begin pod
+
+Discover or return a L<Qwiratry::Table::Catalog> for C<$origin> data.
+
+=end pod
 our sub discover-catalog(Mu $origin is raw --> Mu) is export {
 	return $origin if $origin ~~ Qwiratry::Table::Catalog;
 
@@ -75,6 +90,11 @@ our sub discover-catalog(Mu $origin is raw --> Mu) is export {
 	Nil
 }
 
+=begin pod
+
+Build a catalog from providing-schema metadata and row data in C<$origin>.
+
+=end pod
 sub catalog-from-providing-schema(Associative $schema, Mu $origin --> Mu) {
 	my %tables = schema-tables($schema, $origin);
 	return Nil unless %tables;
@@ -86,6 +106,11 @@ sub catalog-from-providing-schema(Associative $schema, Mu $origin --> Mu) {
 	)
 }
 
+=begin pod
+
+Extract table name → row-list map from schema metadata and origin data.
+
+=end pod
 sub schema-tables(Associative $schema, Mu $origin --> Associative) {
 	return %($schema<tables>) if $schema<tables> ~~ Associative;
 	if $schema<table-name>.defined && $origin ~~ Positional {
@@ -101,6 +126,11 @@ sub schema-tables(Associative $schema, Mu $origin --> Associative) {
 	Associative
 }
 
+=begin pod
+
+Read foreign-key list from a schema associative.
+
+=end pod
 sub schema-foreign-keys(Associative $source --> List) {
 	return () unless $source<foreign-keys>:exists;
 	my $raw = $source<foreign-keys>;
@@ -108,21 +138,41 @@ sub schema-foreign-keys(Associative $source --> List) {
 	()
 }
 
+=begin pod
+
+Read active table name from schema or root metadata.
+
+=end pod
 sub schema-active-table(Associative $source --> Mu) {
 	$source<active-table> // $source<table-name>
 }
 
+=begin pod
+
+Resolve table name from providing-schema on C<$origin>.
+
+=end pod
 sub schema-table-name(Mu $origin --> Mu) {
 	my $schema = providing-schema($origin);
 	return $schema<table-name> if $schema.defined && $schema<table-name>.defined;
 	Nil
 }
 
+=begin pod
+
+Return True when C<$root> maps names to positional row lists (multi-table root).
+
+=end pod
 sub is-multi-table-root(Associative $root --> Bool) {
 	return False unless $root.keys;
 	$root.pairs.grep({ $_.value ~~ Positional && !($_.value ~~ Associative) }).so
 }
 
+=begin pod
+
+Collect positional table values from a multi-table associative root.
+
+=end pod
 sub table-entries(Associative $root --> Associative) {
 	my %tables;
 	for $root.pairs -> $pair {
@@ -132,6 +182,11 @@ sub table-entries(Associative $root --> Associative) {
 	%tables
 }
 
+=begin pod
+
+Infer L<ForeignKey|Qwiratry::Table::ForeignKey> edges from column naming conventions.
+
+=end pod
 our sub infer-foreign-keys(Associative $tables! --> List) is export {
 	my %table-map = %$tables;
 	my @fks;
@@ -155,6 +210,11 @@ our sub infer-foreign-keys(Associative $tables! --> List) is export {
 	@fks
 }
 
+=begin pod
+
+Guess primary-key column for a table from naming conventions.
+
+=end pod
 sub infer-primary-key(Positional $rows, Str $table-name --> Mu) {
 	return Nil unless $rows.elems && $rows[0] ~~ Associative;
 	my @cols = $rows[0].keys.sort;
@@ -166,11 +226,21 @@ sub infer-primary-key(Positional $rows, Str $table-name --> Mu) {
 	@cols[0]
 }
 
+=begin pod
+
+Singularize a table name for C<{table}_id> column guessing.
+
+=end pod
 sub singular-table-name(Str $table-name --> Str) {
 	return $table-name.substr(0, *-1) if $table-name.ends-with('s') && $table-name.chars > 1;
 	$table-name
 }
 
+=begin pod
+
+Return True when C<$column> looks like a foreign key referencing C<$to-table>.
+
+=end pod
 sub column-references-table(Str $column, Str $to-table, Str $to-pk --> Bool) {
 	return True if $column eq $to-pk;
 	my $singular = singular-table-name($to-table);

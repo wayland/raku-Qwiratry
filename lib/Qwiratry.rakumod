@@ -20,8 +20,12 @@ Example:
 
 unit module Qwiratry;
 
-# Activate template slang and transformer declarator in callers.
-# Slangify must run in the caller; see Qwiratry::Template::Slang.
+=begin pod
+
+Run when a compunit C<use Qwiratry>s this module. Loads template slang and core
+transformer modules into the I<importer's> compilation unit (Piersing pattern).
+
+=end pod
 sub IMPORT(::(?Mu) $, |) {
 	# Slangify must be loaded in the importer's compunit (Piersing pattern).
 	use Qwiratry::Template::Slang;

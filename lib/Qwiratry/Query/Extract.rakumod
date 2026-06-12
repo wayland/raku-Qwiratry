@@ -44,6 +44,11 @@ our sub is-navigation-query-when(Block $when-block --> Bool) is export {
 	True
 }
 
+=begin pod
+
+Compare navigation selectors from two operators for structural equivalence.
+
+=end pod
 sub selectors-equivalent(Mu $a, Mu $b --> Bool) {
 	return False unless $a.can('selector') && $b.can('selector');
 	my $left = $a.selector;
@@ -56,11 +61,21 @@ sub selectors-equivalent(Mu $a, Mu $b --> Bool) {
 
 my constant @NAV-INFIX = «⪪ ⪫ ⪪⪪ ⪫⪫ ⪨ ⪩ ⪨⪨ ⪩⪩ ⥷»;
 
+=begin pod
+
+Resolve the operator name from a RakuAST infix node.
+
+=end pod
 sub infix-name(Mu $infix --> Str) {
 	return $infix.operator if $infix.can('operator');
 	try $infix.name // ~$infix
 }
 
+=begin pod
+
+Return True when the infix operator is a Qwiratry navigation operator.
+
+=end pod
 sub infix-is-navigation(Mu $infix --> Bool) {
 	return False unless $infix.defined;
 	my $name = infix-name($infix);
@@ -68,6 +83,11 @@ sub infix-is-navigation(Mu $infix --> Bool) {
 	so $name eq any(@NAV-INFIX)
 }
 
+=begin pod
+
+Return True when the infix operator is logical conjunction (C<&&> / C<and>).
+
+=end pod
 sub infix-is-conjunction(Mu $infix --> Bool) {
 	return False unless $infix.defined;
 	my $name = infix-name($infix);
@@ -75,6 +95,11 @@ sub infix-is-conjunction(Mu $infix --> Bool) {
 	so $name eq any(<&& and>)
 }
 
+=begin pod
+
+Extract the single expression from a C<when> block body AST, if unambiguous.
+
+=end pod
 sub when-body-expression(Mu $body --> Mu) {
 	if $body.WHAT.^name eq 'RakuAST::Blockoid' {
 		my $inner = try $body.statement-list;
@@ -89,6 +114,11 @@ sub when-body-expression(Mu $body --> Mu) {
 	Nil
 }
 
+=begin pod
+
+Return True when C<$expr> is a navigation infix application in RakuAST form.
+
+=end pod
 sub is-navigation-expr(Mu $expr --> Bool) {
 	return False unless $expr.defined;
 	return True if $expr.WHAT.^name eq 'RakuAST::ApplyInfix'
@@ -96,6 +126,11 @@ sub is-navigation-expr(Mu $expr --> Bool) {
 	False
 }
 
+=begin pod
+
+Split a C<when> body into navigation query and optional predicate AST fragments.
+
+=end pod
 sub split-when-navigation-ast(Mu $body --> Hash) {
 	my $expr = when-body-expression($body);
 	return %() unless $expr.defined;

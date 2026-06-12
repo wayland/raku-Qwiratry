@@ -2,9 +2,17 @@
 
 Relational-algebra helpers for set operator execution in L<Qwiratry::Query::Match>.
 
+Pure functions over row lists and associative rows: equality, joins, projections,
+and set operations used when evaluating lazy and eager query pipelines.
+
 =end pod
 unit module Qwiratry::Query::Relational;
 
+=begin pod
+
+Compare two rows or scalars for equality (associative rows compare normalized keys).
+
+=end pod
 our sub row-equal(Mu $a, Mu $b --> Bool) is export {
 	return True if $a === $b;
 	if $a ~~ Associative && $b ~~ Associative {
@@ -22,6 +30,11 @@ our sub row-equal(Mu $a, Mu $b --> Bool) is export {
 	~$a eq ~$b
 }
 
+=begin pod
+
+Return True when C<$row> matches any row in C<@list> via L<row-equal>.
+
+=end pod
 our sub row-in-list(Mu $row, @list --> Bool) is export {
 	for @list -> $candidate {
 		return True if row-equal($row, $candidate);
@@ -29,6 +42,11 @@ our sub row-in-list(Mu $row, @list --> Bool) is export {
 	False
 }
 
+=begin pod
+
+Return True when C<$node> is in C<@list> by identity or row equality.
+
+=end pod
 our sub node-in-list(Mu $node, @list --> Bool) is export {
 	for @list -> $candidate {
 		return True if $candidate === $node;
@@ -38,12 +56,22 @@ our sub node-in-list(Mu $node, @list --> Bool) is export {
 	False
 }
 
+=begin pod
+
+Normalize a hash key, pair, or string to a string column name.
+
+=end pod
 sub normalize-key-name(Mu $key --> Str) {
 	return $key if $key ~~ Str;
 	return $key.key if $key ~~ Pair;
 	~$key
 }
 
+=begin pod
+
+Return sorted column names present in both associative rows.
+
+=end pod
 our sub common-keys(Mu $left, Mu $right --> List) is export {
 	return () unless $left ~~ Associative && $right ~~ Associative;
 	my @left-keys = $left.keys.map(&normalize-key-name);
@@ -51,6 +79,11 @@ our sub common-keys(Mu $left, Mu $right --> List) is export {
 	(@left-keys (&) @right-keys).sort.List
 }
 
+=begin pod
+
+Merge two associative rows; conflicting values must stringify equally.
+
+=end pod
 our sub merge-rows(Associative $left, Associative $right --> Hash) is export {
 	my %merged = %($left);
 	for $right.pairs -> $p {
@@ -62,6 +95,11 @@ our sub merge-rows(Associative $left, Associative $right --> Hash) is export {
 	%merged
 }
 
+=begin pod
+
+Natural (inner) join of two row lists on common keys or a custom condition.
+
+=end pod
 our sub natural-join(@left, @right, &condition?) is export {
 	my @result;
 	for @left -> $lrow {
@@ -77,6 +115,11 @@ our sub natural-join(@left, @right, &condition?) is export {
 	@result
 }
 
+=begin pod
+
+Return True when all common keys between two rows have equal string values.
+
+=end pod
 our sub join-on-common-keys(Associative $l, Associative $r --> Bool) is export {
 	my @keys = common-keys($l, $r);
 	return False unless @keys;
@@ -88,6 +131,11 @@ our sub join-on-common-keys(Associative $l, Associative $r --> Bool) is export {
 	True
 }
 
+=begin pod
+
+Left outer join: all left rows, merged matches or bare left row when none match.
+
+=end pod
 our sub left-outer-join(@left, @right, &condition?) is export {
 	my @result;
 	for @left -> $lrow {
@@ -106,6 +154,11 @@ our sub left-outer-join(@left, @right, &condition?) is export {
 	@result
 }
 
+=begin pod
+
+Right outer join: all right rows, merged matches or bare right row when none match.
+
+=end pod
 our sub right-outer-join(@left, @right, &condition?) is export {
 	my @result;
 	for @right -> $rrow {
@@ -124,6 +177,11 @@ our sub right-outer-join(@left, @right, &condition?) is export {
 	@result
 }
 
+=begin pod
+
+Full outer join: inner join plus unmatched rows from both sides.
+
+=end pod
 our sub full-outer-join(@left, @right, &condition?) is export {
 	my @inner = natural-join(@left, @right, &condition);
 	my @left-only = left-antijoin(@left, @right, &condition);
@@ -134,6 +192,11 @@ our sub full-outer-join(@left, @right, &condition?) is export {
 	@result
 }
 
+=begin pod
+
+Left semijoin: left rows that have at least one matching right row (left projected).
+
+=end pod
 our sub left-semijoin(@left, @right, &condition?) is export {
 	my @result;
 	for @left -> $lrow {
@@ -148,10 +211,20 @@ our sub left-semijoin(@left, @right, &condition?) is export {
 	@result
 }
 
+=begin pod
+
+Right semijoin: mirror of L<left-semijoin> with sides swapped.
+
+=end pod
 our sub right-semijoin(@left, @right, &condition?) is export {
 	left-semijoin(@right, @left, &condition)
 }
 
+=begin pod
+
+Left antijoin: left rows with no matching right row.
+
+=end pod
 our sub left-antijoin(@left, @right, &condition?) is export {
 	my @result;
 	for @left -> $lrow {
@@ -168,10 +241,20 @@ our sub left-antijoin(@left, @right, &condition?) is export {
 	@result
 }
 
+=begin pod
+
+Right antijoin: mirror of L<left-antijoin> with sides swapped.
+
+=end pod
 our sub right-antijoin(@left, @right, &condition?) is export {
 	left-antijoin(@right, @left, &condition)
 }
 
+=begin pod
+
+Cartesian product of two row lists (pairwise merge).
+
+=end pod
 our sub cross-join(@left, @right) is export {
 	my @result;
 	for @left -> $lrow {
@@ -182,6 +265,11 @@ our sub cross-join(@left, @right) is export {
 	@result
 }
 
+=begin pod
+
+Project associative C<$row> onto the listed C<@columns>.
+
+=end pod
 our sub project-row(Associative $row, @columns) is export {
 	my %proj;
 	for @columns -> $col {
@@ -191,6 +279,11 @@ our sub project-row(Associative $row, @columns) is export {
 	%proj
 }
 
+=begin pod
+
+Rename columns in an associative row according to C<%renames>.
+
+=end pod
 our sub rename-row(Associative $row, %renames) is export {
 	my %result = %($row);
 	for %renames.pairs -> $p {
@@ -201,6 +294,11 @@ our sub rename-row(Associative $row, %renames) is export {
 	%result
 }
 
+=begin pod
+
+Normalize a projection column specifier (string, angle-bracket name, or list).
+
+=end pod
 sub normalize-col-name(Mu $col --> Str) {
 	return $col if $col ~~ Str;
 	if $col ~~ List && $col.elems == 1 {
@@ -211,6 +309,11 @@ sub normalize-col-name(Mu $col --> Str) {
 	$name
 }
 
+=begin pod
+
+Return True when every left row appears in the right collection.
+
+=end pod
 our sub is-subset-of(@left, @right --> Bool) is export {
 	for @left -> $lrow {
 		return False unless row-in-list($lrow, @right);
@@ -218,6 +321,11 @@ our sub is-subset-of(@left, @right --> Bool) is export {
 	True
 }
 
+=begin pod
+
+Return True when two row collections have the same multiset of rows.
+
+=end pod
 our sub collections-equal(@left, @right --> Bool) is export {
 	return False unless @left.elems == @right.elems;
 	for @left -> $lrow {
@@ -226,6 +334,11 @@ our sub collections-equal(@left, @right --> Bool) is export {
 	True
 }
 
+=begin pod
+
+Rows in either list that do not appear in the other (symmetric difference).
+
+=end pod
 our sub symmetric-difference(@left, @right) is export {
 	my @result;
 	for @left -> $row {
@@ -237,6 +350,11 @@ our sub symmetric-difference(@left, @right) is export {
 	@result
 }
 
+=begin pod
+
+Relational division: left rows paired with every right row via join keys.
+
+=end pod
 our sub relational-division(@left, @right) is export {
 	return () unless @right;
 	my @result;

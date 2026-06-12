@@ -1,23 +1,19 @@
 =begin pod
 
-RewriteSpec stub role for rewrite specifications
+Stub role marking rewrite specifications returned from Strategy hooks.
 
-This module provides the RewriteSpec role as a type marker for
-rewrite return values from on-match and after hooks.
-
-This is intentionally a stub role - it will be expanded in a future
-feature when rewrite functionality is fully implemented. Currently
-it serves as a type marker to distinguish rewrite return values
-from ControlSignal return values in Strategy hooks.
+Distinguishes future rewrite payloads from L<ControlSignal|Qwiratry::Strategy::ControlSignal>
+return values. Concrete rewrite types will implement this role in a later feature.
 
 =end pod
 unit module Qwiratry::Strategy::RewriteSpec;
 
 =begin pod
 
-Stub role for rewrite specifications.
-To be expanded in future feature when rewrite functionality is implemented.
-Currently serves as a type marker for return values from on-match and after hooks.
+Marker role for rewrite return values from C<on-match> and C<after> hooks.
+
+No methods are required today; implementations will be added when rewrite
+functionality is fully specified.
 
 =end pod
 role RewriteSpec is export {

@@ -2,6 +2,9 @@
 
 In-place node replacement for tree-shaped data during C<TreeRewrite> transforms.
 
+Locates a node under a root container and swaps it for a new value without
+rebuilding the entire tree.
+
 =end pod
 unit module Qwiratry::Tree::Replace;
 
@@ -24,6 +27,11 @@ our sub replace-node-in-tree(Mu $old, Mu $new, Mu $root --> Bool) is export {
 	replace-in-parent($parent, $old, $new);
 }
 
+=begin pod
+
+Replace C<$old> with C<$new> in C<$parent> (positional slot, C<children>, or hash value).
+
+=end pod
 sub replace-in-parent(Mu $parent, Mu $old, Mu $new --> Bool) {
 	if $parent ~~ Positional {
 		for 0..^$parent.elems -> $i {
@@ -49,6 +57,11 @@ sub replace-in-parent(Mu $parent, Mu $old, Mu $new --> Bool) {
 	False
 }
 
+=begin pod
+
+When C<$old> is the root, merge C<$new> into the existing container in place.
+
+=end pod
 sub merge-into-container(Mu $container, Mu $new --> Bool) {
 	if $container ~~ Associative && $new ~~ Associative {
 		for $new.keys -> $key {
