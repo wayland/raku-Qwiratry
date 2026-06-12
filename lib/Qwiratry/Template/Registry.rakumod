@@ -8,76 +8,77 @@ class is finalized.
 =end pod
 use Qwiratry::Template;
 
-unit class Qwiratry::Template::Registry;
+class Qwiratry::Template::Registry {
 
-my $instance;
+	my $instance;
 
-=begin pod
+	=begin pod
 
-Return the shared template registry instance.
+	Return the shared template registry instance.
 
-=end pod
-method instance(--> Qwiratry::Template::Registry) {
-	$instance //= self.new
-}
+	=end pod
+	method instance(--> Qwiratry::Template::Registry) {
+		$instance //= self.new
+	}
 
-has @!templates;
-has @!wrappers;
+	has @!templates;
+	has @!wrappers;
 
-=begin pod
+	=begin pod
 
-Register a compiled template with the module-level collection.
+	Register a compiled template with the module-level collection.
 
-=end pod
-method register-template(Template $template) {
-	@!templates.push($template);
-}
+	=end pod
+	method register-template(Template $template) {
+		@!templates.push($template);
+	}
 
-=begin pod
+	=begin pod
 
-Register a wrapper block of the given C<$type> (TRANSFORMER, TEMPLATE_MATCHER, etc.).
+	Register a wrapper block of the given C<$type> (TRANSFORMER, TEMPLATE_MATCHER, etc.).
 
-=end pod
-method register-wrapper(Str $type, Block $block) {
-	@!wrappers.push(%(type => $type, block => $block));
-}
+	=end pod
+	method register-wrapper(Str $type, Block $block) {
+		@!wrappers.push(%(type => $type, block => $block));
+	}
 
-=begin pod
+	=begin pod
 
-Return collected templates and clear the module-level list.
+	Return collected templates and clear the module-level list.
 
-=end pod
-method collected-templates() {
-	my @result = @!templates;
-	@!templates = [];
-	@result
-}
+	=end pod
+	method collected-templates() {
+		my @result = @!templates;
+		@!templates = [];
+		@result
+	}
 
-=begin pod
+	=begin pod
 
-Clear the template collection without returning it.
+	Clear the template collection without returning it.
 
-=end pod
-method clear-templates() {
-	@!templates = [];
-}
+	=end pod
+	method clear-templates() {
+		@!templates = [];
+	}
 
-=begin pod
+	=begin pod
 
-Return collected wrappers and clear the module-level list.
+	Return collected wrappers and clear the module-level list.
 
-=end pod
-method collected-wrappers() {
-	my @wrappers = @!wrappers;
-	@!wrappers = [];
-	@wrappers
-}
+	=end pod
+	method collected-wrappers() {
+		my @wrappers = @!wrappers;
+		@!wrappers = [];
+		@wrappers
+	}
 
-=begin pod
+	=begin pod
 
-Clear the wrapper collection without returning it.
+	Clear the wrapper collection without returning it.
 
-=end pod
-method clear-wrappers() {
-	@!wrappers = [];
+	=end pod
+	method clear-wrappers() {
+		@!wrappers = [];
+	}
 }
