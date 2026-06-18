@@ -1,0 +1,136 @@
+=begin rakudoc
+
+=TITLE Adjusting Strategies
+
+=SUBTITLE Custom traversal behavior without writing a new walker
+
+=head1 Overview
+
+Strategies add behavior to traversal without changing the data model walker.
+
+Use this extension point when the walker can already traverse the data, but an
+extension needs custom behavior before elements, after elements, when elements
+match, or when deciding whether to follow relations.
+
+To adjust strategy behavior:
+
+=item 1. B<Setup>: decide which traversal hook should change behavior.
+
+=item 2. B<Hooks>: implement the needed C<Qwiratry::Strategy::Strategy> methods.
+
+=item 3. B<Control Signals>: return standard control values for pruning or stopping traversal.
+
+=item 4. B<Finish Results>: return a C<FinishResult> when traversal has a meaningful outcome.
+
+=item 5. B<Testing>: test hooks under a real walker.
+
+=head1 Setup
+
+Use a strategy when traversal already knows how to visit the data, but the
+extension needs to observe, prune, stop, aggregate, or repeat traversal.
+
+Do not use a strategy to teach Qwiratry how to traverse a new data model. That
+belongs in a walker.
+
+Do not use a strategy to parse or render external data. That belongs in a
+format.
+
+=head1 Hooks
+
+=head2 Hook Model
+
+A strategy may implement any of these hooks:
+
+=item C<before($element, Context $ctx)>
+
+Called before visiting an element.
+
+=item C<on-match($element, QueryMatch $match, Context $ctx)>
+
+Called when a query matches an element.
+
+=item C<should-follow($origin, $relation, $target, Context $ctx)>
+
+Returns whether traversal should follow a relation.
+
+=item C<after($element, Context $ctx)>
+
+Called after an element and its relations are processed.
+
+=item C<finish($root, Context $ctx)>
+
+Called after traversal completes.
+
+=item C<should-continue($root, Context $ctx)>
+
+Returns whether another traversal pass should run.
+
+=head2 Minimal Strategy Example
+
+=begin code :lang<raku>
+use Qwiratry::Strategy;
+use Qwiratry::Strategy::FinishResult;
+
+class CollectingStrategy does Strategy {
+    has @.matches;
+
+    method on-match($element, $match, $ctx) {
+        @!matches.push($element);
+        Nil
+    }
+
+    method finish($root, $ctx --> FinishResult) {
+        FinishResult.new(type => 'matches', value => @!matches.List)
+    }
+}
+=end code
+
+=head1 Control Signals
+
+Hooks may return control values such as C<SKIP_ELEMENT> or
+C<STOP_TRAVERSAL>. These are handled by C<Qwiratry::Strategy::TraversalState>.
+
+=head1 Finish Results
+
+Return C<Qwiratry::Strategy::FinishResult::FinishResult> from C<finish> when the
+strategy has a meaningful result to report after traversal completes.
+
+=head1 Testing
+
+Add tests that prove:
+
+=item Hooks are called in the expected order.
+
+=item C<should-follow> prunes traversal when it returns C<False>.
+
+=item Control signals such as C<SKIP_ELEMENT> and C<STOP_TRAVERSAL> are honored.
+
+=item C<finish> returns the expected C<FinishResult>.
+
+=item Strategy behavior works under at least one concrete walker.
+
+=head1 Reference Material
+
+=head2 Main Types
+
+=item C<Qwiratry::Strategy::Strategy>
+
+Role implemented by custom strategies.
+
+=item C<Qwiratry::Strategy::FinishResult::FinishResult>
+
+Return object from C<finish>.
+
+=item C<Qwiratry::Strategy::RewriteSpec::RewriteSpec>
+
+Marker role for rewrite payloads returned from strategy hooks.
+
+=item C<Qwiratry::Strategy::Traversal>
+
+Shared dispatcher for calling strategy hooks consistently.
+
+=item C<Qwiratry::Strategy::TraversalState>
+
+Mutable control state used while strategy hooks run.
+
+=end rakudoc

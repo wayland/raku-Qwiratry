@@ -1,0 +1,174 @@
+=begin rakudoc
+
+=TITLE Adding Walkers
+
+=SUBTITLE Custom traversal and query execution for new data models
+
+=head1 Overview
+
+Walkers define how a Qwiratry query is executed against a data model.
+
+Use this extension point when the new thing changes how data is traversed:
+trees, tables, graphs, logic databases, document stores, or any structure whose
+query execution rules need a custom traversal model.
+
+To add support for a new walker:
+
+=item 1. B<Setup>: choose the data model, supported query shapes, and advertised capabilities.
+
+=item 2. B<Walker>: implement C<Qwiratry::Walker> for the data model.
+
+=item 3. B<Plan>: implement C<Qwiratry::Walker::Plan> for reusable execution state.
+
+=item 4. B<Iterator>: return a C<QueryIterator> that outputs matching elements lazily.
+
+=item 5. B<Discovery/Handover>: add metadata and capabilities if the walker should be selected automatically.
+
+=item 6. B<Testing>: test planning, iteration, unsupported queries, and strategy integration.
+
+=head1 Setup
+
+Decide what data model the walker supports and which query operators it can
+interpret. Define the capability metadata that tells Qwiratry and extenders what
+the walker can do.
+
+If the walker should be discovered automatically, decide what domain metadata
+callers will attach through C<Qwiratry::Walker::Providing>.
+
+=head1 Walker
+
+=head2 Required Walker Shape
+
+A concrete walker does C<Qwiratry::Walker> and implements at least C<plan> and
+C<iterator>.
+
+=begin code :lang<raku>
+use Qwiratry::Walker;
+use Qwiratry::QueryIterator;
+
+class MyWalker does Qwiratry::Walker {
+    method plan(Mu $query, Mu:D $root --> Qwiratry::Walker::Plan) {
+        MyPlan.new(:$query, :$root)
+    }
+
+    method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
+        $plan.iterator
+    }
+}
+=end code
+
+=head1 Plan
+
+=head2 Required Plan Shape
+
+A plan does C<Qwiratry::Walker::Plan> and provides an iterator, the original
+query, and a human-readable description.
+
+=begin code :lang<raku>
+class MyPlan does Qwiratry::Walker::Plan {
+    has Mu $.query;
+    has Mu $.root;
+
+    method iterator(--> QueryIterator) {
+        MyIterator.new(:plan(self))
+    }
+
+    method query(--> Mu) {
+        $!query
+    }
+
+    method describe(--> Str) {
+        "MyPlan"
+    }
+}
+=end code
+
+=head1 Iterator
+
+The plan's C<iterator> method should return a C<QueryIterator>. The iterator is
+responsible for outputting results lazily and keeping traversal state isolated
+from other iterators created from the same plan.
+
+Use a context object that does C<Qwiratry::Context::Context> when traversal needs
+mutable state or strategy integration.
+
+=head1 Discovery/Handover
+
+Use C<Qwiratry::Walker::Providing> and capabilities when a walker should be
+selected automatically or when a master walker should hand part of a query to
+another domain.
+
+=begin code :lang<raku>
+Qwiratry::Walker::Providing.instance.bind-domains($data, <tree>);
+=end code
+
+=head1 Testing
+
+Add tests that prove:
+
+=item The walker creates a plan for supported query shapes.
+
+=item The plan returns an independent iterator each time.
+
+=item The iterator outputs expected matches lazily.
+
+=item Unsupported query elements throw C<X::Qwiratry::UnknownQueryElement>.
+
+=item Discovery metadata selects the walker when expected.
+
+=item Strategies receive hook calls during traversal.
+
+=head1 Reference Material
+
+=head2 Main Types
+
+=item C<Qwiratry::Walker>
+
+Role implemented by concrete walkers. A walker turns a query and a root value
+into a reusable plan, then turns that plan into an iterator.
+
+=item C<Qwiratry::Walker::Plan>
+
+Role implemented by execution plans. Plans store the query, root, and any
+precomputed strategy needed to produce iterators.
+
+=item C<Qwiratry::QueryIterator::QueryIterator>
+
+Role for lazy result streams produced by walker plans.
+
+=item C<Qwiratry::Context::Context>
+
+Role for per-traversal mutable state shared by walkers, iterators, and
+strategies.
+
+=item C<Qwiratry::QueryMatch::QueryMatch>
+
+Match object used when a strategy is told that an element matched a query.
+
+=item C<Qwiratry::Walker::Capabilities>
+
+Shared capability metadata for walkers and plans.
+
+=item C<Qwiratry::Walker::Factory>
+
+Discovery service for choosing a walker for data.
+
+=item C<Qwiratry::Walker::Providing>
+
+Registry for domain and schema metadata used by walker discovery and handover.
+
+=head2 Errors
+
+=item C<X::Qwiratry::Walker>
+
+Base exception for walker-related failures.
+
+=item C<X::Qwiratry::UnknownQueryElement>
+
+Throw when the walker cannot interpret a query element.
+
+=item C<X::Qwiratry::NoWalkerFound>
+
+Thrown when discovery cannot find a suitable walker.
+
+=end rakudoc

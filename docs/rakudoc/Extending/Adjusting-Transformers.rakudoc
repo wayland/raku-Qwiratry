@@ -1,0 +1,140 @@
+=begin rakudoc
+
+=TITLE Adjusting Transformers
+
+=SUBTITLE Extending template execution, copying, rewriting, and transformer behavior
+
+=head1 Overview
+
+Transformers apply templates to data.
+
+Use this extension point when changing how transformation is performed rather
+than how data is walked, parsed, rendered, sourced, or stored.
+
+To adjust transformer behavior:
+
+=item 1. B<Setup>: decide whether the extension changes template execution, copying, rewriting, wrappers, or validation.
+
+=item 2. B<Templates>: preserve template ordering and template control behavior.
+
+=item 3. B<Copying>: use Qwiratry's copy service for copy semantics.
+
+=item 4. B<Rewriting>: use C<TreeRewrite> only for intentional input mutation.
+
+=item 5. B<Wrappers>: add cross-cutting behavior around transformer or template execution.
+
+=item 6. B<Testing>: test callable transformers, ordering, wrappers, copying, rewriting, and type checks.
+
+=head1 Setup
+
+Use transformer extensions when the extension changes transformation behavior.
+Do not use transformer extensions to support a new external data representation;
+use a format. Do not use transformer extensions to traverse a new data model;
+use a walker. Do not use transformer extensions to connect to a database or API;
+use a source/destination extension.
+
+=head1 Templates
+
+=head2 Template Ordering
+
+Templates are ordered by priority, specificity, and tie-breaker. Transformer
+extensions that add ordering metadata or produce templates programmatically must
+preserve deterministic ordering.
+
+If ordering cannot be made deterministic, Qwiratry throws
+C<X::Qwiratry::TemplateOrderingConflict>. This usually means two or more
+templates have equal priority, specificity, and tie-breaker values. Extensions
+that generate templates or add ordering metadata should preserve this failure
+mode.
+
+=head2 Template Control
+
+C<Qwiratry::Template::NextTemplate> lets a template decline the current match and
+continue with the next matching template.
+
+=head1 Copying
+
+Use C<Qwiratry::Transformer::Copy> when an extension needs to clone input before
+rewriting or needs a standard way to copy positional and associative structures.
+
+=begin code :lang<raku>
+my $copy-service = Qwiratry::Transformer::Copy.instance;
+my $clone = $copy-service.deepcopy($node);
+=end code
+
+=head1 Rewriting
+
+C<TreeRewrite> marks a transformer as able to mutate or replace nodes during
+transformation. Use this only when the extension intentionally changes the input
+tree or node graph.
+
+=begin code :lang<raku>
+use Qwiratry::Transformer::TreeRewrite;
+
+transformer MyRewrite does TreeRewrite {
+    template TOP do {
+        make $_;
+    }
+}
+=end code
+
+=head1 Wrappers
+
+Transformer slang supports wrappers for transformer execution, template
+matching, and template actions. Use wrappers when the extension needs to add
+cross-cutting behavior around existing templates rather than replacing the
+template system.
+
+=head1 Testing
+
+Add tests that prove:
+
+=item Callable transformers still work.
+
+=item Template ordering remains deterministic.
+
+=item Wrapper behavior applies at the intended layer.
+
+=item Copy and rewrite behavior does not mutate data accidentally.
+
+=item C<X::Qwiratry::TemplateOrderingConflict> is thrown for unresolved ordering conflicts.
+
+=item C<X::Qwiratry::TypeCheck> is thrown for result type constraint failures.
+
+=head1 Reference Material
+
+=head2 Main Types
+
+=item C<Transformer>
+
+Base class for transformer objects and the runtime behavior behind the
+C<transformer> declarator.
+
+=item C<Qwiratry::Template::Template>
+
+Runtime representation of one template rule: match logic, action logic, and
+ordering metadata.
+
+=item C<Qwiratry::Template::NextTemplate>
+
+Control tool for declining the current template and continuing with the next
+matching template.
+
+=item C<Qwiratry::Transformer::Copy>
+
+Copy service for shallow and deep copying transformable nodes.
+
+=item C<Qwiratry::Transformer::TreeRewrite::TreeRewrite>
+
+Marker role for transformers that rewrite input structures in place.
+
+=item C<X::Qwiratry::TemplateOrderingConflict>
+
+Thrown when template order cannot be made deterministic.
+
+=item C<X::Qwiratry::TypeCheck>
+
+Thrown when a transformer or template result does not match a declared return
+type constraint.
+
+=end rakudoc

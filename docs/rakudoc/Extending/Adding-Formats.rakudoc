@@ -1,0 +1,163 @@
+=begin rakudoc
+
+=TITLE Adding Formats
+
+=SUBTITLE Parse and render support for JSON, CSV, XML, and similar data formats
+
+=head1 Overview
+
+Formats convert between external data representations and Qwiratry-visible data.
+
+Use this extension point when the new thing is a representation such as JSON,
+CSV, XML, YAML, TOML, binary encodings, or another parse/render representation. Do not use it for
+databases, APIs, filesystems, or other live sources and destinations; those
+belong in source/destination extensions.
+
+To add support for a new format:
+
+=item 1. B<Setup>: choose the format name, module path, and C<META6.json> entry.
+
+=item 2. B<Parser>: implement a parser if Qwiratry should receive that representation.
+
+=item 3. B<Renderer>: implement a renderer if Qwiratry should output that representation.
+
+=item 4. B<Testing>: test discovery, parsing, rendering, and missing-format errors.
+
+The current base parser receives a C<Str> because the existing formats are
+text-like, but the extension model is about data representations in general.
+Future base classes or overloads may support binary blobs or other non-text
+payloads.
+
+=head1 Setup
+
+=head2 Choose The Format Name
+
+Choose the format name that callers will use, such as C<JSON>, C<CSV>, or
+C<CBOR>. Format names are normalized by C<Qwiratry::Format>, so callers may use
+labels like C<json> while the module remains named C<JSON>.
+
+=head2 Add The Module
+
+Add a module under C<lib/Qwiratry/Format/> named for that format.
+
+A format module is named:
+
+=begin code :lang<raku>
+Qwiratry::Format::<FORMAT>
+=end code
+
+It defines one or both operation classes:
+
+=begin code :lang<raku>
+Qwiratry::Format::<FORMAT>::Parse
+Qwiratry::Format::<FORMAT>::Render
+=end code
+
+For example:
+
+=begin code :lang<raku>
+Qwiratry::Format::JSON::Parse
+Qwiratry::Format::JSON::Render
+=end code
+
+=head2 Update META6
+
+Add the format module to C<META6.json> C<provides> so discovery can load it.
+
+=begin code :lang<raku>
+"Qwiratry::Format::Example": "lib/Qwiratry/Format/Example.rakumod"
+=end code
+
+=head1 Parser
+
+=head2 Parser Contract
+
+C<Qwiratry::Format::Base::Parse> is the base class for parsers. A custom parser
+inherits from this and currently implements C<parse(Str $input-string --> Mu)>.
+
+=head2 Minimal Parser Example
+
+=begin code :lang<raku>
+use Qwiratry::Format::Base;
+
+class Qwiratry::Format::Example::Parse is Qwiratry::Format::Base::Parse {
+    method parse(Str $input-data --> Mu) {
+        %(raw => $input-data)
+    }
+}
+=end code
+
+=head1 Renderer
+
+=head2 Renderer Contract
+
+C<Qwiratry::Format::Base::Render> is the base class for renderers. A custom
+renderer inherits from this and implements
+C<render(Mu $data, Associative :%options --> Str)>.
+
+=head2 Minimal Renderer Example
+
+=begin code :lang<raku>
+use Qwiratry::Format::Base;
+
+class Qwiratry::Format::Example::Render is Qwiratry::Format::Base::Render {
+    method render(Mu $data, Associative :%options --> Str) {
+        $data.raku
+    }
+}
+=end code
+
+=head1 Testing
+
+Add tests that prove:
+
+=item C<Qwiratry::Format.formats(:type<Parse>)> discovers the parser.
+
+=item C<Qwiratry::Format.formats(:type<Render>)> discovers the renderer.
+
+=item C<Qwiratry::Format.make(:type<Parse>, :format<FORMAT>)> returns a parser.
+
+=item C<Qwiratry::Format.make(:type<Render>, :format<FORMAT>)> returns a renderer.
+
+=item Parse operators accept the new format.
+
+=item Render operators accept the new format.
+
+=item Missing formats throw C<X::Qwiratry::Format::NotFound>.
+
+=head1 Reference Material
+
+=head2 Main Types
+
+=item C<Qwiratry::Format>
+
+Factory and discovery service for parse and render implementations.
+
+=item C<Qwiratry::Format::Base::Parse>
+
+Base class for parsers. A custom parser inherits from this and currently implements
+C<parse(Str $input-string --> Mu)>.
+
+=item C<Qwiratry::Format::Base::Render>
+
+Base class for renderers. A custom renderer inherits from this and implements
+C<render(Mu $data, Associative :%options --> Str)>.
+
+=item C<X::Qwiratry::Format::NotFound>
+
+Thrown when parse or render operators request a format that cannot be found.
+
+=head2 Discovery
+
+C<Qwiratry::Format> discovers modules under C<Qwiratry::Format::*> and checks
+whether the requested operation class inherits from the matching base class.
+
+=begin code :lang<raku>
+my @parse-formats = Qwiratry::Format.formats(:type<Parse>);
+my @render-formats = Qwiratry::Format.formats(:type<Render>);
+
+my $parser = Qwiratry::Format.make(:type<Parse>, :format<JSON>);
+my $renderer = Qwiratry::Format.make(:type<Render>, :format<JSON>);
+=end code
+
+=end rakudoc

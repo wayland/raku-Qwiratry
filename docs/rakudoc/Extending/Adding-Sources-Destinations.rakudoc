@@ -1,0 +1,160 @@
+=begin rakudoc
+
+=TITLE Adding Sources/Destinations
+
+=SUBTITLE Connecting Qwiratry pipelines to files, databases, APIs, and other endpoints
+
+=head1 Overview
+
+Sources and destinations connect Qwiratry pipelines to external locations.
+
+Use this extension point when the new thing is a place Qwiratry receives data
+from or outputs data to: files, Postgres, SQLite, HTTP APIs, message queues,
+object stores, search indexes, and similar systems.
+
+If the work is only about converting between external data representations and
+Qwiratry-visible data, use a format extension instead.
+
+To add support for a new source or destination:
+
+=item 1. B<Setup>: decide whether the extension receives data, outputs data, or does both.
+
+=item 2. B<Source>: define how Qwiratry receives data from the external location.
+
+=item 3. B<Destination>: define how Qwiratry outputs data to the external location.
+
+=item 4. B<Testing>: test validation, receive behavior, output behavior, errors, and pipeline composition.
+
+=head1 Setup
+
+Decide whether the extension is source/destination behavior or a format. A
+database, API, queue, or object store is a source/destination even if it also
+uses a format internally.
+
+Define validation rules for locations, connection strings, credentials, or other
+connection details. Decide whether the extension returns data, rows, streams, or
+another structured value.
+
+=head1 Source
+
+=head2 Source Responsibilities
+
+=item Validate the location or connection details early.
+
+=item Receive data from the external system without changing query semantics.
+
+=item Return data in a form that later operators can parse, walk, or transform.
+
+=item Throw C<X::Qwiratry::IO::LocationError> for location failures.
+
+=head2 Minimal File Source Example
+
+This example uses C<SourceOperator> to receive file data, ready to be passed to
+a parser.
+
+=begin code :lang<raku>
+use Qwiratry::Operator::IO;
+use Qwiratry::Operator::PipelineStep;
+
+my $source = SourceOperator.new(:location<input.csv>);
+my $data = execute($source);
+=end code
+
+=head1 Destination
+
+=head2 Destination Responsibilities
+
+=item Validate the destination location or connection details.
+
+=item Accept rendered content or structured values as appropriate.
+
+=item Preserve pipeline return behavior so callers can observe what was output.
+
+=item Throw C<X::Qwiratry::IO::LocationError> for output failures.
+
+=head2 Minimal File Destination Example
+
+This example uses C<DestinationOperator> to output already-rendered data. The
+operator returns the same content it outputs, which keeps pipeline behavior
+observable.
+
+=begin code :lang<raku>
+use Qwiratry::Operator::IO;
+use Qwiratry::Operator::PipelineStep;
+
+my $rendered = "name,score\nalpha,10\nbeta,5\n";
+my $destination = DestinationOperator.new(
+    :location<output.csv>,
+    :subject($rendered),
+);
+
+my $output = execute($destination);
+=end code
+
+=head1 Testing
+
+Add tests that prove:
+
+=item Invalid locations or connection strings are rejected.
+
+=item Unavailable locations throw C<X::Qwiratry::IO::LocationError>.
+
+=item Sources receive expected data.
+
+=item Destinations output expected data.
+
+=item Pipelines compose source, parse, query, render, and destination steps correctly.
+
+=head1 Reference Material
+
+=head2 Current Surface
+
+The current source/destination surface is represented by IO operators:
+
+=item C<Qwiratry::Operator::IO::SourceOperator>
+
+Receives data from a location.
+
+=item C<Qwiratry::Operator::IO::DestinationOperator>
+
+Outputs data to a location.
+
+=item C<Qwiratry::Operator::PipelineStep::read-location>
+
+Current helper used by source operators to receive data from a location.
+
+=item C<Qwiratry::Operator::PipelineStep::write-location>
+
+Current helper used by destination operators to output data to a location.
+
+=item C<X::Qwiratry::IO::LocationError>
+
+Exception for invalid, unavailable, or unsupported locations.
+
+=head2 Future Backend Shape
+
+Database-like sources should not be implemented as formats. They usually need
+connection state, authentication, schema discovery, query pushdown, streaming,
+or transaction behavior.
+
+A future source/destination extension may introduce backend-specific classes
+such as:
+
+=begin code :lang<raku>
+Qwiratry::Source::Postgres
+Qwiratry::Destination::Postgres
+Qwiratry::Source::HTTP
+Qwiratry::Destination::S3
+=end code
+
+=head2 Example Direction
+
+A Postgres source is a source/destination extension, not a format extension.
+The format layer might still be used after receiving data, but Postgres itself is a
+live backend with query and connection semantics.
+
+=begin code :lang<raku>
+my $source = SourceOperator.new(:location<postgres://example/db>);
+=end code
+
+=end rakudoc
