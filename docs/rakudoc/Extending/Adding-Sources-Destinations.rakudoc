@@ -19,11 +19,13 @@ To add support for a new source or destination:
 
 =item 1. B<Setup>: decide whether the extension receives data, outputs data, or does both.
 
-=item 2. B<Source>: define how Qwiratry receives data from the external location.
+=item 2. B<Backend module>: create a location backend module under C<Qwiratry::Location>.
 
-=item 3. B<Destination>: define how Qwiratry outputs data to the external location.
+=item 3. B<Source>: define how Qwiratry receives data from the external location.
 
-=item 4. B<Testing>: test validation, receive behavior, output behavior, errors, and pipeline composition.
+=item 4. B<Destination>: define how Qwiratry outputs data to the external location.
+
+=item 5. B<Testing>: test validation, receive behavior, output behavior, errors, and pipeline composition.
 
 =head1 Setup
 
@@ -34,6 +36,41 @@ uses a format internally.
 Define validation rules for locations, connection strings, credentials, or other
 connection details. Decide whether the extension returns data, rows, streams, or
 another structured value.
+
+Location backends are loaded through L<Qwiratry::Location>. The backend name is
+inferred from the location scheme: C<postgres://example/db> resolves to
+C<Qwiratry::Location::Postgres>, C<s3://bucket/key> resolves to
+C<Qwiratry::Location::S3>, and local paths or C<file://> URLs resolve to the
+built-in C<Qwiratry::Location::File> backend.
+
+=head1 Backend Module
+
+A backend module groups the source and destination implementations for one
+location family. A backend can implement only source, only destination, or both.
+
+=begin code :lang<raku>
+use Qwiratry::Exception::Operator;
+use Qwiratry::Location::Base;
+
+class Qwiratry::Location::Postgres::Source is Qwiratry::Location::Base::Source {
+    method read(Str $location --> Str) {
+        # Connect to $location and return text, rows encoded as text,
+        # or another representation expected by the rest of the pipeline.
+    }
+}
+
+class Qwiratry::Location::Postgres::Destination is Qwiratry::Location::Base::Destination {
+    method write(Str $location, Mu $content --> Mu) {
+        # Connect to $location and write $content.
+        $content
+    }
+}
+=end code
+
+No registration step is required. Once the module is available as
+C<Qwiratry::Location::Postgres>, the factory can discover
+C<Qwiratry::Location::Postgres::Source> and
+C<Qwiratry::Location::Postgres::Destination>.
 
 =head1 Source
 
@@ -58,6 +95,12 @@ use Qwiratry::Operator::PipelineStep;
 
 my $source = SourceOperator.new(:location<input.csv>);
 my $data = execute($source);
+=end code
+
+Under the operator surface, Qwiratry resolves the concrete source through:
+
+=begin code :lang<raku>
+Qwiratry::Location.make(:type<Source>, :location<input.csv>).read('input.csv')
 =end code
 
 =head1 Destination
@@ -91,6 +134,12 @@ my $destination = DestinationOperator.new(
 my $output = execute($destination);
 =end code
 
+Under the operator surface, Qwiratry resolves the concrete destination through:
+
+=begin code :lang<raku>
+Qwiratry::Location.make(:type<Destination>, :location<output.csv>).write('output.csv', $rendered)
+=end code
+
 =head1 Testing
 
 Add tests that prove:
@@ -102,6 +151,9 @@ Add tests that prove:
 =item Sources receive expected data.
 
 =item Destinations output expected data.
+
+=item C<Qwiratry::Location.backends(:type<Source>)> or
+      C<Qwiratry::Location.backends(:type<Destination>)> discovers the backend.
 
 =item Pipelines compose source, parse, query, render, and destination steps correctly.
 
@@ -121,30 +173,46 @@ Outputs data to a location.
 
 =item C<Qwiratry::Operator::PipelineStep::read-location>
 
-Current helper used by source operators to receive data from a location.
+Delegation helper used by source operators to receive data through
+C<Qwiratry::Location>.
 
 =item C<Qwiratry::Operator::PipelineStep::write-location>
 
-Current helper used by destination operators to output data to a location.
+Delegation helper used by destination operators to output data through
+C<Qwiratry::Location>.
+
+=item C<Qwiratry::Location>
+
+Factory that discovers location backends and creates source or destination
+implementation objects.
+
+=item C<Qwiratry::Location::Base>
+
+Defines C<Qwiratry::Location::Base::Source> and
+C<Qwiratry::Location::Base::Destination>, the abstract contracts for backend
+implementations.
+
+=item C<Qwiratry::Location::File>
+
+Built-in local file backend. Local paths and C<file://> URLs resolve here.
 
 =item C<X::Qwiratry::IO::LocationError>
 
 Exception for invalid, unavailable, or unsupported locations.
 
-=head2 Future Backend Shape
+=head2 Backend Shape
 
 Database-like sources should not be implemented as formats. They usually need
 connection state, authentication, schema discovery, query pushdown, streaming,
 or transaction behavior.
 
-A future source/destination extension may introduce backend-specific classes
-such as:
+A source/destination extension introduces backend-specific classes such as:
 
 =begin code :lang<raku>
-Qwiratry::Source::Postgres
-Qwiratry::Destination::Postgres
-Qwiratry::Source::HTTP
-Qwiratry::Destination::S3
+Qwiratry::Location::Postgres::Source
+Qwiratry::Location::Postgres::Destination
+Qwiratry::Location::HTTP::Source
+Qwiratry::Location::S3::Destination
 =end code
 
 =head2 Example Direction

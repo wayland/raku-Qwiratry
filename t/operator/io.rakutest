@@ -4,25 +4,37 @@ use lib 'lib';
 
 use Qwiratry::Operator::IO;
 use Qwiratry::Operator::Capability;
+use Qwiratry::Exception::Operator;
 use Qwiratry::Format;
 use Qwiratry::Format::JSON;
 use Qwiratry::Format::XML;
 use Qwiratry::Format::CSV;
+use Qwiratry::Location;
+use Qwiratry::Location::File;
 
 plan 5;
 
 subtest 'SourceOperator validates locations at construction' => {
-	plan 4;
+	plan 5;
 
 	my $file = SourceOperator.new(:location('./data.json'));
 	ok $file ~~ RakuAST::Node, 'SourceOperator is RakuAST::Node';
 	is $file.location, './data.json', 'relative path stored';
 
-	my $url = SourceOperator.new(:location('https://example.com/data.json'));
-	is $url.location, 'https://example.com/data.json', 'https URL stored';
+	my $file-url = SourceOperator.new(:location('file:///tmp/data.json'));
+	is $file-url.location, 'file:///tmp/data.json', 'file URL stored';
 
 	my $abs = SourceOperator.new(:location('/tmp/data.json'));
 	is $abs.location, '/tmp/data.json', 'absolute path stored';
+
+	my $https-rejected = False;
+	try {
+		SourceOperator.new(:location('https://example.com/data.json'));
+		CATCH {
+			when X::Qwiratry::IO::LocationError { $https-rejected = True }
+		}
+	}
+	ok $https-rejected, 'https source requires a location plugin';
 }
 
 subtest 'ParseOperator and RenderOperator require loaded format modules' => {
@@ -49,14 +61,20 @@ subtest 'DestinationOperator chains with subject' => {
 	like $dest.describe, rx:s/output\.json/, 'DestinationOperator describe includes location';
 }
 
-subtest 'Format discovery finds loaded parse and render modules' => {
-	plan 2;
+subtest 'Format and location discovery finds loaded modules' => {
+	plan 4;
 
 	my @parse = Qwiratry::Format.formats(:type<Parse>);
 	ok 'JSON' (elem) @parse, 'Qwiratry::Format.formats(:type<Parse>) includes JSON';
 
 	my @render = Qwiratry::Format.formats(:type<Render>);
 	ok 'JSON' (elem) @render, 'Qwiratry::Format.formats(:type<Render>) includes JSON';
+
+	my @source = Qwiratry::Location.backends(:type<Source>);
+	ok 'File' (elem) @source, 'Qwiratry::Location.backends(:type<Source>) includes File';
+
+	my @destination = Qwiratry::Location.backends(:type<Destination>);
+	ok 'File' (elem) @destination, 'Qwiratry::Location.backends(:type<Destination>) includes File';
 }
 
 subtest 'I/O operators are immutable and declare capabilities' => {

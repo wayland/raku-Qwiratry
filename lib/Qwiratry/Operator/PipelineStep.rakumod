@@ -10,6 +10,7 @@ C<execute> is the recursive entry point that dispatches to C<evaluate>.
 unit module Qwiratry::Operator::PipelineStep;
 
 use Qwiratry::Format;
+use Qwiratry::Location;
 use Qwiratry::Exception::Operator;
 
 =begin pod
@@ -63,27 +64,11 @@ sub is-io-operator(Mu $subject --> Bool) {
 =begin pod
 
 Read text from a file location. Throws L<X::Qwiratry::IO::LocationError> for
-network URLs or missing files.
+unsupported backends or missing files.
 
 =end pod
 our sub read-location(Str $location --> Str) is export {
-	if $location.starts-with(any('http://', 'https://')) {
-		X::Qwiratry::IO::LocationError.new(
-			:message("Cannot fetch network location: $location"),
-			:location($location),
-			:reason('Network fetch not available in test environment'),
-			:operator-type('SourceOperator'),
-		).throw;
-	}
-	unless $location.IO.e {
-		X::Qwiratry::IO::LocationError.new(
-			:message("I/O location not found: $location"),
-			:location($location),
-			:reason('File not found'),
-			:operator-type('SourceOperator'),
-		).throw;
-	}
-	$location.IO.slurp
+	Qwiratry::Location.make(:type<Source>, :$location).read($location)
 }
 
 =begin pod
@@ -92,10 +77,7 @@ Write pipeline output to a file, creating parent directories when needed.
 
 =end pod
 our sub write-location(Str $location, Mu $content) is export {
-	my $text = $content ~~ Str ?? $content !! ~$content;
-	my $path = $location;
-	$path.IO.parent.mkdir unless $path.IO.parent.d;
-	spurt $path, $text
+	Qwiratry::Location.make(:type<Destination>, :$location).write($location, $content)
 }
 
 =begin pod

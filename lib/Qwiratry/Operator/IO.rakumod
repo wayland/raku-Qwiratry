@@ -9,6 +9,7 @@ parse, render, and write external data.
 unit module Qwiratry::Operator::IO;
 
 use Qwiratry::Format;
+use Qwiratry::Location;
 use Qwiratry::Operator::Capability;
 use Qwiratry::Operator::PipelineStep;
 use Qwiratry::Exception::Operator;
@@ -26,24 +27,11 @@ role IOOperatorNode does IOOperator does OperatorBase {
 	}
 }
 
-sub validate-location(Str $location --> Str) is export {
-	return $location if $location.starts-with(any('http://', 'https://', 'file://'));
-	return $location if $location.starts-with('/') || $location.starts-with('./')
-		|| ($location !~~ /^\w+:\/\// && $location.contains('.'));
-	return $location if $location ~~ /^[\w\.\-\/]+$/;
-	X::Qwiratry::IO::LocationError.new(
-		:message("Invalid I/O location: $location"),
-		:location($location),
-		:reason('Invalid location format'),
-		:operator-type('IOOperator'),
-	).throw;
-}
-
 class SourceOperator is RakuAST::Node does IOOperator does OperatorBase is export {
 	has Str $.location is required;
 
 	submethod BUILD(Str :$!location!) {
-		validate-location($!location);
+		Qwiratry::Location.ensure-location(:type<Source>, :location($!location));
 	}
 
 	method describe(--> Str) {
@@ -94,7 +82,7 @@ class DestinationOperator is RakuAST::Node does IOOperatorNode is export {
 	has Str $.location is required;
 
 	submethod BUILD(Str :$!location!) {
-		validate-location($!location);
+		Qwiratry::Location.ensure-location(:type<Destination>, :location($!location));
 	}
 
 	method describe(--> Str) {
