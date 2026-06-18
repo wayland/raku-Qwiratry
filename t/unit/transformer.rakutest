@@ -60,7 +60,7 @@ subtest "Template collection methods (placeholder)" => {
 # =============================================================================
 
 subtest "Transformer declarator - basic declaration" => {
-	plan 3;
+	plan 4;
     
 	# Declare a transformer
 	transformer MyTestTransform { }
@@ -68,6 +68,7 @@ subtest "Transformer declarator - basic declaration" => {
 	# Verify it creates a class
 	ok MyTestTransform.^name eq 'MyTestTransform', "Transformer creates class with correct name";
 	ok MyTestTransform ~~ Transformer, "Transformer inherits from Transformer base class";
+	ok MyTestTransform ~~ Callable, "Transformer type does Callable";
 	ok MyTestTransform.^can('CALL-ME'), "Transformer has CALL-ME method";
 }
 
@@ -76,12 +77,13 @@ subtest "Transformer declarator - basic declaration" => {
 # =============================================================================
 
 subtest "Transformer callable behavior" => {
-	plan 2;
+	plan 3;
     
 	transformer MyCallableTransform { }
     
 	my $t = MyCallableTransform.new;
 	ok $t ~~ Transformer, "Transformer can be instantiated";
+	ok $t ~~ Callable, "Transformer instance does Callable";
     
 	# Test callable syntax (CALL-ME method)
 	# CALL-ME now delegates to transform() method

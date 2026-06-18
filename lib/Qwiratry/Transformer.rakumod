@@ -58,7 +58,7 @@ Transformers declared with the `transformer` declarator should inherit from this
 Full implementation will be added in later work packages
 
 =end pod
-class Transformer is export {
+class Transformer does Callable is export {
 	=begin pod
 
 	Templates defined in transformer body (populated in WP03).
