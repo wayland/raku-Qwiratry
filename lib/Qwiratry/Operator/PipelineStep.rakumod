@@ -105,7 +105,7 @@ Parse external text via L<Qwiratry::IO::Parse>.
 
 =end pod
 our sub parse-data(Str $format, Str $text) is export {
-	Qwiratry::IO::Parse.instance.parse($format, $text)
+	Qwiratry::IO::Parse.make(:$format).parse($text)
 }
 
 =begin pod
@@ -114,7 +114,7 @@ Render in-memory data via L<Qwiratry::IO::Render>.
 
 =end pod
 our sub render-data(Str $format, Mu $data, Associative $options) is export {
-	Qwiratry::IO::Render.instance.render($format, pipeline-render-payload($data), |%($options // %()))
+	Qwiratry::IO::Render.make(:$format).render(pipeline-render-payload($data), |%($options // %()))
 }
 
 =begin pod

@@ -22,9 +22,24 @@ class X::Qwiratry::IO::FormatNotFound is X::Qwiratry::Operator is export {
 	has Str $.parse-or-render is required;
 
 	method gist(--> Str) {
-		my $module-name = "Qwiratry::IO::{$!parse-or-render.tc}::{$!format}";
-		"X::Qwiratry::IO::FormatNotFound: Format module $module-name not found (format: $!format, operation: $!parse-or-render)"
+		my $module-name = 'Qwiratry::IO::' ~ $!format;
+		my $class-name = $module-name ~ '::' ~ $!parse-or-render.tc;
+		"X::Qwiratry::IO::FormatNotFound: Format implementation $class-name not found (format: $!format, operation: $!parse-or-render)"
 	}
+}
+
+our sub io-format-not-found(
+	Str :$message!,
+	Str :$format!,
+	Str :$parse-or-render!,
+	Str :$operator-type!,
+) is export {
+	::('X::Qwiratry::IO::FormatNotFound').new(
+		:$message,
+		:$format,
+		:$parse-or-render,
+		:$operator-type,
+	)
 }
 
 class X::Qwiratry::IO::LocationError is X::Qwiratry::Operator is export {

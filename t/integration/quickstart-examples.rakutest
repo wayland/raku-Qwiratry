@@ -7,8 +7,7 @@ use Qwiratry::Operator::Navigation;
 use Qwiratry::Operator::MapReduce;
 use Qwiratry::Operator::Set;
 use Qwiratry::Operator::IO;
-use Qwiratry::IO::Parse::JSON;
-use Qwiratry::IO::Render::JSON;
+use Qwiratry::IO::JSON;
 use Qwiratry::Query::Slang;
 use Qwiratry::Query::Match;
 

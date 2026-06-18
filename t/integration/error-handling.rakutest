@@ -6,7 +6,7 @@ use lib 'lib';
 use Qwiratry::Walker::Implementation::Tree;
 use Qwiratry::Operator::IO;
 use Qwiratry::Operator::Navigation;
-use Qwiratry::IO::Parse::JSON;
+use Qwiratry::IO::JSON;
 use X::Qwiratry;
 
 plan 3;

@@ -1,11 +1,16 @@
 =begin pod
 
-Minimal JSON parse format module (no external dependencies).
+Minimal JSON format module (no external dependencies).
+
+Defines C<Qwiratry::IO::JSON::Parse> and C<Qwiratry::IO::JSON::Render>
+implementations loaded through L<Qwiratry::IO::Parse.make> and
+L<Qwiratry::IO::Render.make>.
 
 =end pod
-use Qwiratry::IO::Parse::Base;
+use Qwiratry::IO::Parse;
+use Qwiratry::IO::Render;
 
-class Qwiratry::IO::Parse::JSON is Qwiratry::IO::Parse::Base {
+class Qwiratry::IO::JSON::Parse is Qwiratry::IO::Parse {
 
 	method parse(Str $input-string --> Mu) {
 		my ($value, $pos) = self.parse-value($input-string.trim, 0);
@@ -106,5 +111,52 @@ class Qwiratry::IO::Parse::JSON is Qwiratry::IO::Parse::Base {
 		my $num-str = $s.substr($start, $pos - $start);
 		my $value = $num-str.contains('.') ?? $num-str.Num !! $num-str.Int;
 		($value, $pos)
+	}
+}
+
+class Qwiratry::IO::JSON::Render is Qwiratry::IO::Render {
+
+	method render(Mu $data, Associative :%options --> Str) {
+		my $pretty = %options<pretty> // False;
+		self.to-json-text($data, $pretty, 0)
+	}
+
+	method to-json-text($value, Bool $pretty, Int $indent --> Str) {
+		return 'null' unless $value.defined;
+		if $value ~~ Str {
+			my $escaped = $value;
+			$escaped = $escaped.subst(/[\x22]/, '\\"', :g);
+			$escaped = $escaped.subst(/\\/, '\\\\', :g);
+			$escaped = $escaped.subst(/\n/, '\\n', :g);
+			$escaped = $escaped.subst(/\t/, '\\t', :g);
+			return q["] ~ $escaped ~ q["];
+		}
+		return $value.raku if $value ~~ Bool || $value ~~ Int || $value ~~ Num;
+
+		if $value ~~ Associative {
+			my @pairs = $value.pairs.sort(*.key);
+			return '{}' unless @pairs;
+			my $pad = $pretty ?? ' ' x ($indent + 2) !! '';
+			my $sep = $pretty ?? (",\n") !! ',';
+			my $inner = @pairs.map(-> $p {
+				($pretty ?? $pad !! '') ~ self.to-json-text(~$p.key, False, 0) ~ ': '
+					~ self.to-json-text($p.value, $pretty, $indent + 2)
+			}).join($sep);
+			return $pretty ?? ('{' ~ "\n" ~ $inner ~ "\n" ~ (' ' x $indent) ~ '}')
+				!! ('{' ~ $inner ~ '}');
+		}
+
+		if $value ~~ Positional {
+			return '[]' unless $value.elems;
+			my $pad = $pretty ?? ' ' x ($indent + 2) !! '';
+			my $sep = $pretty ?? (",\n") !! ',';
+			my $inner = $value.map({
+				($pretty ?? $pad !! '') ~ self.to-json-text($_, $pretty, $indent + 2)
+			}).join($sep);
+			return $pretty ?? ('[' ~ "\n" ~ $inner ~ "\n" ~ (' ' x $indent) ~ ']')
+				!! ('[' ~ $inner ~ ']');
+		}
+
+		$value.raku
 	}
 }

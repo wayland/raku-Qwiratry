@@ -60,7 +60,7 @@ class ParseOperator is RakuAST::Node does IOOperatorNode is export {
 	has Str $.format is required;
 
 	submethod TWEAK {
-		Qwiratry::IO::Parse.instance.ensure-format($!format);
+		Qwiratry::IO::Parse.ensure-format($!format);
 	}
 
 	method describe(--> Str) {
@@ -78,7 +78,7 @@ class RenderOperator is RakuAST::Node does IOOperatorNode is export {
 	has %.options;
 
 	submethod TWEAK {
-		Qwiratry::IO::Render.instance.ensure-format($!format);
+		Qwiratry::IO::Render.ensure-format($!format);
 	}
 
 	method describe(--> Str) {

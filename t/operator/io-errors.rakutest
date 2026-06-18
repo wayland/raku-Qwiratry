@@ -15,7 +15,7 @@ subtest 'ParseOperator throws FormatNotFound for unknown format' => {
 	my $caught = False;
 	my $side = '';
 	try {
-		Qwiratry::IO::Parse.instance.ensure-format('YAML');
+		Qwiratry::IO::Parse.ensure-format('YAML');
 		CATCH {
 			when X::Qwiratry::IO::FormatNotFound {
 				$caught = True;
