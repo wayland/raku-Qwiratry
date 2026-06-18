@@ -123,11 +123,11 @@ history:
 
 - **Purpose**: Exception for missing format modules in I/O operators
 - **Steps**:
-  1. In `lib/Qwiratry/Exception/Operator.rakumod`, create `X::Qwiratry::IO::FormatNotFound` class
+  1. In `lib/Qwiratry/Exception/Operator.rakumod`, create `X::Qwiratry::Format::NotFound` class
   2. Extend `X::Qwiratry::Operator`
   3. Add attributes: `$.format` (Str), `$.parse-or-render` (Str) - "parse" or "render"
   4. Implement constructor: `new(:$format, :$parse-or-render)`
-  5. Add `.gist()` method with helpful message: "Format module Qwiratry::IO::{$parse-or-render.tc}::{$format} not found"
+  5. Add `.gist()` method with helpful message: "Format module Qwiratry::Format::{$format}::{$parse-or-render.tc} not found"
 - **Files**: 
   - `lib/Qwiratry/Exception/Operator.rakumod`
 - **Parallel?**: Yes (can be done alongside T004, T006)
@@ -156,7 +156,7 @@ history:
      - Test construction with all parameters
      - Test `.gist()` method returns formatted message
      - Test inheritance from `X::Qwiratry::Walker`
-  3. Write tests for `X::Qwiratry::IO::FormatNotFound`:
+  3. Write tests for `X::Qwiratry::Format::NotFound`:
      - Test construction with format and parse-or-render
      - Test `.gist()` includes format name
      - Test exception can be thrown and caught
@@ -214,7 +214,7 @@ history:
 - 2025-01-27T00:00:00Z – cursor – shell_pid=12548 – lane=doing – Completed T002: Created Exception directory and Operator.rakumod module
 - 2025-01-27T00:00:00Z – cursor – shell_pid=12548 – lane=doing – Completed T003: Created test directories (t/operator/, t/integration/, t/contract/)
 - 2025-01-27T00:00:00Z – cursor – shell_pid=12548 – lane=doing – Completed T004: Implemented X::Qwiratry::Operator base exception class
-- 2025-01-27T00:00:00Z – cursor – shell_pid=12548 – lane=doing – Completed T005: Implemented X::Qwiratry::IO::FormatNotFound exception
+- 2025-01-27T00:00:00Z – cursor – shell_pid=12548 – lane=doing – Completed T005: Implemented X::Qwiratry::Format::NotFound exception
 - 2025-01-27T00:00:00Z – cursor – shell_pid=12548 – lane=doing – Completed T006: Implemented X::Qwiratry::IO::LocationError exception
 - 2025-01-27T00:00:00Z – cursor – shell_pid=12548 – lane=doing – Completed T007: Wrote comprehensive unit tests for all exception classes
 - 2025-01-27T00:00:00Z – cursor – shell_pid=12548 – lane=for_review – Ready for review: All subtasks completed, directory structure created, exception classes implemented, tests written

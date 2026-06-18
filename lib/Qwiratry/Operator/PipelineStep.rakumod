@@ -9,7 +9,7 @@ C<execute> is the recursive entry point that dispatches to C<evaluate>.
 =end pod
 unit module Qwiratry::Operator::PipelineStep;
 
-use Qwiratry::IO;
+use Qwiratry::Format;
 use Qwiratry::Exception::Operator;
 
 =begin pod
@@ -100,20 +100,20 @@ our sub write-location(Str $location, Mu $content) is export {
 
 =begin pod
 
-Parse external text via L<Qwiratry::IO>.
+Parse external text via L<Qwiratry::Format>.
 
 =end pod
 our sub parse-data(Str $format, Str $text) is export {
-	Qwiratry::IO.make(:type<Parse>, :$format).parse($text)
+	Qwiratry::Format.make(:type<Parse>, :$format).parse($text)
 }
 
 =begin pod
 
-Render in-memory data via L<Qwiratry::IO>.
+Render in-memory data via L<Qwiratry::Format>.
 
 =end pod
 our sub render-data(Str $format, Mu $data, Associative $options) is export {
-	Qwiratry::IO.make(:type<Render>, :$format).render(pipeline-render-payload($data), |%($options // %()))
+	Qwiratry::Format.make(:type<Render>, :$format).render(pipeline-render-payload($data), |%($options // %()))
 }
 
 =begin pod

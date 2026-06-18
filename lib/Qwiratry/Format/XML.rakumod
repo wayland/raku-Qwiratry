@@ -2,21 +2,20 @@
 
 Minimal XML format module (string wrapper for round-trip tests).
 
-Defines C<Qwiratry::IO::XML::Parse> and C<Qwiratry::IO::XML::Render>
-implementations loaded through L<Qwiratry::IO.make>.
+Defines C<Qwiratry::Format::XML::Parse> and C<Qwiratry::Format::XML::Render>
+implementations loaded through L<Qwiratry::Format.make>.
 
 =end pod
-use Qwiratry::IO::Base::Parse;
-use Qwiratry::IO::Base::Render;
+use Qwiratry::Format::Base;
 
-class Qwiratry::IO::XML::Parse is Qwiratry::IO::Base::Parse {
+class Qwiratry::Format::XML::Parse is Qwiratry::Format::Base::Parse {
 
 	method parse(Str $input-string --> Mu) {
 		%(xml => $input-string)
 	}
 }
 
-class Qwiratry::IO::XML::Render is Qwiratry::IO::Base::Render {
+class Qwiratry::Format::XML::Render is Qwiratry::Format::Base::Render {
 
 	method render(Mu $data, Associative :%options --> Str) {
 		if $data ~~ Associative && $data<xml>:exists {

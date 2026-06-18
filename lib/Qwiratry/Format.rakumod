@@ -1,26 +1,25 @@
 =begin pod
 
-I/O format implementation factory.
+Format implementation factory.
 
 Use L<make> with an operation type and format name to obtain a concrete
 implementation object:
 
-  Qwiratry::IO.make(:type<Parse>, :format<JSON>)
-  Qwiratry::IO.make(:type<Render>, :format<JSON>)
+  Qwiratry::Format.make(:type<Parse>, :format<JSON>)
+  Qwiratry::Format.make(:type<Render>, :format<JSON>)
 
-Format modules live under C<Qwiratry::IO::<FORMAT>> and define operation
-classes such as C<Qwiratry::IO::JSON::Parse> and C<Qwiratry::IO::JSON::Render>.
+Format modules live under C<Qwiratry::Format::<FORMAT>> and define operation
+classes such as C<Qwiratry::Format::JSON::Parse> and C<Qwiratry::Format::JSON::Render>.
 
 =end pod
 use Implementation::Loader;
 use Qwiratry::Exception::Operator;
-use Qwiratry::IO::Base::Parse;
-use Qwiratry::IO::Base::Render;
+use Qwiratry::Format::Base;
 
-class Qwiratry::IO does Implementation::Loader {
+class Qwiratry::Format does Implementation::Loader {
 
 	constant @LIB-PATHS = 'lib';
-	constant FORMAT-GLOB = 'Qwiratry::IO::*';
+	constant FORMAT-GLOB = 'Qwiratry::Format::*';
 
 	has %!implementation-cache;
 	has %!format-list-cache;
@@ -29,7 +28,7 @@ class Qwiratry::IO does Implementation::Loader {
 
 	=begin pod
 
-	Return the shared I/O factory instance.
+	Return the shared format factory instance.
 
 	=end pod
 	method instance() {
@@ -49,7 +48,7 @@ class Qwiratry::IO does Implementation::Loader {
 
 	=begin pod
 
-	Normalize format labels (for example C<json> or C<Qwiratry::IO::JSON>).
+	Normalize format labels (for example C<json> or C<Qwiratry::Format::JSON>).
 
 	=end pod
 	method normalize-format-name(Str $format --> Str) {
@@ -64,7 +63,7 @@ class Qwiratry::IO does Implementation::Loader {
 
 	=end pod
 	method format-module-name(Str $format --> Str) {
-		'Qwiratry::IO::' ~ self.normalize-format-name($format)
+		'Qwiratry::Format::' ~ self.normalize-format-name($format)
 	}
 
 	=begin pod
@@ -78,13 +77,15 @@ class Qwiratry::IO does Implementation::Loader {
 
 	# Return the abstract base class name for an operation type.
 	method !base-class-name(Str $type --> Str) {
-		'Qwiratry::IO::Base::' ~ self.normalize-type-name($type)
+		'Qwiratry::Format::Base::' ~ self.normalize-type-name($type)
 	}
 
 	# Derive a format label from a discovered format module FQCN.
 	method !format-name-from-module(Str $module --> Str) {
 		return Nil unless $module.split('::').elems == 3;
-		self.normalize-format-name($module.split('::')[2])
+		my $format = self.normalize-format-name($module.split('::')[2]);
+		return Nil if $format eq 'BASE';
+		$format
 	}
 
 	# Load a format module, resolve its operation class, and verify inheritance.
@@ -138,7 +139,7 @@ class Qwiratry::IO does Implementation::Loader {
 		my $format-name = self.normalize-format-name($format);
 		my $class = self.format-class-name($type-name, $format-name);
 		unless $format-name (elem) self.formats(:type($type-name)) {
-			io-format-not-found(
+			format-not-found(
 				:message("$type-name format module not found for $format"),
 				:format($format-name),
 				:parse-or-render($type-name),

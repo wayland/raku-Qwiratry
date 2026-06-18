@@ -15,7 +15,7 @@ Implement comprehensive query operators for Qwiratry as RakuAST::Node descendant
 **Primary Dependencies**: 
 - Existing Qwiratry infrastructure: `Qwiratry::Walker`, `Qwiratry::QueryIterator`, `Qwiratry::Context`
 - RakuAST (built into Raku 6.e)
-- Future: `Qwiratry::IO::Parse::*` and `Qwiratry::IO::Render::*` modules (to be implemented separately)
+- Future: `Qwiratry::Format::*` modules with `Parse` and `Render` implementations (to be implemented separately)
 
 **Storage**: N/A (operators are in-memory AST nodes)
 
@@ -68,7 +68,7 @@ Implement comprehensive query operators for Qwiratry as RakuAST::Node descendant
   - I/O operators (source, destination) handle external data - validate file paths and URLs
   - Parse/render operators process external formats - validate format modules exist before use
   - No authentication/authorization needed (operators are pure AST nodes)
-  - Dependency health: Format modules (`Qwiratry::IO::Parse::*`, `Qwiratry::IO::Render::*`) checked at runtime
+  - Dependency health: Format modules (`Qwiratry::Format::*`) checked at runtime
 
 - **Simplicity/operability**: 
   - Incremental delivery: Implement operators by category (navigation → map-reduce → set → I/O)

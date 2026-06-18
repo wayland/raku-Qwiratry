@@ -48,7 +48,7 @@ history:
 
 - **Architecture Decisions**:
   - All operators extend RakuAST::Node and implement IOOperator role
-  - Format modules (`Qwiratry::IO::Parse::*`, `Qwiratry::IO::Render::*`) discovered dynamically
+  - Format modules (`Qwiratry::Format::*`) discovered dynamically
   - Location validation (file path vs URL) at AST construction
   - Format options passed via Associative hash
 
@@ -106,7 +106,7 @@ history:
   - `lib/Qwiratry/Operator/IO.rakumod`
 - **Parallel?**: Yes
 - **Notes**: 
-  - Format modules: `Qwiratry::IO::Parse::{format}`
+  - Format modules: `Qwiratry::Format::{format}::Parse`
   - Format discovery handled in T056
 
 ### Subtask T054 – Implement RenderOperator class (`↴`, `⮧`)
@@ -123,7 +123,7 @@ history:
   - `lib/Qwiratry/Operator/IO.rakumod`
 - **Parallel?**: Yes
 - **Notes**: 
-  - Format modules: `Qwiratry::IO::Render::{format}`
+  - Format modules: `Qwiratry::Format::{format}::Render`
   - Options: e.g., `{ pretty => True }` for JSON
 
 ### Subtask T055 – Implement DestinationOperator class (`⮷`)
@@ -147,10 +147,10 @@ history:
 - **Purpose**: Discover available format modules dynamically
 - **Steps**:
   1. Create helper method `discover-parse-formats()`:
-     - Search for `Qwiratry::IO::Parse::*` modules
+     - Search for `Qwiratry::Format::*` modules with `Parse` implementations
      - Return array of format names
   2. Create helper method `discover-render-formats()`:
-     - Search for `Qwiratry::IO::Render::*` modules
+     - Search for `Qwiratry::Format::*` modules with `Render` implementations
      - Return array of format names
   3. Use Raku module introspection (`.^methods`, module loading)
   4. Cache results if needed (format modules don't change during execution)
@@ -211,7 +211,7 @@ history:
   3. Test missing format modules:
      - ParseOperator with non-existent format
      - RenderOperator with non-existent format
-     - Test `X::Qwiratry::IO::FormatNotFound` exception
+     - Test `X::Qwiratry::Format::NotFound` exception
   4. Test location errors:
      - Non-existent files (if testable at AST construction)
      - Test `X::Qwiratry::IO::LocationError` exception

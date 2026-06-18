@@ -130,7 +130,7 @@ A developer wants to compose multiple operators into complex query pipelines. Th
 - **FR-015**: Attribute operator (`⥷`) MUST retrieve column values from table rows
 - **FR-016**: Parent operator (`⪫`) with `:reference` adverb MUST navigate backwards through foreign key relationships
 - **FR-017**: Root operator (`⇤`) MUST be implemented as a unary postfix operator
-- **FR-018**: Parse operator (`↱`) MUST support format detection based on available `Qwiratry::IO::Parse::*` modules
+- **FR-018**: Parse operator (`↱`) MUST support format detection based on available `Qwiratry::Format::*` modules with `Parse` implementations
 - **FR-019**: Render operator (`↴`) MUST support format options via adverbs or named arguments
 - **FR-020**: Source operator (`⮳`) MUST support file paths, absolute paths, and URL schemes (http://, https://, file://)
 - **FR-021**: Destination operator (`⮷`) MUST support writing to file paths and HTTP endpoints
@@ -152,7 +152,7 @@ A developer wants to compose multiple operators into complex query pipelines. Th
 - **Tree Node**: A node in a hierarchical structure (XML, JSON, AST). Navigation operators traverse tree nodes.
 - **Table/Relation**: A tabular data structure with rows and columns. Navigation and set operators work with tables.
 - **Row**: A single record in a table. Navigation operators can follow foreign key relationships from rows.
-- **Format Module**: A module implementing `Qwiratry::IO::Parse::*` or `Qwiratry::IO::Render::*` for specific data formats (JSON, XML, CSV, etc.).
+- **Format Module**: A module implementing `Qwiratry::Format::<FORMAT>::Parse` or `Qwiratry::Format::<FORMAT>::Render` for specific data formats (JSON, XML, CSV, etc.).
 
 ## Success Criteria *(mandatory)*
 
@@ -176,7 +176,7 @@ A developer wants to compose multiple operators into complex query pipelines. Th
 - Operators will be implemented as RakuAST::Node descendants, following Raku's AST structure
 - Walkers will be responsible for domain-specific operator interpretation and optimization
 - QueryIterators will be lazy and produce results incrementally
-- Format modules (Qwiratry::IO::Parse::*, Qwiratry::IO::Render::*) will be implemented separately and discovered dynamically
+- Format modules (`Qwiratry::Format::*`) will be implemented separately and discovered dynamically
 - Foreign key relationships in tables will be discoverable by Walkers through metadata
 - Operator precedence follows Raku's standard precedence hierarchy with additional levels for Qwiratry-specific operators
 - Default tree walker will treat Positional objects as having children and Associative objects as having attributes

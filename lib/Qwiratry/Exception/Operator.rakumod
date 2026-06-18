@@ -17,24 +17,24 @@ class X::Qwiratry::Operator is X::Qwiratry::Walker is export {
 	}
 }
 
-class X::Qwiratry::IO::FormatNotFound is X::Qwiratry::Operator is export {
+class X::Qwiratry::Format::NotFound is X::Qwiratry::Operator is export {
 	has Str $.format is required;
 	has Str $.parse-or-render is required;
 
 	method gist(--> Str) {
-		my $module-name = 'Qwiratry::IO::' ~ $!format;
+		my $module-name = 'Qwiratry::Format::' ~ $!format;
 		my $class-name = $module-name ~ '::' ~ $!parse-or-render.tc;
-		"X::Qwiratry::IO::FormatNotFound: Format implementation $class-name not found (format: $!format, operation: $!parse-or-render)"
+		"X::Qwiratry::Format::NotFound: Format implementation $class-name not found (format: $!format, operation: $!parse-or-render)"
 	}
 }
 
-our sub io-format-not-found(
+our sub format-not-found(
 	Str :$message!,
 	Str :$format!,
 	Str :$parse-or-render!,
 	Str :$operator-type!,
 ) is export {
-	::('X::Qwiratry::IO::FormatNotFound').new(
+	::('X::Qwiratry::Format::NotFound').new(
 		:$message,
 		:$format,
 		:$parse-or-render,

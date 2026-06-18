@@ -36,7 +36,7 @@
 - [x] T002 Create `lib/Qwiratry/Exception/Operator.rakumod` with operator exception classes
 - [x] T003 Create `t/operator/`, `t/integration/`, `t/contract/` test directories
 - [x] T004 [P] Create base exception `X::Qwiratry::Operator` in `lib/Qwiratry/Exception/Operator.rakumod`
-- [x] T005 [P] Create `X::Qwiratry::IO::FormatNotFound` exception
+- [x] T005 [P] Create `X::Qwiratry::Format::NotFound` exception
 - [x] T006 [P] Create `X::Qwiratry::IO::LocationError` exception
 - [x] T007 Write basic tests for exception classes in `t/operator/exceptions.rakutest`
 
@@ -220,7 +220,7 @@
 - [x] T053 [P] Implement `ParseOperator` class (`↱`, `⮣`) with format support
 - [x] T054 [P] Implement `RenderOperator` class (`↴`, `⮧`) with format and options support
 - [ ] T055 [P] Implement `DestinationOperator` class (`⮷`) with location support — local files done; HTTP endpoints not implemented
-- [x] T056 Implement format module discovery (check for `Qwiratry::IO::Parse::*` and `Qwiratry::IO::Render::*`)
+- [x] T056 Implement format module discovery (check for `Qwiratry::Format::*`)
 - [x] T057 Write unit tests for I/O operators in `t/operator/io.rakutest`
 - [x] T058 Write integration tests for I/O pipeline in `t/integration/io-pipeline.rakutest`
 - [x] T059 Test error handling (missing files, invalid formats, inaccessible URLs) in `t/operator/io-errors.rakutest`
@@ -231,7 +231,7 @@
 - RenderOperator supports format options (e.g., `:pretty`)
 - DestinationOperator validates write permissions
 - Format modules are discovered dynamically (not implemented in this feature)
-- `Qwiratry::IO::Pipeline` uses lazy `select`/`select-seq`; render materializes at boundary
+- `Qwiratry::Operator::PipelineStep` uses lazy `select`/`select-seq`; render materializes at boundary
 - Lazy selection covered in `t/unit/io-pipeline-lazy.rakutest`
 
 ### Parallel Opportunities
@@ -239,7 +239,7 @@
 
 ### Dependencies
 - Depends on WP02 (capability system)
-- Format modules (`Qwiratry::IO::Parse::*`, `Qwiratry::IO::Render::*`) to be implemented separately
+- Format modules (`Qwiratry::Format::*`) to be implemented separately
 
 ### Risks & Mitigations
 - Format module dependency → document that format modules must exist separately

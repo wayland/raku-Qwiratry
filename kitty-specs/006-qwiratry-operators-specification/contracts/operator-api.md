@@ -269,7 +269,7 @@ ParseOperator.new(
 ) --> ParseOperator
 ```
 
-**Format Detection**: Format modules must exist as `Qwiratry::IO::Parse::{format}`
+**Format Detection**: Format modules must exist as `Qwiratry::Format::{format}::Parse`
 
 ### RenderOperator (`↴`, `⮧`)
 
@@ -338,7 +338,7 @@ method supports(RakuAST::Node $query --> Bool) {
 ### Runtime Errors
 
 - Invalid data → Domain-specific exceptions
-- Missing format modules → `X::Qwiratry::IO::FormatNotFound`
+- Missing format modules → `X::Qwiratry::Format::NotFound`
 - Invalid location → `X::Qwiratry::IO::LocationError`
 
 ## Table Navigation (Implementation)
@@ -414,7 +414,7 @@ our sub select(Mu $query, Mu $origin --> Seq) is export;
 
 ### I/O Pipeline
 
-- `Qwiratry::IO::Pipeline::execute` uses `select-seq` for query steps
+- `Qwiratry::Operator::PipelineStep::execute` uses `select-seq` for query steps
 - Render/destination boundaries materialize output
 
 ## Examples

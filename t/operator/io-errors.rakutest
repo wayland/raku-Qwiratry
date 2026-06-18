@@ -3,7 +3,7 @@ use Test;
 use lib 'lib';
 
 use Qwiratry::Operator::IO;
-use Qwiratry::IO;
+use Qwiratry::Format;
 use Qwiratry::Exception::Operator;
 use Qwiratry::Operator::PipelineStep;
 
@@ -15,9 +15,9 @@ subtest 'ParseOperator throws FormatNotFound for unknown format' => {
 	my $caught = False;
 	my $side = '';
 	try {
-		Qwiratry::IO.ensure-format(:type<Parse>, :format<YAML>);
+		Qwiratry::Format.ensure-format(:type<Parse>, :format<YAML>);
 		CATCH {
-			when X::Qwiratry::IO::FormatNotFound {
+			when X::Qwiratry::Format::NotFound {
 				$caught = True;
 				$side = .parse-or-render;
 			}

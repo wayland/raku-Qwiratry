@@ -291,7 +291,7 @@ All operator categories from the 006 specification are implemented:
 5. Integration tests, precedence checks, and performance baselines (WP07)
 
 Load `Qwiratry::Query::Slang` for unicode operator syntax. Load format modules
-(e.g. `Qwiratry::IO::Parse::JSON`) before constructing parse/render operators.
+(e.g. `Qwiratry::Format::JSON::Parse`) before constructing parse/render operators.
 
 See `t/integration/quickstart-examples.rakutest` for runnable examples.
 

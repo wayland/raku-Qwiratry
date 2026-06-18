@@ -75,13 +75,13 @@ subtest 'X::Qwiratry::Operator can be thrown and caught' => {
 }
 
 # =============================================================================
-# X::Qwiratry::IO::FormatNotFound exception tests
+# X::Qwiratry::Format::NotFound exception tests
 # =============================================================================
 
-subtest 'X::Qwiratry::IO::FormatNotFound basic construction' => {
+subtest 'X::Qwiratry::Format::NotFound basic construction' => {
 	plan 4;
     
-	my $ex = X::Qwiratry::IO::FormatNotFound.new(
+	my $ex = X::Qwiratry::Format::NotFound.new(
 		message => 'Format not found',
 		format => 'JSON',
 		parse-or-render => 'parse'
@@ -93,33 +93,33 @@ subtest 'X::Qwiratry::IO::FormatNotFound basic construction' => {
 	ok $ex ~~ X::Qwiratry::Operator, 'Exception extends X::Qwiratry::Operator';
 }
 
-subtest 'X::Qwiratry::IO::FormatNotFound gist formatting' => {
+subtest 'X::Qwiratry::Format::NotFound gist formatting' => {
 	plan 2;
     
-	my $ex = X::Qwiratry::IO::FormatNotFound.new(
+	my $ex = X::Qwiratry::Format::NotFound.new(
 		message => 'Format not found',
 		format => 'XML',
 		parse-or-render => 'render'
 	);
     
-	like $ex.gist, /FormatNotFound/, 'Gist contains exception name';
-	like $ex.gist, /Qwiratry\:\:IO\:\:XML\:\:Render/, 'Gist contains module name';
+	like $ex.gist, /NotFound/, 'Gist contains exception name';
+	like $ex.gist, /Qwiratry\:\:Format\:\:XML\:\:Render/, 'Gist contains module name';
 }
 
-subtest 'X::Qwiratry::IO::FormatNotFound can be thrown and caught' => {
+subtest 'X::Qwiratry::Format::NotFound can be thrown and caught' => {
 	plan 2;
     
 	my $caught = False;
 	my $caught-format = '';
     
 	try {
-		X::Qwiratry::IO::FormatNotFound.new(
+		X::Qwiratry::Format::NotFound.new(
 			message => 'Format not found',
 			format => 'CSV',
 			parse-or-render => 'parse'
 		).throw;
 		CATCH {
-			when X::Qwiratry::IO::FormatNotFound {
+			when X::Qwiratry::Format::NotFound {
 				$caught = True;
 				$caught-format = .format;
 			}

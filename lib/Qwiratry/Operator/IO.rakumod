@@ -8,7 +8,7 @@ parse, render, and write external data.
 =end pod
 unit module Qwiratry::Operator::IO;
 
-use Qwiratry::IO;
+use Qwiratry::Format;
 use Qwiratry::Operator::Capability;
 use Qwiratry::Operator::PipelineStep;
 use Qwiratry::Exception::Operator;
@@ -59,7 +59,7 @@ class ParseOperator is RakuAST::Node does IOOperatorNode is export {
 	has Str $.format is required;
 
 	submethod TWEAK {
-		Qwiratry::IO.ensure-format(:type<Parse>, :format($!format));
+		Qwiratry::Format.ensure-format(:type<Parse>, :format($!format));
 	}
 
 	method describe(--> Str) {
@@ -77,7 +77,7 @@ class RenderOperator is RakuAST::Node does IOOperatorNode is export {
 	has %.options;
 
 	submethod TWEAK {
-		Qwiratry::IO.ensure-format(:type<Render>, :format($!format));
+		Qwiratry::Format.ensure-format(:type<Render>, :format($!format));
 	}
 
 	method describe(--> Str) {

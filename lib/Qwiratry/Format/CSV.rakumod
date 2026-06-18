@@ -2,14 +2,13 @@
 
 CSV format module.
 
-Defines C<Qwiratry::IO::CSV::Parse> and C<Qwiratry::IO::CSV::Render>
-implementations loaded through L<Qwiratry::IO.make>.
+Defines C<Qwiratry::Format::CSV::Parse> and C<Qwiratry::Format::CSV::Render>
+implementations loaded through L<Qwiratry::Format.make>.
 
 =end pod
-use Qwiratry::IO::Base::Parse;
-use Qwiratry::IO::Base::Render;
+use Qwiratry::Format::Base;
 
-class Qwiratry::IO::CSV::Parse is Qwiratry::IO::Base::Parse {
+class Qwiratry::Format::CSV::Parse is Qwiratry::Format::Base::Parse {
 
 	method parse(Str $input-string --> Mu) {
 		my @lines = $input-string.lines.grep(*.chars);
@@ -28,7 +27,7 @@ class Qwiratry::IO::CSV::Parse is Qwiratry::IO::Base::Parse {
 	}
 }
 
-class Qwiratry::IO::CSV::Render is Qwiratry::IO::Base::Render {
+class Qwiratry::Format::CSV::Render is Qwiratry::Format::Base::Render {
 
 	method render(Mu $data, Associative :%options --> Str) {
 		my @rows = $data ~~ Positional ?? $data.list !! ($data,);

@@ -59,7 +59,7 @@ I/O and Transformation Operators handle parsing, rendering, and reading/writing 
 |----------|---------|-------------|
 | ↱ or ⮣ | | Parse input (JSON, XML, CSV, etc.) |
 
-The parse operator takes a format argument (e.g., `JSON`, `XML`, `CSV`). Possible values are controlled by the existance of a `Qwiratry::IO::Parse::*` module.
+The parse operator takes a format argument (e.g., `JSON`, `XML`, `CSV`). Possible values are controlled by the existence of a `Qwiratry::Format::*` module with a `Parse` implementation.
 
 **Parse Examples**:
 
@@ -79,7 +79,7 @@ my $xml_root = ⮳ <config.xml> ↱ <XML>;
 
 The render operator takes a format argument specifying the output format. It converts query results or tree structures into the specified serialization format.
 
-It takes a format argument (e.g., `JSON`, `XML`, `CSV`). Possible values are controlled by the existance of a `Qwiratry::IO::Render::*` module.
+It takes a format argument (e.g., `JSON`, `XML`, `CSV`). Possible values are controlled by the existence of a `Qwiratry::Format::*` module with a `Render` implementation.
 
 **Format Options**: Some formats support additional options via adverbs or named arguments:
 
@@ -1191,11 +1191,11 @@ materialize the full result set.
 `QueryIterator` per call. The Table Walker scans rows via indexed access when a Strategy
 is attached; Master composite iterators pull incrementally from subplan iterators.
 
-**I/O pipelines**: `Qwiratry::IO::Pipeline` uses `select-seq` internally. Render and
+**I/O pipelines**: `Qwiratry::Operator::PipelineStep` uses `select-seq` internally. Render and
 destination steps materialize at the pipeline boundary; upstream selection stays lazy.
 
 ```raku
-use Qwiratry::IO::Pipeline;
+use Qwiratry::Operator::PipelineStep;
 
 my $query = @rows σ -> $_ { $_<score> >= 3 };
 my $result = execute($query, :origin(@rows));  # materializes at pipeline end
