@@ -7,8 +7,8 @@ use Qwiratry::IO::Parse::Base;
 
 class Qwiratry::IO::Parse::CSV is Qwiratry::IO::Parse::Base {
 
-	method parse(Str $text --> Mu) {
-		my @lines = $text.lines.grep(*.chars);
+	method parse(Str $input-string --> Mu) {
+		my @lines = $input-string.lines.grep(*.chars);
 		return @() unless @lines;
 		my @headers = @lines[0].split(',', :trim);
 		my @rows;

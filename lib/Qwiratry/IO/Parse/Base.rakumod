@@ -12,7 +12,7 @@ class Qwiratry::IO::Parse::Base {
 	Parse external text into structured data; subclasses must override.
 
 	=end pod
-	method parse(Str $text --> Mu) {
+	method parse(Str $input-string --> Mu) {
 		die "parse not implemented by {self.^name}";
 	}
 }

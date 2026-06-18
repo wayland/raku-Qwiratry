@@ -7,8 +7,8 @@ use Qwiratry::IO::Parse::Base;
 
 class Qwiratry::IO::Parse::JSON is Qwiratry::IO::Parse::Base {
 
-	method parse(Str $text --> Mu) {
-		my ($value, $pos) = self.parse-value($text.trim, 0);
+	method parse(Str $input-string --> Mu) {
+		my ($value, $pos) = self.parse-value($input-string.trim, 0);
 		$value
 	}
 

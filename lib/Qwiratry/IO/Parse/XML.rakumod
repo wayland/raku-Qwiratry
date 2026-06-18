@@ -7,7 +7,7 @@ use Qwiratry::IO::Parse::Base;
 
 class Qwiratry::IO::Parse::XML is Qwiratry::IO::Parse::Base {
 
-	method parse(Str $text --> Mu) {
-		%(xml => $text)
+	method parse(Str $input-string --> Mu) {
+		%(xml => $input-string)
 	}
 }
