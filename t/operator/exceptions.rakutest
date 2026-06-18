@@ -83,12 +83,12 @@ subtest 'X::Qwiratry::Format::NotFound basic construction' => {
     
 	my $ex = X::Qwiratry::Format::NotFound.new(
 		message => 'Format not found',
-		format => 'JSON',
+		format => 'JSONdemo',
 		parse-or-render => 'parse'
 	);
     
 	ok $ex.defined, 'Exception can be created';
-	is $ex.format, 'JSON', 'Format attribute accessible';
+	is $ex.format, 'JSONdemo', 'Format attribute accessible';
 	is $ex.parse-or-render, 'parse', 'Parse-or-render attribute accessible';
 	ok $ex ~~ X::Qwiratry::Operator, 'Exception extends X::Qwiratry::Operator';
 }
@@ -98,12 +98,12 @@ subtest 'X::Qwiratry::Format::NotFound gist formatting' => {
     
 	my $ex = X::Qwiratry::Format::NotFound.new(
 		message => 'Format not found',
-		format => 'XML',
+		format => 'JSONdemo',
 		parse-or-render => 'render'
 	);
     
 	like $ex.gist, /NotFound/, 'Gist contains exception name';
-	like $ex.gist, /Qwiratry\:\:Format\:\:XML\:\:Render/, 'Gist contains module name';
+	like $ex.gist, /Qwiratry\:\:Format\:\:JSONdemo\:\:Render/, 'Gist contains module name';
 }
 
 subtest 'X::Qwiratry::Format::NotFound can be thrown and caught' => {
@@ -115,7 +115,7 @@ subtest 'X::Qwiratry::Format::NotFound can be thrown and caught' => {
 	try {
 		X::Qwiratry::Format::NotFound.new(
 			message => 'Format not found',
-			format => 'CSV',
+			format => 'CSVdemo',
 			parse-or-render => 'parse'
 		).throw;
 		CATCH {
@@ -127,7 +127,7 @@ subtest 'X::Qwiratry::Format::NotFound can be thrown and caught' => {
 	}
     
 	ok $caught, 'Exception can be caught';
-	is $caught-format, 'CSV', 'Caught exception has correct format';
+	is $caught-format, 'CSVdemo', 'Caught exception has correct format';
 }
 
 # =============================================================================

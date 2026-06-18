@@ -5,7 +5,7 @@ use lib 'lib';
 
 use Qwiratry::Operator::Capability;
 
-plan 12;
+plan 16;
 
 # =============================================================================
 # OperatorBase mixin tests
@@ -119,30 +119,78 @@ subtest 'SetOperator role composition' => {
 }
 
 # =============================================================================
-# IOOperator role tests
+# AdaptorOperator role tests
 # =============================================================================
 
-subtest 'IOOperator capabilities' => {
+subtest 'AdaptorOperator capabilities' => {
 	plan 4;
     
-	class TestIOOperator does IOOperator { }
+	class TestAdaptorOperator does AdaptorOperator { }
     
-	my $op = TestIOOperator.new;
+	my $op = TestAdaptorOperator.new;
 	my $caps = $op.capabilities;
     
-	ok $caps<io>, 'IO capability is True';
-	is $caps<formats>, ['json', 'xml', 'csv'], 'Formats array is correct';
-	ok !$caps<lazy>, 'Lazy evaluation is False (I/O is eager)';
-	ok $caps.defined, 'Capabilities method returns value';
+	ok $caps<adaptor>, 'Adaptor capability is True';
+	ok !$caps<format>, 'Base adaptor does not declare format support';
+	ok !$caps<location>, 'Base adaptor does not declare location support';
+	ok !$caps<lazy>, 'Lazy evaluation is False (adaptors are eager)';
 }
 
-subtest 'IOOperator role composition' => {
+subtest 'FormatOperator capabilities' => {
+	plan 4;
+
+	class TestFormatOperator does FormatOperator { }
+
+	my $op = TestFormatOperator.new;
+	my $caps = $op.capabilities;
+
+	ok $caps<adaptor>, 'Format operator is an adaptor';
+	ok $caps<format>, 'Format capability is True';
+	ok 'jsondemo' (elem) $caps<formats>, 'Formats include discovered JSONdemo';
+	ok 'csvdemo' (elem) $caps<formats>, 'Formats include discovered CSVdemo';
+}
+
+subtest 'LocationOperator capabilities' => {
+	plan 4;
+
+	class TestLocationOperator does LocationOperator { }
+
+	my $op = TestLocationOperator.new;
+	my $caps = $op.capabilities;
+
+	ok $caps<adaptor>, 'Location operator is an adaptor';
+	ok $caps<location>, 'Location capability is True';
+	ok 'file' (elem) $caps<source-backends>, 'Source backends include discovered File';
+	ok 'file' (elem) $caps<destination-backends>, 'Destination backends include discovered File';
+}
+
+subtest 'AdaptorOperator role composition' => {
 	plan 1;
     
-	class TestIOOp does IOOperator { }
+	class TestAdaptorOp does AdaptorOperator { }
     
-	my $op = TestIOOp.new;
-	ok $op ~~ IOOperator, 'Operator does IOOperator role';
+	my $op = TestAdaptorOp.new;
+	ok $op ~~ AdaptorOperator, 'Operator does AdaptorOperator role';
+}
+
+subtest 'FormatOperator and LocationOperator compose AdaptorOperator' => {
+	plan 2;
+
+	class TestFormatOp does FormatOperator { }
+	class TestLocationOp does LocationOperator { }
+
+	ok TestFormatOp.new ~~ AdaptorOperator, 'FormatOperator does AdaptorOperator';
+	ok TestLocationOp.new ~~ AdaptorOperator, 'LocationOperator does AdaptorOperator';
+}
+
+subtest 'Capabilities method returns value' => {
+	plan 1;
+
+	class TestAdaptorWithCapabilities does AdaptorOperator { }
+
+	my $op = TestAdaptorWithCapabilities.new;
+	my $caps = $op.capabilities;
+	ok $caps.defined, 'Capabilities method returns value';
 }
 
 # =============================================================================

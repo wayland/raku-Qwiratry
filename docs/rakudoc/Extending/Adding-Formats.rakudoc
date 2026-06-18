@@ -53,11 +53,12 @@ Qwiratry::Format::<FORMAT>::Parse
 Qwiratry::Format::<FORMAT>::Render
 =end code
 
-For example:
+For example, the built-in demonstration formats use C<*demo> names to make it
+clear that they are not complete production parsers:
 
 =begin code :lang<raku>
-Qwiratry::Format::JSON::Parse
-Qwiratry::Format::JSON::Render
+Qwiratry::Format::JSONdemo::Parse
+Qwiratry::Format::JSONdemo::Render
 =end code
 
 =head2 Update META6
@@ -156,8 +157,8 @@ whether the requested operation class inherits from the matching base class.
 my @parse-formats = Qwiratry::Format.formats(:type<Parse>);
 my @render-formats = Qwiratry::Format.formats(:type<Render>);
 
-my $parser = Qwiratry::Format.make(:type<Parse>, :format<JSON>);
-my $renderer = Qwiratry::Format.make(:type<Render>, :format<JSON>);
+my $parser = Qwiratry::Format.make(:type<Parse>, :format<JSONdemo>);
+my $renderer = Qwiratry::Format.make(:type<Render>, :format<JSONdemo>);
 =end code
 
 =end rakudoc

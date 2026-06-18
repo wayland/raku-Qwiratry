@@ -7,7 +7,7 @@ use Qwiratry::Operator::Navigation;
 use Qwiratry::Operator::MapReduce;
 use Qwiratry::Operator::Set;
 use Qwiratry::Operator::IO;
-use Qwiratry::Format::JSON;
+use Qwiratry::Format::JSONdemo;
 use Qwiratry::Query::Slang;
 use Qwiratry::Query::Match;
 
@@ -96,10 +96,10 @@ subtest 'I/O operator pattern constructs pipeline AST' => {
 	plan 4;
 
 	my $source = SourceOperator.new(:location('data.json'));
-	my $parsed = ParseOperator.new(:format('JSON'), :subject($source));
+	my $parsed = ParseOperator.new(:format('JSONdemo'), :subject($source));
 	ok $parsed.subject ~~ SourceOperator, 'parse chains from source';
 
-	my $rendered = RenderOperator.new(:format('JSON'), :options(%(pretty => True)), :subject($parsed));
+	my $rendered = RenderOperator.new(:format('JSONdemo'), :options(%(pretty => True)), :subject($parsed));
 	ok $rendered.options<pretty>, 'render stores pretty option';
 
 	my $dest = DestinationOperator.new(:location('output.json'), :subject($rendered));

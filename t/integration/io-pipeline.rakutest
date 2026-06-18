@@ -4,7 +4,7 @@ use Test;
 use lib 'lib';
 
 use Qwiratry::Format;
-use Qwiratry::Format::JSON;
+use Qwiratry::Format::JSONdemo;
 use Qwiratry::Operator::PipelineStep;
 use Qwiratry::Query::Slang;
 use Qwiratry::Query::Match;
@@ -21,13 +21,13 @@ subtest 'source parse render destination round-trip with temp files' => {
 	my $output = $tmpdir.child("io-out-{$*PID}.json");
 	$input.spurt('[{"name":"alpha","status":"active"},{"name":"beta","status":"inactive"}]');
 
-	my $pipeline = (⮳ $input.Str ↱ 'JSON' σ -> $_ { $_<status> eq 'active' } ↴ 'JSON' ⮷ $output.Str);
+	my $pipeline = (⮳ $input.Str ↱ 'JSONdemo' σ -> $_ { $_<status> eq 'active' } ↴ 'JSONdemo' ⮷ $output.Str);
 
 	my $result = execute($pipeline);
 	ok $output.e, 'destination file was written';
 	ok $result.defined, 'execute returns rendered content';
 
-	my $parsed = Qwiratry::Format.make(:type<Parse>, :format<JSON>).parse($output.slurp);
+	my $parsed = Qwiratry::Format.make(:type<Parse>, :format<JSONdemo>).parse($output.slurp);
 	my @rows = $parsed ~~ Positional ?? $parsed.list !! ($parsed,);
 	is @rows.elems, 1, 'pipeline filtered to active rows only';
 
@@ -41,15 +41,15 @@ subtest 'parse and query without destination returns filtered data' => {
 	my $input = $tmpdir.child("io-query-{$*PID}.json");
 	$input.spurt('[{"score":1},{"score":5},{"score":3}]');
 
-	my $query = (⮳ $input.Str ↱ 'JSON') σ -> $_ { $_<score> >= 3 };
+	my $query = (⮳ $input.Str ↱ 'JSONdemo') σ -> $_ { $_<score> >= 3 };
 	my $result = execute($query);
 	my @rows = $result ~~ Positional ?? $result.list !! ($result,);
 	my @scores = @rows.map(*<score>);
 
 	is @scores.sort, (3, 5), 'parsed selection returns matching scores';
 
-	my $rendered = execute((⮳ $input.Str ↱ 'JSON') ↴ 'JSON');
-	ok $rendered.starts-with('['), 'parse then render produces JSON text';
+	my $rendered = execute((⮳ $input.Str ↱ 'JSONdemo') ↴ 'JSONdemo');
+	ok $rendered.starts-with('['), 'parse then render produces JSONdemo text';
 
 	$input.unlink if $input.e;
 }

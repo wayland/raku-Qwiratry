@@ -50,15 +50,15 @@ Resolve the data root for a query operator by walking C<subject> links leftward.
 =end pod
 our sub pipeline-root(Mu $op, Mu $origin, :&execute --> Mu) is export {
 	if $op.can('subject') && $op.subject.defined {
-		return execute($op.subject, :$origin) if is-io-operator($op.subject);
+		return execute($op.subject, :$origin) if is-adaptor-operator($op.subject);
 		return pipeline-root($op.subject, $origin, :&execute) if $op.subject.can('subject');
 		return $op.subject;
 	}
 	$origin // $op
 }
 
-sub is-io-operator(Mu $subject --> Bool) {
-	so $subject.^roles.map(*.^name).grep(*.ends-with('IOOperator'))
+sub is-adaptor-operator(Mu $subject --> Bool) {
+	so $subject.^roles.map(*.^name).grep({ .contains(any('AdaptorOperator', 'FormatOperator', 'LocationOperator')) })
 }
 
 =begin pod

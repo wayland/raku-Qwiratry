@@ -250,7 +250,7 @@ sub select-seq(Mu $query, Mu $origin --> Seq) {
 }
 
 sub relation-source(Mu $operand, Mu $origin) {
-	if $operand ~~ NavigationOperator | SetOperator | MapReduceOperator | IOOperator | RootOperator {
+	if $operand ~~ NavigationOperator | SetOperator | MapReduceOperator | AdaptorOperator | RootOperator {
 		return select-seq($operand, $origin);
 	}
 	if $operand ~~ Iterator | Positional {
@@ -489,7 +489,7 @@ sub select-list-eager(Mu $query, Mu $origin --> List) {
 			if $query.subject ~~ NavigationOperator | RootOperator {
 				@bases = select-list($query.subject, $origin);
 			}
-			elsif $query.subject ~~ IOOperator {
+			elsif $query.subject ~~ AdaptorOperator {
 				@bases = $origin ~~ Positional ?? $origin.list !! ($origin,);
 			}
 			elsif $query.subject ~~ Qwiratry::Table::Catalog {
@@ -682,7 +682,7 @@ sub mapreduce-items(Mu $query, Mu $origin --> List) {
 		if $query.subject ~~ NavigationOperator | RootOperator | SetOperator | MapReduceOperator {
 			return select-list($query.subject, $origin);
 		}
-		if $query.subject ~~ IOOperator {
+		if $query.subject ~~ AdaptorOperator {
 			return $origin ~~ Positional ?? $origin.list !! ($origin,);
 		}
 		if $query.subject ~~ Positional {
@@ -733,7 +733,7 @@ sub selection-relation-source(Mu $query, Mu $origin) {
 	if $query.subject ~~ NavigationOperator | RootOperator {
 		return select-seq($query.subject, $origin);
 	}
-	if $query.subject ~~ IOOperator {
+	if $query.subject ~~ AdaptorOperator {
 		return $origin ~~ Positional ?? $origin !! ($origin,);
 	}
 	if $query.subject ~~ Qwiratry::Table::Catalog {

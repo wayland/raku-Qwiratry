@@ -14,20 +14,26 @@ use Qwiratry::Operator::Capability;
 use Qwiratry::Operator::PipelineStep;
 use Qwiratry::Exception::Operator;
 
-role IOOperatorNode does IOOperator does OperatorBase {
+role AdaptorOperatorNode does OperatorBase {
 	has Mu $.subject;
 
 	submethod TWEAK(:$subject) {
 		$!subject = $subject if $subject.defined;
 	}
 
-	method io-describe(Str $detail --> Str) {
+	method adaptor-describe(Str $detail --> Str) {
 		my $sub = $!subject.defined ?? " subject={$!subject.^name}" !! '';
 		"{self.^name}($detail$sub)"
 	}
 }
 
-class SourceOperator is RakuAST::Node does IOOperator does OperatorBase is export {
+role FormatOperatorNode does FormatOperator does AdaptorOperatorNode {
+}
+
+role LocationOperatorNode does LocationOperator does AdaptorOperatorNode {
+}
+
+class SourceOperator is RakuAST::Node does LocationOperator does OperatorBase is export {
 	has Str $.location is required;
 
 	submethod BUILD(Str :$!location!) {
@@ -43,7 +49,7 @@ class SourceOperator is RakuAST::Node does IOOperator does OperatorBase is expor
 	}
 }
 
-class ParseOperator is RakuAST::Node does IOOperatorNode is export {
+class ParseOperator is RakuAST::Node does FormatOperatorNode is export {
 	has Str $.format is required;
 
 	submethod TWEAK {
@@ -51,7 +57,7 @@ class ParseOperator is RakuAST::Node does IOOperatorNode is export {
 	}
 
 	method describe(--> Str) {
-		self.io-describe("format: '{$!format.lc}'")
+		self.adaptor-describe("format: '{$!format.lc}'")
 	}
 
 	method evaluate(Mu :$origin, :&execute) {
@@ -60,7 +66,7 @@ class ParseOperator is RakuAST::Node does IOOperatorNode is export {
 	}
 }
 
-class RenderOperator is RakuAST::Node does IOOperatorNode is export {
+class RenderOperator is RakuAST::Node does FormatOperatorNode is export {
 	has Str $.format is required;
 	has %.options;
 
@@ -69,7 +75,7 @@ class RenderOperator is RakuAST::Node does IOOperatorNode is export {
 	}
 
 	method describe(--> Str) {
-		self.io-describe("format: '{$!format.lc}', options: {%.options.raku}")
+		self.adaptor-describe("format: '{$!format.lc}', options: {%.options.raku}")
 	}
 
 	method evaluate(Mu :$origin, :&execute) {
@@ -78,7 +84,7 @@ class RenderOperator is RakuAST::Node does IOOperatorNode is export {
 	}
 }
 
-class DestinationOperator is RakuAST::Node does IOOperatorNode is export {
+class DestinationOperator is RakuAST::Node does LocationOperatorNode is export {
 	has Str $.location is required;
 
 	submethod BUILD(Str :$!location!) {
@@ -86,7 +92,7 @@ class DestinationOperator is RakuAST::Node does IOOperatorNode is export {
 	}
 
 	method describe(--> Str) {
-		self.io-describe("location: '$!location'")
+		self.adaptor-describe("location: '$!location'")
 	}
 
 	method evaluate(Mu :$origin, :&execute) {

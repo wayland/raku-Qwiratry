@@ -115,7 +115,7 @@ class Qwiratry::Location does Implementation::Loader {
 			:message("Invalid I/O location: $location"),
 			:location($location),
 			:reason('Invalid location format'),
-			:operator-type('IOOperator'),
+			:operator-type('AdaptorOperator'),
 		).throw;
 	}
 

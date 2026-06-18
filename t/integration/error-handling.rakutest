@@ -6,7 +6,7 @@ use lib 'lib';
 use Qwiratry::Walker::Implementation::Tree;
 use Qwiratry::Operator::IO;
 use Qwiratry::Operator::Navigation;
-use Qwiratry::Format::JSON;
+use Qwiratry::Format::JSONdemo;
 use X::Qwiratry;
 
 plan 3;
@@ -38,7 +38,7 @@ subtest 'UnknownQueryElement includes walker and query metadata' => {
 	plan 2;
 
 	my $walker = Qwiratry::Walker::Implementation::Tree.new;
-	my $io = ParseOperator.new(:format('JSON'));
+	my $io = ParseOperator.new(:format('JSONdemo'));
 	my $ex;
 	try {
 		$walker.plan($io, $tree);

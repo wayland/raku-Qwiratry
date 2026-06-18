@@ -2,12 +2,14 @@
 
 Capability roles for operator-walker compatibility checking.
 
-Operators implement capability roles to declare navigation, map-reduce, set, or I/O
+Operators implement capability roles to declare navigation, map-reduce, set, or adaptor
 support. Walkers use C<capabilities()> metadata during C<supports()> checks.
 
 =end pod
 unit module Qwiratry::Operator::Capability;
 
+use Qwiratry::Format;
+use Qwiratry::Location;
 use Qwiratry::Operator::PipelineStep;
 
 =begin pod
@@ -87,20 +89,68 @@ role SetOperator does PipelineStep is export {
 
 =begin pod
 
-Marks an operator as part of an I/O pipeline (source, parse, render, destination).
+Marks an operator as part of an adaptor pipeline (source, parse, render, destination).
 
 =end pod
-role IOOperator does PipelineStep is export {
+role AdaptorOperator does PipelineStep is export {
 	=begin pod
 
-	Declare I/O support and the set of data formats available for parse/render.
+	Declare adaptor support shared by format and location operators.
+
+	=end pod
+	method adaptor-capabilities(--> Associative) {
+		{
+			adaptor => True,
+			lazy => False,
+		}
+	}
+
+	method capabilities(--> Associative) {
+		self.adaptor-capabilities
+	}
+}
+
+=begin pod
+
+Marks an operator as a parse/render adaptor backed by format implementations.
+
+=end pod
+role FormatOperator does AdaptorOperator is export {
+	=begin pod
+
+	Declare format adaptor support and discoverable parse/render formats.
 
 	=end pod
 	method capabilities(--> Associative) {
-		{
-			io => True,
-			formats => ['json', 'xml', 'csv'],
-			lazy => False,
-		}
+		my @formats = (
+			|Qwiratry::Format.formats(:type<Parse>),
+			|Qwiratry::Format.formats(:type<Render>),
+		).unique.sort.map(*.lc).Array;
+		my %caps = self.adaptor-capabilities;
+		%caps<format> = True;
+		%caps<formats> = @formats;
+		%caps
+	}
+}
+
+=begin pod
+
+Marks an operator as a source/destination adaptor backed by location implementations.
+
+=end pod
+role LocationOperator does AdaptorOperator is export {
+	=begin pod
+
+	Declare location adaptor support and discoverable source/destination backends.
+
+	=end pod
+	method capabilities(--> Associative) {
+		my @sources = Qwiratry::Location.backends(:type<Source>).map(*.lc).Array;
+		my @destinations = Qwiratry::Location.backends(:type<Destination>).map(*.lc).Array;
+		my %caps = self.adaptor-capabilities;
+		%caps<location> = True;
+		%caps<source-backends> = @sources;
+		%caps<destination-backends> = @destinations;
+		%caps
 	}
 }

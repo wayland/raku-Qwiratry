@@ -5,11 +5,12 @@ Format implementation factory.
 Use L<make> with an operation type and format name to obtain a concrete
 implementation object:
 
-  Qwiratry::Format.make(:type<Parse>, :format<JSON>)
-  Qwiratry::Format.make(:type<Render>, :format<JSON>)
+  Qwiratry::Format.make(:type<Parse>, :format<JSONdemo>)
+  Qwiratry::Format.make(:type<Render>, :format<JSONdemo>)
 
 Format modules live under C<Qwiratry::Format::<FORMAT>> and define operation
-classes such as C<Qwiratry::Format::JSON::Parse> and C<Qwiratry::Format::JSON::Render>.
+classes such as C<Qwiratry::Format::JSONdemo::Parse> and
+C<Qwiratry::Format::JSONdemo::Render>.
 
 =end pod
 use Implementation::Loader;
@@ -48,12 +49,14 @@ class Qwiratry::Format does Implementation::Loader {
 
 	=begin pod
 
-	Normalize format labels (for example C<json> or C<Qwiratry::Format::JSON>).
+	Normalize format labels (for example C<jsondemo> or C<Qwiratry::Format::JSONdemo>).
 
 	=end pod
 	method normalize-format-name(Str $format --> Str) {
 		my $name = $format.subst(/\.rakumod$/, '');
 		$name = $name.split('::').[*-1] if $name.contains('::');
+		return 'CSVdemo' if $name.lc eq 'csvdemo';
+		return 'JSONdemo' if $name.lc eq 'jsondemo';
 		$name.uc
 	}
 

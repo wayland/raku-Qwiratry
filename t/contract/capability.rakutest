@@ -42,7 +42,7 @@ class TestWalker does Qwiratry::Walker {
 class TestNavigationOp does NavigationOperator does OperatorBase { }
 class TestMapReduceOp does MapReduceOperator does OperatorBase { }
 class TestSetOp does SetOperator does OperatorBase { }
-class TestIOOp does IOOperator does OperatorBase { }
+class TestAdaptorOp does AdaptorOperator does OperatorBase { }
 class TestNoCapabilityOp does OperatorBase { }
 
 subtest 'Walker supports() checks navigation capabilities' => {
@@ -63,11 +63,11 @@ subtest 'Walker supports() rejects non-navigation operators' => {
 	my $walker = TestWalker.new;
 	my $mapreduce-op = TestMapReduceOp.new;
 	my $set-op = TestSetOp.new;
-	my $io-op = TestIOOp.new;
+	my $adaptor-op = TestAdaptorOp.new;
 
 	nok $walker.supports($mapreduce-op), 'Walker does not support map-reduce operator';
 	nok $walker.supports($set-op), 'Walker does not support set operator';
-	nok $walker.supports($io-op), 'Walker does not support I/O operator';
+	nok $walker.supports($adaptor-op), 'Walker does not support adaptor operator';
 }
 
 subtest 'Walker supports() handles operators without capabilities' => {

@@ -6,9 +6,8 @@ use Qwiratry::Operator::IO;
 use Qwiratry::Operator::Capability;
 use Qwiratry::Exception::Operator;
 use Qwiratry::Format;
-use Qwiratry::Format::JSON;
-use Qwiratry::Format::XML;
-use Qwiratry::Format::CSV;
+use Qwiratry::Format::JSONdemo;
+use Qwiratry::Format::CSVdemo;
 use Qwiratry::Location;
 use Qwiratry::Location::File;
 
@@ -40,23 +39,23 @@ subtest 'SourceOperator validates locations at construction' => {
 subtest 'ParseOperator and RenderOperator require loaded format modules' => {
 	plan 6;
 
-	my $parse = ParseOperator.new(:format('JSON'));
-	ok $parse ~~ IOOperator, 'ParseOperator does IOOperator';
-	is $parse.format, 'JSON', 'ParseOperator stores format';
-	like $parse.describe, rx:i/json/, 'ParseOperator describe includes format';
+	my $parse = ParseOperator.new(:format('JSONdemo'));
+	ok $parse ~~ FormatOperator, 'ParseOperator does FormatOperator';
+	is $parse.format, 'JSONdemo', 'ParseOperator stores format';
+	like $parse.describe, rx:i/jsondemo/, 'ParseOperator describe includes format';
 
-	my $render = RenderOperator.new(:format('JSON'), :options(%(pretty => True)));
-	ok $render ~~ IOOperator, 'RenderOperator does IOOperator';
+	my $render = RenderOperator.new(:format('JSONdemo'), :options(%(pretty => True)));
+	ok $render ~~ FormatOperator, 'RenderOperator does FormatOperator';
 	ok $render.options<pretty>, 'RenderOperator stores options';
-	like $render.describe, rx:i/json/, 'RenderOperator describe includes format';
+	like $render.describe, rx:i/jsondemo/, 'RenderOperator describe includes format';
 }
 
 subtest 'DestinationOperator chains with subject' => {
 	plan 3;
 
-	my $subject = RenderOperator.new(:format('JSON'));
+	my $subject = RenderOperator.new(:format('JSONdemo'));
 	my $dest = DestinationOperator.new(:subject($subject), :location('./output.json'));
-	ok $dest ~~ IOOperator, 'DestinationOperator does IOOperator';
+	ok $dest ~~ LocationOperator, 'DestinationOperator does LocationOperator';
 	ok $dest.subject ~~ RenderOperator, 'DestinationOperator stores subject';
 	like $dest.describe, rx:s/output\.json/, 'DestinationOperator describe includes location';
 }
@@ -65,10 +64,10 @@ subtest 'Format and location discovery finds loaded modules' => {
 	plan 4;
 
 	my @parse = Qwiratry::Format.formats(:type<Parse>);
-	ok 'JSON' (elem) @parse, 'Qwiratry::Format.formats(:type<Parse>) includes JSON';
+	ok 'JSONdemo' (elem) @parse, 'Qwiratry::Format.formats(:type<Parse>) includes JSONdemo';
 
 	my @render = Qwiratry::Format.formats(:type<Render>);
-	ok 'JSON' (elem) @render, 'Qwiratry::Format.formats(:type<Render>) includes JSON';
+	ok 'JSONdemo' (elem) @render, 'Qwiratry::Format.formats(:type<Render>) includes JSONdemo';
 
 	my @source = Qwiratry::Location.backends(:type<Source>);
 	ok 'File' (elem) @source, 'Qwiratry::Location.backends(:type<Source>) includes File';
@@ -77,8 +76,8 @@ subtest 'Format and location discovery finds loaded modules' => {
 	ok 'File' (elem) @destination, 'Qwiratry::Location.backends(:type<Destination>) includes File';
 }
 
-subtest 'I/O operators are immutable and declare capabilities' => {
-	plan 4;
+subtest 'Adaptor operators are immutable and declare capabilities' => {
+	plan 6;
 
 	my $op = SourceOperator.new(:location('./in.json'));
 	my $threw = False;
@@ -86,9 +85,11 @@ subtest 'I/O operators are immutable and declare capabilities' => {
 	ok $threw, 'location attribute cannot be assigned';
 
 	my $caps = $op.capabilities;
-	ok $caps<io>, 'io flag is True';
-	is $caps<formats>, ['json', 'xml', 'csv'], 'formats are declared';
-	ok !$caps<lazy>, 'lazy flag is False for I/O';
+	ok $caps<adaptor>, 'adaptor flag is True';
+	ok $caps<location>, 'location flag is True';
+	ok 'file' (elem) $caps<source-backends>, 'source backends are discovered';
+	ok 'file' (elem) $caps<destination-backends>, 'destination backends are discovered';
+	ok !$caps<lazy>, 'lazy flag is False for adaptors';
 }
 
 done-testing;
