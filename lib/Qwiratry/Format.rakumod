@@ -88,6 +88,11 @@ class Qwiratry::Format does Implementation::Loader {
 		$format
 	}
 
+	# Normalize the operation and format pair used by factory dispatch.
+	method !type-and-format-names(Str $type, Str $format --> List) {
+		(self.normalize-type-name($type), self.normalize-format-name($format))
+	}
+
 	# Load a format module, resolve its operation class, and verify inheritance.
 	method !implementation-type(Str $type, Str $format) {
 		my $module = self.format-module-name($format);
@@ -135,8 +140,7 @@ class Qwiratry::Format does Implementation::Loader {
 	=end pod
 	method ensure-format(Str :$type!, Str :$format! --> Str) {
 		return self.instance.ensure-format(:$type, :$format) unless self.DEFINITE;
-		my $type-name = self.normalize-type-name($type);
-		my $format-name = self.normalize-format-name($format);
+		my ($type-name, $format-name) = self!type-and-format-names($type, $format);
 		my $class = self.format-class-name($type-name, $format-name);
 		unless $format-name (elem) self.formats(:type($type-name)) {
 			format-not-found(
@@ -151,8 +155,7 @@ class Qwiratry::Format does Implementation::Loader {
 
 	# Load (or return cached) implementation instance for operation type and format.
 	method !implementation(Str $type, Str $format) {
-		my $type-name = self.normalize-type-name($type);
-		my $format-name = self.normalize-format-name($format);
+		my ($type-name, $format-name) = self!type-and-format-names($type, $format);
 		my $key = "$type-name|$format-name";
 		unless %!implementation-cache{$key}:exists {
 			self.ensure-format(:type($type-name), :format($format-name));
