@@ -103,7 +103,7 @@ subtest 'X::Qwiratry::IO::FormatNotFound gist formatting' => {
 	);
     
 	like $ex.gist, /FormatNotFound/, 'Gist contains exception name';
-	like $ex.gist, /Qwiratry\:\:IO\:\:Render\:\:XML/, 'Gist contains module name';
+	like $ex.gist, /Qwiratry\:\:IO\:\:XML\:\:Render/, 'Gist contains module name';
 }
 
 subtest 'X::Qwiratry::IO::FormatNotFound can be thrown and caught' => {

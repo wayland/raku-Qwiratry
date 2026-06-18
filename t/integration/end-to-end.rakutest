@@ -4,6 +4,7 @@ use Test;
 use lib 'lib';
 
 use Qwiratry::Walker::Implementation::Table;
+use Qwiratry::IO;
 use Qwiratry::IO::JSON;
 use Qwiratry::Operator::PipelineStep;
 use Qwiratry::Query::Slang;
@@ -44,12 +45,12 @@ subtest 'IO pipeline with filter and render' => {
 
 	my $input = $tmpdir.child("e2e-in-{$*PID}.json");
 	my $output = $tmpdir.child("e2e-out-{$*PID}.json");
-	$input.spurt(Qwiratry::IO::Render.make(:format<JSON>).render(@rows));
+	$input.spurt(Qwiratry::IO.make(:type<Render>, :format<JSON>).render(@rows));
 
 	my $pipeline = (⮳ $input.Str ↱ 'JSON' σ -> $_ { $_<dept> eq 'eng' } ⇅ -> $_ { $_<score> } ↴ 'JSON' ⮷ $output.Str);
 
 	execute($pipeline);
-	my @out = Qwiratry::IO::Parse.make(:format<JSON>).parse($output.slurp).list;
+	my @out = Qwiratry::IO.make(:type<Parse>, :format<JSON>).parse($output.slurp).list;
 	is @out.elems, 2, 'pipeline writes filtered engineering rows';
 	is @out[0]<name>, 'alpha', 'sorted output starts with lowest score';
 

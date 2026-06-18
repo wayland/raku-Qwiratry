@@ -3,6 +3,7 @@
 use Test;
 use lib 'lib';
 
+use Qwiratry::IO;
 use Qwiratry::IO::JSON;
 use Qwiratry::Operator::PipelineStep;
 use Qwiratry::Query::Slang;
@@ -26,7 +27,7 @@ subtest 'source parse render destination round-trip with temp files' => {
 	ok $output.e, 'destination file was written';
 	ok $result.defined, 'execute returns rendered content';
 
-	my $parsed = Qwiratry::IO::Parse.make(:format<JSON>).parse($output.slurp);
+	my $parsed = Qwiratry::IO.make(:type<Parse>, :format<JSON>).parse($output.slurp);
 	my @rows = $parsed ~~ Positional ?? $parsed.list !! ($parsed,);
 	is @rows.elems, 1, 'pipeline filtered to active rows only';
 

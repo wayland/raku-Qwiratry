@@ -3,14 +3,13 @@
 Minimal JSON format module (no external dependencies).
 
 Defines C<Qwiratry::IO::JSON::Parse> and C<Qwiratry::IO::JSON::Render>
-implementations loaded through L<Qwiratry::IO::Parse.make> and
-L<Qwiratry::IO::Render.make>.
+implementations loaded through L<Qwiratry::IO.make>.
 
 =end pod
-use Qwiratry::IO::Parse;
-use Qwiratry::IO::Render;
+use Qwiratry::IO::Base::Parse;
+use Qwiratry::IO::Base::Render;
 
-class Qwiratry::IO::JSON::Parse is Qwiratry::IO::Parse {
+class Qwiratry::IO::JSON::Parse is Qwiratry::IO::Base::Parse {
 
 	method parse(Str $input-string --> Mu) {
 		my ($value, $pos) = self.parse-value($input-string.trim, 0);
@@ -114,7 +113,7 @@ class Qwiratry::IO::JSON::Parse is Qwiratry::IO::Parse {
 	}
 }
 
-class Qwiratry::IO::JSON::Render is Qwiratry::IO::Render {
+class Qwiratry::IO::JSON::Render is Qwiratry::IO::Base::Render {
 
 	method render(Mu $data, Associative :%options --> Str) {
 		my $pretty = %options<pretty> // False;
