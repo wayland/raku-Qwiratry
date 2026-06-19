@@ -1,41 +1,41 @@
 =begin pod
 
-Collect templates and wrappers registered during transformer parsing.
+Collect molds and wrappers registered during transformer parsing.
 
 Module-level storage keyed by compilation pass; drained when a transformer
 class is finalized.
 
 =end pod
-use Qwiratry::Template;
+use Qwiratry::Mold;
 
-class Qwiratry::Template::Registry {
+class Qwiratry::Mold::Registry {
 
 	my $instance;
 
 	=begin pod
 
-	Return the shared template registry instance.
+	Return the shared mold registry instance.
 
 	=end pod
-	method instance(--> Qwiratry::Template::Registry) {
+	method instance(--> Qwiratry::Mold::Registry) {
 		$instance //= self.new
 	}
 
-	has @!templates;
+	has @!molds;
 	has @!wrappers;
 
 	=begin pod
 
-	Register a compiled template with the module-level collection.
+	Register a compiled mold with the module-level collection.
 
 	=end pod
-	method register-template(Template $template) {
-		@!templates.push($template);
+	method register-mold(Mold $mold) {
+		@!molds.push($mold);
 	}
 
 	=begin pod
 
-	Register a wrapper block of the given C<$type> (TRANSFORMER, TEMPLATE_MATCHER, etc.).
+	Register a wrapper block of the given C<$type> (TRANSFORMER, MOLD_MATCHER, etc.).
 
 	=end pod
 	method register-wrapper(Str $type, Block $block) {
@@ -44,22 +44,22 @@ class Qwiratry::Template::Registry {
 
 	=begin pod
 
-	Return collected templates and clear the module-level list.
+	Return collected molds and clear the module-level list.
 
 	=end pod
-	method collected-templates() {
-		my @result = @!templates;
-		@!templates = [];
+	method collected-molds() {
+		my @result = @!molds;
+		@!molds = [];
 		@result
 	}
 
 	=begin pod
 
-	Clear the template collection without returning it.
+	Clear the mold collection without returning it.
 
 	=end pod
-	method clear-templates() {
-		@!templates = [];
+	method clear-molds() {
+		@!molds = [];
 	}
 
 	=begin pod

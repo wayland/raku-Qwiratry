@@ -32,7 +32,7 @@ locations, walkers, or transformers.
 
 =head1 X::Qwiratry::TypeCheck
 
-Extenders need this when they add transformer, template, or validation behavior
+Extenders need this when they add transformer, mold, or validation behavior
 that enforces result type constraints.
 
 Use it when an extension has an expected result type and the actual result does

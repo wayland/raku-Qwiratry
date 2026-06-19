@@ -11,7 +11,7 @@ The framework is built around five core architectural groups:
 - **Query Group**: Declarative, immutable query specifications (what to find)
 - **Walker Group**: Traversal strategies and execution plans (how to walk)
 - **Strategy Group**: Element-level behavior and reusable processing logic
-- **Transformer Group**: Declarative data transformations using templates
+- **Transformer Group**: Declarative data transformations using molds
 - **Per-Traversal Group**: Mutable state management (`Context`) and incremental result streaming (`QueryIterator`)
 
 ## Key Features
@@ -19,7 +19,7 @@ The framework is built around five core architectural groups:
 - **Separation of Concerns**: Queries describe intent; Walkers interpret and execute; QueryIterators yield results
 - **Reusability**: Walkers can produce multiple iterators; queries can be reused and optimized
 - **Composability**: Supports composite walker handovers for multi-domain queries
-- **Declarative Transformations**: XSLT-like template system for structured data manipulation
+- **Declarative Transformations**: XSLT-like mold system for structured data manipulation
 - **Flexible Execution**: Supports backtracking, multi-phase execution, and optimization planning
 - **Domain Flexibility**: Works with trees (ASTs, XML, JSON), tables, logic programming, and hybrid systems
 
@@ -44,14 +44,14 @@ Either way, you'll need to set RAKUDO_RAKUAST=1 to run it
 ```raku
 use Qwiratry;
 
-# Declare a transformer with templates
+# Declare a transformer with molds
 transformer MyTransform {
-    template TOP do {
+    mold TOP do {
         # Transform the root node
         return $*NODE.deepcopy;
     }
     
-    template /type eq 'element'/ do {
+    mold /type eq 'element'/ do {
         # Match and transform specific elements
         return $*NODE.clone;
     }

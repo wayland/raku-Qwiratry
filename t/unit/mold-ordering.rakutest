@@ -1,13 +1,13 @@
 =begin pod
 
-Unit tests for template ordering algorithm
+Unit tests for mold ordering algorithm
 Tests priority sorting, specificity calculation, tie-breaker resolution, and conflict detection
 
 =end pod
 use Test;
 use lib 'lib';
 
-use Qwiratry::Template;
+use Qwiratry::Mold;
 use Qwiratry::Transformer;
 use X::Qwiratry;
 
@@ -22,34 +22,34 @@ subtest "Priority sorting" => {
     
 	my $t = Transformer.new;
     
-	# Create templates with different priorities
-	my $low = Template.new(
+	# Create molds with different priorities
+	my $low = Mold.new(
 		when-block => { True },
 		do-block => { "low" },
 		priority => 0
 	);
     
-	my $high = Template.new(
+	my $high = Mold.new(
 		when-block => { True },
 		do-block => { "high" },
 		priority => 10
 	);
     
-	my $medium = Template.new(
+	my $medium = Mold.new(
 		when-block => { True },
 		do-block => { "medium" },
 		priority => 5
 	);
     
-	$t.add-template($low);
-	$t.add-template($high);
-	$t.add-template($medium);
+	$t.add-mold($low);
+	$t.add-mold($high);
+	$t.add-mold($medium);
     
-	my @ordered = $t.ORDER-TEMPLATES;
+	my @ordered = $t.ORDER-MOLDS;
     
-	is @ordered.elems, 3, "All templates ordered";
-	is @ordered[0].priority, 10, "Highest priority template first";
-	is @ordered[2].priority, 0, "Lowest priority template last";
+	is @ordered.elems, 3, "All molds ordered";
+	is @ordered[0].priority, 10, "Highest priority mold first";
+	is @ordered[2].priority, 0, "Lowest priority mold last";
 }
 
 # =============================================================================
@@ -61,23 +61,23 @@ subtest "Specificity and tie-breaker sorting" => {
     
 	my $t = Transformer.new;
     
-	# Create templates with equal priority but different specificity
-	my $low-spec = Template.new(
+	# Create molds with equal priority but different specificity
+	my $low-spec = Mold.new(
 		when-block => { True },
 		do-block => { "low-spec" },
 		priority => 5,
 		specificity => 1
 	);
     
-	my $high-spec = Template.new(
+	my $high-spec = Mold.new(
 		when-block => { True },
 		do-block => { "high-spec" },
 		priority => 5,
 		specificity => 10
 	);
     
-	# Create templates with equal priority and specificity but different tie-breaker
-	my $low-tie = Template.new(
+	# Create molds with equal priority and specificity but different tie-breaker
+	my $low-tie = Mold.new(
 		when-block => { True },
 		do-block => { "low-tie" },
 		priority => 5,
@@ -85,7 +85,7 @@ subtest "Specificity and tie-breaker sorting" => {
 		tie-breaker => 1
 	);
     
-	my $high-tie = Template.new(
+	my $high-tie = Mold.new(
 		when-block => { True },
 		do-block => { "high-tie" },
 		priority => 5,
@@ -93,18 +93,18 @@ subtest "Specificity and tie-breaker sorting" => {
 		tie-breaker => 10
 	);
     
-	$t.add-template($low-spec);
-	$t.add-template($high-spec);
-	$t.add-template($low-tie);
-	$t.add-template($high-tie);
+	$t.add-mold($low-spec);
+	$t.add-mold($high-spec);
+	$t.add-mold($low-tie);
+	$t.add-mold($high-tie);
     
-	my @ordered = $t.ORDER-TEMPLATES;
+	my @ordered = $t.ORDER-MOLDS;
     
-	is @ordered[0].specificity, 10, "Highest specificity template first (when priority equal)";
-	# Templates with specificity 5 should be ordered by tie-breaker (highest first)
-	# Find templates with specificity 5
+	is @ordered[0].specificity, 10, "Highest specificity mold first (when priority equal)";
+	# Molds with specificity 5 should be ordered by tie-breaker (highest first)
+	# Find molds with specificity 5
 	my @spec5 = @ordered.grep(*.specificity == 5);
-	is @spec5.elems, 2, "Two templates with specificity 5";
+	is @spec5.elems, 2, "Two molds with specificity 5";
 	is @spec5[0].tie-breaker, 10, "Higher tie-breaker comes first (when priority/specificity equal)";
 	is @spec5[1].tie-breaker, 1, "Lower tie-breaker comes last";
 }
@@ -118,9 +118,9 @@ subtest "Conflict detection" => {
     
 	my $t = Transformer.new;
     
-	# Create two templates with identical ordering values
-	my $t1 = Template.new(
-		name => 'template1',
+	# Create two molds with identical ordering values
+	my $t1 = Mold.new(
+		name => 'mold1',
 		when-block => { True },
 		do-block => { "result1" },
 		priority => 5,
@@ -128,8 +128,8 @@ subtest "Conflict detection" => {
 		tie-breaker => 0
 	);
     
-	my $t2 = Template.new(
-		name => 'template2',
+	my $t2 = Mold.new(
+		name => 'mold2',
 		when-block => { True },
 		do-block => { "result2" },
 		priority => 5,
@@ -137,19 +137,19 @@ subtest "Conflict detection" => {
 		tie-breaker => 0
 	);
     
-	$t.add-template($t1);
-	$t.add-template($t2);
+	$t.add-mold($t1);
+	$t.add-mold($t2);
     
 	# Should throw conflict exception
 	throws-like {
-		$t.ORDER-TEMPLATES;
-	}, X::Qwiratry::TemplateOrderingConflict, "Conflict exception thrown for equal templates";
+		$t.ORDER-MOLDS;
+	}, X::Qwiratry::MoldOrderingConflict, "Conflict exception thrown for equal molds";
     
 	# Verify exception message mentions tie-breaker
 	try {
-		$t.ORDER-TEMPLATES;
+		$t.ORDER-MOLDS;
 		CATCH {
-			when X::Qwiratry::TemplateOrderingConflict {
+			when X::Qwiratry::MoldOrderingConflict {
 				ok .message.contains('tie-breaker'), "Exception message mentions tie-breaker";
 			}
 		}
@@ -165,24 +165,24 @@ subtest "Deterministic ordering" => {
     
 	my $t = Transformer.new;
     
-	# Create templates in different order
-	my @templates = (1..5).map({
-		Template.new(
+	# Create molds in different order
+	my @molds = (1..5).map({
+		Mold.new(
 			when-block => { True },
-			do-block => { "template$_" },
+			do-block => { "mold$_" },
 			priority => $_,
 			specificity => 0,
 			tie-breaker => 0
 		)
 	});
     
-	# Add templates in reverse order
-	for @templates.reverse -> $template {
-		$t.add-template($template);
+	# Add molds in reverse order
+	for @molds.reverse -> $mold {
+		$t.add-mold($mold);
 	}
     
-	my @ordered1 = $t.ORDER-TEMPLATES;
-	my @ordered2 = $t.ORDER-TEMPLATES;
+	my @ordered1 = $t.ORDER-MOLDS;
+	my @ordered2 = $t.ORDER-MOLDS;
     
 	# Ordering should be the same both times
 	is-deeply @ordered1.map(*.priority), @ordered2.map(*.priority), "Ordering is deterministic";
@@ -197,34 +197,34 @@ subtest "Ordering caching" => {
     
 	my $t = Transformer.new;
     
-	my $template = Template.new(
+	my $mold = Mold.new(
 		when-block => { True },
 		do-block => { "result" },
 		priority => 5
 	);
     
-	$t.add-template($template);
+	$t.add-mold($mold);
     
 	# First call should calculate
-	my @ordered1 = $t.ORDER-TEMPLATES;
-	is @ordered1.elems, 1, "First call returns ordered templates";
+	my @ordered1 = $t.ORDER-MOLDS;
+	is @ordered1.elems, 1, "First call returns ordered molds";
     
 	# Second call should use cache (same array reference)
-	my @ordered2 = $t.ORDER-TEMPLATES;
+	my @ordered2 = $t.ORDER-MOLDS;
 	is @ordered2.elems, 1, "Second call returns cached result";
 }
 
 # =============================================================================
-# Test: Empty templates
+# Test: Empty molds
 # =============================================================================
 
-subtest "Empty templates array" => {
+subtest "Empty molds array" => {
 	plan 1;
     
 	my $t = Transformer.new;
     
-	my @ordered = $t.ORDER-TEMPLATES;
+	my @ordered = $t.ORDER-MOLDS;
     
-	is @ordered.elems, 0, "Empty templates array returns empty ordered array";
+	is @ordered.elems, 0, "Empty molds array returns empty ordered array";
 }
 

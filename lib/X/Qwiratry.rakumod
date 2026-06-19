@@ -46,26 +46,26 @@ class X::Qwiratry::UnknownQueryElement is X::Qwiratry::Walker {
 
 =begin pod
 
-Exception thrown when template ordering cannot be resolved due to conflicts.
-This exception is thrown during template ordering when templates have
+Exception thrown when mold ordering cannot be resolved due to conflicts.
+This exception is thrown during mold ordering when molds have
 equal priority, specificity, and tie-breaker values, making it impossible
 to determine a deterministic order.
 
 =end pod
-class X::Qwiratry::TemplateOrderingConflict is X::Qwiratry::Walker {
-	# List of template names involved in the conflict
-	has @.template-names is required;
+class X::Qwiratry::MoldOrderingConflict is X::Qwiratry::Walker {
+	# List of mold names involved in the conflict
+	has @.mold-names is required;
     
 	# Additional context about why the conflict occurred
 	has Str $.conflict-details = '';
     
 	# Override gist to provide detailed conflict information
 	method gist(--> Str) {
-		my $templates = @.template-names.join(', ');
+		my $molds = @.mold-names.join(', ');
 		my $details = $.conflict-details ?? " ($.conflict-details)" !! '';
-		"X::Qwiratry::TemplateOrderingConflict: $.message\n" ~
-		"  Templates: $templates\n" ~
-		"  Solution: Set explicit :tie-breaker values on conflicting templates to resolve the ordering ambiguity.$details"
+		"X::Qwiratry::MoldOrderingConflict: $.message\n" ~
+		"  Molds: $molds\n" ~
+		"  Solution: Set explicit :tie-breaker values on conflicting molds to resolve the ordering ambiguity.$details"
 	}
 }
 
@@ -90,7 +90,7 @@ class X::Qwiratry::NoWalkerFound is X::Qwiratry::Walker {
 =begin pod
 
 Exception thrown when a transformation result does not match the returns(Type) trait constraint.
-This exception is thrown when a transformer or template has a returns(Type) trait
+This exception is thrown when a transformer or mold has a returns(Type) trait
 but the actual result does not conform to the specified type.
 
 =end pod
@@ -111,13 +111,13 @@ class X::Qwiratry::TypeCheck is X::Qwiratry::Walker {
 
 =begin pod
 
-Control-flow exception for template actions. When thrown from a template C<do>
-block, the transformer continues with the next matching template instead of
+Control-flow exception for mold actions. When thrown from a mold C<do>
+block, the transformer continues with the next matching mold instead of
 using the current result.
 
 =end pod
-class X::Qwiratry::NextTemplate is X::Qwiratry::Walker {
+class X::Qwiratry::NextMold is X::Qwiratry::Walker {
 	method gist(--> Str) {
-		"X::Qwiratry::NextTemplate: $.message (walker-type: $.walker-type)"
+		"X::Qwiratry::NextMold: $.message (walker-type: $.walker-type)"
 	}
 }

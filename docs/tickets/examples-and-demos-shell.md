@@ -9,6 +9,6 @@
 - `Table::Walker::Scan` class implementing Walker role for table row scanning
 - `Logic::Walker::Backward` class implementing Walker role for backward-chaining logic
 - Demo scripts showing query execution with each walker type
-- Example transformers demonstrating template usage
+- Example transformers demonstrating mold usage
 - Documentation showing how to use the examples
 

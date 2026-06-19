@@ -1,0 +1,85 @@
+=begin rakudoc
+
+=TITLE Developing Qwiratry
+
+=SUBTITLE Notes for contributors and people working on Qwiratry itself
+
+=head1 Overview
+
+This document collects the README material that is mainly useful when developing
+Qwiratry rather than simply using it.
+
+=head1 Source Installation
+
+Install from a checkout when working on Qwiratry itself:
+
+=begin code :lang<shell>
+git clone <repository-url>
+cd raku-Qwiratry
+zef install .
+=end code
+
+Qwiratry currently needs RakuAST support when running:
+
+=begin code :lang<shell>
+export RAKUDO_RAKUAST=1
+=end code
+
+=head1 Architecture
+
+Qwiratry is built around five core architectural groups:
+
+=item B<Query group>: declarative, immutable query specifications; this is what to find.
+
+=item B<Walker group>: traversal strategies and execution plans; this is how to walk the data.
+
+=item B<Strategy group>: element-level behavior and reusable processing logic.
+
+=item B<Transformer group>: declarative data transformations using molds.
+
+=item B<Per-traversal group>: mutable state management with C<Context> and incremental result streaming with C<QueryIterator>.
+
+The architecture enables:
+
+=item Multiple traversal strategies for the same query.
+
+=item Query optimization before execution.
+
+=item Streaming results via lazy iterators.
+
+=item Composite execution across multiple domains.
+
+=item Pluggable strategies for element processing.
+
+=head1 Requirements
+
+=item Raku 6.e or later.
+
+=item C<Slangify>.
+
+=item C<Implementation::Loader> v0.0.7 or later.
+
+=item C<RAKUDO_RAKUAST=1> in the environment.
+
+=head1 Testing
+
+Run the test suite through the project wrapper. C<zef> appears to have problems
+with C<RAKUDO_RAKUAST=1> for this repository, so use:
+
+=begin code :lang<shell>
+./project test
+=end code
+
+=head1 Developer Documentation
+
+=item L<Specification|../../Specification.md>: complete architecture specification.
+
+=item L<Operators|../../Operators.md>: query operator reference.
+
+=item C<kitty-specs/>: detailed feature specifications and design documents.
+
+=item C<t/examples/>: example code and usage patterns.
+
+=item L<Extending Qwiratry|../Extending/index>: extension guides for formats, locations, walkers, strategies, transformers, and other extension points.
+
+=end rakudoc

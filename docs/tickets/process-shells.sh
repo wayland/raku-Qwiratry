@@ -63,7 +63,7 @@ SHELLS=(
     "strategy-control-shell.md"
     "composite-handover-shell.md"
     "slang-and-query-shell.md"
-    "transformer-templates-shell.md"
+    "transformer-molds-shell.md"
     "examples-and-demos-shell.md"
 )
 

@@ -7,7 +7,7 @@ Tests all three wrapper types, hierarchy traversal, parameter passing, and multi
 use Test;
 use lib 'lib';
 
-use Qwiratry::Template::Slang;
+use Qwiratry::Mold::Slang;
 use Qwiratry::Transformer;
 
 plan 5;  # Temporarily reduced - last subtest has slang activation issue
@@ -28,7 +28,7 @@ subtest "WRAP_TRANSFORMER - wraps entire transformation" => {
 			return [$result, "wrapped"];
 		}
         
-		template TOP do { "original" }
+		mold TOP do { "original" }
 	}
     
 	my $transformer = TestTransformer1.new;
@@ -39,13 +39,13 @@ subtest "WRAP_TRANSFORMER - wraps entire transformation" => {
 	is $result[1], "wrapped", "TRANSFORMER wrapper can modify result";
 }
 
-subtest "WRAP_TEMPLATE_MATCHER - wraps match evaluation" => {
+subtest "WRAP_MOLD_MATCHER - wraps match evaluation" => {
 	plan 3;
     
-	# Create transformer with TEMPLATE_MATCHER wrapper
+	# Create transformer with MOLD_MATCHER wrapper
 	my $match-called = False;
 	transformer TestTransformer2 {
-		wrapper TEMPLATE_MATCHER {
+		wrapper MOLD_MATCHER {
 			# Wrapper receives node and match result
 			my $node = @_[0];
 			my $match = @_[1];
@@ -54,28 +54,28 @@ subtest "WRAP_TEMPLATE_MATCHER - wraps match evaluation" => {
 			return $match && $node ~~ Int;
 		}
         
-		template TOP do { "matched" }
+		mold TOP do { "matched" }
 	}
     
 	my $transformer = TestTransformer2.new;
 	my $result = $transformer.transform(42);
     
-	ok $match-called, "TEMPLATE_MATCHER wrapper is called";
-	is $result, "matched", "TEMPLATE_MATCHER wrapper allows match";
+	ok $match-called, "MOLD_MATCHER wrapper is called";
+	is $result, "matched", "MOLD_MATCHER wrapper allows match";
     
-	# Test with non-matching node (template without when always matches)
+	# Test with non-matching node (mold without when always matches)
 	$match-called = False;
 	my $result2 = $transformer.transform("not-int");
-	ok $match-called, "TEMPLATE_MATCHER wrapper is called even for non-matching nodes";
+	ok $match-called, "MOLD_MATCHER wrapper is called even for non-matching nodes";
 }
 
-subtest "WRAP_TEMPLATE_ACTION - wraps action execution" => {
+subtest "WRAP_MOLD_ACTION - wraps action execution" => {
 	plan 3;
     
-	# Create transformer with TEMPLATE_ACTION wrapper
+	# Create transformer with MOLD_ACTION wrapper
 	my $action-called = False;
 	transformer TestTransformer3 {
-		wrapper TEMPLATE_ACTION {
+		wrapper MOLD_ACTION {
 			# Wrapper receives node and action result
 			my $node = @_[0];
 			my $result = @_[1];
@@ -84,15 +84,15 @@ subtest "WRAP_TEMPLATE_ACTION - wraps action execution" => {
 			return [$result, "wrapped-action"];
 		}
         
-		template TOP do { "original-action" }
+		mold TOP do { "original-action" }
 	}
     
 	my $transformer = TestTransformer3.new;
 	my $result = $transformer.transform(42);
     
-	ok $action-called, "TEMPLATE_ACTION wrapper is called";
-	ok $result ~~ List, "TEMPLATE_ACTION wrapper returns modified result";
-	is $result[1], "wrapped-action", "TEMPLATE_ACTION wrapper can modify result";
+	ok $action-called, "MOLD_ACTION wrapper is called";
+	ok $result ~~ List, "MOLD_ACTION wrapper returns modified result";
+	is $result[1], "wrapped-action", "MOLD_ACTION wrapper can modify result";
 }
 
 subtest "Hierarchy traversal - wrappers called up transformer hierarchy" => {
@@ -114,7 +114,7 @@ subtest "Hierarchy traversal - wrappers called up transformer hierarchy" => {
 			return [$result, "derived"];
 		}
         
-		template TOP do { "original" }
+		mold TOP do { "original" }
 	}
     
 	my $transformer = DerivedTransformer.new;
@@ -131,25 +131,25 @@ subtest "Wrapper parameters - verify correct parameters passed" => {
 	plan 6;
     
 	transformer TestTransformer4 {
-		wrapper TEMPLATE_MATCHER {
+		wrapper MOLD_MATCHER {
 			# Should receive node and match result
 			my $node = @_[0];
 			my $match = @_[1];
-			ok $node.defined, "TEMPLATE_MATCHER receives node";
-			ok $match ~~ Bool, "TEMPLATE_MATCHER receives match result";
+			ok $node.defined, "MOLD_MATCHER receives node";
+			ok $match ~~ Bool, "MOLD_MATCHER receives match result";
 			return $match;
 		}
         
-		wrapper TEMPLATE_ACTION {
+		wrapper MOLD_ACTION {
 			# Should receive node and action result
 			my $node = @_[0];
 			my $result = @_[1];
-			ok $node.defined, "TEMPLATE_ACTION receives node";
-			ok $result.defined, "TEMPLATE_ACTION receives action result";
+			ok $node.defined, "MOLD_ACTION receives node";
+			ok $result.defined, "MOLD_ACTION receives action result";
 			return $result;
 		}
         
-		template TOP do { "test" }
+		mold TOP do { "test" }
 	}
     
 	my $transformer = TestTransformer4.new;
@@ -170,17 +170,17 @@ subtest "Wrapper parameters - verify correct parameters passed" => {
 #             return @_[0];
 #         }
 #         
-#         wrapper TEMPLATE_MATCHER {
+#         wrapper MOLD_MATCHER {
 #             $matcher-wrapper-called = True;
 #             return @_[1];
 #         }
 #         
-#         wrapper TEMPLATE_ACTION {
+#         wrapper MOLD_ACTION {
 #             $action-wrapper-called = True;
 #             return @_[1];
 #         }
 #         
-#         template TOP do {
+#         mold TOP do {
 #             return "test";
 #         }
 #     }
@@ -189,7 +189,7 @@ subtest "Wrapper parameters - verify correct parameters passed" => {
 #     my $result = $transformer.transform(42);
 #     
 #     ok $transformer-wrapper-called, "TRANSFORMER wrapper executes";
-#     ok $matcher-wrapper-called, "TEMPLATE_MATCHER wrapper executes";
-#     ok $action-wrapper-called, "TEMPLATE_ACTION wrapper executes";
+#     ok $matcher-wrapper-called, "MOLD_MATCHER wrapper executes";
+#     ok $action-wrapper-called, "MOLD_ACTION wrapper executes";
 # }
 

@@ -1,0 +1,38 @@
+=begin rakudoc
+
+=TITLE Extending Qwiratry
+
+=SUBTITLE Choosing the right extension point
+
+=head1 Overview
+
+Qwiratry has several extension points. Pick the guide based on what the new
+code changes: the representation being parsed or rendered, the location data
+comes from or goes to, the way data is traversed, or the behavior applied during
+traversal and transformation.
+
+=head1 Extension Guide Index
+
+=begin table
+Guide | Use this when
+L<Adding Formats|Adding-Formats> | You are adding parse/render support for a data representation such as JSON, CSV, YAML, TOML, or a binary/text encoding. The data source itself is not changing.
+L<Adding Sources/Destinations|Adding-Sources-Destinations> | You are connecting pipelines to a place data comes from or goes to, such as local files, databases, HTTP APIs, object stores, queues, or search indexes.
+L<Adding Walkers|Adding-Walkers> | You are adding traversal support for a new data model or execution domain, such as a graph, table-like source, logic database, document store, or other structure with its own query rules.
+L<Adjusting Strategies|Adjusting-Strategies> | The existing walker can traverse the data, but you need custom behavior before elements, after elements, on matches, or when deciding what to follow.
+L<Adjusting Transformers|Adjusting-Transformers> | You are changing mold execution, copying, rewriting, wrappers, validation, or other transformation behavior.
+L<Other Extensions|Other-Extensions> | Your work does not fit the focused guides, or you need shared extender-facing exception guidance.
+=end table
+
+=head1 Rule Of Thumb
+
+=item If it is a representation, extend C<Qwiratry::Format>.
+
+=item If it is a place or connection, extend C<Qwiratry::Location>.
+
+=item If it changes traversal semantics for a data model, add or adjust a walker.
+
+=item If it changes per-element behavior during traversal, use a strategy.
+
+=item If it changes output construction from molds, use transformer extension points.
+
+=end rakudoc

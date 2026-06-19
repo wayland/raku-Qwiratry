@@ -9,7 +9,7 @@ use lib 'lib';
 
 use Qwiratry;
 use Qwiratry::Transformer;
-use Qwiratry::Template;
+use Qwiratry::Mold;
 use Qwiratry::Walker::Factory;
 use Qwiratry::Walker::Implementation::Tree;
 
@@ -24,32 +24,32 @@ subtest "APPLY method" => {
     
 	my $transformer = Transformer.new;
     
-	# Create templates with different priorities
-	my $template1 = Template.new(
+	# Create molds with different priorities
+	my $mold1 = Mold.new(
 		when-block => -> $n { $n eq "match1" },
 		do-block => -> $n { "result1" },
 		priority => 1
 	);
     
-	my $template2 = Template.new(
+	my $mold2 = Mold.new(
 		when-block => -> $n { $n eq "match2" },
 		do-block => -> $n { "result2" },
 		priority => 2
 	);
     
-	$transformer.add-template($template1);
-	$transformer.add-template($template2);
+	$transformer.add-mold($mold1);
+	$transformer.add-mold($mold2);
     
 	# Test first match wins
 	my $result1 = $transformer.APPLY("match1");
-	is $result1, "result1", "APPLY returns result from first matching template";
+	is $result1, "result1", "APPLY returns result from first matching mold";
     
 	my $result2 = $transformer.APPLY("match2");
-	is $result2, "result2", "APPLY returns result from matching template";
+	is $result2, "result2", "APPLY returns result from matching mold";
     
 	# Test no match returns Nil
 	my $result3 = $transformer.APPLY("nomatch");
-	ok $result3 === Nil || $result3 === Any, "APPLY returns Nil/Any when no templates match";
+	ok $result3 === Nil || $result3 === Any, "APPLY returns Nil/Any when no molds match";
 }
 
 # =============================================================================
@@ -77,13 +77,13 @@ subtest "TRANSFORM method" => {
     
 	my $transformer = Transformer.new;
     
-	# Create template that matches all nodes
-	my $template = Template.new(
+	# Create mold that matches all nodes
+	my $mold = Mold.new(
 		when-block => -> $n { True },
 		do-block => -> $n { "transformed: $n" }
 	);
     
-	$transformer.add-template($template);
+	$transformer.add-mold($mold);
     
 	# Test TRANSFORM with array
 	my $result = $transformer.TRANSFORM(["a", "b", "c"]);
@@ -124,12 +124,12 @@ subtest "transform method (entrypoint)" => {
     
 	my $transformer = Transformer.new;
     
-	my $template = Template.new(
+	my $mold = Mold.new(
 		when-block => -> $n { True },
 		do-block => -> $n { "transformed: $n" }
 	);
     
-	$transformer.add-template($template);
+	$transformer.add-mold($mold);
     
 	# Test default mode
 	my $result1 = $transformer.transform("test");

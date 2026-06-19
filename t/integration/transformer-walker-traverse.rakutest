@@ -3,7 +3,7 @@ use Test;
 use lib 'lib';
 
 use Qwiratry::Transformer;
-use Qwiratry::Template;
+use Qwiratry::Mold;
 use Qwiratry::Walker::Factory;
 use Qwiratry::Walker::Implementation::Tree;
 use Qwiratry::Operator::Navigation;
@@ -25,7 +25,7 @@ subtest 'TRANSFORM traverses nested structures via walker' => {
 	plan 2;
 
 	my $transformer = Transformer.new;
-	$transformer.add-template(Template.new(
+	$transformer.add-mold(Mold.new(
 		when-block => -> { True },
 		do-block => -> { "node" },
 	));
@@ -35,31 +35,31 @@ subtest 'TRANSFORM traverses nested structures via walker' => {
 	is $result.elems, 4,
 		'walker DFS visits root, inner array, and leaf nodes';
 	ok $result.grep('node').elems == 4,
-		'template applied to every visited node';
+		'mold applied to every visited node';
 }
 
-subtest 'when-query specificity orders templates at equal priority' => {
+subtest 'when-query specificity orders molds at equal priority' => {
 	plan 2;
 
 	my $transformer = Transformer.new;
 	my $root = %(name => 'root');
 
-	$transformer.add-template(Template.new(
+	$transformer.add-mold(Mold.new(
 		when-block => -> { True },
 		do-block => -> { 'wildcard' },
 		:when-query($root ⪪ <*>),
 		priority => 5,
 	));
-	$transformer.add-template(Template.new(
+	$transformer.add-mold(Mold.new(
 		when-block => -> { True },
 		do-block => -> { 'explicit' },
 		:when-query($root ⪪ <item>),
 		priority => 5,
 	));
 
-	my @ordered = $transformer.ORDER-TEMPLATES;
+	my @ordered = $transformer.ORDER-MOLDS;
 	is @ordered[0].execute($root, :transformer($transformer)), 'explicit',
-		'more specific template is ordered first';
+		'more specific mold is ordered first';
 	is $transformer.APPLY($root), 'explicit',
 		'APPLY uses query-derived specificity ordering';
 }

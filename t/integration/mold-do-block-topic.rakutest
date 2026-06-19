@@ -3,7 +3,7 @@
 use Test;
 use lib 'lib';
 
-use Qwiratry::Template::Slang;
+use Qwiratry::Mold::Slang;
 use Qwiratry::Transformer;
 
 plan 1;
@@ -17,20 +17,20 @@ class Node {
 subtest 'slang do blocks bind topic to the node being transformed' => {
 	plan 7;
 
-	clear-collected-templates();
+	clear-collected-molds();
 	transformer TransformTree is Transformer {
-		template TOP do {
+		mold TOP do {
 			Node.new();
 		}
 
-		template section() when { .name eq 'section' } do {
+		mold section() when { .name eq 'section' } do {
 			Node.new(name => .name);
 		}
 	}
 
 	my $transformer = TransformTree.new;
-	my $section = $transformer.templates.first({ .name eq 'section' });
-	my $top = $transformer.templates.first({ !.name.defined || .name eq 'TOP' });
+	my $section = $transformer.molds.first({ .name eq 'section' });
+	my $top = $transformer.molds.first({ !.name.defined || .name eq 'TOP' });
 
 	ok $section.do-block ~~ Block, 'do block compiles to Block closure, not Sub';
 	nok $section.do-block ~~ Sub, 'do block is not a named Sub (_q_tpl_*)';
@@ -50,7 +50,7 @@ subtest 'slang do blocks bind topic to the node being transformed' => {
 	my $transform-result = $transformer.transform($other-node);
 	my $first = $transform-result ~~ List ?? $transform-result[0] !! $transform-result;
 	is $first.name, 'node',
-		'transform: TOP template do block runs with topic for non-section nodes';
+		'transform: TOP mold do block runs with topic for non-section nodes';
 }
 
 done-testing;

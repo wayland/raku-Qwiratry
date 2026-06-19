@@ -2,26 +2,26 @@
 
 =TITLE Adjusting Transformers
 
-=SUBTITLE Extending template execution, copying, rewriting, and transformer behavior
+=SUBTITLE Extending mold execution, copying, rewriting, and transformer behavior
 
 =head1 Overview
 
-Transformers apply templates to data.
+Transformers apply molds to data.
 
 Use this extension point when changing how transformation is performed rather
 than how data is walked, parsed, rendered, sourced, or stored.
 
 To adjust transformer behavior:
 
-=item 1. B<Setup>: decide whether the extension changes template execution, copying, rewriting, wrappers, or validation.
+=item 1. B<Setup>: decide whether the extension changes mold execution, copying, rewriting, wrappers, or validation.
 
-=item 2. B<Templates>: preserve template ordering and template control behavior.
+=item 2. B<Molds>: preserve mold ordering and mold control behavior.
 
 =item 3. B<Copying>: use Qwiratry's copy service for copy semantics.
 
 =item 4. B<Rewriting>: use C<TreeRewrite> only for intentional input mutation.
 
-=item 5. B<Wrappers>: add cross-cutting behavior around transformer or template execution.
+=item 5. B<Wrappers>: add cross-cutting behavior around transformer or mold execution.
 
 =item 6. B<Testing>: test callable transformers, ordering, wrappers, copying, rewriting, and type checks.
 
@@ -33,24 +33,24 @@ use a format. Do not use transformer extensions to traverse a new data model;
 use a walker. Do not use transformer extensions to connect to a database or API;
 use a source/destination extension.
 
-=head1 Templates
+=head1 Molds
 
-=head2 Template Ordering
+=head2 Mold Ordering
 
-Templates are ordered by priority, specificity, and tie-breaker. Transformer
-extensions that add ordering metadata or produce templates programmatically must
+Molds are ordered by priority, specificity, and tie-breaker. Transformer
+extensions that add ordering metadata or produce molds programmatically must
 preserve deterministic ordering.
 
 If ordering cannot be made deterministic, Qwiratry throws
-C<X::Qwiratry::TemplateOrderingConflict>. This usually means two or more
-templates have equal priority, specificity, and tie-breaker values. Extensions
-that generate templates or add ordering metadata should preserve this failure
+C<X::Qwiratry::MoldOrderingConflict>. This usually means two or more
+molds have equal priority, specificity, and tie-breaker values. Extensions
+that generate molds or add ordering metadata should preserve this failure
 mode.
 
-=head2 Template Control
+=head2 Mold Control
 
-C<Qwiratry::Template::NextTemplate> lets a template decline the current match and
-continue with the next matching template.
+C<Qwiratry::Mold::NextMold> lets a mold decline the current match and
+continue with the next matching mold.
 
 =head1 Copying
 
@@ -72,7 +72,7 @@ tree or node graph.
 use Qwiratry::Transformer::TreeRewrite;
 
 transformer MyRewrite does TreeRewrite {
-    template TOP do {
+    mold TOP do {
         make $_;
     }
 }
@@ -80,10 +80,10 @@ transformer MyRewrite does TreeRewrite {
 
 =head1 Wrappers
 
-Transformer slang supports wrappers for transformer execution, template
-matching, and template actions. Use wrappers when the extension needs to add
-cross-cutting behavior around existing templates rather than replacing the
-template system.
+Transformer slang supports wrappers for transformer execution, mold
+matching, and mold actions. Use wrappers when the extension needs to add
+cross-cutting behavior around existing molds rather than replacing the
+mold system.
 
 =head1 Testing
 
@@ -91,13 +91,13 @@ Add tests that prove:
 
 =item Callable transformers still work.
 
-=item Template ordering remains deterministic.
+=item Mold ordering remains deterministic.
 
 =item Wrapper behavior applies at the intended layer.
 
 =item Copy and rewrite behavior does not mutate data accidentally.
 
-=item C<X::Qwiratry::TemplateOrderingConflict> is thrown for unresolved ordering conflicts.
+=item C<X::Qwiratry::MoldOrderingConflict> is thrown for unresolved ordering conflicts.
 
 =item C<X::Qwiratry::TypeCheck> is thrown for result type constraint failures.
 
@@ -110,15 +110,15 @@ Add tests that prove:
 Base class for transformer objects and the runtime behavior behind the
 C<transformer> declarator.
 
-=item C<Qwiratry::Template::Template>
+=item C<Qwiratry::Mold::Mold>
 
-Runtime representation of one template rule: match logic, action logic, and
+Runtime representation of one mold rule: match logic, action logic, and
 ordering metadata.
 
-=item C<Qwiratry::Template::NextTemplate>
+=item C<Qwiratry::Mold::NextMold>
 
-Control tool for declining the current template and continuing with the next
-matching template.
+Control tool for declining the current mold and continuing with the next
+matching mold.
 
 =item C<Qwiratry::Transformer::Copy>
 
@@ -128,13 +128,13 @@ Copy service for shallow and deep copying transformable nodes.
 
 Marker role for transformers that rewrite input structures in place.
 
-=item C<X::Qwiratry::TemplateOrderingConflict>
+=item C<X::Qwiratry::MoldOrderingConflict>
 
-Thrown when template order cannot be made deterministic.
+Thrown when mold order cannot be made deterministic.
 
 =item C<X::Qwiratry::TypeCheck>
 
-Thrown when a transformer or template result does not match a declared return
+Thrown when a transformer or mold result does not match a declared return
 type constraint.
 
 =end rakudoc

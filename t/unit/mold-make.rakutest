@@ -1,8 +1,8 @@
-#| Unit tests for template make() output stream
+#| Unit tests for mold make() output stream
 use Test;
 use lib 'lib';
 
-use Qwiratry::Template;
+use Qwiratry::Mold;
 use Qwiratry::Transformer;
 
 plan 4;
@@ -10,7 +10,7 @@ plan 4;
 subtest 'make() collects single output value' => {
 	plan 2;
 
-	my $template = Template.new(
+	my $mold = Mold.new(
 		when-block => -> { True },
 		do-block => -> {
 			make 'from-make';
@@ -19,15 +19,15 @@ subtest 'make() collects single output value' => {
 	);
 
 	my $transformer = Transformer.new;
-	is $template.execute('node', :transformer($transformer)), 'from-make',
+	is $mold.execute('node', :transformer($transformer)), 'from-make',
 		'make result overrides return value';
-	dies-ok { make 'outside' }, 'make() dies outside template execution';
+	dies-ok { make 'outside' }, 'make() dies outside mold execution';
 }
 
 subtest 'make() collects multiple output values' => {
 	plan 1;
 
-	my $template = Template.new(
+	my $mold = Mold.new(
 		when-block => -> { True },
 		do-block => -> {
 			make 'first';
@@ -36,20 +36,20 @@ subtest 'make() collects multiple output values' => {
 	);
 
 	my $transformer = Transformer.new;
-	is $template.execute('node', :transformer($transformer)), ('first', 'second'),
+	is $mold.execute('node', :transformer($transformer)), ('first', 'second'),
 		'multiple make() calls return List';
 }
 
 subtest 'return value used when make() is not called' => {
 	plan 1;
 
-	my $template = Template.new(
+	my $mold = Mold.new(
 		when-block => -> { True },
 		do-block => -> { 'direct-return' },
 	);
 
 	my $transformer = Transformer.new;
-	is $template.execute('node', :transformer($transformer)), 'direct-return',
+	is $mold.execute('node', :transformer($transformer)), 'direct-return',
 		'do block return value is used without make()';
 }
 
@@ -57,7 +57,7 @@ subtest 'APPLY integrates make() results' => {
 	plan 1;
 
 	my $transformer = Transformer.new;
-	$transformer.add-template(Template.new(
+	$transformer.add-mold(Mold.new(
 		when-block => -> $n { $n eq 'hit' },
 		do-block => -> { make 'applied' },
 	));

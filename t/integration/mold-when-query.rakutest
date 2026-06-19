@@ -1,11 +1,11 @@
-#| Integration tests for when-query extraction via template slang
+#| Integration tests for when-query extraction via mold slang
 use Test;
 use lib 'lib';
 
-use Qwiratry::Template::Slang;
+use Qwiratry::Mold::Slang;
 use Qwiratry::Query::Slang;
 use Qwiratry::Transformer;
-use Qwiratry::Template;
+use Qwiratry::Mold;
 use Qwiratry::Query::Match;
 
 plan 4;
@@ -17,31 +17,31 @@ my $tree = [
 	]),
 ];
 
-subtest 'Template slang extracts when-query from navigation when blocks' => {
+subtest 'Mold slang extracts when-query from navigation when blocks' => {
 	plan 4;
 
-	clear-collected-templates();
+	clear-collected-molds();
 	transformer QueryWhenTest is Transformer {
-		template item when { $_ ⪪⪪ <item> } do { "item-{$_<value>}" }
-		template section when { $_ ⪪ <section> } do { 'section' }
+		mold item when { $_ ⪪⪪ <item> } do { "item-{$_<value>}" }
+		mold section when { $_ ⪪ <section> } do { 'section' }
 	}
 
 	my $t = QueryWhenTest.new;
-	my $item-template = $t.templates.first({ $_.name eq 'item' });
-	my $section-template = $t.templates.first({ $_.name eq 'section' });
+	my $item-mold = $t.molds.first({ $_.name eq 'item' });
+	my $section-mold = $t.molds.first({ $_.name eq 'section' });
 
-	ok $item-template.when-query.defined, 'item template has extracted when-query';
-	nok $item-template.when-block.defined, 'pure query when block replaced by when-query';
-	ok $section-template.when-query.defined, 'section template has extracted when-query';
-	ok $item-template.when-query.subject ~~ NavQueryTopic, 'topic sentinel preserved in query';
+	ok $item-mold.when-query.defined, 'item mold has extracted when-query';
+	nok $item-mold.when-block.defined, 'pure query when block replaced by when-query';
+	ok $section-mold.when-query.defined, 'section mold has extracted when-query';
+	ok $item-mold.when-query.subject ~~ NavQueryTopic, 'topic sentinel preserved in query';
 }
 
-subtest 'Slang-defined templates match and transform via extracted queries' => {
+subtest 'Slang-defined molds match and transform via extracted queries' => {
 	plan 3;
 
-	clear-collected-templates();
+	clear-collected-molds();
 	transformer QueryTransformTest is Transformer {
-		template item when { $_ ⪪⪪ <item> } do { "v{$_<value>}" }
+		mold item when { $_ ⪪⪪ <item> } do { "v{$_<value>}" }
 	}
 
 	my $t = QueryTransformTest.new;
@@ -56,9 +56,9 @@ subtest 'Slang-defined templates match and transform via extracted queries' => {
 subtest 'Chained child when queries use parent lookup during TRANSFORM' => {
 	plan 2;
 
-	clear-collected-templates();
+	clear-collected-molds();
 	transformer ChainWhenTest is Transformer {
-		template section-item when { $_ ⪪ <section> ⪪ <item> } do { "s{$_<value>}" }
+		mold section-item when { $_ ⪪ <section> ⪪ <item> } do { "s{$_<value>}" }
 	}
 
 	my $t = ChainWhenTest.new;
@@ -66,7 +66,7 @@ subtest 'Chained child when queries use parent lookup during TRANSFORM' => {
 	$*TRANSFORM-ROOT := $tree;
 
 	is $t.APPLY($item), 's1', 'chained child query matches nested item';
-	is $t.TRANSFORM($tree).sort, ('s1', 's2'), 'TRANSFORM applies chained child template';
+	is $t.TRANSFORM($tree).sort, ('s1', 's2'), 'TRANSFORM applies chained child mold';
 }
 
 subtest 'Slang extracts mixed when blocks into query and predicate' => {
@@ -79,13 +79,13 @@ subtest 'Slang extracts mixed when blocks into query and predicate' => {
 		]),
 	];
 
-	clear-collected-templates();
+	clear-collected-molds();
 	transformer MixedWhenTest is Transformer {
-		template active-item when { $_ ⪪⪪ <item> && .<value>:exists } do { "v{$_<value>}" }
+		mold active-item when { $_ ⪪⪪ <item> && .<value>:exists } do { "v{$_<value>}" }
 	}
 
 	my $t = MixedWhenTest.new;
-	my $tpl = $t.templates.first({ $_.name eq 'active-item' });
+	my $tpl = $t.molds.first({ $_.name eq 'active-item' });
 
 	ok $tpl.when-query.defined, 'mixed when block yields when-query';
 	ok $tpl.when-block.defined, 'mixed when block keeps predicate when-block';

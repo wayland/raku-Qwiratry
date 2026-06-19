@@ -1,33 +1,33 @@
 =begin pod
 
-Template slang for transformer bodies: registry, grammar, and Slangify activation.
+Mold slang for transformer bodies: registry, grammar, and Slangify activation.
 
-Load this module in any compunit that uses C<template> or C<wrapper> syntax
+Load this module in any compunit that uses C<mold> or C<wrapper> syntax
 (the Slangify/Piersing pattern). Also load L<Qwiratry::Query::Slang> in the same
-compunit when template C<when> blocks use navigation operators (C<⪪>, C<⪪⪪>, etc.).
+compunit when mold C<when> blocks use navigation operators (C<⪪>, C<⪪⪪>, etc.).
 
-Template syntax (Specification.md section 3.3.3):
+Mold syntax (Specification.md section 3.3.3):
 
-  template [name] [signature] [traits] when { ... } do { ... }
+  mold [name] [signature] [traits] when { ... } do { ... }
 
 =head2 RakuAST implementation
 
 - Components are extracted from RakuAST blockoid/signature nodes
-- Templates are structured as conceptual Methods (WP03): when = where constraint, do = body
+- Molds are structured as conceptual Methods (WP03): when = where constraint, do = body
 - No string-based compilation or MONKEY-SEE-NO-EVAL
 
 =end pod
 
 # File-level compunit (no unit module): required for Slangify in the importer.
 use v6.e.PREVIEW;
-use Qwiratry::Template;
+use Qwiratry::Mold;
 use Qwiratry::Query::Slang;
 use Qwiratry::Query::Extract;
-use Qwiratry::Template::Registry;
-use Qwiratry::Template::Compiler;
+use Qwiratry::Mold::Registry;
+use Qwiratry::Mold::Compiler;
 
-my constant registry = Qwiratry::Template::Registry.instance;
-my constant compiler = Qwiratry::Template::Compiler.instance;
+my constant registry = Qwiratry::Mold::Registry.instance;
+my constant compiler = Qwiratry::Mold::Compiler.instance;
 my constant extract = Qwiratry::Query::Extract.instance;
 
 =begin pod
@@ -39,23 +39,23 @@ our $SLANG-ACTIVATION-METHOD = 'slangify';
 
 =begin pod
 
-Collected L<Qwiratry::Template> instances registered during transformer parsing.
+Collected L<Qwiratry::Mold> instances registered during transformer parsing.
 
 =end pod
 my $activation-status;
 
 =begin pod
 
-Register a compiled template with the module-level collection.
+Register a compiled mold with the module-level collection.
 
 =end pod
-sub register-template(Template $template) is export {
-	registry.register-template($template);
+sub register-mold(Mold $mold) is export {
+	registry.register-mold($mold);
 }
 
 =begin pod
 
-Register a wrapper block of the given C<$type> (TRANSFORMER, TEMPLATE_MATCHER, etc.).
+Register a wrapper block of the given C<$type> (TRANSFORMER, MOLD_MATCHER, etc.).
 
 =end pod
 sub register-wrapper(Str $type, Block $block) is export {
@@ -64,20 +64,20 @@ sub register-wrapper(Str $type, Block $block) is export {
 
 =begin pod
 
-Return collected templates and clear the module-level list.
+Return collected molds and clear the module-level list.
 
 =end pod
-sub get-collected-templates() is export {
-	registry.collected-templates;
+sub get-collected-molds() is export {
+	registry.collected-molds;
 }
 
 =begin pod
 
-Clear the template collection without returning it.
+Clear the mold collection without returning it.
 
 =end pod
-sub clear-collected-templates() is export {
-	registry.clear-templates;
+sub clear-collected-molds() is export {
+	registry.clear-molds;
 }
 
 =begin pod
@@ -100,13 +100,13 @@ sub clear-collected-wrappers() is export {
 
 =begin pod
 
-Return True when MAIN slang grammar is already the template grammar.
+Return True when MAIN slang grammar is already the mold grammar.
 
 =end pod
 sub slang-already-active() {
 	try {
 		my $grammar-name = $*LANG.slang_grammar('MAIN').^name;
-		return $grammar-name.contains('TemplateGrammar');
+		return $grammar-name.contains('MoldGrammar');
 	}
 	False
 }
@@ -122,10 +122,10 @@ sub get-slang-activation-method() is export {
 
 =begin pod
 
-Activate template slang once and cache the activation status.
+Activate mold slang once and cache the activation status.
 
 =end pod
-sub activate-template-slang() is export {
+sub activate-mold-slang() is export {
 	return $activation-status if $activation-status.defined;
 	$activation-status = slang-already-active() ?? 'slangify' !! 'slangify';
 	$activation-status
@@ -142,25 +142,25 @@ sub get-activation-status() is export {
 
 =begin pod
 
-Ensure template slang is activated (idempotent).
+Ensure mold slang is activated (idempotent).
 
 =end pod
 sub attempt-slangify-activation() is export {
-	activate-template-slang();
+	activate-mold-slang();
 }
 
 =begin pod
 
-Slang grammar role: C<template> and C<wrapper> routine declarators.
+Slang grammar role: C<mold> and C<wrapper> routine declarators.
 
 =end pod
-our role TemplateGrammar {
+our role MoldGrammar {
 	=begin pod
 
-	Grammar rule for C<template name (sig) [traits] [when { }] do { }>.
+	Grammar rule for C<mold name (sig) [traits] [when { }] do { }>.
 
 	=end pod
-	rule template-def($declarator) {
+	rule mold-def($declarator) {
 		:my $*BLOCK;
 		<.enter-block-scope('Sub')>
 		$<name>=<identifier>?
@@ -177,13 +177,13 @@ our role TemplateGrammar {
 
 	=begin pod
 
-	Declare C<template> as a routine declarator keyword.
+	Declare C<mold> as a routine declarator keyword.
 
 	=end pod
-	token routine-declarator:sym<template> {
-		'template'
+	token routine-declarator:sym<mold> {
+		'mold'
 		<.end-keyword>
-		<template-def=.key-origin('template-def', 'template')>
+		<mold-def=.key-origin('mold-def', 'mold')>
 	}
 
 	=begin pod
@@ -216,44 +216,44 @@ our role TemplateGrammar {
 
 	=end pod
 	token wrapper-type {
-		'TRANSFORMER' | 'TEMPLATE_MATCHER' | 'TEMPLATE_ACTION'
+		'TRANSFORMER' | 'MOLD_MATCHER' | 'MOLD_ACTION'
 	}
 }
 
 =begin pod
 
-Slang actions role: compile templates and wrappers into registry entries.
+Slang actions role: compile molds and wrappers into registry entries.
 
 =end pod
-our role TemplateActions {
+our role MoldActions {
 	=begin pod
 
-	Attach parsed template definition AST to the current parse tree.
+	Attach parsed mold definition AST to the current parse tree.
 
 	=end pod
-	method routine-declarator:sym<template>(Mu $/) {
-		self.attach: $/, $<template-def>.ast;
+	method routine-declarator:sym<mold>(Mu $/) {
+		self.attach: $/, $<mold-def>.ast;
 	}
 
 	=begin pod
 
-	Build a L<Qwiratry::Template> from parsed template definition tokens.
+	Build a L<Qwiratry::Mold> from parsed mold definition tokens.
 
 	=end pod
-	method template-def(Mu $/) {
+	method mold-def(Mu $/) {
 		my $name = $<name>.defined ?? ~$<name> !! Nil;
 		my $signature = $<signature>.defined ?? compiler.compile-signature($<signature>.ast) !! Nil;
 
 		my $routine := $*BLOCK;
 		if $name.defined {
-			$routine.replace-name(RakuAST::Name.from-identifier("_q_tpl_$name"));
+			$routine.replace-name(RakuAST::Name.from-identifier("_q_mold_$name"));
 		}
 		unless $<signature>.defined {
-			$routine.replace-signature(compiler.implicit-template-signature);
+			$routine.replace-signature(compiler.implicit-mold-signature);
 		}
 		unless $<do-block>.defined {
 			die "{compiler.display-name($name)}: required 'do' block is missing. "
-			~ "Syntax: template [name] [signature] [traits] when { ... } do { ... }";
+			~ "Syntax: mold [name] [signature] [traits] when { ... } do { ... }";
 		}
 		$routine.replace-body($<do-block>.ast);
 		self.attach: $/, $routine;
@@ -291,13 +291,13 @@ our role TemplateActions {
 		$when-block = %method-structure<where-constraint>;
 		$do-block   = compiler.compile-rakuast-method(%method-structure) // $do-block;
 
-		my $template = Template.new(
+		my $mold = Mold.new(
 			:$name, :$signature, :$when-block, :$when-query,
 			:$combine-when-query,
 			:$do-block,
 		);
-		compiler.apply-traits($template, $routine);
-		register-template($template);
+		compiler.apply-traits($mold, $routine);
+		register-mold($mold);
 	}
 
 	=begin pod
@@ -316,9 +316,9 @@ our role TemplateActions {
 	=end pod
 	method wrapper-def(Mu $/) {
 		my $type = ~$<wrapper-type>;
-		unless $type eq any(<TRANSFORMER TEMPLATE_MATCHER TEMPLATE_ACTION>) {
+		unless $type eq any(<TRANSFORMER MOLD_MATCHER MOLD_ACTION>) {
 			die "Invalid wrapper type '$type'. "
-			~ "Must be TRANSFORMER, TEMPLATE_MATCHER, or TEMPLATE_ACTION.";
+			~ "Must be TRANSFORMER, MOLD_MATCHER, or MOLD_ACTION.";
 		}
 		my $routine := $*BLOCK;
 		$routine.replace-name(RakuAST::Name.from-identifier("_q_wrap_$type"));
@@ -335,7 +335,7 @@ our role TemplateActions {
 	}
 }
 
-use Slangify TemplateGrammar, TemplateActions;
+use Slangify MoldGrammar, MoldActions;
 
 # Record activation once Slangify has run in the importer.
 unless $activation-status.defined {

@@ -1,32 +1,32 @@
 =begin pod
 
-Unit tests for TemplateSlang grammar and actions
-Tests template parsing, signature handling, trait parsing, and block compilation
+Unit tests for MoldSlang grammar and actions
+Tests mold parsing, signature handling, trait parsing, and block compilation
 
 =end pod
 use Test;
 use lib 'lib';
 
-use Qwiratry::Template::Slang;
+use Qwiratry::Mold::Slang;
 use Qwiratry::Transformer;
-use Qwiratry::Template;
+use Qwiratry::Mold;
 
 plan 11;
 
 # =============================================================================
-# Test: TemplateSlang activation (behavioral)
+# Test: MoldSlang activation (behavioral)
 # =============================================================================
 
-subtest "TemplateSlang activation" => {
+subtest "MoldSlang activation" => {
 	plan 2;
 
-	clear-collected-templates();
+	clear-collected-molds();
 	transformer SlangSmoke is Transformer {
-		template TOP do { "smoke" }
+		mold TOP do { "smoke" }
 	}
 
-	ok SlangSmoke.^does(Transformer), "Transformer compiles with template slang active";
-	ok SlangSmoke.new.templates.elems > 0, "Template declarations are collected";
+	ok SlangSmoke.^does(Transformer), "Transformer compiles with mold slang active";
+	ok SlangSmoke.new.molds.elems > 0, "Mold declarations are collected";
 }
 
 # =============================================================================
@@ -37,59 +37,59 @@ subtest "Slang activation helpers" => {
 	plan 6;
 
 	ok &get-slang-activation-method().defined, "get-slang-activation-method is exported";
-	ok &activate-template-slang.defined, "activate-template-slang is exported";
+	ok &activate-mold-slang.defined, "activate-mold-slang is exported";
 	ok &get-activation-status.defined, "get-activation-status is exported";
-	is activate-template-slang(), 'slangify', "Slangify activation is recorded";
+	is activate-mold-slang(), 'slangify', "Slangify activation is recorded";
 	is get-activation-status(), 'slangify', "Activation status is stored";
-	is activate-template-slang(), 'slangify', "Repeated activation is idempotent";
+	is activate-mold-slang(), 'slangify', "Repeated activation is idempotent";
 }
 
 # =============================================================================
-# Test: Template collection functions
+# Test: Mold collection functions
 # =============================================================================
 
-subtest "Template collection functions" => {
+subtest "Mold collection functions" => {
 	plan 2;
 
-	clear-collected-templates();
+	clear-collected-molds();
 
-	my @templates = get-collected-templates();
-	is @templates.elems, 0, "Collection starts empty after clear";
+	my @molds = get-collected-molds();
+	is @molds.elems, 0, "Collection starts empty after clear";
 
-	clear-collected-templates();
-	ok True, "clear-collected-templates can be called multiple times";
+	clear-collected-molds();
+	ok True, "clear-collected-molds can be called multiple times";
 }
 
 # =============================================================================
-# Test: Template creation with minimal parameters
+# Test: Mold creation with minimal parameters
 # =============================================================================
 
-subtest "Template creation - minimal" => {
+subtest "Mold creation - minimal" => {
 	plan 3;
 
-	my $template = Template.new(
+	my $mold = Mold.new(
 		when-block => Nil,
 		do-block => -> { "result" }
 	);
 
-	ok $template.defined, "Template can be created with minimal parameters";
-	ok $template.do-block.defined, "Template has do-block";
-	ok !$template.name.defined, "Template name is optional";
+	ok $mold.defined, "Mold can be created with minimal parameters";
+	ok $mold.do-block.defined, "Mold has do-block";
+	ok !$mold.name.defined, "Mold name is optional";
 }
 
 # =============================================================================
-# Test: Template creation with all parameters
+# Test: Mold creation with all parameters
 # =============================================================================
 
-subtest "Template creation - full parameters" => {
+subtest "Mold creation - full parameters" => {
 	plan 6;
 
 	my $when-block = -> { True };
 	my $do-block = -> { "result" };
 	my $signature = :(Int $x);
 
-	my $template = Template.new(
-		name => 'test-template',
+	my $mold = Mold.new(
+		name => 'test-mold',
 		signature => $signature,
 		when-block => $when-block,
 		do-block => $do-block,
@@ -98,45 +98,45 @@ subtest "Template creation - full parameters" => {
 		streaming => True
 	);
 
-	is $template.name, 'test-template', "Template name is set";
-	ok $template.signature.defined, "Template signature is set";
-	ok $template.when-block.defined, "Template when-block is set";
-	ok $template.do-block.defined, "Template do-block is set";
-	is $template.priority, 10, "Template priority is set";
-	ok $template.streaming, "Template streaming is set";
+	is $mold.name, 'test-mold', "Mold name is set";
+	ok $mold.signature.defined, "Mold signature is set";
+	ok $mold.when-block.defined, "Mold when-block is set";
+	ok $mold.do-block.defined, "Mold do-block is set";
+	is $mold.priority, 10, "Mold priority is set";
+	ok $mold.streaming, "Mold streaming is set";
 }
 
 # =============================================================================
-# Test: Template default values
+# Test: Mold default values
 # =============================================================================
 
-subtest "Template default values" => {
+subtest "Mold default values" => {
 	plan 4;
 
-	my $template = Template.new(
+	my $mold = Mold.new(
 		when-block => Nil,
 		do-block => -> { }
 	);
 
-	is $template.priority, 0, "Priority defaults to 0";
-	is $template.tie-breaker, 0, "Tie-breaker defaults to 0";
-	ok !$template.streaming, "Streaming defaults to False";
-	ok !$template.returns-type.defined, "Returns-type defaults to Nil";
+	is $mold.priority, 0, "Priority defaults to 0";
+	is $mold.tie-breaker, 0, "Tie-breaker defaults to 0";
+	ok !$mold.streaming, "Streaming defaults to False";
+	ok !$mold.returns-type.defined, "Returns-type defaults to Nil";
 }
 
 # =============================================================================
-# Test: Template execute stub
+# Test: Mold execute stub
 # =============================================================================
 
-subtest "Template execute method" => {
+subtest "Mold execute method" => {
 	plan 2;
 
-	my $template = Template.new(
+	my $mold = Mold.new(
 		when-block => Nil,
 		do-block => -> $node { "result" }
 	);
 
-	my $result = $template.execute(42);
+	my $result = $mold.execute(42);
 	ok $result.defined, "Execute method returns do-block result";
 	is $result, "result", "Execute method returns correct value";
 }
@@ -148,54 +148,54 @@ subtest "Template execute method" => {
 subtest "RakuAST slang implementation" => {
 	plan 3;
 
-	my $slang-code = slurp('lib/Qwiratry/Template/Slang.rakumod');
+	my $slang-code = slurp('lib/Qwiratry/Mold/Slang.rakumod');
 
 	nok $slang-code.contains('use MONKEY-SEE-NO-EVAL'),
-		"Template::Slang does not use MONKEY-SEE-NO-EVAL";
-	ok $slang-code.contains('use Slangify TemplateGrammar, TemplateActions'),
-		"Template::Slang activates slang via Slangify";
+		"Mold::Slang does not use MONKEY-SEE-NO-EVAL";
+	ok $slang-code.contains('use Slangify MoldGrammar, MoldActions'),
+		"Mold::Slang activates slang via Slangify";
 	ok $slang-code.contains('transform-to-method'),
 		"WP03 method transformation is implemented";
 }
 
 # =============================================================================
-# Test: Template transformation to conceptual Methods (WP03)
+# Test: Mold transformation to conceptual Methods (WP03)
 # =============================================================================
 
-subtest "Template transformation - when/do as where/body" => {
+subtest "Mold transformation - when/do as where/body" => {
 	plan 4;
 
-	clear-collected-templates();
+	clear-collected-molds();
 	transformer TransformTest is Transformer {
-		template section() when { True } do { "matched" }
-		template TOP do { "fallback" }
+		mold section() when { True } do { "matched" }
+		mold TOP do { "fallback" }
 	}
 
 	my $t = TransformTest.new;
-	is $t.templates.elems, 2, "Named template with when/do compiles";
+	is $t.molds.elems, 2, "Named mold with when/do compiles";
 
-	my $section = $t.templates.first({ $_.name eq 'section' });
+	my $section = $t.molds.first({ $_.name eq 'section' });
 	ok $section.when-block.defined, "When-block stored as where constraint";
 	ok $section.do-block.defined, "Do-block stored as method body";
 	ok $section.matches(Any), "When-block matches when when-block is true";
 }
 
 # =============================================================================
-# Test: Named template with empty signature (Specification.md example)
+# Test: Named mold with empty signature (Specification.md example)
 # =============================================================================
 
-subtest "Named template signature compilation" => {
+subtest "Named mold signature compilation" => {
 	plan 2;
 
-	clear-collected-templates();
+	clear-collected-molds();
 	transformer SigTest is Transformer {
-		template section() when { True } do { "ok" }
+		mold section() when { True } do { "ok" }
 	}
 
-	my $template = SigTest.new.templates.first({ $_.name eq 'section' });
-	ok !$template.signature.defined || $template.signature ~~ Signature,
+	my $mold = SigTest.new.molds.first({ $_.name eq 'section' });
+	ok !$mold.signature.defined || $mold.signature ~~ Signature,
 		"Empty () signature compiles or defaults cleanly";
-	is $template.execute(Any), "ok", "Template do-block executes";
+	is $mold.execute(Any), "ok", "Mold do-block executes";
 }
 
 # =============================================================================
@@ -205,15 +205,15 @@ subtest "Named template signature compilation" => {
 subtest "API compatibility - collection helpers" => {
 	plan 4;
 
-	clear-collected-templates();
+	clear-collected-molds();
 	clear-collected-wrappers();
 
-	ok get-collected-templates() ~~ Array, "get-collected-templates returns Array";
+	ok get-collected-molds() ~~ Array, "get-collected-molds returns Array";
 	ok get-collected-wrappers() ~~ Array, "get-collected-wrappers returns Array";
 
 	transformer WrapTest is Transformer {
 		wrapper TRANSFORMER { @_[0] ~ "-wrapped" }
-		template TOP do { "ok" }
+		mold TOP do { "ok" }
 	}
 	ok WrapTest.can('WRAP_TRANSFORMER'), "TRANSFORMER wrapper submethod is installed";
 	is WrapTest.new.transform(Any), "ok-wrapped", "Wrapper block is wired into transform";

@@ -1,10 +1,10 @@
 =begin pod
 
-Extract navigation Query AST values from template C<when> blocks.
+Extract navigation Query AST values from mold C<when> blocks.
 
 When blocks such as C<when { $_ ⪪⪪ <item> }> build navigation operators at
 runtime with C<$_> as the subject. A sentinel L<NavQueryTopic|Qwiratry::Query::Match::NavQueryTopic>
-stands in for C<$_> during extraction so the query can be stored on the template
+stands in for C<$_> during extraction so the query can be stored on the mold
 for specificity scoring and matching.
 
 =end pod
@@ -60,7 +60,7 @@ class Qwiratry::Query::Extract {
 
 	=begin pod
 
-	Split a template C<when> blockoid AST into navigation query and predicate parts.
+	Split a mold C<when> blockoid AST into navigation query and predicate parts.
 
 	=end pod
 	method split-from-blockoid(Mu $blockoid-cap --> Hash) {

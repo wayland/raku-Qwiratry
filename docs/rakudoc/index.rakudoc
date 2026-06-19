@@ -1,0 +1,92 @@
+=begin rakudoc
+
+=TITLE Qwiratry
+
+=SUBTITLE Declarative queries and flexible data walking for Raku
+
+=head1 Overview
+
+Qwiratry is a Raku architecture for declarative queries and flexible data
+walking, suitable for trees, tables, relational structures, logic-programming
+environments, and anything reasonably structured and traversable.
+
+Qwiratry provides a general-purpose query execution pipeline that separates
+B<what> to query from B<how> to walk the data. This design enables the same
+query to work across different data models without forcing a single semantic
+interpretation.
+
+=head1 Key Features
+
+=item B<Separation of concerns>: queries describe intent; walkers interpret and execute; query iterators yield results.
+
+=item B<Reusability>: walkers can produce multiple iterators, and queries can be reused and optimized.
+
+=item B<Composability>: supports composite walker handovers for multi-domain queries.
+
+=item B<Declarative transformations>: XSLT-like mold system for structured data manipulation.
+
+=item B<Flexible execution>: supports backtracking, multi-phase execution, and optimization planning.
+
+=item B<Domain flexibility>: works with trees, tables, logic programming, and hybrid systems.
+
+=head1 Installation
+
+Install from the package manager:
+
+=begin code :lang<shell>
+zef install Qwiratry
+=end code
+
+Qwiratry currently requires RakuAST support when running:
+
+=begin code :lang<shell>
+export RAKUDO_RAKUAST=1
+=end code
+
+=head1 Quick Start
+
+=begin code :lang<raku>
+use Qwiratry;
+
+# Declare a transformer with molds
+transformer MyTransform {
+    mold TOP do {
+        # Transform the root node
+        return $*NODE.deepcopy;
+    }
+
+    mold /type eq 'element'/ do {
+        # Match and transform specific elements
+        return $*NODE.clone;
+    }
+}
+
+# Use the transformer
+my $result = MyTransform.transform($data-structure);
+=end code
+
+=head1 Requirements
+
+=item Raku 6.e or later.
+
+=item C<Slangify>.
+
+=item C<Implementation::Loader> v0.0.7 or later.
+
+=item C<RAKUDO_RAKUAST=1> in the environment.
+
+=head1 Documentation
+
+=item L<Operators|../../Operators.md>: query operator reference.
+
+=item C<t/examples/>: example code and usage patterns.
+
+=head1 License
+
+See the repository for license information.
+
+=head1 Author
+
+Tim Nelson (wayland at wayland dot id dot au)
+
+=end rakudoc

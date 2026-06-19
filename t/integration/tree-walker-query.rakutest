@@ -5,7 +5,7 @@ use lib 'lib';
 use Qwiratry::Walker::Implementation::Tree;
 use Qwiratry::Operator::Navigation;
 use Qwiratry::Query::Slang;
-use Qwiratry::Template;
+use Qwiratry::Mold;
 use Qwiratry::Transformer;
 
 plan 3;
@@ -33,15 +33,15 @@ subtest 'Tree Walker iterator yields query matches only' => {
 	ok @values.sort == (1, 2), 'matched expected item values';
 }
 
-subtest 'Template when-query matches nodes via Query::Match' => {
+subtest 'Mold when-query matches nodes via Query::Match' => {
 	plan 3;
 
 	my $transformer = Transformer.new;
-	$transformer.add-template(Template.new(
+	$transformer.add-mold(Mold.new(
 		:when-query($tree ⪪⪪ <item>),
 		do-block => -> $_ { "item-{$_<value>}" },
 	));
-	$transformer.add-template(Template.new(
+	$transformer.add-mold(Mold.new(
 		:when-query($tree ⪪ <section>),
 		do-block => -> { 'section' },
 	));
@@ -50,16 +50,16 @@ subtest 'Template when-query matches nodes via Query::Match' => {
 	my $item = $tree[0]<children>[0];
 	my $other = %(name => 'footer');
 
-	is $transformer.APPLY($item), 'item-1', 'item template matches item node';
-	is $transformer.APPLY($section), 'section', 'section template matches section node';
-	ok !$transformer.APPLY($other).defined, 'non-matching node produces no template output';
+	is $transformer.APPLY($item), 'item-1', 'item mold matches item node';
+	is $transformer.APPLY($section), 'section', 'section mold matches section node';
+	ok !$transformer.APPLY($other).defined, 'non-matching node produces no mold output';
 }
 
-subtest 'TRANSFORM applies templates only on query-selected nodes' => {
+subtest 'TRANSFORM applies molds only on query-selected nodes' => {
 	plan 2;
 
 	my $transformer = Transformer.new;
-	$transformer.add-template(Template.new(
+	$transformer.add-mold(Mold.new(
 		:when-query($tree ⪪⪪ <item>),
 		do-block => -> $_ { "v{$_<value>}" },
 	));

@@ -68,16 +68,16 @@ Key deliverables:
 
 ---
 
-=== Transformer and Template System ===
+=== Transformer and Mold System ===
 
-Implement the Transformer declarator system with Templates, Wrappers, and magic variables as specified in Specification.md sections 2.1.4, 3.3, 3.3.1-3.3.5. Transformers walk data structures using Walkers and Queries, applying Templates (match-and-action rules) to produce transformed output. Includes template ordering (priority/specificity/tie-breaker), traits (:streaming, returns, does TreeRewrite), wrappers (TRANSFORMER, TEMPLATE_MATCHER, TEMPLATE_ACTION), and magic variables ($*CONTEXT, $*CAPTURE, self).
+Implement the Transformer declarator system with Molds, Wrappers, and magic variables as specified in Specification.md sections 2.1.4, 3.3, 3.3.1-3.3.5. Transformers walk data structures using Walkers and Queries, applying Molds (match-and-action rules) to produce transformed output. Includes mold ordering (priority/specificity/tie-breaker), traits (:streaming, returns, does TreeRewrite), wrappers (TRANSFORMER, MOLD_MATCHER, MOLD_ACTION), and magic variables ($*CONTEXT, $*CAPTURE, self).
 
 Key deliverables:
   - `transformer` custom declarator
-  - `Transformer` class with TRANSFORM, ORDER-TEMPLATES, APPLY methods
-  - `template` declarator with when/do blocks
-  - Template ordering algorithm (priority → specificity → tie-breaker)
-  - Wrapper system (TRANSFORMER, TEMPLATE_MATCHER, TEMPLATE_ACTION)
+  - `Transformer` class with TRANSFORM, ORDER-MOLDS, APPLY methods
+  - `mold` declarator with when/do blocks
+  - Mold ordering algorithm (priority → specificity → tie-breaker)
+  - Wrapper system (TRANSFORMER, MOLD_MATCHER, MOLD_ACTION)
   - Magic variables ($*CONTEXT, $*CAPTURE, self)
   - copy() and deepcopy() methods for transformable nodes
   - Support for :streaming, returns(), and does TreeRewrite traits
@@ -93,7 +93,7 @@ Key deliverables:
   - `Table::Walker::Scan` class implementing Walker role for table row scanning
   - `Logic::Walker::Backward` class implementing Walker role for backward-chaining logic
   - Demo scripts showing query execution with each walker type
-  - Example transformers demonstrating template usage
+  - Example transformers demonstrating mold usage
   - Documentation showing how to use the examples
 
 ---

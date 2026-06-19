@@ -11,7 +11,7 @@ In Qwiratry, operators are part of the **Query Group** - they describe *what* to
 - **Query AST** (operators) - Declarative intent, immutable, composable
 - **Walker** - Interprets operators during `plan()` phase, determines execution strategy
 - **QueryIterator** - Produces results incrementally during traversal
-- **Transformer** - Can use operators in template `when` clauses for node selection
+- **Transformer** - Can use operators in mold `when` clauses for node selection
 
 ### 1.2 Key Design Principles
 
@@ -27,7 +27,7 @@ In Qwiratry, operators are part of the **Query Group** - they describe *what* to
 Operators can be used in:
 
 1. **Query Slang expressions** - Direct query construction
-2. **Transformer templates** - In `when` clauses for node matching
+2. **Transformer molds** - In `when` clauses for node matching
 3. **Inline code** - As part of Raku expressions that produce Query AST
 
 ## 2. Operator Precedence
@@ -1117,17 +1117,17 @@ The traversal behavior described here applies only to the default tree walker im
 
 ### 7.3 Integration with Transformers
 
-Operators can be used in Transformer templates:
+Operators can be used in Transformer molds:
 
 ```raku
 transformer MyTransformer {
     # Use operators in when clause - uses $_ automatically
-    template item() when { ⪪⪪ <item> } do {
+    mold item() when { ⪪⪪ <item> } do {
         make transform-item($_);
     }
     
     # Combine with predicates - uses $_ automatically
-    template active-item() when { 
+    mold active-item() when { 
         ⪪ <item> σ { .active }
     } do {
         make process-active($_);

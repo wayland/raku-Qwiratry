@@ -1,24 +1,24 @@
 =begin pod
 
-Compile RakuAST template components into runtime blocks and structures.
+Compile RakuAST mold components into runtime blocks and structures.
 
 Handles blockoid compilation, signature lowering, trait application, and
-conceptual method transformation for templates parsed by L<Qwiratry::Template::Slang>.
+conceptual method transformation for molds parsed by L<Qwiratry::Mold::Slang>.
 
 =end pod
 use v6.e.PREVIEW;
-use Qwiratry::Template;
+use Qwiratry::Mold;
 
-class Qwiratry::Template::Compiler {
+class Qwiratry::Mold::Compiler {
 
 	my $instance;
 
 	=begin pod
 
-	Return the shared template compiler instance.
+	Return the shared mold compiler instance.
 
 	=end pod
-	method instance(--> Qwiratry::Template::Compiler) {
+	method instance(--> Qwiratry::Mold::Compiler) {
 		$instance //= self.new
 	}
 
@@ -47,10 +47,10 @@ class Qwiratry::Template::Compiler {
 
 	=begin pod
 
-	Default C<$_> signature for templates without an explicit signature.
+	Default C<$_> signature for molds without an explicit signature.
 
 	=end pod
-	method implicit-template-signature() {
+	method implicit-mold-signature() {
 		RakuAST::Signature.new(
 			parameters => (
 				RakuAST::Parameter.new(
@@ -78,7 +78,7 @@ class Qwiratry::Template::Compiler {
 
 	=begin pod
 
-	Build conceptual method structure from template name, signature, and blocks.
+	Build conceptual method structure from mold name, signature, and blocks.
 
 	=end pod
 	method transform-to-method(
@@ -112,35 +112,35 @@ class Qwiratry::Template::Compiler {
 
 	=end pod
 	method display-name($name) {
-		$name.defined ?? "template $name" !! "unnamed template"
+		$name.defined ?? "mold $name" !! "unnamed mold"
 	}
 
 	=begin pod
 
-	Apply C<is streaming>, C<is priority>, C<is tie-breaker>, and C<returns> traits to a template.
+	Apply C<is streaming>, C<is priority>, C<is tie-breaker>, and C<returns> traits to a mold.
 
 	=end pod
-	method apply-traits(Template $template, $routine) {
+	method apply-traits(Mold $mold, $routine) {
 		return unless $routine.traits.defined;
 		for $routine.traits -> $trait {
 			if $trait ~~ RakuAST::Trait::Is {
 				my $name = try $trait.name.simple-identifier // ~$trait.name;
 				given $name {
-					when 'streaming' { $template.streaming = True }
+					when 'streaming' { $mold.streaming = True }
 					when 'priority' {
-						$template.priority = $trait.argument.defined
+						$mold.priority = $trait.argument.defined
 							?? +(~$trait.argument)
 							!! 0;
 					}
 					when 'tie-breaker' {
-						$template.tie-breaker = $trait.argument.defined
+						$mold.tie-breaker = $trait.argument.defined
 							?? +(~$trait.argument)
 							!! 0;
 					}
 				}
 			}
 			elsif $trait ~~ RakuAST::Trait::Returns {
-				$template.returns-type = try $trait.type.compile-time-value;
+				$mold.returns-type = try $trait.type.compile-time-value;
 			}
 		}
 	}

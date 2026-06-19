@@ -1,0 +1,44 @@
+#| Unit tests for NextMold control flow
+use Test;
+use lib 'lib';
+
+use Qwiratry::Mold;
+use Qwiratry::Transformer;
+
+plan 2;
+
+subtest 'NextMold.throw skips to next matching mold' => {
+	plan 1;
+
+	my $transformer = Transformer.new;
+	$transformer.add-mold(Mold.new(
+		when-block => -> { True },
+		do-block => -> {
+			make 'first';
+			NextMold.throw;
+		},
+		priority => 10,
+	));
+	$transformer.add-mold(Mold.new(
+		when-block => -> { True },
+		do-block => -> { make 'second' },
+		priority => 1,
+	));
+
+	is $transformer.APPLY('node'), 'second',
+		'APPLY uses next mold after NextMold.throw';
+}
+
+subtest 'NextMold.throw with no fallback returns Nil' => {
+	plan 1;
+
+	my $transformer = Transformer.new;
+	$transformer.add-mold(Mold.new(
+		when-block => -> { True },
+		do-block => -> { NextMold.throw },
+	));
+
+	my $result = $transformer.APPLY('node');
+	ok $result === Nil || $result === Any,
+		'APPLY returns Nil when NextMold.throw has no fallback';
+}

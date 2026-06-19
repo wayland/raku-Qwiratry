@@ -1,15 +1,15 @@
 =begin pod
 
-Calculate template ordering specificity scores from navigation Query AST nodes.
+Calculate mold ordering specificity scores from navigation Query AST nodes.
 
-Scoring follows Specification.md section 3.3.2.4 (ORDER-TEMPLATES):
+Scoring follows Specification.md section 3.3.2.4 (ORDER-MOLDS):
 
 - Multilevel axes (descendant, ancestor, following, preceding) → −100
 - Wildcards → −10
 - Explicit path elements → +5
 - Attribute axes → +5
 
-Higher scores mean more specific templates and win ordering ties.
+Higher scores mean more specific molds and win ordering ties.
 
 =end pod
 use Qwiratry::Operator::Navigation;

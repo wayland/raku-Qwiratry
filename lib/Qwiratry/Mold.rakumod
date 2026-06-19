@@ -1,14 +1,14 @@
 =begin pod
 
-Template class for pattern-matching transformation rules
+Mold class for pattern-matching transformation rules
 
-This module provides the Template class that represents individual
-transformation rules within a Transformer. Templates consist of
+This module provides the Mold class that represents individual
+transformation rules within a Transformer. Molds consist of
 a `when` block (matcher) and a `do` block (action), along with
 metadata for ordering (priority, specificity, tie-breaker).
 
 =end pod
-unit module Qwiratry::Template;
+unit module Qwiratry::Mold;
 
 use X::Qwiratry;  # For X::Qwiratry::TypeCheck
 use Qwiratry::Query::Match;
@@ -16,7 +16,7 @@ use Qwiratry::Tree::Replace;
 
 =begin pod
 
-Collector for C<make> calls during template execution. When defined, C<make>
+Collector for C<make> calls during mold execution. When defined, C<make>
 pushes values here instead of using the block's return value.
 
 =end pod
@@ -46,14 +46,14 @@ our $*TRANSFORM-REWRITE is export;
 
 =begin pod
 
-Add a value to the current template's output stream.
+Add a value to the current mold's output stream.
 
 =end pod
 sub make(Mu $value) is export {
 	unless $*MAKE-OUTPUT.defined {
 		X::Qwiratry::Walker.new(
-			message => 'make() called outside template execution',
-			walker-type => 'Template',
+			message => 'make() called outside mold execution',
+			walker-type => 'Mold',
 		).throw;
 	}
 	$*MAKE-OUTPUT.push($value);
@@ -65,52 +65,52 @@ sub make(Mu $value) is export {
 
 =begin pod
 
-Skip the current template action and continue with the next matching template.
+Skip the current mold action and continue with the next matching mold.
 
 =end pod
-class NextTemplate is export {
-	method throw(NextTemplate:U: ) {
-		X::Qwiratry::NextTemplate.new(
-			message => 'Continue to next matching template',
-			walker-type => 'Template',
+class NextMold is export {
+	method throw(NextMold:U: ) {
+		X::Qwiratry::NextMold.new(
+			message => 'Continue to next matching mold',
+			walker-type => 'Mold',
 		).throw;
 	}
 }
 
 =begin pod
 
-Template class representing a match-and-action rule within a Transformer.
+Mold class representing a match-and-action rule within a Transformer.
 
-Templates define how nodes are selected (via `when` block) and transformed
-(via `do` block). Templates are ordered by priority → specificity → tie-breaker
-to determine which template applies when multiple could match.
+Molds define how nodes are selected (via `when` block) and transformed
+(via `do` block). Molds are ordered by priority → specificity → tie-breaker
+to determine which mold applies when multiple could match.
 
 Example:
-  template section() when { $_.name eq 'section' } do {
+  mold section() when { $_.name eq 'section' } do {
       make Node.new(name => $_.name);
   }
 
 =end pod
-class Template is export {
-	# Optional template name (makes template callable as method on transformer)
+class Mold is export {
+	# Optional mold name (makes mold callable as method on transformer)
 	has Str $.name;
     
-	# Optional template signature (for parameters)
+	# Optional mold signature (for parameters)
 	has Signature $.signature;
     
 	=begin pod
     
-	Code block for matching nodes (template matcher).
+	Code block for matching nodes (mold matcher).
 	Evaluated against each node during transformation.
-	Returns True if template should apply to this node.
+	Returns True if mold should apply to this node.
     
 	=end pod
 	has Block $.when-block;
     
 	=begin pod
     
-	Code block for producing output (template action).
-	Executed when template matches a node.
+	Code block for producing output (mold action).
+	Executed when mold matches a node.
 	Produces output via `make` or return value.
     
 	=end pod
@@ -118,8 +118,8 @@ class Template is export {
     
 	=begin pod
     
-	Template priority (from `:priority` trait, default 0).
-	Higher priority templates are tried first.
+	Mold priority (from `:priority` trait, default 0).
+	Higher priority molds are tried first.
     
 	=end pod
 	has Int $.priority = 0;
@@ -127,7 +127,7 @@ class Template is export {
 	=begin pod
     
 	Calculated specificity score (cached after calculation).
-	Higher specificity templates are tried first when priority is equal.
+	Higher specificity molds are tried first when priority is equal.
     
 	=end pod
 	has Int $.specificity;
@@ -142,8 +142,8 @@ class Template is export {
     
 	=begin pod
     
-	Whether template has `:streaming` trait.
-	Streaming templates can produce lazy iterators.
+	Whether mold has `:streaming` trait.
+	Streaming molds can produce lazy iterators.
     
 	=end pod
 	has Bool $.streaming = False;
@@ -151,7 +151,7 @@ class Template is export {
 	=begin pod
     
 	Output type constraint (from `returns(Type)` trait).
-	Enforces the type of output returned by template.
+	Enforces the type of output returned by mold.
     
 	=end pod
 	has Mu $.returns-type;
@@ -203,7 +203,7 @@ class Template is export {
 	Handles errors gracefully by returning False if evaluation fails.
 
 	@param $node - Node to match against
-	@returns Bool - True if template matches node
+	@returns Bool - True if mold matches node
 
 	=end pod
 	method matches($node --> Bool) {
@@ -317,13 +317,13 @@ class Template is export {
 	}
 
 	method !invoke-do-block($block, $node, $transformer, :$context, :$make-output) {
-		my $template = self;
-		$template!run-with-magic-variables(
+		my $mold = self;
+		$mold!run-with-magic-variables(
 			$node,
 			{
 				if $block ~~ Method && $transformer.defined {
 					if $block.arity == 0 && $block.count == 0 {
-						$template!invoke-arity0($node, { $block($transformer) });
+						$mold!invoke-arity0($node, { $block($transformer) });
 					}
 					elsif $block.arity >= 1 {
 						$block($transformer, $node);
@@ -333,7 +333,7 @@ class Template is export {
 					}
 				}
 				elsif $block.arity == 0 && $block.count == 0 {
-					$template!invoke-arity0($node, { $block() });
+					$mold!invoke-arity0($node, { $block() });
 				}
 				elsif $block.arity == 1 {
 					$block($node);
@@ -385,7 +385,7 @@ class Template is export {
 
 		if $transformer.defined {
 			try {
-				$result = $transformer.WRAP_TEMPLATE_ACTION($node, $result);
+				$result = $transformer.WRAP_MOLD_ACTION($node, $result);
 				CATCH {
 					when X::Method::NotFound { }
 				}
@@ -397,7 +397,7 @@ class Template is export {
 				X::Qwiratry::TypeCheck.new(
 					expected => $!returns-type,
 					got => $result.WHAT,
-					message => "Template result does not match returns type constraint"
+					message => "Mold result does not match returns type constraint"
 				).throw;
 			}
 		}

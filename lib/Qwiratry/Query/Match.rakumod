@@ -3,7 +3,7 @@
 Evaluate navigation Query AST nodes against tree-shaped Raku data.
 
 Provides lazy C<select> to find matching nodes and C<node-matches> to test
-membership. Used by L<Qwiratry::Walker::Implementation::Tree> and template
+membership. Used by L<Qwiratry::Walker::Implementation::Tree> and mold
 C<when-query> matching.
 
 Tree semantics (Operators.md section 7.2.1):
@@ -31,7 +31,7 @@ my constant selector = Qwiratry::Query::Selector.instance;
 
 =begin pod
 
-Sentinel substituted for C<$_> when extracting navigation queries from template
+Sentinel substituted for C<$_> when extracting navigation queries from mold
 C<when> blocks. See L<Qwiratry::Query::Extract>.
 
 =end pod
@@ -41,14 +41,14 @@ class NavQueryTopic is export {
 
 =begin pod
 
-Match a node against a template C<when-query>, including topic-rooted queries
+Match a node against a mold C<when-query>, including topic-rooted queries
 extracted from C<when { $_ ⪪ ... }> blocks.
 
 =end pod
 our sub when-query-matches(Mu $query, Mu $node, Mu :$origin --> Bool) is export {
 	return False unless $query.defined;
 	if query-uses-topic($query) {
-		return template-topic-matches($query, $node, :$origin);
+		return mold-topic-matches($query, $node, :$origin);
 	}
 	node-matches($query, $node, :$origin);
 }
@@ -62,7 +62,7 @@ sub query-uses-topic(Mu $query --> Bool) {
 	False
 }
 
-sub template-topic-matches(Mu $query, Mu $node, Mu :$origin --> Bool) {
+sub mold-topic-matches(Mu $query, Mu $node, Mu :$origin --> Bool) {
 	match-topic-chain($query, $node, :$origin);
 }
 

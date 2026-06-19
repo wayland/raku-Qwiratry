@@ -9,7 +9,7 @@ This document maps sections from `Specification.md` to feature shells that will 
 3. **strategy-control** - Strategy hooks and ControlSignal
 4. **composite-handover** - Multi-domain walker handovers
 5. **slang-and-query** - Query AST and Slang support
-6. **transformer-templates** - Transformer/Template system
+6. **transformer-molds** - Transformer/Mold system
 7. **examples-and-demos** - Sample implementations
 
 ## Feature Shells
@@ -54,17 +54,17 @@ This document maps sections from `Specification.md` to feature shells that will 
 
 **Purpose**: Define Query AST structure and Slang support for parsing query expressions into Query AST objects that walkers can consume.
 
-### transformer-templates
+### transformer-molds
 **Spec References**:
 - Section 2.1.4 (Transformer Group)
 - Section 3.3 (Transformer Group)
 - Section 3.3.1 (Purpose)
 - Section 3.3.2 (Transformer Declarator)
-- Section 3.3.3 (Templates)
+- Section 3.3.3 (Molds)
 - Section 3.3.4 (Wrappers)
 - Section 3.3.5 (Magic Variables)
 
-**Purpose**: Implement Transformer declarator, Template system with ordering/traits, Wrappers, and magic variables ($*CONTEXT, $*CAPTURE, etc.).
+**Purpose**: Implement Transformer declarator, Mold system with ordering/traits, Wrappers, and magic variables ($*CONTEXT, $*CAPTURE, etc.).
 
 ### examples-and-demos
 **Spec References**:

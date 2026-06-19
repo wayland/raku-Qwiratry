@@ -43,7 +43,7 @@ Process shells in this order (dependencies respected):
 3. strategy-control-shell.md
 4. composite-handover-shell.md
 5. slang-and-query-shell.md
-6. transformer-templates-shell.md
+6. transformer-molds-shell.md
 7. examples-and-demos-shell.md
 
 ## Spec References

@@ -10,7 +10,7 @@ It separates:
 - **what** to query (the **Query** group)
 - **how** to walk the data (`Walker`)
 - **how results are produced incrementally** (`QueryIterator`)
-- and optionally **how output is transformed** (Transformers + Templates)
+- and optionally **how output is transformed** (Transformers + Molds)
 
 This provides a general-purpose query execution pipeline that works across different data models without forcing a single semantic interpretation of a query.
 
@@ -52,7 +52,7 @@ It separates:
 * The **Walker** Group: How to walk the data.  Defines traversal strategies and execution plans.  
 * The **Per-traversal** group: A walker might do multiple traversals.  This includes how results are produced incrementally.  This is roles instantiated per traversal to manage mutable state and incremental results.
 * The **Strategy** Group: provides element-level behaviour and reusable processing logic
-* The **Transformer** Group: declarative specification of data transformations using templates.  
+* The **Transformer** Group: declarative specification of data transformations using molds.  
 
 The architecture is divided into five main groups of roles:
 
@@ -90,9 +90,9 @@ Concrete implementations include:
 ### 2.1.4. Transformer Group
 
 * **Transformer** – Declarative object for transforming input data (trees, tables, or other hierarchical structures). Separates traversal, selection, and action, leveraging Walkers for traversal and Queries for node selection. Supports streaming and multi-phase application.  
-* **Template** – Match-and-action rules within a Transformer. Templates specify how nodes are selected (`when`) and how output is produced (`do`). Templates can include traits like `:streaming` and can be prioritised and ordered for deterministic behaviour.
+* **Mold** – Match-and-action rules within a Transformer. Molds specify how nodes are selected (`when`) and how output is produced (`do`). Molds can include traits like `:streaming` and can be prioritised and ordered for deterministic behaviour.
 
-**Purpose:** Transformers allow structured manipulation and derivation of data. By combining Walkers, Queries, and Templates, they enable transformations similar in style to XSLT but operating over Raku data structures.
+**Purpose:** Transformers allow structured manipulation and derivation of data. By combining Walkers, Queries, and Molds, they enable transformations similar in style to XSLT but operating over Raku data structures.
 
 ### 2.1.5. Per-Traversal Group
 
@@ -107,7 +107,7 @@ Concrete implementations include:
 |----------------------|-----------------------|------------------------|-----------------------------------------|-----------------------------|
 | Query Group           | Query AST classes    |                        |                                         |                             |
 | Walker Group          | `Walker`, `Walker::Plan` | `Context`, `QueryIterator` | `Strategy`                                 | `ControlSignal`               |
-| Transformer Group     | `Transformer`          |                        | `Template`                                 | `Wrapper`    |
+| Transformer Group     | `Transformer`          |                        | `Mold`                                 | `Wrapper`    |
 
 The Query AST classes are descendents of RakuAST::Node that are used to describe the Query Slang.  
 
@@ -658,7 +658,7 @@ enum ControlSignal <
 ````
 
 * `NO_REWRITE` — traversal continues, no changes
-* `REWRITE_IMMEDIATE` — action performed inline in the template / hook
+* `REWRITE_IMMEDIATE` — action performed inline in the mold / hook
 * `REWRITE_DEFERRED` — schedule this rewrite to be applied after the current traversal pass, not immediately during the visit
 * `SKIP_ELEMENT` — skip this element and its relations
 * `STOP_TRAVERSAL` — halt traversal immediately
@@ -692,18 +692,18 @@ The Transformer can be called at various points in the Qwiratry dataflow:
 
 ### 3.3.2 Transformer Declarator
 
-There will be a custom declarator for a “transformer”.  The syntactic purpose of the transformer is to contain things, mostly templates.  
+There will be a custom declarator for a “transformer”.  The syntactic purpose of the transformer is to contain things, mostly molds.  
 
-A Template is a structured specification that generates output (tree, table, or other structure) based on matched nodes. Templates may use interpolated values, computed fragments, or nested queries.
+A Mold is a structured specification that generates output (tree, table, or other structure) based on matched nodes. Molds may use interpolated values, computed fragments, or nested queries.
 
 Transformers are declared using the `transformer` custom declarator.  For example:
 
 ````raku
 transformer transform-the-tree {
-	template TOP do {
+	mold TOP do {
 		return Node.new();
 	}
-	template section() when {
+	mold section() when {
 		.name eq 'section'
 	} do {
 
@@ -711,8 +711,8 @@ transformer transform-the-tree {
 }
 
 transformer TransformerName is OtherTransformer :streaming {
-	template TOP do { ... }
-	template when { ... } do { ... }
+	mold TOP do { ... }
+	mold when { ... } do { ... }
 }
 ````
 
@@ -724,12 +724,12 @@ transformer TransformerName is OtherTransformer :streaming {
 | Name       | `transform-the-tree` | identifies the Transformer  |
 | Roles/Traits | `is OtherTransformer`, `:streaming` | Switches the TRANSFORM method to one with a different application methodology |
 | **Body**   | | contains:
-| Templates  | | Match and Action rules |
-| Wrappers   | | Wraps various parts of the Template |
+| Molds  | | Match and Action rules |
+| Wrappers   | | Wraps various parts of the Mold |
 | Methods | Can be used for a variety of purposes, including Stratego strategies |
 
-* The `:streaming` trait can be applied at the Transformer or template level to enable `gather/take` streaming behavior (ie. the Transformer acts as an Iterator).  
-* The `returns` trait can enforce the type of output returned by templates or the Transformer.
+* The `:streaming` trait can be applied at the Transformer or mold level to enable `gather/take` streaming behavior (ie. the Transformer acts as an Iterator).  
+* The `returns` trait can enforce the type of output returned by molds or the Transformer.
 * The `does TreeRewrite` role overrides the APPLY method with one that does rewriting instead of outputting.  If this is done, then note that `make` will immediately replace the current node.  
 
 #### 3.3.2.2. Internals
@@ -739,30 +739,30 @@ transformer TransformerName is OtherTransformer :streaming {
 
 #### 3.3.2.3. Traits
 
-Transformer declarators and templates can have **traits** that modify their behavior. Traits affect traversal, output, or method dispatch without requiring subclassing or method overrides.
+Transformer declarators and molds can have **traits** that modify their behavior. Traits affect traversal, output, or method dispatch without requiring subclassing or method overrides.
 
 ##### Common Traits
 
 | Trait | Applied To | Effect |
 |-------|------------|--------|
-| `:streaming` | Transformer, Template | Enables incremental output using `gather/take`. The Transformer or Template acts as an iterator; results are produced lazily and can be consumed on-the-fly. |
-| `returns(Type)` | Transformer, Template | Enforces that the output of the Transformer or Template is of the specified type. Throws a runtime error if the result does not conform. |
+| `:streaming` | Transformer, Mold | Enables incremental output using `gather/take`. The Transformer or Mold acts as an iterator; results are produced lazily and can be consumed on-the-fly. |
+| `returns(Type)` | Transformer, Mold | Enforces that the output of the Transformer or Mold is of the specified type. Throws a runtime error if the result does not conform. |
 | `does RoleName` | Transformer | Mixes in a role, altering behavior. For example, `does TreeRewrite` modifies the APPLY method to perform in-place rewriting rather than generating new nodes. |
 
-##### Transformer-level vs Template-level Traits
+##### Transformer-level vs Mold-level Traits
 
 * **Transformer-level traits**  
-  - Apply to all templates and the overall transformation process.  
+  - Apply to all molds and the overall transformation process.  
   - Example: `transformer MyX :streaming` makes the entire Transformer produce a lazy stream.  
 
-* **Template-level traits**  
-  - Apply to individual templates.  
-  - Example: `template section :streaming do { ... }` produces output incrementally for that template alone, without affecting other templates.  
+* **Mold-level traits**  
+  - Apply to individual molds.  
+  - Example: `mold section :streaming do { ... }` produces output incrementally for that mold alone, without affecting other molds.  
 
 ##### Notes
 
 * Traits are applied at **compile-time** using the declarator syntax (`transformer MyX :streaming does TreeRewrite { ... }`).  
-* Transformers and Templates may inspect traits at runtime via introspection (`.WHAT` or `.^traits`) to adjust behavior.  
+* Transformers and Molds may inspect traits at runtime via introspection (`.WHAT` or `.^traits`) to adjust behavior.  
 * Traits **do not mutate input data** unless combined with a role like `TreeRewrite`.  
 * Multiple traits can be combined, but conflicts should be resolved deterministically (e.g., last-applied wins for overlapping behavior).  
 
@@ -771,21 +771,21 @@ Transformer declarators and templates can have **traits** that modify their beha
 ````raku
 # Streaming Transformer producing nodes lazily
 transformer StreamSections :streaming {
-    template section() when { $_.name eq 'section' } do {
+    mold section() when { $_.name eq 'section' } do {
         make Node.new(name => $_.name);
     }
 }
 
 # Transformer that rewrites input in place
 transformer RewriteTree does TreeRewrite {
-    template leaf() when { $_.is_leaf } do {
+    mold leaf() when { $_.is_leaf } do {
         make $_.copy;
     }
 }
 
 # Enforcing output type
 transformer TableToNodes returns(Array) {
-    template row() do {
+    mold row() do {
         make Node.new(data => $_.data);
     }
 }
@@ -813,9 +813,9 @@ This is the method that is called when the Transformer itself is called.
 
 The base `TRANSFORM` method:
 
-* Prepares the templates by calling `ORDER-TEMPLATES`
+* Prepares the molds by calling `ORDER-MOLDS`
 * Walks the input data using **Iterators**  
-* Applies templates by using the `APPLY` method
+* Applies molds by using the `APPLY` method
 * Acts as a pull source, like `gather/take`
 
 The default iterator is a depth-first, top-down iterator.  
@@ -823,27 +823,27 @@ The default iterator is a depth-first, top-down iterator.
 **Walking process:**
 
 1. The input iterator is invoked, producing a sequence of nodes (lazily).  
-2. Each node is matched against template `when` clauses in order.  
-3. If a template matches, its `do` clause is invoked and the output collected.  
-4. Nextmatching templates can be invoked using `nextsame` or similar helpers.
+2. Each node is matched against mold `when` clauses in order.  
+3. If a mold matches, its `do` clause is invoked and the output collected.  
+4. Nextmatching molds can be invoked using `nextsame` or similar helpers.
 
-Direct calls to template names bypass walk ordering.
+Direct calls to mold names bypass walk ordering.
 
-##### ORDER-TEMPLATES and @.ordered-templates
+##### ORDER-MOLDS and @.ordered-molds
 
-This takes the templates that are part of the Transformer, and puts them in the right order in `@.ordered-templates`.
+This takes the molds that are part of the Transformer, and puts them in the right order in `@.ordered-molds`.
 
 Ordering:
 
-1. Templates can have a `:priority` trait (default 0). Highest numbers first, lowest numbers last.  Numbers can be negative.  
-2. Templates with equal priority are sorted by specificity score.  So if there's only one template with a given priority, its specificity doesn't need to be calculated.  
+1. Molds can have a `:priority` trait (default 0). Highest numbers first, lowest numbers last.  Numbers can be negative.  
+2. Molds with equal priority are sorted by specificity score.  So if there's only one mold with a given priority, its specificity doesn't need to be calculated.  
 3. Specificity is calculated based on the `when` clause:
    * Multilevel axis (ancestor/descendant/preceding/following) → -100  
    * Wildcards (`*`) → -10  
    * Each explicit path element → +5  
    * Each attribute axis → +5  
    * If there's a Union or the like, then we calculate each branch, and take the max, which becomes the specificity for this branch.  
-4. Templates have a `:tie-breaker` trait (default 0) which you are required to set if two templates have the same specificity, and could match the same node.  
+4. Molds have a `:tie-breaker` trait (default 0) which you are required to set if two molds have the same specificity, and could match the same node.  
 5. If there are two which rank equally, and could match the same object, an error is thrown asking you to select a tie-breaker
 
 `when` clauses are placed into an array (on the Transformer object) so that they can easily be iterated over.  
@@ -855,25 +855,25 @@ Here's a list of orderings we didn't choose, and why:
 
 ##### APPLY method
 
-The purpose of the APPLY method is to take the node given it, and apply the templates.  It can be overridden.  It is responsible for selecting and invoking the appropriate template(s) for a given node, **without handling traversal or iteration**, which is already done by `TRANSFORM`
+The purpose of the APPLY method is to take the node given it, and apply the molds.  It can be overridden.  It is responsible for selecting and invoking the appropriate mold(s) for a given node, **without handling traversal or iteration**, which is already done by `TRANSFORM`
 
 The rest of this section covers the default version that appears in `Transformer.APPLY`.  
 
 ###### Purpose
 
-- Apply templates to a single node according to `@.ordered-templates`.
-- Return the output of the **first matching template**.
-- Maintain deterministic behavior consistent with XSLT: **no fallback to other templates if a match fails**.
-- Produce a sequence of output nodes (can be empty if no templates match).
+- Apply molds to a single node according to `@.ordered-molds`.
+- Return the output of the **first matching mold**.
+- Maintain deterministic behavior consistent with XSLT: **no fallback to other molds if a match fails**.
+- Produce a sequence of output nodes (can be empty if no molds match).
 
 ###### Default Algorithm
 
 1. Receive a single node `$node`.
-2. iterate through the Transformer’s **ordered template list**  (already sorted by priority and specificity).  For the **first template whose `when` clause matches** `$node`:
+2. iterate through the Transformer’s **ordered mold list**  (already sorted by priority and specificity).  For the **first mold whose `when` clause matches** `$node`:
 	- Invoke its `do` block.
 	- Return the result (sequence of nodes or transformed data).
-	- **Stop processing further templates for this node**.
-3. If no templates match, return an empty sequence.
+	- **Stop processing further molds for this node**.
+3. If no molds match, return an empty sequence.
 
 When exiting the routine for any reason, pop the top iterator off the stack (use the relevant phaser for this).  
 
@@ -912,30 +912,30 @@ Possible values for `$mode` include:
 * `rewrite-optional` and `rewrite-mandatory` are particularly relevant for **tree or AST transformers**, where in-place or replacement mutations may be requested by strategies.  
 * For post-transformation pipelines, `post` and `default` typically behave the same.
 
-### 3.3.3. Templates
+### 3.3.3. Molds
 
 #### Structure
 
-Templates define **match-and-action rules** within a Transformer. Each template consists of:
+Molds define **match-and-action rules** within a Transformer. Each mold consists of:
 
 | Item       | Example       | Purpose |
 | ---------- | ------------- | ------ |
 | Optional `proto` or `multi` declarator | | See [proto](https://docs.raku.org/language/functions#Multi-dispatch) |
-| Declarator | `template` | Declares the start of a Template block |
-| Optional name/signature | `section()` | Makes a template directly callable, as a method |
-| Optional traits | `:streaming` | Modifies the template behaviour |
-| Matcher | `when {...}` | This is a code block.  It's expected to contain a query such as those involving by the Tree Operators.  It can be used for matching nodes (like the `select` clause on an XSLT template) |
-| Action  | `do {...}` | This code block produces output nodes.  If the template is turned into a method, this is the body of the method |
+| Declarator | `mold` | Declares the start of a Mold block |
+| Optional name/signature | `section()` | Makes a mold directly callable, as a method |
+| Optional traits | `:streaming` | Modifies the mold behaviour |
+| Matcher | `when {...}` | This is a code block.  It's expected to contain a query such as those involving by the Tree Operators.  It can be used for matching nodes (like the `select` clause on an XSLT mold) |
+| Action  | `do {...}` | This code block produces output nodes.  If the mold is turned into a method, this is the body of the method |
 
 #### Iterators, Axis Operators, and Predicates
 
 * `when` clauses can use **composed iterators** (which are both callable and iterable) for path specifications:
 
 ````raku
-template section() when { $_ ⪪⪪ <div> } do { <action on div> }
+mold section() when { $_ ⪪⪪ <div> } do { <action on div> }
 ````
 
-* Axis operators (like `⪪`, `⪫`, `⥷`) can be used directly within templates to select nodes.  
+* Axis operators (like `⪪`, `⪫`, `⥷`) can be used directly within molds to select nodes.  
 * Predicates and combinators (like `∪`, `∩`) can refine node selection in `when` clauses.  
 
 
@@ -946,12 +946,12 @@ template section() when { $_ ⪪⪪ <div> } do { <action on div> }
 * Otherwise, the return value of `do` is used as output.  
 * Returning `$*CONTEXT` or `$_` effectively copies the current node.  
 * If no `do` block is provided, the `when` clause’s value is returned.
-* It should be possible to call `NextTemplate.throw` in the body of an action, and, instead of the result of the action being put into the tree, we instead continue with the next matching template.  
-* If no templates match a node, it does nothing
+* It should be possible to call `NextMold.throw` in the body of an action, and, instead of the result of the action being put into the tree, we instead continue with the next matching mold.  
+* If no molds match a node, it does nothing
 
 ### 3.3.4. Wrappers
 
-Wrappers allow custom pre- or post-processing of template matches or the entire Transformer output.  They consist of:
+Wrappers allow custom pre- or post-processing of mold matches or the entire Transformer output.  They consist of:
 
 * `wrapper` declarator  
 * Name and signature  
@@ -960,8 +960,8 @@ Wrappers allow custom pre- or post-processing of template matches or the entire 
 The following wrappers will be recognised and used by the base Transformer object:
 
 * **TRANSFORMER** – wraps the entire Transformer output  
-* **TEMPLATE_MATCHER** – wraps template match evaluation  
-* **TEMPLATE_ACTION** – wraps template action execution
+* **MOLD_MATCHER** – wraps mold match evaluation  
+* **MOLD_ACTION** – wraps mold action execution
 
 #### Internals
 
@@ -973,7 +973,7 @@ Under the hood, each wrapper is:
 
 There should be three magic variables that are updated when walking the data.  These are:
 * `$*CONTEXT` and `$_`: Both set to the current input context node (ie. the current item in the data being walked)
-* `$*CAPTURE` and `$/`: Both set to the capture of the template signature parameters.  These can then be returned, if desired, or accessed via `$/<parameter1>`.  
+* `$*CAPTURE` and `$/`: Both set to the capture of the mold signature parameters.  These can then be returned, if desired, or accessed via `$/<parameter1>`.  
 * `self`: Reference to the current Transformer object
 
 ### 3.3.6. `Copy` service class

@@ -4,14 +4,14 @@ Transformer declarator and Transformer class for declarative data transformation
 
 This module provides the custom `transformer` declarator and the Transformer class
 that enables pattern-matching transformations on various data structures using
-templates. Transformers integrate with the Qwiratry::Walker and Strategy systems for
+molds. Transformers integrate with the Qwiratry::Walker and Strategy systems for
 flexible data transformation workflows.
 
 =end pod
 
-use Qwiratry::Template;
-use Qwiratry::Template::Slang;  # For get-collected-templates(), clear-collected-templates(), get-collected-wrappers(), clear-collected-wrappers()
-use X::Qwiratry;  # For X::Qwiratry::TemplateOrderingConflict
+use Qwiratry::Mold;
+use Qwiratry::Mold::Slang;  # For get-collected-molds(), clear-collected-molds(), get-collected-wrappers(), clear-collected-wrappers()
+use X::Qwiratry;  # For X::Qwiratry::MoldOrderingConflict
 use Qwiratry::Walker::Factory;  # For Qwiratry::Walker selection
 use Qwiratry::Operator::Navigation;
 use Qwiratry::Query::Specificity;
@@ -20,15 +20,15 @@ use Qwiratry::Transformer::Copy;
 
 my constant copy-service = Qwiratry::Transformer::Copy.instance;
 use Qwiratry::Tree::Replace;
-# Note: Template slang activation requires `use Qwiratry::Template::Slang` in the caller compunit.
+# Note: Mold slang activation requires `use Qwiratry::Mold::Slang` in the caller compunit.
 
 =begin pod
 
-Package-level registry for templates collected during transformer compilation.
+Package-level registry for molds collected during transformer compilation.
 Keyed by transformer type identity (WHICH) for runtime access.
 
 =end pod
-our %TRANSFORMER-TEMPLATES;
+our %TRANSFORMER-MOLDS;
 
 =begin pod
 
@@ -61,23 +61,23 @@ Full implementation will be added in later work packages
 class Transformer does Callable is export {
 	=begin pod
 
-	Templates defined in transformer body (populated in WP03).
+	Molds defined in transformer body (populated in WP03).
 	Initialized from class-level registry when instance is created.
 
 	=end pod
-	has @.templates is rw;
+	has @.molds is rw;
     
 	=begin pod
 
-	Initialize templates from class-level registry when instance is created.
+	Initialize molds from class-level registry when instance is created.
 
 	=end pod
 	submethod TWEAK() {
-		# Get templates from class-level registry
+		# Get molds from class-level registry
 		# Use the type object's WHICH for lookup
 		my $type-identity = self.WHAT.WHICH;
-		if %TRANSFORMER-TEMPLATES{$type-identity}:exists {
-			@!templates = %TRANSFORMER-TEMPLATES{$type-identity}.List;
+		if %TRANSFORMER-MOLDS{$type-identity}:exists {
+			@!molds = %TRANSFORMER-MOLDS{$type-identity}.List;
 		}
         
 		# T052, T053, T054: Get trait metadata from class-level registry
@@ -92,11 +92,11 @@ class Transformer does Callable is export {
     
 	=begin pod
 
-	Templates sorted by priority → specificity → tie-breaker (populated in WP04).
-	This array is populated by ORDER-TEMPLATES method and cached to avoid recalculation.
+	Molds sorted by priority → specificity → tie-breaker (populated in WP04).
+	This array is populated by ORDER-MOLDS method and cached to avoid recalculation.
 
 	=end pod
-	has @.ordered-templates is rw;
+	has @.ordered-molds is rw;
     
 	# Cache flag to avoid recalculating ordering
 	has Bool $!ordering-cached = False;
@@ -135,57 +135,57 @@ class Transformer does Callable is export {
     
 	=begin pod
 
-	Apply templates to a single node, return first matching template result.
+	Apply molds to a single node, return first matching mold result.
 
-	Iterates through ordered templates and returns the result of the first
-	matching template. Stops after first match (no fallback to other templates).
+	Iterates through ordered molds and returns the result of the first
+	matching mold. Stops after first match (no fallback to other molds).
 
-	@param $node - Node to apply templates to
-	@returns Iterator|Mu|List|Nil - Result from first matching template, or Nil if no match
+	@param $node - Node to apply molds to
+	@returns Iterator|Mu|List|Nil - Result from first matching mold, or Nil if no match
 
 	=end pod
 	method APPLY($node --> Mu) {
 		my $*TRANSFORM-NODE := $node;
 		my $*TRANSFORM-REWRITE := $.mutates-input;
 
-		# T027: Apply templates to a single node
-		# Get ordered templates (call ORDER-TEMPLATES if not already ordered)
-		my @ordered = self.ORDER-TEMPLATES;
+		# T027: Apply molds to a single node
+		# Get ordered molds (call ORDER-MOLDS if not already ordered)
+		my @ordered = self.ORDER-MOLDS;
         
-		# Iterate through ordered templates
-		for @ordered -> $template {
-			# T049: Check if template matches this node (with WRAP_TEMPLATE_MATCHER wrapper)
+		# Iterate through ordered molds
+		for @ordered -> $mold {
+			# T049: Check if mold matches this node (with WRAP_MOLD_MATCHER wrapper)
 			my $match-result;
-			my $wrap-method = self.^find_method('WRAP_TEMPLATE_MATCHER', :no_fallback);
+			my $wrap-method = self.^find_method('WRAP_MOLD_MATCHER', :no_fallback);
 			if $wrap-method.defined {
 				# Call wrapper submethod - it will traverse hierarchy and execute all wrappers
 				# Wrapper receives node and match result, can modify match result
-				my $raw-match = $template.matches($node);
-				$match-result = self.WRAP_TEMPLATE_MATCHER($node, $raw-match);
+				my $raw-match = $mold.matches($node);
+				$match-result = self.WRAP_MOLD_MATCHER($node, $raw-match);
 			} else {
 				# No wrapper - just check match directly
-				$match-result = $template.matches($node);
+				$match-result = $mold.matches($node);
 			}
             
-			# Check if template matches this node
+			# Check if mold matches this node
 			if $match-result {
 				my $result;
 				try {
-					$result = $template.execute($node, :transformer(self));
+					$result = $mold.execute($node, :transformer(self));
 					CATCH {
-						when X::Qwiratry::NextTemplate { next }
+						when X::Qwiratry::NextMold { next }
 						default { .throw }
 					}
 				}
-				if self.^find_method('WRAP_TEMPLATE_ACTION', :no_fallback) {
-					$result = self.WRAP_TEMPLATE_ACTION($node, $result);
+				if self.^find_method('WRAP_MOLD_ACTION', :no_fallback) {
+					$result = self.WRAP_MOLD_ACTION($node, $result);
 				}
 				if $!returns-type.WHICH ne Mu.WHICH && $result.defined {
 					unless $result ~~ $.returns-type {
 						X::Qwiratry::TypeCheck.new(
 							expected => $.returns-type,
 							got => $result.WHAT,
-							message => "Transformer '{self.^name}' has returns({$.returns-type.^name}) trait but result is of type {$result.WHAT.^name}. Ensure templates return values conforming to the specified type."
+							message => "Transformer '{self.^name}' has returns({$.returns-type.^name}) trait but result is of type {$result.WHAT.^name}. Ensure molds return values conforming to the specified type."
 						).throw;
 					}
 				}
@@ -193,52 +193,52 @@ class Transformer does Callable is export {
 			}
 		}
         
-		# No templates matched - return Nil (empty sequence)
+		# No molds matched - return Nil (empty sequence)
 		# Explicitly return Nil to avoid returning Any (type object)
 		return Nil;
 	}
     
 	=begin pod
 
-	Process transformer body AST to collect templates.
+	Process transformer body AST to collect molds.
 
 	This method will be called by the HOW class during transformer compilation
-	to parse template declarations from the transformer body.
+	to parse mold declarations from the transformer body.
 
 	For WP03, this is a placeholder that will be enhanced when the custom HOW class
 	is implemented (currently blocked by serialization issues with extending ClassHOW).
 
 	@param $body-ast - The RakuAST body of the transformer (not yet accessible)
-	@returns Array[Template] - Array of collected Template objects
+	@returns Array[Mold] - Array of collected Mold objects
 
 	=end pod
-	method !collect-templates-from-body($body-ast --> Array[Template]) {
-		# Templates are now collected automatically by the HOW class during compose()
+	method !collect-molds-from-body($body-ast --> Array[Mold]) {
+		# Molds are now collected automatically by the HOW class during compose()
 		# via the slang system. This method is kept for compatibility.
-		Array[Template].new
+		Array[Mold].new
 	}
     
 	=begin pod
 
-	Add a template to this transformer's template collection.
+	Add a mold to this transformer's mold collection.
 
-	This is a helper method for testing and manual template registration.
-	In the final implementation, templates will be collected automatically
+	This is a helper method for testing and manual mold registration.
+	In the final implementation, molds will be collected automatically
 	during compilation by the HOW class.
 
-	@param Template $template - The template to add
+	@param Mold $mold - The mold to add
 
 	=end pod
-	method add-template(Template $template) {
-		@!templates.push($template);
+	method add-mold(Mold $mold) {
+		@!molds.push($mold);
         
-		# If template has a name, create a callable method on this transformer
-		# Method creation is handled by HOW class during compilation via !create-template-method()
+		# If mold has a name, create a callable method on this transformer
+		# Method creation is handled by HOW class during compilation via !create-mold-method()
 	}
     
 	=begin pod
 
-	Process templates from body AST and store them.
+	Process molds from body AST and store them.
 
 	This method will be called by the HOW class during compilation.
 	For WP03, this is a placeholder that can be enhanced later.
@@ -246,62 +246,62 @@ class Transformer does Callable is export {
 	@param $body-ast - The RakuAST body of the transformer
 
 	=end pod
-	method !process-templates($body-ast) {
-		my @collected = self!collect-templates-from-body($body-ast);
-		@!templates = @collected;
+	method !process-molds($body-ast) {
+		my @collected = self!collect-molds-from-body($body-ast);
+		@!molds = @collected;
         
-		# Create callable methods for named templates
-		# Method creation is handled by HOW class during compilation via !create-template-method()
+		# Create callable methods for named molds
+		# Method creation is handled by HOW class during compilation via !create-mold-method()
 	}
     
 	=begin pod
 
-	Orders templates by priority → specificity → tie-breaker.
-	Populates @.ordered-templates array with sorted templates.
+	Orders molds by priority → specificity → tie-breaker.
+	Populates @.ordered-molds array with sorted molds.
 	Caches result to avoid recalculation.
 
-	This method implements the template ordering algorithm:
+	This method implements the mold ordering algorithm:
 	1. Sort by priority (highest first)
 	2. For equal priority, sort by specificity (highest first)
 	3. For equal priority and specificity, sort by tie-breaker (highest first)
-	4. Detect and report conflicts when templates have equal values
+	4. Detect and report conflicts when molds have equal values
 
-	@returns Array[Template] - Array of templates in execution order
+	@returns Array[Mold] - Array of molds in execution order
 
 	=end pod
-	method ORDER-TEMPLATES(--> Array) {
+	method ORDER-MOLDS(--> Array) {
 		# Performance: O(n log n) sorting with caching to avoid recalculation
 		# Returns cached result if available (O(1) after first call)
-		if $!ordering-cached && @!ordered-templates.elems > 0 {
-			return @!ordered-templates;
+		if $!ordering-cached && @!ordered-molds.elems > 0 {
+			return @!ordered-molds;
 		}
         
-		# T014: Priority is already stored in template's $.priority attribute
-		# (extracted during template creation in TemplateSlang)
-		# No additional extraction needed - templates already have priority set
+		# T014: Priority is already stored in mold's $.priority attribute
+		# (extracted during mold creation in MoldSlang)
+		# No additional extraction needed - molds already have priority set
         
-		# T015/T016: Calculate specificity for each template
+		# T015/T016: Calculate specificity for each mold
 		# For now, we'll use a simple approach: calculate basic specificity
 		# Complex queries will be deferred to runtime evaluation
 		# Note: Specificity is read-only, so we calculate it but can't store it
-		# For templates without specificity, we'll use the calculated value in sorting
+		# For molds without specificity, we'll use the calculated value in sorting
 		# Performance: O(n) specificity calculation
 		my %specificity-cache;
-		for @!templates -> $template {
-			if !$template.specificity.defined {
-				%specificity-cache{$template.WHICH} = self!calculate-specificity($template);
+		for @!molds -> $mold {
+			if !$mold.specificity.defined {
+				%specificity-cache{$mold.WHICH} = self!calculate-specificity($mold);
 			}
 		}
         
-		# T014/T016/T017: Sort templates by priority → specificity → tie-breaker
-		# Priority and tie-breaker are already stored in template attributes
+		# T014/T016/T017: Sort molds by priority → specificity → tie-breaker
+		# Priority and tie-breaker are already stored in mold attributes
 		# Performance: O(n log n) - Raku's sort uses efficient algorithm
-		my @sorted = @!templates.sort({
+		my @sorted = @!molds.sort({
 			# Primary sort: priority (descending - highest first)
 			-$^a.priority <=> -$^b.priority
 			||
 			# Secondary sort: specificity (descending - highest first)
-			# Use cached value if template doesn't have specificity set
+			# Use cached value if mold doesn't have specificity set
 			-($^a.specificity // %specificity-cache{$^a.WHICH} // 0) <=> -($^b.specificity // %specificity-cache{$^b.WHICH} // 0)
 			||
 			# Tertiary sort: tie-breaker (descending - highest first)
@@ -311,19 +311,19 @@ class Transformer does Callable is export {
 		# T018: Detect conflicts (pass specificity cache for conflict checking)
 		self!detect-conflicts(@sorted, %specificity-cache);
         
-		# T019: Store ordered templates and mark as cached
-		@!ordered-templates = @sorted;
+		# T019: Store ordered molds and mark as cached
+		@!ordered-molds = @sorted;
 		$!ordering-cached = True;
         
-		return @!ordered-templates;
+		return @!ordered-molds;
 	}
     
 	=begin pod
 
 	Main transformation method that orchestrates full transformation.
 
-	Calls ORDER-TEMPLATES to prepare templates, obtains Qwiratry::Walker via factory,
-	iterates over data nodes, and applies templates to each node.
+	Calls ORDER-MOLDS to prepare molds, obtains Qwiratry::Walker via factory,
+	iterates over data nodes, and applies molds to each node.
 
 	@param $data - Root data structure to transform
 	@param Iterator :$iterator - Optional iterator (if not provided, uses default or Qwiratry::Walker-provided)
@@ -332,8 +332,8 @@ class Transformer does Callable is export {
 	=end pod
 	method TRANSFORM($data, Iterator :$iterator --> Mu) {
 		# T029: Main transformation orchestration
-		# Call ORDER-TEMPLATES to prepare templates (cache result)
-		my @ordered = self.ORDER-TEMPLATES;
+		# Call ORDER-MOLDS to prepare molds (cache result)
+		my @ordered = self.ORDER-MOLDS;
         
 		# T028: Obtain Qwiratry::Walker via factory
 		my $walker = Qwiratry::Walker::Factory.instance.get-walker($data);
@@ -348,7 +348,7 @@ class Transformer does Callable is export {
 			$iter = self!create-default-iterator($data, $walker);
 		}
         
-		# T029: Iterate over data nodes and apply templates
+		# T029: Iterate over data nodes and apply molds
 		my @results;
 		my $*TRANSFORM-ROOT := $data;
 		self!each-traversal-node($iter, $walker, -> $node {
@@ -366,7 +366,7 @@ class Transformer does Callable is export {
 							X::Qwiratry::TypeCheck.new(
 								expected => $.returns-type,
 								got => $item.WHAT,
-								message => "Transformer '{self.^name}' has returns({$.returns-type.^name}) trait but result is of type {$item.WHAT.^name}. Ensure templates return values conforming to the specified type."
+								message => "Transformer '{self.^name}' has returns({$.returns-type.^name}) trait but result is of type {$item.WHAT.^name}. Ensure molds return values conforming to the specified type."
 							).throw;
 						}
 					}
@@ -413,7 +413,7 @@ class Transformer does Callable is export {
 					X::Qwiratry::TypeCheck.new(
 						expected => $.returns-type,
 						got => $item.WHAT,
-						message => "Transformer '{self.^name}' has returns({$.returns-type.^name}) trait but result is of type {$item.WHAT.^name}. Ensure templates return values conforming to the specified type."
+						message => "Transformer '{self.^name}' has returns({$.returns-type.^name}) trait but result is of type {$item.WHAT.^name}. Ensure molds return values conforming to the specified type."
 					).throw;
 				}
 			}
@@ -568,12 +568,12 @@ class Transformer does Callable is export {
     
 	=begin pod
 
-	Calculate specificity score for a template based on its when clause.
+	Calculate specificity score for a mold based on its when clause.
 	Implements basic specificity calculation for static patterns.
 
 	**MVP Implementation (WP04)**:
 	This is a basic implementation that provides a default specificity value
-	for templates with when blocks. Full AST analysis will be implemented when
+	for molds with when blocks. Full AST analysis will be implemented when
 	query operators are available.
 
 	**Future Enhancement**:
@@ -588,16 +588,16 @@ class Transformer does Callable is export {
 	For complex queries with dynamic predicates, specificity calculation may
 	need to be deferred to runtime evaluation.
 
-	@param Template $template - Template to calculate specificity for
+	@param Mold $mold - Mold to calculate specificity for
 	@returns Int - Specificity score (higher is more specific)
 
 	=end pod
-	method !calculate-specificity(Template $template --> Int) {
-		if $template.when-query.defined {
-			return Qwiratry::Query::Specificity.instance.score($template.when-query);
+	method !calculate-specificity(Mold $mold --> Int) {
+		if $mold.when-query.defined {
+			return Qwiratry::Query::Specificity.instance.score($mold.when-query);
 		}
 
-		if !$template.when-block.defined {
+		if !$mold.when-block.defined {
 			return 0;
 		}
 
@@ -606,16 +606,16 @@ class Transformer does Callable is export {
     
 	=begin pod
 
-	Detect template ordering conflicts.
-	Reports error when two templates have equal priority, specificity, and tie-breaker
+	Detect mold ordering conflicts.
+	Reports error when two molds have equal priority, specificity, and tie-breaker
 	and could match the same node.
 
-	@param Array[Template] @sorted - Sorted array of templates
+	@param Array[Mold] @sorted - Sorted array of molds
 	@param Hash %specificity-cache - Cache of calculated specificity values
 
 	=end pod
 	method !detect-conflicts(@sorted, %specificity-cache) {
-		# Check for templates with equal priority, specificity, and tie-breaker
+		# Check for molds with equal priority, specificity, and tie-breaker
 		for 0..^@sorted.elems -> $i {
 			for ($i+1)..^@sorted.elems -> $j {
 				my $t1 = @sorted[$i];
@@ -625,20 +625,20 @@ class Transformer does Callable is export {
 				my $spec1 = $t1.specificity // %specificity-cache{$t1.WHICH} // 0;
 				my $spec2 = $t2.specificity // %specificity-cache{$t2.WHICH} // 0;
                 
-				# Check if templates have equal ordering values
+				# Check if molds have equal ordering values
 				if $t1.priority == $t2.priority &&
 				$spec1 == $spec2 &&
 				$t1.tie-breaker == $t2.tie-breaker {
                     
 					# Conservative approach: if uncertain, report conflict
-					# Templates with equal values could potentially match the same node
-					my $t1-name = $t1.name // "<unnamed template>";
-					my $t2-name = $t2.name // "<unnamed template>";
+					# Molds with equal values could potentially match the same node
+					my $t1-name = $t1.name // "<unnamed mold>";
+					my $t2-name = $t2.name // "<unnamed mold>";
                     
-					X::Qwiratry::TemplateOrderingConflict.new(
-						message => "Template ordering conflict: templates '$t1-name' and '$t2-name' have equal priority ($t1.priority), specificity ($spec1), and tie-breaker ($t1.tie-breaker). Set explicit :tie-breaker values to resolve.",
+					X::Qwiratry::MoldOrderingConflict.new(
+						message => "Mold ordering conflict: molds '$t1-name' and '$t2-name' have equal priority ($t1.priority), specificity ($spec1), and tie-breaker ($t1.tie-breaker). Set explicit :tie-breaker values to resolve.",
 						walker-type => 'Transformer',
-						template-names => [$t1-name, $t2-name],
+						mold-names => [$t1-name, $t2-name],
 						conflict-details => "priority=$t1.priority, specificity=$spec1, tie-breaker=$t1.tie-breaker"
 					).throw;
 				}
@@ -717,7 +717,7 @@ class Transformer does Callable is export {
 	=end pod
 	method apply($element, :$context, :$mode --> Mu) {
 		# T056: Inline transformation stage
-		# For inline mode, apply templates to the element
+		# For inline mode, apply molds to the element
 		my $result = self.APPLY($element);
         
 		# T058: Handle rewrite modes
@@ -730,7 +730,7 @@ class Transformer does Callable is export {
 			} elsif $mode eq 'rewrite-mandatory' && !$result.defined {
 				# Mandatory rewrite requires a result
 				die X::Qwiratry::Walker.new(
-					message => "Transformer '{self.^name}' in rewrite-mandatory mode requires a transformation result, but no template matched the element. Add a template that matches this element or use rewrite-optional mode instead.",
+					message => "Transformer '{self.^name}' in rewrite-mandatory mode requires a transformation result, but no mold matched the element. Add a mold that matches this element or use rewrite-optional mode instead.",
 					walker-type => self.^name
 				).throw;
 			}
@@ -832,12 +832,12 @@ class MetamodelX::TransformerHOW is Metamodel::ClassHOW {
 			tree-rewrite => $has-tree-rewrite
 		};
 
-		my @collected-templates = get-collected-templates();
-		if @collected-templates.elems > 0 {
-			%TRANSFORMER-TEMPLATES{type.WHICH} = @collected-templates;
-			for @collected-templates -> $template {
-				if $template.name.defined {
-					self!create-template-method(type, $template);
+		my @collected-molds = get-collected-molds();
+		if @collected-molds.elems > 0 {
+			%TRANSFORMER-MOLDS{type.WHICH} = @collected-molds;
+			for @collected-molds -> $mold {
+				if $mold.name.defined {
+					self!create-mold-method(type, $mold);
 				}
 			}
 		}
@@ -849,10 +849,10 @@ class MetamodelX::TransformerHOW is Metamodel::ClassHOW {
 				my $wrapper-block = %wrapper<block>;
 				if $wrapper-type eq 'TRANSFORMER' {
 					self!create-wrapper-submethod(type, 'WRAP_TRANSFORMER', $wrapper-block);
-				} elsif $wrapper-type eq 'TEMPLATE_MATCHER' {
-					self!create-wrapper-submethod(type, 'WRAP_TEMPLATE_MATCHER', $wrapper-block);
-				} elsif $wrapper-type eq 'TEMPLATE_ACTION' {
-					self!create-wrapper-submethod(type, 'WRAP_TEMPLATE_ACTION', $wrapper-block);
+				} elsif $wrapper-type eq 'MOLD_MATCHER' {
+					self!create-wrapper-submethod(type, 'WRAP_MOLD_MATCHER', $wrapper-block);
+				} elsif $wrapper-type eq 'MOLD_ACTION' {
+					self!create-wrapper-submethod(type, 'WRAP_MOLD_ACTION', $wrapper-block);
 				}
 			}
 		}
@@ -860,20 +860,20 @@ class MetamodelX::TransformerHOW is Metamodel::ClassHOW {
 		return type;
 	}
 
-	method !create-template-method(Mu \type, $template) {
-		if $template.name.defined {
-			my $template-copy = $template;
+	method !create-mold-method(Mu \type, $mold) {
+		if $mold.name.defined {
+			my $mold-copy = $mold;
 			my $type-identity = type.WHICH;
 			my $method = method (|c) {
-				my @templates = %TRANSFORMER-TEMPLATES{$type-identity} // [];
-				my $found-template = @templates.first(*.name eq $template-copy.name);
-				if $found-template {
-					$found-template.execute(c[0] // $*CONTEXT // $_, :transformer(type));
+				my @molds = %TRANSFORMER-MOLDS{$type-identity} // [];
+				my $found-mold = @molds.first(*.name eq $mold-copy.name);
+				if $found-mold {
+					$found-mold.execute(c[0] // $*CONTEXT // $_, :transformer(type));
 				} else {
-					die "Template '{$template-copy.name}' not found";
+					die "Mold '{$mold-copy.name}' not found";
 				}
 			};
-			self.add_method(type, $template.name, $method);
+			self.add_method(type, $mold.name, $method);
 		}
 	}
 

@@ -79,7 +79,7 @@ subtest 'when-query-matches chained topic child operators' => {
 subtest 'mixed query and predicate matching' => {
 	plan 3;
 
-	use Qwiratry::Template;
+	use Qwiratry::Mold;
 
 	my $tree = [
 		%(name => 'section', children => [
@@ -89,7 +89,7 @@ subtest 'mixed query and predicate matching' => {
 	];
 	my $when-query = extract.from-when-block({ $_ ⪪⪪ <item> });
 	my $when-block = { .<value>:exists };
-	my $template = Template.new(
+	my $mold = Mold.new(
 		:$when-query,
 		:$when-block,
 		:combine-when-query(True),
@@ -100,7 +100,7 @@ subtest 'mixed query and predicate matching' => {
 	my $with-value = $tree[0]<children>[0];
 	my $without-value = $tree[0]<children>[1];
 
-	ok $template.matches($with-value), 'item with value matches mixed template';
-	nok $template.matches($without-value), 'item without value fails predicate';
-	nok $template.matches($tree[0]), 'section fails query match';
+	ok $mold.matches($with-value), 'item with value matches mixed mold';
+	nok $mold.matches($without-value), 'item without value fails predicate';
+	nok $mold.matches($tree[0]), 'section fails query match';
 }

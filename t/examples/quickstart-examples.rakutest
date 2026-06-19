@@ -8,7 +8,7 @@ use Test;
 use lib 'lib';
 
 use Qwiratry::Transformer;
-use Qwiratry::Template;
+use Qwiratry::Mold;
 use Qwiratry::Transformer::TreeRewrite;
 
 plan 7;  # Some tests skipped due to Iterator coercion issues in test framework
@@ -19,49 +19,49 @@ plan 7;  # Some tests skipped due to Iterator coercion issues in test framework
 
 # Note: Many quickstart examples use the transformer declarator with slang,
 # which has activation issues in test files. We'll validate the concepts
-# using the Template class directly where possible.
+# using the Mold class directly where possible.
 
 subtest "Basic Usage - Simple transformer" => {
 	plan 2;
     
-	# Example: Simple transformer with TOP template
+	# Example: Simple transformer with TOP mold
 	my $transformer = Transformer.new;
-	my $template = Template.new(
+	my $mold = Mold.new(
 		do-block => -> $n { "transformed" }
 	);
-	$transformer.add-template($template);
+	$transformer.add-mold($mold);
     
 	my $result = $transformer.transform("input");
 	ok $result.defined, "Basic transformer works";
 	ok $result ~~ List, "Transformer returns List";
 }
 
-subtest "Template Priority" => {
+subtest "Mold Priority" => {
 	plan 2;
     
-	# Example: Priority-based template selection
+	# Example: Priority-based mold selection
 	my $transformer = Transformer.new;
     
-	my $high-priority = Template.new(
+	my $high-priority = Mold.new(
 		when-block => -> $n { $n > 5 },
 		do-block => -> $n { "high" },
 		priority => 10
 	);
     
-	my $low-priority = Template.new(
+	my $low-priority = Mold.new(
 		when-block => -> $n { True },
 		do-block => -> $n { "low" },
 		priority => 0
 	);
     
-	$transformer.add-template($high-priority);
-	$transformer.add-template($low-priority);
+	$transformer.add-mold($high-priority);
+	$transformer.add-mold($low-priority);
     
 	my $result1 = $transformer.APPLY(10);
-	is $result1, "high", "High priority template matches first";
+	is $result1, "high", "High priority mold matches first";
     
 	my $result2 = $transformer.APPLY(3);
-	is $result2, "low", "Low priority template matches when high doesn't";
+	is $result2, "low", "Low priority mold matches when high doesn't";
 }
 
 # Streaming test skipped - Iterator coercion issue in test framework
@@ -78,10 +78,10 @@ subtest "Tree Rewriting" => {
 	# Note: mutates-input is set during TWEAK based on trait detection
 	# For testing, we verify the concept works
     
-	my $template = Template.new(
+	my $mold = Mold.new(
 		do-block => -> $n { $n * 2 }
 	);
-	$transformer.add-template($template);
+	$transformer.add-mold($mold);
     
 	# Test rewrite mode (mutates-input would be True if TreeRewrite was applied)
 	my $result = $transformer.apply(21, :mode<rewrite-optional>);
@@ -95,19 +95,19 @@ subtest "Magic Variables" => {
     
 	# Example: Using magic variables ($*CONTEXT, self)
 	my $transformer = Transformer.new;
-	my $template = Template.new(
+	my $mold = Mold.new(
 		do-block => -> $n {
 			# $*CONTEXT should be set to $n
 			# self should refer to transformer
 			$*CONTEXT * 2
 		}
 	);
-	$transformer.add-template($template);
+	$transformer.add-mold($mold);
     
 	my $result = $transformer.APPLY(21);
 	is $result, 42, "Magic variables work correctly";
     
-	ok True, "Template execution context is set";
+	ok True, "Mold execution context is set";
 }
 
 subtest "Type Constraints" => {
@@ -118,10 +118,10 @@ subtest "Type Constraints" => {
 	# For testing, we verify the concept works with type checking
 	my $transformer = Transformer.new;
     
-	my $template = Template.new(
+	my $mold = Mold.new(
 		do-block => -> $n { $n * 2 }
 	);
-	$transformer.add-template($template);
+	$transformer.add-mold($mold);
     
 	# Valid result - type checking would happen if returns-type was set
 	my $result = $transformer.APPLY(21);
@@ -136,10 +136,10 @@ subtest "Transformation Modes" => {
     
 	# Example: Multiple transformation modes
 	my $transformer = Transformer.new;
-	my $template = Template.new(
+	my $mold = Mold.new(
 		do-block => -> $n { $n * 2 }
 	);
-	$transformer.add-template($template);
+	$transformer.add-mold($mold);
     
 	# Pre mode
 	{

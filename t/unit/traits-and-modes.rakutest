@@ -1,7 +1,7 @@
 use Test;
 use lib 'lib';
 
-use Qwiratry::Template::Slang;
+use Qwiratry::Mold::Slang;
 use Qwiratry::Transformer;
 
 use Qwiratry::Transformer::TreeRewrite;
@@ -19,7 +19,7 @@ subtest ":streaming trait - lazy iterator output" => {
     
 	# Create transformer with streaming enabled
 	transformer StreamingTest {
-		template TOP do { "result" }
+		mold TOP do { "result" }
 	}
     
 	my $transformer = StreamingTest.new;
@@ -39,7 +39,7 @@ subtest "returns(Type) trait - type checking" => {
     
 	# Create transformer with returns(Int) constraint
 	transformer ReturnsIntTest {
-		template TOP do { 42 }
+		mold TOP do { 42 }
 	}
     
 	my $transformer = ReturnsIntTest.new;
@@ -51,7 +51,7 @@ subtest "returns(Type) trait - type checking" => {
     
 	# Invalid result - should throw
 	transformer ReturnsIntTest2 {
-		template TOP do { "not an int" }  # Wrong type
+		mold TOP do { "not an int" }  # Wrong type
 	}
     
 	my $transformer2 = ReturnsIntTest2.new;
@@ -68,7 +68,7 @@ subtest "does TreeRewrite role - mutation flag" => {
 	# Create transformer and manually set TreeRewrite behavior
 	# Note: In actual usage, TreeRewrite would be detected during compose
 	transformer RewriteTest {
-		template TOP do { "rewritten" }
+		mold TOP do { "rewritten" }
 	}
     
 	my $transformer = RewriteTest.new;
@@ -84,7 +84,7 @@ subtest "prepare method - pre-transformation stage" => {
 	plan 2;
     
 	transformer PrepareTest {
-		template TOP do { "transformed" }
+		mold TOP do { "transformed" }
 	}
     
 	my $transformer = PrepareTest.new;
@@ -98,7 +98,7 @@ subtest "apply method - inline transformation stage" => {
 	plan 3;
     
 	transformer ApplyTest {
-		template TOP do { $_ * 2 }
+		mold TOP do { $_ * 2 }
 	}
     
 	my $transformer = ApplyTest.new;
@@ -113,7 +113,7 @@ subtest "Mode detection - auto-detect" => {
 	plan 4;
     
 	transformer ModeTest {
-		template TOP do { $_ }
+		mold TOP do { $_ }
 	}
     
 	my $transformer = ModeTest.new;
@@ -140,7 +140,7 @@ subtest "rewrite-optional and rewrite-mandatory modes" => {
 	plan 3;
     
 	transformer RewriteOptionalTest {
-		template TOP do { $_ * 2 }
+		mold TOP do { $_ * 2 }
 	}
     
 	my $transformer = RewriteOptionalTest.new;
@@ -156,7 +156,7 @@ subtest "rewrite-optional and rewrite-mandatory modes" => {
     
 	# rewrite-mandatory without result - should throw
 	transformer RewriteMandatoryTest {
-		# No templates, so APPLY returns Nil
+		# No molds, so APPLY returns Nil
 	}
     
 	my $transformer2 = RewriteMandatoryTest.new;

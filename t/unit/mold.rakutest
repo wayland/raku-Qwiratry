@@ -1,0 +1,81 @@
+use Test;
+use lib 'lib';
+
+use Qwiratry::Mold;
+
+plan 4;
+
+# Test T011: Mold class creation
+subtest 'Mold class structure' => {
+	plan 5;
+    
+	my $when-block = { True };
+	my $do-block = { "result" };
+    
+	my $mold = Mold.new(
+		when-block => $when-block,
+		do-block => $do-block
+	);
+    
+	ok $mold ~~ Mold, 'Mold object created';
+	ok $mold.when-block === $when-block, 'when-block stored correctly';
+	ok $mold.do-block === $do-block, 'do-block stored correctly';
+	is $mold.priority, 0, 'Default priority is 0';
+	is $mold.tie-breaker, 0, 'Default tie-breaker is 0';
+}
+
+# Test T011: Mold with name and signature
+subtest 'Mold with name and signature' => {
+	plan 3;
+    
+	my $mold = Mold.new(
+		name => 'section',
+		signature => :(Str $name),
+		when-block => { True },
+		do-block => { "result" }
+	);
+    
+	is $mold.name, 'section', 'Mold name stored correctly';
+	ok $mold.signature.defined, 'Mold signature stored correctly';
+	is $mold.signature.params.elems, 1, 'Signature has one parameter';
+}
+
+# Test T011: Mold with traits
+subtest 'Mold with traits' => {
+	plan 4;
+    
+	my $mold = Mold.new(
+		when-block => { True },
+		do-block => { "result" },
+		priority => 10,
+		tie-breaker => 5,
+		streaming => True
+	);
+    
+	is $mold.priority, 10, 'Priority trait stored correctly';
+	is $mold.tie-breaker, 5, 'Tie-breaker trait stored correctly';
+	ok $mold.streaming, 'Streaming trait stored correctly';
+	ok !$mold.specificity.defined, 'Specificity is undefined by default';
+}
+
+# Test T011: Mold methods (stubs for WP03)
+subtest 'Mold methods (stubs)' => {
+	plan 4;
+    
+	my $mold = Mold.new(
+		when-block => { True },
+		do-block => { "result" }
+	);
+    
+	ok $mold.^can('matches'), 'matches method exists';
+	ok $mold.^can('execute'), 'execute method exists';
+    
+	# Methods are stubs for WP03, will be implemented in WP05
+	# Just verify they exist and can be called
+	my $matches-result = $mold.matches("test");
+	my $execute-result = $mold.execute("test");
+    
+	ok $matches-result.defined, 'matches method can be called';
+	# execute method now returns the result of the do-block, not Nil
+	ok $execute-result.defined, 'execute method can be called (returns do-block result)';
+}
