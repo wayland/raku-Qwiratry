@@ -1,7 +1,0 @@
-{
-	"commands": {
-		"test": [
-			"./project", "test"
-		]
-	}
-}

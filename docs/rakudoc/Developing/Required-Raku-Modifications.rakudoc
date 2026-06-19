@@ -72,4 +72,19 @@ Transformer, or something else. There could easily be more than one item in the
 pipeline. The idea is that we could stream tokens from the grammar to whatever
 is next in the pipeline.
 
+=head1 Path Operators
+
+The idea here is operators that can take a label.  This would mean that things 
+like:
+
+```
+$html⪪body⪪h1{.id eq "red"}
+```
+The ⪪ operator will look for matching children, and the {} is just a block, and 
+that part works, it's the part between the ⪪ and {} that needs to be adjusted. 
+
+The elements such as body and h1 are supposed to be I<undeclared> labels; you 
+could equally well substitute in filenames if the tree in question happened to 
+be a filesystem instead of a document.
+
 =end rakudoc
