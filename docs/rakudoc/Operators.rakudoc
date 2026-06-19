@@ -1,0 +1,1243 @@
+=begin rakudoc
+
+=TITLE Qwiratry Operators Specification
+
+=head1 1. Introduction
+
+This document specifies the query operators available in Raku Qwiratry. All operators are implemented as B<Query AST objects> (descendants of C<RakuAST::Node>) that represent declarative query intent. Operators are interpreted by B<Walkers> during the planning phase and executed via B<QueryIterators> during traversal.
+
+=head2 1.1 Architecture Integration
+
+In Qwiratry, operators are part of the B<Query Group> - they describe I<what> to query, not I<how> to execute. The architecture separates:
+
+=item B<Query AST> (operators) - Declarative intent, immutable, composable
+=item B<Walker> - Interprets operators during C<plan()> phase, determines execution strategy
+=item B<QueryIterator> - Produces results incrementally during traversal
+=item B<Transformer> - Can use operators in mold C<when> clauses for node selection
+
+=head2 1.2 Key Design Principles
+
+=item B<Declarative Semantics>: Operators specify I<what> to find, not I<how> to find it
+=item B<Immutability>: Query AST nodes are immutable and can be safely shared
+=item B<Composability>: Operators can be combined to form complex queries
+=item B<Domain Flexibility>: Same operator may have different semantics for trees vs tables
+=item B<Lazy Evaluation>: Results are produced incrementally via QueryIterator
+=item B<Introspectable>: Walkers can examine operator structure for optimization
+
+=head2 1.3 Usage Contexts
+
+Operators can be used in:
+
+=item B<Query Slang expressions> - Direct query construction
+=item B<Transformer molds> - In C<when> clauses for node matching
+=item B<Inline code> - As part of Raku expressions that produce Query AST
+
+=head1 2. Operator Precedence
+
+The precedence levels mentioned here follow Raku's L<Operator Precedence|https://docs.raku.org/language/operators#Operator_precedence> rules. Qwiratry operators are integrated into this precedence hierarchy.
+
+=head2 2.1 Precedence Table
+
+Precedence levels in bold are standard Raku levels.  Those not in bold are levels we've added.
+
+=begin table
+Precedence Level | Associativity | Operators | Comments
+B<Symbolic Unary> | non | ⇤ | Unary postfix
+B<Replication> | left | σ Π ρ ⪪ ⪫ ⪪⪪ ⪫⪫ ⪨ ⪩ ⪨⪨ ⪩⪩ ⥷  ↱ ⮣ ↴ ⮧ ⮳ ⮷ | 
+B<Concatenation> | list | ⋉ ⋊ ▷ ◁ ⨝ ⟕ ⟖ ⟗ ÷ ▵ × | 
+Junctive Exponentiation | right | 𝒫 | Tighter than Junctive unary
+Junctive unary | left | ⧩ | Tighter than Junctive and
+B<Junctive and> | list | ∩ ⩃ | 
+B<Junctive or> | list | ∪ ⩂ ⊖ ∖ | 
+B<Chaining> | chain | ∈ ∊ (elem) ∉ ∋ ∍ (cont) ∌ ⊂ (<) ⊄ ⊃ (>) ⊅ ⊆ (<=) ⊈ ⊇ (>=) ⊉ ≡ (==) ≢ | 
+=end table
+
+=head1 3. I/O and Transformation Operators
+
+I/O and Transformation Operators handle parsing, rendering, and reading/writing data from external sources. These operators take arguments on the right-hand side to specify format or location.
+
+=head2 3.1 Parse Operator
+
+=begin table
+Operator | Unicode | Description
+↱ or ⮣ |  | Parse input (JSON, XML, CSV, etc.)
+=end table
+
+The parse operator takes a format argument (e.g., C<JSON>, C<XML>, C<CSV>). Possible values are controlled by the existence of a C<Qwiratry::Format::*> module with a C<Parse> implementation.
+
+B<Parse Examples>:
+
+=begin code :lang<raku>
+# Parse JSON
+my $json_root = ⮳ <data.json> ↱ <JSON>;
+
+# Parse XML
+my $xml_root = ⮳ <config.xml> ↱ <XML>;
+=end code
+
+=head2 3.2 Render Operator
+
+=begin table
+Operator | Unicode | Description
+↴ or ⮧ |  | Render output (JSON, XML, CSV, formatters)
+=end table
+
+The render operator takes a format argument specifying the output format. It converts query results or tree structures into the specified serialization format.
+
+It takes a format argument (e.g., C<JSON>, C<XML>, C<CSV>). Possible values are controlled by the existence of a C<Qwiratry::Format::*> module with a C<Render> implementation.
+
+B<Format Options>: Some formats support additional options via adverbs or named arguments:
+
+=begin code :lang<raku>
+# Render with indentation
+my $json = $root ↴ <JSON> :pretty;
+
+# Render CSV with custom delimiter
+my $csv = $relation ↴ <CSV> :delimiter<;>;
+
+# Render XML with specific encoding
+my $xml = $root ↴ <XML> :encoding<UTF-8>;
+=end code
+
+B<Render Examples>:
+
+=begin code :lang<raku>
+# Render to JSON
+my $json = $root ↴ <JSON>;
+
+# Pretty-printed JSON
+my $pretty_json = $root ↴ <JSON> :pretty;
+=end code
+
+=head2 3.3 Source Operator
+
+=begin table
+Operator | Unicode | Description
+⮳ |  | Read nodes from external sources (filesystem, web, commands)
+=end table
+
+The source operator accepts a location parameter that specifies where to read data from. The location can be a file path, URL, or command.
+
+B<Location Parameter Rules>:
+=item If no C<:> is found, it's assumed to be a filename (relative or absolute path)
+=item If a C<:> is found, it's assumed to be a URL or protocol-based location
+
+B<Example Protocols and URL Schemes>:
+
+=item B<File System> (C<file://> or no protocol):
+=item C<⮳ <data.json>> - Relative file path
+=item C<⮳ </absolute/path/data.json>> - Absolute file path
+
+=item B<HTTP/HTTPS> (C<http://>, C<https://>):
+=item C<⮳ <https://example.com/data.json>> - HTTPS URL
+=item C<⮳ <http://localhost:8080/api/data>> - HTTP URL with port
+
+Note that it's also possible to avoid the source operator:
+
+=item Since Raku has shell quoting (C<qx>), there's no need for shell execution
+=item Since Raku has C<$*IN>, there's no need for special STDIN-reading semantics
+=item The C<"filename.json".IO.lines> could also be used
+=item Databases can be read by providing database-reading classes
+
+B<Source Examples>:
+
+=begin code :lang<raku>
+# Local file
+my $local = ⮳ <data.json>;
+
+# Absolute path
+my $absolute = ⮳ </home/user/data.json>;
+
+# HTTP URL
+my $http = ⮳ <https://api.example.com/data.json>;
+=end code
+
+=head2 3.4 Destination Operator
+
+=begin table
+Operator | Unicode | Description
+⮷ |  | Write nodes to external destinations
+=end table
+
+The destination operator accepts a location parameter that specifies where to write data. It uses the same protocol and URL scheme rules as the source operator.
+
+B<Supported Protocols and URL Schemes>:
+
+=item B<File System> (C<file://> or no protocol):
+=item C<⮷ <output.json>> - Write to relative file path
+=item C<⮷ </absolute/path/output.json>> - Write to absolute file path
+
+=item B<HTTP/HTTPS> (C<http://>, C<https://>):
+=item C<⮷ <https://api.example.com/upload>> - POST data to HTTPS endpoint
+=item C<⮷ <http://localhost:8080/api/data>> - POST data to HTTP endpoint
+=item Typically uses POST or PUT methods depending on the endpoint
+
+See the Source operator for examples of other alternatives.
+
+B<Destination Examples>:
+
+=begin code :lang<raku>
+# Local file
+my $result = $data ↴ <JSON> ⮷ <output.json>;
+
+# Absolute path
+my $result = $data ↴ <XML> ⮷ </var/www/data.xml>;
+
+# HTTP POST
+my $result = $data ↴ <JSON> ⮷ <https://api.example.com/upload>;
+=end code
+
+=head2 3.5 Usage Examples
+
+=begin code :lang<raku>
+# Parse JSON from a file
+my $json_root = ⮳ <data.json> ↱ <JSON>;
+
+# Parse and select, then render
+my $result = ⮳ <data.json> ↱ <JSON> ⪪ <record> ↴ <JSON> ⮷ <output.json>;
+
+# Parse XML from URL
+my $xml_root = ⮳ <https://example.com/data.xml> ↱ <XML>;
+
+# Render to CSV
+my $csv = $relation ↴ <CSV> ⮷ <output.csv>;
+=end code
+
+=head2 3.6 I/O Operator Composition and Pipelines
+
+I/O operators are designed to be composed into data processing pipelines. They can be chained together with navigation, selection, and transformation operators to create complex data workflows.
+
+B<Basic Pipeline Pattern>: The typical pattern is: B<Source → Parse → Query → Render → Destination>
+
+=begin code :lang<raku>
+# Complete pipeline: read, parse, filter, transform, render, write
+my $result = ⮳ <data.json> ↱ <JSON>
+              ⪪⪪ <item>
+              σ { ⥷ <price> > 100 }
+              ↴ <JSON>
+              ⮷ <expensive-items.json>;
+=end code
+
+B<Multi-Format Pipeline>: Convert between formats in a single pipeline:
+
+=begin code :lang<raku>
+# XML → JSON conversion
+my $json = ⮳ <data.xml> ↱ <XML> ↴ <JSON> ⮷ <data.json>;
+
+# CSV → YAML conversion with filtering
+my $yaml = ⮳ <data.csv> ↱ <CSV>
+           σ { ⥷ <status> eq 'active' }
+           ↴ <YAML>
+           ⮷ <active-items.yaml>;
+=end code
+
+B<Multi-Source Pipeline>: Combine data from multiple sources:
+
+=begin code :lang<raku>
+# Read from multiple sources and combine
+my $combined = (⮳ <data1.json> ↱ <JSON> ⪪ <items>)
+               ∪
+               (⮳ <data2.json> ↱ <JSON> ⪪ <items>);
+
+# Write combined result
+my $result = $combined ↴ <JSON> ⮷ <combined.json>;
+=end code
+
+B<HTTP Pipeline>: Fetch, process, and upload data:
+
+=begin code :lang<raku>
+# Fetch from API, process, upload to another endpoint
+my $result = ⮳ <https://api.example.com/data.json> ↱ <JSON>
+              ⪪ <records>
+              σ { ⥷ <date> > Date.today - 7 }
+              ↴ <JSON>
+              ⮷ <https://api.example.com/recent.json>;
+=end code
+
+B<Streaming Pipeline>: Process data incrementally (Walker-dependent):
+
+=begin code :lang<raku>
+# Large file processing with streaming
+my $stream = ⮳ <large-data.json> ↱ <JSON>
+             ⪪⪪ <record>
+             σ { ⥷ <category> eq 'important' }
+             ↴ <JSON>
+             ⮷ <important-records.json>;
+# Walker may stream results without loading entire file into memory
+=end code
+
+B<Conditional Pipeline>: Use selection to route data:
+
+=begin code :lang<raku>
+# Route data to different destinations based on criteria
+my $data = ⮳ <data.json> ↱ <JSON> ⪪ <items>;
+
+# Write active items to one file
+($data σ { ⥷ <status> eq 'active' }) ↴ <JSON> ⮷ <active.json>;
+
+# Write inactive items to another file
+($data σ { ⥷ <status> eq 'inactive' }) ↴ <JSON> ⮷ <inactive.json>;
+=end code
+
+B<Format-Specific Pipeline Examples>:
+
+=begin code :lang<raku>
+# XML processing pipeline
+my $xml_result = ⮳ <catalog.xml> ↱ <XML>
+                 ⪪⪪ <product>
+                 σ { ⥷ <price> < 50 && ⥷ <in_stock> }
+                 ↴ <XML>
+                 ⮷ <cheap-products.xml>;
+
+# CSV processing pipeline
+my $csv_result = ⮳ <sales.csv> ↱ <CSV>
+                 σ { ⥷ <amount> > 1000 }
+                 ⇅ { ⥷ <date> }
+                 ↴ <CSV>
+                 ⮷ <large-sales.csv>;
+
+# YAML configuration processing
+my $config = ⮳ <config.yaml> ↱ <YAML>
+            ⪪ <settings>
+            ↴ <JSON>
+            ⮷ <settings.json>;
+=end code
+
+=head1 4. Map-Reduce and Aggregation Operators
+
+These operators perform selection, transformation, sorting, and reduction operations on relations.
+
+=begin table
+Operator | Unicode | Set Theory Term | Traditional Term | Description
+σ, 𜸈 | U+03C3, U+1CE08 | Selection | C<grep> | Choose some tuples; equivalent to WHERE clause in SQL
+⇅ | U+21C5 |  | C<sort> | Sorts tuples
+». |  |  | C<map> | Hyper operator (core Raku) equivalent to Map call
+⌿ | U+233F |  | C<reduce> | Reduces a set of tuples by repeatedly applying a function/operation
+=end table
+
+=head2 4.1 Usage Examples
+
+=begin code :lang<raku>
+# Selection (filter)
+my $filtered = $relation ==> σ { $_.age > 18 };
+
+# Sort
+my $sorted = $relation ==> ⇅ { $_.name };
+
+# Map (hyper operator)
+my $mapped = $relation ». { $_.name.uc };
+
+# Reduce
+my $sum = $relation ==> ⌿ { $^a + $^b.age };
+=end code
+
+=head1 5. Navigation Operators
+
+Navigation Operators provide axis-based navigation for tree-like structures (XML, JSON, ASTs, Match trees, etc.), but other structures, such as tables. These operators are inspired by XPath axes but stay idiomatically Raku.  All navigation operators require a right operand (which can be a Whatever C<*>), except for the root operator (C<⇤>) which is a B<unary postfix operator>.  If a left operand is provided, they use that as input, otherwise, they use $_ as input.  They may take additional operands as adverbs.
+
+Navigation operators can be chained: C<$node ⪪ I< ⪪ >> means "children of children"
+
+=head2 5.1 Navigation Operators Reference
+
+Each operator returns the set of nodes along the corresponding axis. All axis operators are both B<callable> and B<iterable>, allowing them to be used in path specifications and composed with other operators.  Navigation operators can be used with trees, but also tables and relational data structures. The semantics depend on the left operand type.
+
+=begin table
+Axis | Unicode | Alias | Tree | Table | Table Row
+Child | ⪪ | C<child> | Direct children of the current node | Returns rows | Returns FK rows or nothing (if column has no FK)
+Parent | ⪫ | C<parent> | Direct parent of the current node | Returns containing namespace (schema/database/etc.) | Returns the table containing the row
+Descendant | ⪪⪪ | C<descendant> | All descendants of the current node | Returns all rows (same as ⪪) | Walker-dependent: may descend into FKs (optionally filtered by labels), or throw exception
+Ancestor | ⪫⪫ | C<ancestor> | All ancestors of the current node | Returns namespace hierarchy (schema/database/etc.) | Returns the table (same as ⪫)
+Following-Sibling | ⪨ | C<following-sibling> | Siblings after the current node | Returns nothing/error | Returns next row in table (if ordered)
+Preceding-Sibling | ⪩ | C<preceding-sibling> | Siblings before the current node | Returns nothing/error | Returns previous row in table (if ordered)
+Following | ⪨⪨ | C<following> | All nodes following in document order | Returns nothing/error | Returns all rows after this row (if ordered)
+Preceding | ⪩⪩ | C<preceding> | All nodes preceding in document order | Returns nothing/error | Returns all rows before this row (if ordered)
+Root | ⇤ | C<data-root> | The root node of the tree (unary postfix operator) | Returns root of namespace hierarchy (unary postfix) | Returns root of namespace hierarchy (walks up from table via namespace, unary postfix)
+Attribute | ⥷ | C<attribute> | Key/value or associative children | Returns nothing/error | Returns column values
+=end table
+
+=head2 5.1.1 Usage Examples
+
+=begin code :lang<raku>
+# Select all child nodes (wildcard selects all)
+my @children = $root ⪪ *;
+
+# Select all descendants (wildcard selects all)
+my @all-descendants = $root ⪪⪪ *;
+
+# Compose operators: children's children
+my @grandchildren = $root ⪪ * ⪪ *;
+
+# Select with predicate
+my @items = $root ⪪ <item>;
+
+# Select descendants matching a pattern
+my @divs = $root ⪪⪪ <div> σ { ⥷ <class> };
+
+# Navigate up the tree or namespace
+my $parent = $node ⪫ *;
+
+# Get root (unary postfix operator)
+my $root = $node ⇤;
+
+# Combine with set operations
+my @nodes = $root ⪪ * ∪ $root ⥷ <attr>;
+=end code
+
+=head2 5.2 Operators
+
+=head3 5.2.1 Child Operator (⪪)
+
+B<Table → Rows>: When the left operand is a table, the child operator (C<⪪>) requires a right operand to select rows. The right operand may be a wildcard to choose all rows, or a selector to choose some.
+
+=begin code :lang<raku>
+my $table = [[1, 2, 3], [4, 5, 6], [7, 8, 9]];
+my @rows = $table ⪪ *;  # Returns the 3 rows (wildcard selects all)
+=end code
+
+B<Row → Foreign Key Navigation>: When the left operand is a row and the right operand is a column name that has a foreign key constraint, the child operator (C<⪪>) follows the foreign key and returns an array of related rows from the foreign table:
+
+=begin code :lang<raku>
+my $order = get-order(123);
+my @customers = $order ⪪ <customer_id>;  # Follows FK, returns customer row(s)
+=end code
+
+B<Return value>: Always returns an array/sequence of rows, regardless of cardinality:
+=item B<One-to-one>: Array containing a single row
+=item B<One-to-many>: Array containing multiple rows
+=item This provides a consistent API regardless of relationship cardinality
+
+B<Non-Foreign Key Columns>: When using the child operator (C<⪪>) on a column that does not have a foreign key constraint, the default behavior is to return nothing (empty result). Use the attribute operator (C<⥷>) to access column values:
+
+=begin code :lang<raku>
+my $row = get-row();
+my @nothing = $row ⪪ <non_fk_column>;  # Returns empty (no FK to follow)
+my $value = $row ⥷ <non_fk_column>;   # Gets the column value
+=end code
+
+B<Note>: This is default behavior; specific walkers may override this semantics.
+
+B<Edge Cases and Error Handling>:
+=item B<Null foreign keys>: If a foreign key column contains C<NULL>, the child operator returns an empty result (no rows to follow)
+=item B<Invalid foreign key values>: If a foreign key value does not exist in the referenced table, behavior is Walker-dependent (may return empty, throw exception, or handle gracefully)
+=item B<Circular foreign key references>: Walkers must handle circular references appropriately to avoid infinite loops
+=item B<Multiple foreign keys to same table>: If a row has multiple foreign keys pointing to the same table, each FK column must be navigated separately
+
+=head3 5.2.3 Attribute Operator (⥷)
+
+The attribute operator (C<⥷>) is used to get column values from rows, rather than following foreign keys:
+
+=begin code :lang<raku>
+my $order = get-order(123);
+my $customer_id = $order ⥷ <customer_id>;  # Gets the FK value
+my @customer = $order ⪪ <customer_id>;     # Follows FK, gets related row(s)
+=end code
+
+When using the child operator (C<⪪>) on a column that does not have a foreign key constraint, the default behavior is to return nothing (empty result). Use the attribute operator (C<⥷>) to access column values:
+
+=begin code :lang<raku>
+my $row = get-row();
+my $value = $row ⥷ <non_fk_column>;   # Gets the column value
+=end code
+
+=head3 5.2.4 Descendant Operator (⪪⪪)
+
+B<Table → Rows>: When used on a table, the descendant operator (C<⪪⪪>) requires a right operand and returns all rows (same as the child operator C<⪪>):
+
+=begin code :lang<raku>
+my $table = [[1, 2, 3], [4, 5, 6]];
+my @all-rows = $table ⪪⪪ *;  # Returns all rows (wildcard selects all)
+=end code
+
+B<Row → Foreign Key Navigation>: The behavior of the descendant operator (C<⪪⪪>) on rows is B<implementation-dependent> and determined by the Walker. The B<current table implementation throws by default> on table rows, as recursive foreign key following can lead to circular references and infinite loops. Use the C<:recursive> adverb to follow a foreign key once.
+
+Walkers may choose to:
+=item Throw an exception (default)
+=item Treat it the same as the child operator (C<⪪>) - following the FK once
+=item Implement recursive foreign key following (with appropriate cycle detection)
+=item Descend into only specific foreign keys based on labels provided as arguments
+=item Provide an adverb to enable recursive behavior when explicitly requested
+
+When labels are provided, the Walker can selectively descend into only those foreign keys:
+
+=begin code :lang<raku>
+my $row = get-row();
+my @direct = $row ⪪ <fk_column>;        # Follows FK once
+# my @descendants = $row ⪪⪪ <fk_column>; # Default: throws exception
+
+# If Walker supports label filtering:
+my @filtered = $row ⪪⪪ <fk_column1, fk_column2>;  # Only descend into specified FKs
+=end code
+
+If a Walker supports recursive foreign key following, it may provide an adverb:
+
+=begin code :lang<raku>
+# Walker-specific behavior (if supported)
+my @recursive = $row ⪪⪪ :recursive <fk_column>;  # Recursively follows FKs
+=end code
+
+=head3 5.2.5 Parent Operator (⪫)
+
+The parent operator (C<⪫>) can take a C<:reference> adverb to navigate back through foreign key relationships.
+
+B<Table → Namespace>: When used on a table, the parent operator (C<⪫>) requires a right operand and returns the containing namespace (e.g., schema in PostgreSQL, database in MySQL, or equivalent in other systems):
+
+=begin code :lang<raku>
+my $table = get-table('users');
+my $schema = $table ⪫ *;  # Returns the schema containing the table
+=end code
+
+B<Row → Table>: When used on a row, the parent operator (C<⪫>) requires a right operand and returns the table containing the row:
+
+=begin code :lang<raku>
+my $row = get-row();
+my $table = $row ⪫ *;  # Returns the table containing the row
+=end code
+
+B<Row → Referencing Rows (with C<:reference> adverb)>: When used on a row with the C<:reference> adverb, the parent operator navigates back to the row(s) that reference this row via foreign keys:
+
+=begin code :lang<raku>
+my $customer = get-customer(123);
+my @orders = $customer ⪫ * :reference;  # Returns all orders that reference this customer via FK
+=end code
+
+This is the inverse of the child operator (C<⪪>) when used for foreign key navigation.
+
+B<Return Value Semantics>: The C<:reference> adverb always returns an array/sequence of rows, regardless of how many tables or rows reference the current row:
+=item B<Single reference>: Array containing a single row
+=item B<Multiple references from one table>: Array containing multiple rows from the same table
+=item B<Multiple references from multiple tables>: Array containing rows from all referencing tables
+
+B<Multiple Tables>: When multiple tables have foreign keys pointing to the same row, the C<:reference> adverb returns rows from all referencing tables. The order of rows in the result is implementation-dependent and may vary by Walker:
+
+=begin code :lang<raku>
+my $product = get-product(456);
+# Product might be referenced by: orders, inventory, reviews, etc.
+my @all-references = $product ⪫ * :reference;
+# Returns: [order_row1, order_row2, inventory_row, review_row1, review_row2, ...]
+
+# Filter by specific table
+my @only-orders = @all-references σ { $_.table-name eq 'orders' };
+=end code
+
+=head3 5.2.6 Ancestor Operator (⪫⪫)
+
+The ancestor operator (C<⪫⪫>) can take a C<:reference> adverb to navigate back through foreign key relationships.
+
+B<Table → Namespace Hierarchy>: When used on a table, the ancestor operator (C<⪫⪫>) requires a right operand and returns the full namespace hierarchy (e.g., database → schema → table):
+
+=begin code :lang<raku>
+my $table = get-table('users');
+my @hierarchy = $table ⪫⪫ *;  # Returns [database, schema, table] or equivalent
+=end code
+
+B<Row → Table>: When used on a row, the ancestor operator (C<⪫⪫>) requires a right operand and returns the table (same as the parent operator C<⪫>):
+
+=begin code :lang<raku>
+my $row = get-row();
+my $table = $row ⪫⪫ *;  # Returns the table containing the row
+=end code
+
+B<Row → Referencing Rows (with C<:reference> adverb)>: When used on a row with the C<:reference> adverb, the ancestor operator navigates back through foreign key relationships to find all rows that reference this row:
+
+=begin code :lang<raku>
+my $customer = get-customer(123);
+my @all-referencing = $customer ⪫⪫ * :reference;  # Returns all rows that reference this customer via FKs
+=end code
+
+B<Parent vs. Ancestor with C<:reference>>: The exact behavior of C<⪫⪫> with C<:reference> is Walker-dependent and may:
+=item Return the same as C<⪫ :reference> (direct references only)
+=item Recursively follow foreign key chains to find all referencing rows
+=item Throw an exception if recursive behavior is not supported
+
+B<Return Value Semantics>: Like the parent operator, the ancestor operator with C<:reference> always returns an array/sequence of rows, including rows from all referencing tables.
+
+=head3 5.2.7 Root Operator (⇤)
+
+The root operator (C<⇤>) is a B<unary postfix operator> (unlike other navigation operators which are binary). It returns the root of the namespace hierarchy by walking up from the current node.
+
+B<Table → Root of Namespace Hierarchy>: When used on a table, the root operator returns the root of the namespace hierarchy:
+
+=begin code :lang<raku>
+my $table = get-table('users');
+my $root = $table ⇤;  # Returns root of namespace hierarchy
+=end code
+
+B<Row → Root of Namespace Hierarchy>: When used on a row, the root operator walks up through the table and namespace hierarchy to return the root:
+
+=begin code :lang<raku>
+my $row = get-row();
+my $root = $row ⇤;  # Returns root of namespace hierarchy (walks up from table via namespace)
+=end code
+
+=head3 5.2.8 Following-Sibling Operator (⪨)
+
+The following-sibling operator (C<⪨>) returns the next sibling(s) after the current node in document order.
+
+B<Table → Error>: When used on a table, the following-sibling operator (C<⪨>) requires a right operand but typically returns nothing or throws an error, as tables do not have a sibling relationship in the namespace hierarchy:
+
+=begin code :lang<raku>
+my $table = get-table('users');
+# my @siblings = $table ⪨ *;  # Typically returns nothing or error
+=end code
+
+B<Row → Next Row (if ordered)>: When used on a row, the following-sibling operator (C<⪨>) requires a right operand and returns the next row(s) in the table, B<if the table has a defined ordering>. If the table is unordered or the row is the last row, it returns nothing:
+
+=begin code :lang<raku>
+my $row = get-row();
+my @next-rows = $row ⪨ *;  # Returns next row(s) if table is ordered, empty otherwise
+
+# With specific count
+my $next-row = $row ⪨ 1;  # Returns the next single row
+=end code
+
+B<Ordering Requirements>: The behavior of C<⪨> on rows is B<Walker-dependent> and requires the table to have a defined ordering (e.g., primary key order, explicit sort order, or insertion order). If no ordering is defined, the operator may:
+=item Return nothing (empty result)
+=item Throw an exception
+=item Use a default ordering (e.g., primary key)
+
+B<Edge Cases>:
+=item B<Last row>: Returns nothing
+=item B<Unordered table>: Behavior is Walker-dependent (may return nothing or error)
+=item B<Multiple rows>: The right operand can specify how many following siblings to return
+
+=head3 5.2.9 Preceding-Sibling Operator (⪩)
+
+The preceding-sibling operator (C<⪩>) returns the previous sibling(s) before the current node in document order.
+
+B<Table → Error>: When used on a table, the preceding-sibling operator (C<⪩>) requires a right operand but typically returns nothing or throws an error, as tables do not have a sibling relationship in the namespace hierarchy:
+
+=begin code :lang<raku>
+my $table = get-table('users');
+# my @siblings = $table ⪩ *;  # Typically returns nothing or error
+=end code
+
+B<Row → Previous Row (if ordered)>: When used on a row, the preceding-sibling operator (C<⪩>) requires a right operand and returns the previous row(s) in the table, B<if the table has a defined ordering>. If the table is unordered or the row is the first row, it returns nothing:
+
+=begin code :lang<raku>
+my $row = get-row();
+my @prev-rows = $row ⪩ *;  # Returns previous row(s) if table is ordered, empty otherwise
+
+# With specific count
+my $prev-row = $row ⪩ 1;  # Returns the previous single row
+=end code
+
+B<Ordering Requirements>: Like the following-sibling operator, the behavior of C<⪩> on rows is B<Walker-dependent> and requires the table to have a defined ordering. If no ordering is defined, the operator may:
+=item Return nothing (empty result)
+=item Throw an exception
+=item Use a default ordering (e.g., primary key)
+
+B<Edge Cases>:
+=item B<First row>: Returns nothing
+=item B<Unordered table>: Behavior is Walker-dependent (may return nothing or error)
+=item B<Multiple rows>: The right operand can specify how many preceding siblings to return
+
+=head3 5.2.10 Following Operator (⪨⪨)
+
+The following operator (C<⪨⪨>) returns all nodes that follow the current node in document order (not just siblings).
+
+B<Table → Error>: When used on a table, the following operator (C<⪨⪨>) requires a right operand but typically returns nothing or throws an error:
+
+=begin code :lang<raku>
+my $table = get-table('users');
+# my @following = $table ⪨⪨ *;  # Typically returns nothing or error
+=end code
+
+B<Row → All Following Rows (if ordered)>: When used on a row, the following operator (C<⪨⪨>) requires a right operand and returns all rows that come after the current row in the table, B<if the table has a defined ordering>. If the table is unordered, it returns nothing:
+
+=begin code :lang<raku>
+my $row = get-row();
+my @all-following = $row ⪨⪨ *;  # Returns all rows after this row if table is ordered
+
+# Combine with filtering
+my @recent-following = $row ⪨⪨ * σ { ⥷ <created_at> > Date.today - 7 };
+=end code
+
+B<Ordering Requirements>: The behavior of C<⪨⪨> on rows is B<Walker-dependent> and requires the table to have a defined ordering. The result includes all rows that appear after the current row according to the table's ordering.
+
+B<Edge Cases>:
+=item B<Last row>: Returns nothing
+=item B<Unordered table>: Behavior is Walker-dependent (may return nothing or error)
+=item B<Empty result>: If the row is the last row or the table is unordered
+
+=head3 5.2.11 Preceding Operator (⪩⪩)
+
+The preceding operator (C<⪩⪩>) returns all nodes that precede the current node in document order (not just siblings).
+
+B<Table → Error>: When used on a table, the preceding operator (C<⪩⪩>) requires a right operand but typically returns nothing or throws an error:
+
+=begin code :lang<raku>
+my $table = get-table('users');
+# my @preceding = $table ⪩⪩ *;  # Typically returns nothing or error
+=end code
+
+B<Row → All Preceding Rows (if ordered)>: When used on a row, the preceding operator (C<⪩⪩>) requires a right operand and returns all rows that come before the current row in the table, B<if the table has a defined ordering>. If the table is unordered, it returns nothing:
+
+=begin code :lang<raku>
+my $row = get-row();
+my @all-preceding = $row ⪩⪩ *;  # Returns all rows before this row if table is ordered
+
+# Combine with filtering
+my @old-preceding = $row ⪩⪩ * σ { ⥷ <created_at> < Date.today - 30 };
+=end code
+
+B<Ordering Requirements>: The behavior of C<⪩⪩> on rows is B<Walker-dependent> and requires the table to have a defined ordering. The result includes all rows that appear before the current row according to the table's ordering.
+
+B<Edge Cases>:
+=item B<First row>: Returns nothing
+=item B<Unordered table>: Behavior is Walker-dependent (may return nothing or error)
+=item B<Empty result>: If the row is the first row or the table is unordered
+
+=head3 5.2.12 Table Usage Examples
+
+=begin code :lang<raku>
+# Get all rows from a table
+my @all-rows = $table ⪪ *;
+
+# Follow a foreign key from a row
+my $order = get-order(123);
+my @customer = $order ⪪ <customer_id>;  # Get customer row(s)
+
+# Get a column value
+my $order-date = $order ⥷ <order_date>;
+
+# Navigate through multiple relationships
+my @order-items = $order ⪪ <order_id>;  # Assuming order_items table has FK to orders
+my @products = @order-items[0] ⪪ <product_id>;  # Get products for first item
+
+# Combine with filtering
+my @recent-orders = $table ⪪ * σ { ⥷ <order_date> > Date.today - 30 };
+
+# Navigate backwards with :reference adverb
+my $customer = get-customer(123);
+my @customer-orders = $customer ⪫ * :reference;  # All orders referencing this customer
+my @recent-customer-orders = $customer ⪫ * :reference σ { ⥷ <order_date> > Date.today - 30 };
+
+# Find all rows referencing a product
+my $product = get-product(456);
+my @all-references = $product ⪫ * :reference;  # Orders, inventory, reviews, etc.
+
+# Navigate backwards through multiple relationships
+my $category = get-category(789);
+my @products = $category ⪪ *;  # Products in this category
+my @all-referencing = $category ⪫⪫ * :reference;  # All rows referencing this category
+
+# Sibling navigation (requires ordered table)
+my $current-row = get-row();
+my $next-row = $current-row ⪨ 1;  # Next row
+my $prev-row = $current-row ⪩ 1;  # Previous row
+
+# Following/preceding navigation (requires ordered table)
+my @all-after = $current-row ⪨⪨ *;  # All rows after current
+my @all-before = $current-row ⪩⪩ *;  # All rows before current
+
+# Combine sibling navigation with filtering
+my @recent-next = $current-row ⪨ * σ { ⥷ <status> eq 'active' };
+=end code
+
+=head2 5.3 Table Catalog, Schema Discovery, and Foreign Keys
+
+Table-domain navigation requires a C<Qwiratry::Table::Catalog> that names tables, declares
+foreign keys, and optionally designates an B<active table> for row scans. Build catalogs
+explicitly or let C<discover-catalog> infer them from your data root.
+
+=head3 5.3.1 Explicit catalog with C<make-catalog>
+
+=begin code :lang<raku>
+use Qwiratry::Table;
+use Qwiratry::Query::Slang;
+use Qwiratry::Query::Match;
+
+my @orders = [
+    %(order_id => 1, customer_id => 10),
+    %(order_id => 2, customer_id => 20),
+];  # use a trailing comma inside [%(...),] for single-row tables
+my @customers = [
+    %(customer_id => 10, name => 'Alice'),
+    %(customer_id => 20, name => 'Bob'),
+];
+
+my $catalog = make-catalog(
+    :orders(@orders), :customers(@customers),
+    :foreign-keys(
+        ForeignKey.new(
+            :from-table('orders'), :from-column('customer_id'),
+            :to-table('customers'), :to-column('customer_id'),
+        ),
+    ),
+    :active-table('orders'),
+);
+
+my $order = @orders[0];
+my @customer = select($order ⪪ <customer_id>, $catalog).List;
+# → one row: %(customer_id => 10, name => 'Alice')
+=end code
+
+=head3 5.3.2 Inferred foreign keys from multi-table roots
+
+When the origin is an C<Associative> whose values are row collections, C<discover-catalog>
+builds a catalog and C<infer-foreign-keys> guesses links from C<orders.customer_id> →
+C<customers.customer_id> style naming:
+
+=begin code :lang<raku>
+use Qwiratry::Table::Schema;
+
+my %database = %(orders => @orders, customers => @customers);
+my @related = select($order ⪪ <customer_id>, %database).List;
+=end code
+
+=head3 5.3.3 Attached schema via C<providing> metadata
+
+Attach schema to a single table container when the root is not a multi-table map:
+
+=begin code :lang<raku>
+use Qwiratry::Table::Schema;
+
+attach-schema(@orders, %(
+    table-name => 'orders',
+    tables => %(orders => @orders, customers => @customers),
+));
+
+my @related = select(@orders[0] ⪪ <customer_id>, @orders).List;
+=end code
+
+=head3 5.3.4 Table-row navigation semantics (current implementation)
+
+=begin table
+Operator | On table/catalog | On row
+C<⪪> | All active-table rows (C<*>) | Follow FK for named column; empty if non-FK or null FK
+C<⥷> | N/A | Column value (does not follow FK)
+C<⪫> | Parent container (the table array) | Parent table; add C<:reference> for reverse FK lookup
+C<⪪⪪> | Same as C<⪪> on active table | B<Throws> unless C<:recursive> adverb is present
+C<⪪⪪ :recursive> | — | Follow FK once (no unbounded recursion)
+C<⪨> / C<⪩> | Empty | Next/previous row by positional index in active table
+C<⪨⪨> / C<⪩⪩> | Empty | All rows after/before current row in active table
+=end table
+
+B<Reverse FK (C<⪫ :reference>)>:
+
+=begin code :lang<raku>
+my $customer = @customers[0];
+my @orders-for-customer = select($customer ⪫ <*> :reference, $catalog).List;
+# → both orders with customer_id == 10
+=end code
+
+=head2 5.4 Implementation Notes
+
+=item Axis operators are B<implementation-dependent> - different Walkers may implement them differently:
+=item They may compose iterators to retrieve nodes along the specified axis
+=item They may be translated into other query languages (e.g., SQL for database walkers)
+=item They may use domain-specific traversal strategies
+=item Operators are both B<callable> and B<iterable>, usable with Transformers for smartmatching
+=item Operators do not perform traversal themselves; they rely on B<Walkers> to interpret and execute them
+=item Predicates and combinators (like union C<∪>, intersection C<∩>, difference C<∖>) can be applied after or during operator execution
+
+=head1 6. Set Operators
+
+Set Operators work on collections of elements.  This includes anything that can do Associative, whether table-based, tree nodes (eg. results from navigation operators), or just regular arrays of items. These operators are based on relational algebra and set theory, and include both relational/tuple operations and column-based operations.
+
+=head2 6.1 Relational/Tuple Operators
+
+Relational/Tuple Operators work on collections of elements that can do Associative. This includes table-based structures, tree nodes (e.g., results from navigation operators), or regular arrays of items.
+
+=head3 6.1.1 Operators Returning C<Bool>
+
+These operators compare collections or test membership, returning boolean results.
+
+=head4 6.1.1.1 Membership Operators
+
+=begin table
+Operator | Unicode | Inverse | Inverse Not | Operands | Description
+element of/contains | ∈ ∊ (elem) | ∋ ∍ (cont) | ∉ ∌ | A Collection and an Element | Tests if an element is a member of a collection
+=end table
+
+=head4 6.1.1.2 Subset/Superset Operators
+
+=begin table
+Operator | Unicode | Inverse | Inverse Not | Operands | Description
+strict subset/superset | ⊂ (<) | ⊃ (>) | ⊄ ⊅ | Collections | Tests if one collection is a strict subset/superset of another
+subset/superset or equal | ⊆ (<=) | ⊇ (>=) | ⊈ ⊉ | Collections | Tests if one collection is a subset/superset or equal to another
+=end table
+
+=head4 6.1.1.3 Identity Operator
+
+=begin table
+Operator | Unicode | Inverse | Operands | Description
+identity | ≡ (==) | ≢ | Collections | Tests if two collections are identical
+=end table
+
+=head3 6.1.2 Operators Returning Collections
+
+These operators combine collections to produce new collections.
+
+=head4 6.1.2.1 Basic Set Operations
+
+=begin table
+Operator | Unicode | Set Theory Term | Boolean Algebra Term | Description
+∩ | U+2229 | Intersection | AND | Returns elements present in both collections
+∪ | U+222A | Union | OR | Returns elements present in either collection
+⊖ | U+2296 | Symmetric Set Difference | XOR | Returns elements in exactly one collection
+∖ | U+0020 U+2216 | Set Difference |  | Returns elements in left collection but not in right
+=end table
+
+B<Note>: Operators without dots ensure each row is unique; operators with dots accept duplicates.
+
+=head4 6.1.2.2 Universe-based Operators
+
+These operators require a Universe set that encompasses both collections. The context variable C<$_> must be a collection that's a superset of both operands.
+
+=begin table
+Operator | Unicode | Set Theory Term | Boolean Algebra Term | Description
+⩃ | U+2A43 | Intersection Complement | NAND | Returns elements not in the intersection
+⩂ | U+2A42 | Union Complement | NOR | Returns elements not in the union
+(none) |  | Symmetric Set Difference Complement | XNOR | Returns elements not in the symmetric difference
+(none) |  | Set Difference Complement |  | Returns elements not in the set difference
+(none) |  | Complement | NOT | Returns elements not in the collection (unary)
+=end table
+
+=head3 6.1.3 Operators Returning C<Array[Collection]>
+
+=begin table
+Operator | Unicode | Set Theory Term | Description
+℘ | U+2118 | Power Set | Unary. Makes a set whose members are all possible subsets of the collection
+=end table
+
+=head3 6.1.4 Collection Types and Semantics
+
+Set operators work with any collection that can do Associative. The semantics depend on the collection type:
+
+=begin table
+Operator | General Semantics | Notes
+∈ ∊ | Tests if an element is in a collection | Element identity depends on collection type
+⊂ ⊆ | Tests if one collection is a subset of another | Both collections must be of compatible types
+∩ | Returns elements present in both collections | Element matching depends on collection type
+∪ | Returns elements present in either collection | Duplicate handling depends on collection type
+⊖ | Returns elements in exactly one collection | Element matching depends on collection type
+∖ | Returns elements in left collection but not in right | Element matching depends on collection type
+℘ | Returns all possible subsets of the collection | Works with any collection type
+=end table
+
+B<Collection Type Considerations>:
+=item B<Tables/Relations>: Element identity is typically determined by value equality of all columns/fields
+=item B<Tree nodes>: Element identity is typically determined by object identity or a Walker-defined equality
+=item B<Arrays>: Element identity is typically determined by value equality
+=item B<Composability>: Navigation operator results (tree nodes) can be combined with set operators to create complex queries
+=item B<Type compatibility>: Set operations generally require compatible collection types, though Walkers may provide type coercion
+
+=head3 6.1.5 Usage Examples
+
+B<Table/Relation Examples>:
+
+=begin code :lang<raku>
+# Test membership
+if $tuple ∈ $relation { ... }
+
+# Test subset
+if $relation1 ⊆ $relation2 { ... }
+
+# Intersection
+my $common = $relation1 ∩ $relation2;
+
+# Union
+my $combined = $relation1 ∪ $relation2;
+
+# Set difference
+my $only-in-first = $relation1 ∖ $relation2;
+
+# Power set
+my @subsets = ℘ $relation;
+=end code
+
+B<Tree Node Examples>:
+
+=begin code :lang<raku>
+# Union of tree navigation results
+my @combined = ($root ⪪ <item>) ∪ ($root ⪪ <product>);
+
+# Intersection of tree queries
+my @common = ($root ⪪⪪ <div>) ∩ ($root ⪪⪪ <span>);
+
+# Set difference: nodes in first query but not second
+my @unique = ($root ⪪ <item>) ∖ ($root ⪪ <item> σ { ⥷ <archived> });
+
+# Test membership: is this node in the set?
+if $node ∈ ($root ⪪⪪ <item>) { ... }
+
+# Test subset: are all active items also in the items set?
+if ($root ⪪ <item> σ { ⥷ <active> }) ⊆ ($root ⪪ <item>) { ... }
+
+# Combine navigation with set operations
+my @mixed = ($root ⪪ <item>) ∪ ($root ⥷ <metadata>);
+
+# Power set of tree nodes
+my @subsets = ℘ ($root ⪪ <item>);
+=end code
+
+B<Array Examples>:
+
+=begin code :lang<raku>
+# Union of arrays
+my @combined = @array1 ∪ @array2;
+
+# Intersection
+my @common = @array1 ∩ @array2;
+
+# Set difference
+my @only-in-first = @array1 ∖ @array2;
+
+# Test membership
+if $item ∈ @array { ... }
+
+# Test subset
+if @subset ⊆ @array { ... }
+=end code
+
+=head2 6.2 Column-based Operators
+
+Column-based Operators manipulate the structure of relations by selecting, renaming, or combining columns.
+
+=head3 6.2.1 Basic Operators
+
+=begin table
+Operator | Unicode | Relational Algebra Term | Description
+Π | U+03A0 | Projection | Choose fields; equivalent to field selection in SQL. May combine with subtraction to select "all fields except..."
+ρ | U+03C1 | Rename | Rename fields; equivalent to AS statement in SQL
+=end table
+
+=head3 6.2.2 Sub-Join Operators
+
+These operators return rows from one relation based on matches with another, but don't include rows from the other relation.
+
+=begin table
+Operator | Unicode | Relational Algebra Term | Description
+⋉ | U+22C9 | Left Semijoin | Includes rows from left table that match right table (but no rows from right)
+⋊ | U+22CA | Right Semijoin | Includes rows from right table that match left table (but no rows from left)
+▷ | U+25B7 | Left Antijoin | Includes rows from left relation which do NOT have a match in the right relation
+◁ | U+25C1 | Right Antijoin | Includes rows from right relation which do NOT have a match in the left relation
+=end table
+
+=head3 6.2.3 Basic Join Operators
+
+These operators combine rows from two relations based on matching conditions.
+
+=begin table
+Operator | Unicode | Relational Algebra Term | Description
+⨝ | U+2A1D | Inner Join | Only include rows that appear in both relations. Mathematically, this is Natural Join
+⟕ | U+27D5 | Left Outer Join | Include all rows in left relation, and any that match in right relation
+⟖ | U+27D6 | Right Outer Join | Include all rows in right relation, and any that match in left relation
+⟗ | U+27D7 | Full Outer Join | Include all rows in both relations, matching up where possible
+=end table
+
+=head3 6.2.4 Other Join Operators
+
+=begin table
+Operator | Unicode | Relational Algebra Term | Description
+▷=◁ |  | Equijoin | Like inner join, but only C<=> comparison allowed
+≜ | U+225C | Natural Join | Like equijoin, but column names must be the same in both tables
+÷ | U+00F7 | Division | Creates a relation listing every item in A that matches all elements in B
+▵ | U+25B5 | Named Join | Unary prefix operator that takes a Join operand (for recalling a join)
+× | U+00D7 | Cross Join | Joins every record in left operand to every record in right operand
+=end table
+
+=head3 6.2.5 Usage Examples
+
+=begin code :lang<raku>
+# Projection - select specific columns
+my $projected = Π <name, age> $relation;
+
+# Rename columns
+my $renamed = ρ <old_name => new_name> $relation;
+
+# Inner join
+my $joined = $relation1 ⨝ $relation2;
+
+# Left outer join
+my $left_joined = $relation1 ⟕ $relation2;
+
+# Natural join
+my $natural = $relation1 ≜ $relation2;
+
+# Cross join (Cartesian product)
+my $cartesian = $relation1 × $relation2;
+=end code
+
+Note: Cross join uses U+00D7 (×, multiplication sign). Raku also uses × for numeric
+multiplication (for example C<3 × 4>). Query slang defines typed multis on relations and
+query operators so cross join does not override integer math in the same compunit.
+
+=head1 7. Operator Composition and Usage
+
+=head2 7.1 Composition Patterns
+
+Operators in Qwiratry are designed to be highly composable. They can be combined in several ways:
+
+=head3 7.1.1 Chaining
+
+Operators can be chained to form path expressions:
+
+=begin code :lang<raku>
+# Navigate through tree structure
+my @results = $root ⪪⪪ <div> ⪪ <span>;
+
+# Combine tree navigation with filtering
+my @filtered = $root ⪪⪪ * σ { $_.name eq 'item' };
+=end code
+
+=head3 7.1.2 Set Operations
+
+Multiple query results can be combined using set operators:
+
+=begin code :lang<raku>
+# Union of two queries
+my @combined = ($root ⪪ <item>) ∪ ($root ⥷ <metadata>);
+
+# Intersection
+my @common = $query1 ∩ $query2;
+
+# Difference
+my @unique = $query1 ∖ $query2;
+=end code
+
+=head3 7.1.3 Predicates
+
+Operators can be combined with predicates (blocks) for filtering:
+
+=begin code :lang<raku>
+# Tree navigation with predicate
+my @items = $root ⪪ <item> σ { $_.value > 10 };
+
+# Relational selection
+my $filtered = σ { $_.age > 18 && $_.active } $relation;
+=end code
+
+=head2 7.2 Integration with Walkers
+
+Operators are interpreted by Walkers during the C<plan()> phase:
+
+=item B<Query AST Construction>: Operators form Query AST nodes
+=item B<Walker Planning>: Walker analyzes the AST and creates an execution plan
+=item B<QueryIterator Execution>: Plan produces a QueryIterator that yields results
+
+Different Walkers may interpret the same operator differently:
+=item C<Tree::Walker::DFS> interprets C<⪪> as tree child navigation
+=item C<Table::Walker::Scan> may interpret C<⪪> as relation navigation
+=item C<Logic::Walker::Backward> may interpret operators as goal patterns
+
+=head3 7.2.1 Default Tree Walker Traversal Behavior
+
+The default tree walker (when no specific walker is specified) treats data structures as follows:
+=item Objects that C<do Positional> as having children
+=item Objects that C<do Associative> as having attributes
+=item Objects with C<.parent> method for up-navigation (error if not available)
+
+This produces a flexible, "duck-typed DOM" suitable for Raku's heterogeneous data structures. However, B<different walkers may implement different data models>. For example:
+=item A JSON walker may treat JSON objects differently than the default
+=item A database walker may map operators to SQL queries
+=item A custom walker may define its own traversal semantics
+
+The traversal behavior described here applies only to the default tree walker implementation.
+
+=head2 7.3 Integration with Transformers
+
+Operators can be used in Transformer molds:
+
+=begin code :lang<raku>
+transformer MyTransformer {
+    # Use operators in when clause - uses $_ automatically
+    mold item() when { ⪪⪪ <item> } do {
+        make transform-item($_);
+    }
+
+    # Combine with predicates - uses $_ automatically
+    mold active-item() when {
+        ⪪ <item> σ { .active }
+    } do {
+        make process-active($_);
+    }
+}
+=end code
+
+=head2 7.4 Domain-Specific Semantics
+
+The same operator may have different semantics depending on the data model:
+
+=item B<Tree Model>: C<⪪> navigates to child nodes
+=item B<Table Model>: C<⪪> may navigate relations
+=item B<Graph Model>: C<⪪> may follow edges
+
+Walkers are responsible for interpreting operators according to their domain.
+
+=head2 7.5 Optimization Opportunities
+
+Since operators are Query AST nodes, Walkers can:
+
+=item B<Introspect> operator structure for optimization
+=item B<Push down> predicates to data sources
+=item B<Reorder> operations for efficiency
+=item B<Cache> intermediate results
+=item B<Parallelize> independent operations
+
+Example optimization:
+
+=begin code :lang<raku>
+# Original query
+my $query = $root ⪪⪪ * σ { $_.name eq 'item' } σ { $_.value > 10 };
+
+# Optimized: combine predicates
+my $optimized = $root ⪪⪪ * σ { $_.name eq 'item' && $_.value > 10 };
+=end code
+
+=head2 7.6 Lazy Evaluation
+
+Query execution is B<pull-based>: C<select()> returns a lazy C<Seq>, and Walkers produce
+C<QueryIterator> instances that yield one result per C<pull-one> / C<next> call.
+
+B<C<select> and C<select-seq>> (C<Qwiratry::Query::Match>):
+
+=begin code :lang<raku>
+use Qwiratry::Query::Match;
+
+my @rows = [%(score => 1), %(score => 5), %(score => 3)];
+my $query = @rows σ -> $_ { $_<score> >= 3 };
+
+my $seq = select($query, @rows);   # lazy Seq — no rows evaluated yet
+my $first = $seq.first;            # pulls until first match
+=end code
+
+B<Lazy set operators>: C<UnionOperator>, C<IntersectionOperator>, and join operators
+(C<⨝>, C<⟕>, etc.) use lazy iterators — operands are not fully scanned before the first
+result is returned. Avoid calling C<.list> on a C<select> result unless you intend to
+materialize the full result set.
+
+B<Walker iterators>: C<walker.plan($query, $root).iterator> creates an independent
+C<QueryIterator> per call. The Table Walker scans rows via indexed access when a Strategy
+is attached; Master composite iterators pull incrementally from subplan iterators.
+
+B<I/O pipelines>: C<Qwiratry::Operator::PipelineStep> uses C<select-seq> internally. Render and
+destination steps materialize at the pipeline boundary; upstream selection stays lazy.
+
+=begin code :lang<raku>
+use Qwiratry::Operator::PipelineStep;
+
+my $query = @rows σ -> $_ { $_<score> >= 3 };
+my $result = execute($query, :origin(@rows));  # materializes at pipeline end
+=end code
+
+=head1 8. Summary
+
+Qwiratry operators provide a comprehensive set of tools for querying and transforming data:
+
+=item B<I/O Operations> - Parsing, rendering, and external data access
+=item B<Aggregation> - Selection, sorting, mapping, and reduction
+=item B<Data Navigation> - Axis-based traversal for hierarchical structures
+=item B<Set Operations> - Set theory and relational algebra for tables/relations, including column manipulation, projection, renaming, and joins
+
+All operators are:
+=item B<Declarative> - Specify intent, not implementation
+=item B<Composable> - Can be combined to form complex queries
+=item B<Domain-Flexible> - Interpreted by Walkers according to data model
+=item B<Lazy> - Results produced incrementally via QueryIterator
+=item B<Introspectable> - Can be analyzed and optimized by Walkers
+
+This design enables a unified query interface that works across trees, tables, graphs, and other structured data models while maintaining the flexibility for domain-specific optimizations and interpretations.
+
+=end rakudoc

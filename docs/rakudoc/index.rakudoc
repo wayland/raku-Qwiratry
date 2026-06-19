@@ -46,23 +46,27 @@ export RAKUDO_RAKUAST=1
 =head1 Quick Start
 
 =begin code :lang<raku>
-use Qwiratry;
+#!/usr/bin/env raku
 
-# Declare a transformer with molds
+use     Qwiratry::Mold::Slang;
+use	Qwiratry;
+
+my %data-structure = type => 'element', value => 42;
+
+# Declare a transformer with molds.
+#transformer MyTransform is Transformer {
 transformer MyTransform {
-    mold TOP do {
-        # Transform the root node
-        return $*NODE.deepcopy;
-    }
+        mold when { .<type> eq 'element' } do {
+                %( |$_, transformed => True )
+        }
 
-    mold /type eq 'element'/ do {
-        # Match and transform specific elements
-        return $*NODE.clone;
-    }
+        mold do {
+                $_
+        }
 }
 
-# Use the transformer
-my $result = MyTransform.transform($data-structure);
+# Apply the transformer to the tree
+say MyTransform(%data-structure);
 =end code
 
 =head1 Requirements
@@ -77,7 +81,7 @@ my $result = MyTransform.transform($data-structure);
 
 =head1 Documentation
 
-=item L<Operators|../../Operators.md>: query operator reference.
+=item L<Operators|Operators>: query operator reference.
 
 =item C<t/examples/>: example code and usage patterns.
 

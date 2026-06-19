@@ -47,7 +47,7 @@ subtest "returns(Type) trait - type checking" => {
     
 	# Valid result - should pass
 	my $result = $transformer.transform(1);
-	ok $result ~~ List, "Transformation succeeds with valid type";
+	ok $result ~~ Int, "Transformation succeeds with valid type";
     
 	# Invalid result - should throw
 	transformer ReturnsIntTest2 {
@@ -105,8 +105,8 @@ subtest "apply method - inline transformation stage" => {
 	my $result = $transformer.transform(21, :mode<inline>);
     
 	ok $result.defined, "apply method returns result";
-	ok $result ~~ List, "inline mode produces List";
-	is $result[0], 42, "apply transforms element correctly";
+	ok $result ~~ Int, "inline mode returns transformed element";
+	is $result, 42, "apply transforms element correctly";
 }
 
 subtest "Mode detection - auto-detect" => {

@@ -163,7 +163,7 @@ our role MoldGrammar {
 	rule mold-def($declarator) {
 		:my $*BLOCK;
 		<.enter-block-scope('Sub')>
-		$<name>=<identifier>?
+		$<name>=<mold-name>?
 		[ '(' <signature> ')' ]?
 		:my $*ALSO-TARGET := $*BLOCK;
 		<trait($*BLOCK)>* :!s
@@ -173,6 +173,11 @@ our role MoldGrammar {
 		]?
 		'do' <.ws> $<do-block>=<blockoid>
 		<.leave-block-scope>
+	}
+
+	token mold-name {
+		<!before ['when'|'do'] <.end-keyword>>
+		<identifier>
 	}
 
 	=begin pod

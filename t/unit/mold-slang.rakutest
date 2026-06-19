@@ -11,7 +11,7 @@ use Qwiratry::Mold::Slang;
 use Qwiratry::Transformer;
 use Qwiratry::Mold;
 
-plan 11;
+plan 12;
 
 # =============================================================================
 # Test: MoldSlang activation (behavioral)
@@ -181,6 +181,34 @@ subtest "Mold transformation - when/do as where/body" => {
 }
 
 # =============================================================================
+# Test: Anonymous molds from Specification.md
+# =============================================================================
+
+subtest "Anonymous mold syntax" => {
+	plan 6;
+
+	clear-collected-molds();
+	transformer AnonymousMoldTest is Transformer {
+		mold when { .<type> eq 'element' } do { "matched-{.<value>}" }
+		mold do { "fallback" }
+	}
+
+	my $t = AnonymousMoldTest.new;
+	is $t.molds.elems, 2, "Anonymous when/do and do-only molds compile";
+
+	my $matching = $t.molds.first({ .when-block.defined });
+	my $fallback = $t.molds.first({ !.when-block.defined });
+
+	ok $matching.defined, "Anonymous when/do mold was collected";
+	ok !$matching.name.defined, "Anonymous when/do mold has no name";
+	is $matching.execute(%(type => 'element', value => 42)), "matched-42",
+		"Anonymous when/do mold executes";
+
+	ok $fallback.defined, "Anonymous do-only mold was collected";
+	is $fallback.execute(%()), "fallback", "Anonymous do-only mold executes";
+}
+
+# =============================================================================
 # Test: Named mold with empty signature (Specification.md example)
 # =============================================================================
 
@@ -216,5 +244,5 @@ subtest "API compatibility - collection helpers" => {
 		mold TOP do { "ok" }
 	}
 	ok WrapTest.can('WRAP_TRANSFORMER'), "TRANSFORMER wrapper submethod is installed";
-	is WrapTest.new.transform(Any), "ok-wrapped", "Wrapper block is wired into transform";
+	is WrapTest.new.transform([Any]), "ok-wrapped", "Wrapper block is wired into full transform";
 }

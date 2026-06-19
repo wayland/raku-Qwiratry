@@ -77,7 +77,7 @@ subtest "Transformer declarator - basic declaration" => {
 # =============================================================================
 
 subtest "Transformer callable behavior" => {
-	plan 3;
+	plan 5;
     
 	transformer MyCallableTransform { }
     
@@ -89,6 +89,24 @@ subtest "Transformer callable behavior" => {
 	# CALL-ME now delegates to transform() method
 	my $result = $t('test-data');
 	ok $result.defined, "Transformer CALL-ME works (delegates to transform)";
+
+	my $type-result = MyCallableTransform('test-data');
+	ok $type-result.defined, "Transformer type object CALL-ME instantiates and transforms";
+
+	transformer CallableNodeTransform is Transformer {
+		mold when { .<type> eq 'element' } do {
+			%( |$_, transformed => True )
+		}
+
+		mold do {
+			$_
+		}
+	}
+
+	my %node = type => 'element', value => 42;
+	my $node-result = CallableNodeTransform(%node);
+	is-deeply $node-result, %(type => 'element', value => 42, transformed => True),
+		"Transformer type object CALL-ME treats a single associative node as inline input";
 }
 
 # =============================================================================

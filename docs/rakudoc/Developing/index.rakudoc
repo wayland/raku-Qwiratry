@@ -72,9 +72,9 @@ with C<RAKUDO_RAKUAST=1> for this repository, so use:
 
 =head1 Developer Documentation
 
-=item L<Specification|../../Specification.md>: complete architecture specification.
+=item L<Specification|Specification>: complete architecture specification.
 
-=item L<Operators|../../Operators.md>: query operator reference.
+=item L<Operators|../Operators>: query operator reference.
 
 =item C<kitty-specs/>: detailed feature specifications and design documents.
 

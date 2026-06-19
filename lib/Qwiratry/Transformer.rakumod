@@ -129,8 +129,21 @@ class Transformer does Callable is export {
 	method CALL-ME(*@args, *%named) {
 		# T031: Call transform() method when transformer is called
 		# MyTransform($data) syntax
-		my $data = @args[0] // $*CONTEXT;
-		return self.transform($data, |%named);
+		my %options;
+		for <context streaming mode> -> $option {
+			if %named{$option}:exists {
+				%options{$option} = %named{$option}:delete;
+			}
+		}
+		my $data = @args
+			?? @args.all ~~ Pair
+				?? %(|@args, |%named)
+				!! @args[0]
+			!! %named
+				?? %named
+				!! $*CONTEXT;
+		my $transformer = self.DEFINITE ?? self !! self.new;
+		return $transformer.transform($data, |%options);
 	}
     
 	=begin pod
@@ -518,13 +531,15 @@ class Transformer does Callable is export {
         
 		# Determine mode: if :mode provided, use it; otherwise auto-detect
 		my $actual-mode = $mode;
-		if !$actual-mode.defined {
+		if !$actual-mode.defined || $actual-mode eq 'default' {
 			# Auto-detect based on input type
 			# If $input is QueryIterator, use 'post' mode
 			# If single element (heuristic), use 'inline' mode
 			# Otherwise, use 'default' mode
 			if $input ~~ Iterator {
 				$actual-mode = 'post';
+			} elsif self._is-single-element($input) {
+				$actual-mode = 'inline';
 			} else {
 				# Simple heuristic: if it's a small structure, might be inline
 				# For MVP, default to 'default' mode
@@ -543,7 +558,11 @@ class Transformer does Callable is export {
 			}
 			when 'inline' {
 				# T056: Inline transformation: apply to single element
-				return self.apply($input, :$context, :mode($actual-mode));
+				my $result = self.apply($input, :$context, :mode($actual-mode));
+				if self.^find_method('WRAP_TRANSFORMER', :no_fallback) {
+					$result = self.WRAP_TRANSFORMER($result);
+				}
+				return $result;
 			}
 			when 'post' {
 				# Post-transformation: transform QueryIterator
@@ -738,7 +757,7 @@ class Transformer does Callable is export {
         
 		# If no result, return element unchanged (or Nil if appropriate)
 		my $value = $result // $element;
-		return $value.List;
+		return $value;
 	}
     
 	=begin pod
@@ -782,9 +801,10 @@ class Transformer does Callable is export {
     
 	=end pod
 	method _is-single-element($input --> Bool) {
-		# Heuristic: if it's not Positional, Associative, or Iterator, treat as single element
-		# This is conservative - collections are Positional or Associative
-		return !($input ~~ Positional || $input ~~ Associative || $input ~~ Iterator);
+		return False if $input ~~ Iterator;
+		return False if $input ~~ Positional;
+		return !($input<children> ~~ Positional) if $input ~~ Associative;
+		return True;
 	}
 }
 

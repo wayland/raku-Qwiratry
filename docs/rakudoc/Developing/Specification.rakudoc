@@ -1,0 +1,1188 @@
+=begin rakudoc
+
+=TITLE Qwiratry: A Raku Architecture for Queries
+
+=head1 1. Introduction
+
+=head2 1.1 Purpose
+
+Qwiratry defines a B<Raku architecture for declarative queries and flexible data walking>, suitable for trees, tables, relational structures, logic-programming environments, and anything reasonably structured and traversable.
+
+It separates:
+=item B<what> to query (the B<Query> group)
+=item B<how> to walk the data (C<Walker>)
+=item B<how results are produced incrementally> (C<QueryIterator>)
+=item and optionally B<how output is transformed> (Transformers + Molds)
+
+This provides a general-purpose query execution pipeline that works across different data models without forcing a single semantic interpretation of a query.
+
+=head2 1.2 High-Level Principles
+
+=item B<Separation of concerns>
+   Items in the B<Query> group describe the syntax  of intent; a C<Walker> interprets and executes; a C<QueryIterator> yields results.
+
+=item B<Reusability and composability>
+   Walkers can produce multiple iterators; queries can be reused and optimised; traversal strategies can be composed.
+
+=item B<Optimisation planning>
+   Walkers may analyse or rewrite queries before executing them.
+
+=item B<Backtracking and multi-phase execution>
+   Walkers may execute in one or more passes, support backtracking, or build fixed-point computations.
+
+=head2 1.3 Relevant Domains
+
+Subclasses can specialise for:
+
+=item Tree walking (ASTs, XML, JSON, Match trees, document structures)
+=item Table querying (database/spreadsheet rows, CSVs, table-like or positional structures)
+=item Logic programming (goals, unification, backtracking)
+=item Hybrid or pipeline-based systems where traversal and semantics diverge
+
+Streaming-based architectures should also be workable.
+
+Note that, as far as new syntax goes, only Transformers are provided at this level.  The other features (eg. the query operators) will be provided by the subclasses.
+
+=head1 2. Core Architecture
+
+=head2 2.1. Overview: Roles and Architecture
+
+Qwiratry is a Raku framework for declarative queries, flexible data walking, and structured transformation.
+
+It separates:
+=item The B<Query> group: what to query
+=item The B<Walker> Group: How to walk the data.  Defines traversal strategies and execution plans.
+=item The B<Per-traversal> group: A walker might do multiple traversals.  This includes how results are produced incrementally.  This is roles instantiated per traversal to manage mutable state and incremental results.
+=item The B<Strategy> Group: provides element-level behaviour and reusable processing logic
+=item The B<Transformer> Group: declarative specification of data transformations using molds.
+
+The architecture is divided into five main groups of roles:
+
+=head3 2.1.1 Query Group
+
+The B<Query Group> encapsulates all roles that define I<what the user wants to find or match> in the data. Queries are declarative, immutable, and introspectable, allowing multiple traversal strategies or transformers to interpret the same query safely and efficiently.
+
+=item The B<Query> Group – describes a search, pattern, or constraint.
+=item Composable and reusable across multiple walkers or iterators.
+=item Supports introspection, normalisation, and optimisation before execution.
+
+B<Key Principles:>
+
+=item B<Declarative Semantics:> Queries specify I<what> to find, not I<how> to find it.
+=item B<Reusability:> The same query object can be shared across different walkers, transformers, or execution plans.
+=item B<Extensibility:> New query roles can be added to support additional semantics, constraints, or domains.
+
+=head3 2.1.2. Walker Group
+
+=item B<Walker> – Encapsulates I<how> a query is executed over a data structure. Determines traversal strategy, ordering, caching, and backtracking behaviour. Produces C<QueryIterator> instances.
+=item B<Walker::Plan> – Represents a precomputed execution strategy for a specific query and root data structure. Enables multiple iterators without re-planning, supports introspection, and allows optimisation or multi-phase execution.
+
+B<Purpose:> Separating the Walker from the Query Group and the Plan enables multiple data models to execute the same query differently and allows traversal strategies to be reused.
+
+Concrete implementations include:
+C<Tree::Walker::DFS>, C<Table::Walker::IndexScan>, C<Logic::Walker::Backward>, etc.
+
+=head3 2.1.3. Strategy Group
+
+=item B<Strategy> – Defines element-level behaviour during traversal. Handles match processing, pruning, rewrites, and multi-pass logic. Walker-agnostic and reusable across data models.
+=item B<ControlSignal> – Enumeration of signals (C<NO_REWRITE>, C<REWRITE_IMMEDIATE>, C<REWRITE_DEFERRED>, C<SKIP_ELEMENT>, C<STOP_TRAVERSAL>, C<FINAL_RESULT>) that communicate decisions from the Strategy to the Walker.
+
+B<Purpose:> Strategies provide pluggable, reusable behaviour for element processing, allowing Walkers to remain generic while supporting specialised logic.
+
+=head3 2.1.4. Transformer Group
+
+=item B<Transformer> – Declarative object for transforming input data (trees, tables, or other hierarchical structures). Separates traversal, selection, and action, leveraging Walkers for traversal and Queries for node selection. Supports streaming and multi-phase application.
+=item B<Mold> – Match-and-action rules within a Transformer. Molds specify how nodes are selected (C<when>) and how output is produced (C<do>). Molds can include traits like C<:streaming> and can be prioritised and ordered for deterministic behaviour.
+
+B<Purpose:> Transformers allow structured manipulation and derivation of data. By combining Walkers, Queries, and Molds, they enable transformations similar in style to XSLT but operating over Raku data structures.
+
+=head3 2.1.5. Per-Traversal Group
+
+=item B<Context> – Mutable storage used during a traversal to hold counters, memoisation, queues, and intermediate state. Shared between the Walker and Strategy.
+=item B<QueryIterator> – Incremental, pull-based stream of query results. Maintains traversal state, supports lazy evaluation and backtracking.
+
+B<Purpose:> These roles are instantiated fresh for each traversal or iterator. They maintain the mutable state necessary to produce results and coordinate complex traversal or transformation behaviours.
+
+=head3 2.1.6. Comparison Table
+
+=begin table
+Group | Whole Walk/Data Level | Per-traversal | Node Level | Other
+Query Group | Query AST classes |  |  | 
+Walker Group | C<Walker>, C<Walker::Plan> | C<Context>, C<QueryIterator> | C<Strategy> | C<ControlSignal>
+Transformer Group | C<Transformer> |  | C<Mold> | C<Wrapper>
+=end table
+
+The Query AST classes are descendents of RakuAST::Node that are used to describe the Query Slang.
+
+=head1 3. Role Specifications
+
+=head2 3.1 The B<Query> Group
+
+The B<Query> group are Raku AST objects that represent items in the Query Slang.
+
+=head4 Purpose
+
+The B<Query> Group encapsulates I<what the user wants> —patterns, constraints, filters — without specifying how they are executed. Queries must be B<immutable>, B<composable>, and B<introspectable>.  This ensures they can safely be shared between multiple plans, walkers, or iterators without accidental mutation.
+
+=head4 Rationale
+
+=item Decouples intent from execution.
+=item Enables reuse across walkers.
+=item Allows optimisation, simplification, or normalisation prior to execution.
+
+=head4 Composability and Introspection
+
+Queries are represented as immutable Raku AST nodes. They can be shared across multiple Walkers and Transformers safely. Inline blocks are already AST nodes, making composition straightforward.
+
+Queries are treated as observationally immutable.
+Walkers and Transformers MUST NOT perform mutations that affect other consumers of the same Query AST. Any rewriting or annotation must either operate on copies or be confined to execution plans or traversal-local state.
+
+The AST is introspectable: strategies, Walkers, and Transformers can examine structure to optimise execution, decide pushdown, or provide diagnostic information. Explicit combinators are rarely needed, since operator composition and blocks naturally build complex queries.
+
+=head2 3.2. The B<Walker> Group
+
+Multiple classes participate in query execution:
+
+=item C<Walker>: responsible for how to traverse the data structure. Calls hooks on Strategy at appropriate points.  Operates at the whole-database-structure level (C<database>, C<document>, etc), though this is quickly limited to the subset of the "database" defined in the query.
+
+=item C<Strategy>: responsible for what happens when elements are visited/matched/traversed. Controls rewrites, pruning, and multi-pass logic.
+
+=item C<QueryMatch>: Represents a successful result of a Query AST against an element. Contains information needed for rewrites or analysis.
+
+=item C<Context>: Mutable per-traversal storage for Strategy. Stores queues, counters, memoisation, accumulated results, or rewrite state. Persistent across all hooks.
+
+=item C<ControlSignal>: Enum controlling traversal or rewrites: C<NO_REWRITE>, C<REWRITE_IMMEDIATE>, C<REWRITE_DEFERRED>, C<SKIP_ELEMENT>, C<STOP_TRAVERSAL>. Lets Strategy communicate its decisions to the Walker.
+
+=item C<Walker::Plan>: captures the I<precomputed traversal strategy> for a given query and data shape. It can hold optimised visit orders, cached joins or path expansions, and any metadata that avoids recalculating traversal logic on each run. This lets a walker execute complex queries efficiently and consistently, even across different data sets or backends.
+
+=head3 3.2.1 The C<Walker> Role
+
+=head4 3.2.1.1. Purpose
+
+C<Walker> encapsulates I<how> a query is executed, including traversal strategy, ordering, backtracking, and optimisation planning. Walkers take a Query AST and produce a C<QueryIterator>.
+
+=head4 3.2.1.2. Capabilities
+
+=item B<Single-pass> or B<composite> traversal
+=item B<Multi-phase execution> (plan → rewrite → execute)
+=item B<Stateful caching> for repeated queries
+=item B<Reusable> to produce multiple iterators
+=item B<Backtracking> or lazy evaluation
+=item B<Query AST Ingestion> Reads the Query AST, and either gives a Walker call to replace it, or spits the Query AST back out into the AST tree again
+
+=head4 3.2.1.3. Errors
+
+If a Walker cannot interpret a Query, it throws C<UnknownQueryElementException>.
+
+=head4 3.2.1.4. Definition
+
+=begin code :lang<`raku>
+role Walker does Iterable {
+	##### Callable Methods
+
+	# Plan an execution strategy based on the query (and optionally the data root)
+	method plan(RakuAST::Node $query, Mu $root --> Walker::Plan) { ... }
+
+	# Produce a QueryIterator for incremental results
+	method iterator(RakuAST::Node $q) returns QueryIterator { ... }
+
+	# Convenience method that calls .plan, and .iterator
+	method start(RakuAST::Node $query, Mu:D $root --> QueryIterator) { ... }
+
+	##### Hook Methods
+	# Optional: hooks for extending Walker behaviour itself
+	# (Strategy hooks cover element-level logic)
+	method PRE-PASS(Context $ctx) { ... }
+	method POST-PASS(Context $ctx) { ... }
+}
+=end code
+
+=head4 3.2.1.5. Methods
+
+=head5 Required Methods
+
+=head6 C<method plan>
+
+=begin code :lang<`raku>
+method plan(
+    RakuAST::Node $query,
+    Mu:D $root
+    --> Walker::Plan
+)
+=end code
+
+B<Purpose>
+
+Analyse the Query AST and the root data structure, and produce an optimised execution plan.
+
+B<Responsibilities>
+
+A Walker implementation MAY:
+
+=item Analyse the AST structure (operators, blocks, predicates)
+=item Decide traversal order and strategy (DFS, BFS, index scan, join order)
+=item Identify sub-expressions suitable for:
+=item predicate pushdown
+=item backend delegation (e.g. SQL)
+=item multi-phase execution
+=item Precompute metadata used during execution
+
+B<Constraints>
+
+=item MUST NOT mutate the shared Query AST in observable ways
+=item MAY copy or rewrite AST fragments into the Plan
+=item MUST return a reusable C<Walker::Plan>
+
+=head6 C<method iterator>
+
+=begin code :lang<`raku>
+method iterator(
+    Walker::Plan $plan
+    --> QueryIterator
+)
+=end code
+
+B<Purpose>
+
+Produce a new incremental result stream from an existing execution plan.
+
+B<Responsibilities>
+
+=item Create a fresh C<Context>
+=item Initialise traversal state
+=item Return a C<QueryIterator> that yields results lazily
+
+B<Notes>
+
+=item Multiple iterators MAY be created from the same plan
+=item Iterators MUST NOT share mutable traversal state
+
+=head6 C<method start> (Convenience)
+
+=begin code :lang<`raku>
+method start(
+    RakuAST::Node $query,
+    Mu:D $root
+    --> QueryIterator
+)
+=end code
+
+B<Purpose>
+
+One-shot execution entrypoint.
+
+B<Definition>
+
+Equivalent to:
+
+=begin code :lang<`raku>
+self.plan($query, $root).iterator
+=end code
+
+=head5 Optional Hook Methods
+
+These hooks allow Walker-level behaviour that is B<orthogonal to element-level Strategy hooks>.
+
+=head6 C<method PRE-PASS>
+
+=begin code :lang<`raku>
+method PRE-PASS(Context $ctx) { }
+=end code
+
+Called before a traversal pass begins.
+
+Typical uses:
+
+=item Initialise global traversal state
+=item Prepare caches or indexes
+=item Initialise multi-pass bookkeeping
+
+=head6 C<method POST-PASS>
+
+=begin code :lang<`raku>
+method POST-PASS(Context $ctx) { }
+=end code
+
+Called after a traversal pass completes.
+
+Typical uses:
+
+=item Collect diagnostics
+=item Decide whether to trigger another pass
+=item Finalise results or clean up resources
+
+=head5 Optional Capability Methods
+
+These are introspection helpers; they are B<not required>, but recommended for advanced walkers.
+
+=head6 C<method capabilities>
+
+=begin code :lang<`raku>
+method capabilities(--> Associative)
+=end code
+
+Returns metadata such as:
+
+=item supports-lazy
+=item supports-backtracking
+=item supports-rewrite
+=item supports-multi-phase
+=item supports-streaming
+
+Used by:
+
+=item Transformers
+=item Composite Walkers
+=item Debugging / profiling tools
+
+=head6 C<method supports>
+
+=begin code :lang<`raku>
+method supports(RakuAST::Node $query --> Bool)
+=end code
+
+Returns whether this Walker can interpret the given AST.
+
+This allows:
+
+=item Walker selection / delegation
+=item Hybrid or master walkers
+
+=head4 3.2.1.6. Detecting Walker Handovers
+
+Qwiratry supports multi-domain queries (e.g. SQL, JSON, in-memory objects) by allowing responsibility for parts of a query to be handed over between Walkers. Handover decisions are made explicitly and predictably during the planning phase.
+
+A B<Master Walker> is responsible for detecting when handovers are required and for delegating planning and execution to appropriate domain-specific Walkers.
+
+=head5 Domain Metadata on Roots
+
+Root objects MAY carry optional domain metadata using a custom compile-time trait:
+
+=begin code :lang<`raku>
+provides<domain-name>
+=end code
+
+This trait is implemented using C<trait_mod:<provides>> and attaches advisory metadata to the object, container, or declaration it is applied to.
+
+Examples:
+
+=begin code :lang<`raku>
+my $table  provides<sql>  = SQL::Table.new(...);
+my $doc    provides<json> = load-json(...);
+my $hybrid provides<sql json> = ...;
+=end code
+
+The C<provides> trait:
+
+=item is applied at compile time
+=item does not alter the object’s runtime semantics
+=item does not affect method dispatch or type identity
+=item exists solely to guide Walker selection and planning
+
+The attached metadata MUST be discoverable by Slangs and by Walkers during planning.
+
+=head5 Handover Detection Priority
+
+Walker handover detection follows this priority order:
+
+=item B<Explicit domain metadata> (C<provides<…>>)
+=item B<Walker capability checks>
+=item B<AST pattern suitability>
+=item B<Heuristic or reflective probing (last resort)>
+
+Each step may either accept responsibility for a sub-expression or trigger delegation.
+
+=head5 1. Domain Metadata Check (Fast Path)
+
+If a root object declares one or more domains via C<provides>, the Master Walker SHOULD attempt to select a Walker capable of handling at least one of those domains.
+
+If no suitable Walker exists, planning MUST fail early with a diagnostic error.
+
+If multiple domains are declared, hybrid execution is implied and delegation is expected.
+
+Domain metadata is advisory and MUST NOT force a Walker to accept responsibility.
+
+=head5 2. Walker Capability Checks
+
+Each Walker MUST provide a capability predicate:
+
+=begin code :lang<`raku>
+method supports(RakuAST::Node $node --> Bool)
+=end code
+
+During planning, the Master Walker examines relevant AST subtrees and queries candidate Walkers.
+
+If the active Walker does not support a subtree, responsibility for that subtree MUST be handed over to another Walker or rejected.
+
+=head5 3. AST Pattern Suitability (Optimisation)
+
+Walkers MAY recognise AST patterns that are:
+
+=item efficiently executable in a specific backend
+=item suitable for predicate pushdown
+=item unsuitable for local execution
+
+Examples include:
+
+=item pure predicates
+=item simple comparisons
+=item boolean combinations
+=item field-access chains
+
+Pattern recognition is an optimisation mechanism and MUST NOT be required for correctness.
+
+=head5 4. Plan-Level Handover
+
+All Walker handovers SHOULD occur during the planning phase.
+
+When a handover is detected:
+
+=item the Master Walker extracts the relevant AST subtree
+=item delegates planning of that subtree to another Walker
+=item embeds the resulting C<Walker::Plan> as a node in its own plan
+
+This produces a composed execution plan containing subplans from multiple Walkers.
+
+Execution proceeds by orchestrating these subplans, not by re-evaluating domain suitability at runtime.
+
+=head5 5. Composite Execution
+
+For queries involving multiple domains, the Master Walker coordinates:
+
+=item execution ordering
+=item data flow between subplans
+=item join semantics
+=item result materialisation or streaming
+
+Domain-specific Walkers remain independent and do not require knowledge of other domains.
+
+=head5 Normative Notes
+
+=item C<provides> is advisory metadata only.
+=item Walkers MUST remain free to decline responsibility.
+=item Domain metadata MUST NOT override Walker capability checks.
+=item Execution-time Walker handover SHOULD be avoided.
+=item Hybrid execution MUST be explicit in the resulting plan structure.
+
+=head3 3.2.2 The C<Walker::Plan> Role
+
+C<Walker::Plan> encapsulates an optimised execution strategy derived from a C<Walker> and a Query AST. It allows multiple incremental result streams to be produced without re-planning, supports introspection, and enables multi-phase execution.
+
+=head4 Purpose
+
+=item Encapsulate an execution strategy for a specific Query AST (and optionally a root data structure).
+=item Support introspection, debugging, and caching.
+=item Produce multiple C<QueryIterator> instances from the same plan.
+=item Enable optimisation or adjustments without modifying the original C<Walker>.
+
+=head4 Definition
+
+=begin code :lang<`raku>
+role Walker::Plan {
+
+    # Produce a QueryIterator for this plan.
+    method iterator(--> QueryIterator) { ... }
+
+    # Return the Query AST that this plan represents.
+    method query(--> RakuAST::Node) { ... }
+
+    # Describe the execution strategy in human-readable form.
+    method describe(--> Str) { ... }
+
+    # Optional: allow tweaking or optimisation of the plan.
+    method optimise(&modification) { ... }
+
+    # Optional: return sub-plans if this is a composite/multi-phase plan.
+    method subplans(--> @Walker::Plan) { ... }
+
+    # Indicate whether the plan supports lazy execution or backtracking.
+    method capabilities(--> Associative) { ... }
+}
+=end code
+
+=head5 Rationale for Methods
+
+=item B<iterator> – produce incremental results without re-planning.
+=item B<query> – introspection or reuse for other roots.
+=item B<describe> – debugging, profiling, or visualisation of the plan.
+=item B<optimise> – tweak the plan for performance or special cases.  C<optimise> should return a new plan unless the modification is guaranteed safe to apply in-place. Walkers may choose their own mutability discipline.
+=item B<subplans> – enable composite or multi-phase walkers.
+=item B<capabilities> – indicate capabilities to consumers, such as laziness or backtracking.
+
+=head4 Example Usage
+
+=begin code :lang<`raku>
+my $walker = Tree::Walker::DFS.new;
+my $plan   = $walker.plan($query, $root);   # returns Walker::Plan
+my $iter1  = $plan.iterator;                # first result stream
+my $iter2  = $plan.iterator;                # independent second result stream
+say $plan.describe;
+=end code
+
+=head3 3.2.3 Role C<Context>
+
+The C<Context> role provides B<mutable, per-traversal state> for Walkers and Strategies.
+It is the shared workspace through which traversal hooks communicate, store intermediate results, manage queues or stacks, and coordinate rewrites or multi-phase logic. Unlike Query AST or C<Walker>, which are immutable or reusable, a C<Context> instance is created fresh for each traversal or plan execution.
+
+=head4 Purpose
+
+C<Context> exists to:
+
+=item Hold B<stateful information> during a traversal (e.g., counters, memo tables, visited sets).
+=item Provide a B<shared channel> between the Walker and the Strategy.
+=item Maintain data needed across phases of a multi-pass traversal.
+=item Support B<backtracking>, B<lazy evaluation>, and B<rewrite scheduling>.
+=item Accumulate results or diagnostics produced by Strategy hooks.
+
+It is not intended to store the root or the query (those belong to the C<Walker::Plan>), but rather the I<evolving state> of an execution.
+
+=head4 Lifecycle
+
+=item A Walker creates a C<Context> instance at the start of a traversal pass.
+=item The Walker and Strategy both receive the same C<Context> in all hook calls (C<before>, C<on-match>, C<after>, C<finish>).
+=item A new C<Context> may be created for each pass in a multi-phase Walker, or the same one may be reused if the design requires fixed-point computation.
+
+Contexts are B<not> shared across separate traversals or separate result iterators unless explicitly designed by the Walker.
+
+=head4 Role Definition
+
+=begin code :lang<raku>
+role Context {
+    # Generic ancestor for all Context roles
+}
+=end code
+
+=head3 3.2.4 Role C<QueryIterator>
+
+=head4 Purpose
+
+A C<QueryIterator> exposes a pull-based stream of results from a traversal. It bridges the high-level C<Walker> and the actual production of results, maintaining execution state such as:
+
+=item stacks, queues, and backtracking frames
+=item cursor positions
+=item suspended computations for lazy execution
+
+In addition to the capabilities of a regular Raku C<Iterator>, a C<QueryIterator> is deeply integrated with the Qwiratry architecture and the traversal process. It coordinates the interaction between the C<Walker>, the C<Query>, and the C<Strategy>, and maintains a per-traversal C<Context> object for state management.
+
+=head4 Comparison with a regular Raku C<Iterator>
+
+While a regular Raku iterator provides a simple lazy sequence:
+
+=begin code :lang<`raku>
+my $it = Iterator.new( -> $i { $i ** 2 }, 1..5 );
+say $it.pull-one; # 1
+say $it.pull-one; # 4
+=end code
+
+A C<QueryIterator> additionally provides:
+
+=begin table
+Aspect | Regular Raku Iterator | QueryIterator
+B<Underlying state> | Internal closure, local to iterator | Shared C<Context> object with Walker and Strategy
+B<Backtracking support> | No | Yes, allows rewinding or revisiting elements per Walker logic
+B<Multi-phase execution> | No | Yes, supports pre-pass, post-pass, or other Walker phases
+B<Lazy traversal> | Only for the sequence it wraps | Traverses hierarchical or relational data lazily according to Walker strategy
+B<Integration> | Standalone | Fully integrated with Qwiratry’s Walker/Query/Strategy architecture
+B<Mutation/rewrites> | Not supported | Strategies can modify nodes or schedule rewrites during iteration
+=end table
+
+Conceptually, a regular iterator is a simple conveyor belt delivering items.
+A C<QueryIterator> is a conveyor belt with branching lanes, decision points, shared traversal state, and optional backtracking or multi-pass logic.
+
+=head4 Definition
+
+=begin code :lang<`raku>
+role QueryIterator does Iterator {
+	# Return the next matching result, or Nil if exhausted
+	method pull-one(--> Mu) { ... }
+}
+=end code
+
+=head3 3.2.5. The C<Strategy> Role
+
+The C<Strategy> controls what happens when we visit a data element (node, table row, etc).
+
+=head4 Hooks
+
+All hooks are optional: the walker will treat undefined returns as default behaviour.
+
+Hooks are walker-agnostic: the same before, on-match, after, etc., work for trees, graphs, tables, documents, lists, and IR.
+
+=head4 Definition
+
+=begin code
+role Strategy {
+	#------------------------------------------------------------------
+	# Called before visiting an element (pre-visit)
+	# Return a ControlSignal or Nil
+	#------------------------------------------------------------------
+	method before($element, Context $ctx --> ControlSignal|Nil) {...}
+
+	#------------------------------------------------------------------
+	# Called when a query matches an element
+	# Can return a ControlSignal, a RewriteSpec, or Nil
+	#------------------------------------------------------------------
+	method on-match($element, Match $match, Context $ctx --> ControlSignal|RewriteSpec|Nil) { Nil }
+
+	#------------------------------------------------------------------
+	# Decide whether to follow a relation
+	# Returns Bool
+	#------------------------------------------------------------------
+	method should-follow($origin, Relation $relation, Element $target, Context $ctx --> Bool) { True }
+
+	#------------------------------------------------------------------
+	# Called after visiting all relations of an element (post-visit)
+	# Can return a ControlSignal, a RewriteSpec, or Nil
+	#------------------------------------------------------------------
+	method after($element, Context $ctx --> ControlSignal|RewriteSpec|Nil) { Nil }
+
+	#------------------------------------------------------------------
+	# Called after completing a full traversal
+	# Returns a FinishResult object
+	#------------------------------------------------------------------
+	method finish($root, Context $ctx --> FinishResult) { FinishResult.new(type => 'final-result', value => Nil) }
+
+	#------------------------------------------------------------------
+	# Optional: decide whether to continue a fixed-point pass
+	#------------------------------------------------------------------
+	method should-continue(Element $root, Context $ctx --> Bool) { False }
+}
+
+=end code
+
+=head3 3.2.6 The C<ControlSignal> Enum
+
+=begin code :lang<`raku>
+enum ControlSignal <
+    NO_REWRITE REWRITE_IMMEDIATE REWRITE_DEFERRED
+    SKIP_ELEMENT STOP_TRAVERSAL FINAL_RESULT
+>;
+=end code
+
+=item C<NO_REWRITE> — traversal continues, no changes
+=item C<REWRITE_IMMEDIATE> — action performed inline in the mold / hook
+=item C<REWRITE_DEFERRED> — schedule this rewrite to be applied after the current traversal pass, not immediately during the visit
+=item C<SKIP_ELEMENT> — skip this element and its relations
+=item C<STOP_TRAVERSAL> — halt traversal immediately
+=item C<FINAL_RESULT> — used in finish hook to signal end of traversal
+
+=head2 3.3 The C<Transformer> Group
+
+=head3 3.3.1. Purpose
+
+The purpose of a Raku B<Transformer> is to walk the data passed in (a tree by default) and output different data (eg. another tree), in much the fashion that XSLT does, but we'll be walking Raku data instead.  This could be the Match tree returned by a grammar, or some XML data, or some JSON data, or whatever.
+
+The Transformer is a structured object. The Transformer separates B<traversal>, B<selection>, and B<action>, leveraging B<Walkers> for traversal and B<Queries> for node selection.
+
+Data that we could walk includes:
+=item Tree-like structures:
+=item The Match tree returned by a grammar
+=item XML, JSON, or table-like structures
+=item A AST (Abstract Syntax Tree) returned by Raku
+=item Any nested object hierarchy
+=item Table-like and Array-like structures:
+=item A Table
+=item Anything that does Positional
+
+The Transformer can be called at various points in the Qwiratry dataflow:
+
+=begin table
+Type | Notes | Processing Point | Call | Description
+Pre-Transformation |  | Plan Phase | .prepare($data, :$ctx) | Transformers participate in the Walker::Plan, affecting elements before or during execution planning.
+Inline Transformation | Optional | During Traversal | C<.apply($element, :$ctx)> | Called by C<Walker> or C<Strategy> to request immediate transformation as part of traversal.
+Post-Transformation | Default behaviour | After traversal and query evaluation | C<.transform($iter)> | Transformers consume the output of C<QueryIterator> and produce a derived structure or stream. The Transformer may acting as a C<QueryIterator> itself, in which case it can be composed in pipelines
+=end table
+
+=head3 3.3.2 Transformer Declarator
+
+There will be a custom declarator for a “transformer”.  The syntactic purpose of the transformer is to contain things, mostly molds.
+
+A Mold is a structured specification that generates output (tree, table, or other structure) based on matched nodes. Molds may use interpolated values, computed fragments, or nested queries.
+
+Transformers are declared using the C<transformer> custom declarator.  For example:
+
+=begin code :lang<`raku>
+transformer transform-the-tree {
+	mold TOP do {
+		return Node.new();
+	}
+	mold section() when {
+		.name eq 'section'
+	} do {
+
+	}
+}
+
+transformer TransformerName is OtherTransformer :streaming {
+	mold TOP do { ... }
+	mold when { ... } do { ... }
+}
+=end code
+
+=head4 3.3.2.1. Declarator Components
+
+=begin table
+Item | Example | Purpose
+Declarator | C<transformer> | Declares the start of a Transformer block
+Name | C<transform-the-tree> | identifies the Transformer
+Roles/Traits | C<is OtherTransformer>, C<:streaming> | Switches the TRANSFORM method to one with a different application methodology
+B<Body> |  | contains:
+Molds |  | Match and Action rules
+Wrappers |  | Wraps various parts of the Mold
+Methods | Can be used for a variety of purposes, including Stratego strategies
+=end table
+
+=item The C<:streaming> trait can be applied at the Transformer or mold level to enable C<gather/take> streaming behavior (ie. the Transformer acts as an Iterator).
+=item The C<returns> trait can enforce the type of output returned by molds or the Transformer.
+=item The C<does TreeRewrite> role overrides the APPLY method with one that does rewriting instead of outputting.  If this is done, then note that C<make> will immediately replace the current node.
+
+=head4 3.3.2.2. Internals
+
+=item Declaring a Transformer automatically creates a sub/method with the Transformer name.
+=item Calling it (e.g., C<TransformerName($tree)>) invokes the underlying C<TRANSFORM> method on the Transformer object.
+
+=head4 3.3.2.3. Traits
+
+Transformer declarators and molds can have B<traits> that modify their behavior. Traits affect traversal, output, or method dispatch without requiring subclassing or method overrides.
+
+=head5 Common Traits
+
+=begin table
+Trait | Applied To | Effect
+C<:streaming> | Transformer, Mold | Enables incremental output using C<gather/take>. The Transformer or Mold acts as an iterator; results are produced lazily and can be consumed on-the-fly.
+C<returns(Type)> | Transformer, Mold | Enforces that the output of the Transformer or Mold is of the specified type. Throws a runtime error if the result does not conform.
+C<does RoleName> | Transformer | Mixes in a role, altering behavior. For example, C<does TreeRewrite> modifies the APPLY method to perform in-place rewriting rather than generating new nodes.
+=end table
+
+=head5 Transformer-level vs Mold-level Traits
+
+=item B<Transformer-level traits>
+=item Apply to all molds and the overall transformation process.
+=item Example: C<transformer MyX :streaming> makes the entire Transformer produce a lazy stream.
+
+=item B<Mold-level traits>
+=item Apply to individual molds.
+=item Example: C<mold section :streaming do { ... }> produces output incrementally for that mold alone, without affecting other molds.
+
+=head5 Notes
+
+=item Traits are applied at B<compile-time> using the declarator syntax (C<transformer MyX :streaming does TreeRewrite { ... }>).
+=item Transformers and Molds may inspect traits at runtime via introspection (C<.WHAT> or C<.^traits>) to adjust behavior.
+=item Traits B<do not mutate input data> unless combined with a role like C<TreeRewrite>.
+=item Multiple traits can be combined, but conflicts should be resolved deterministically (e.g., last-applied wins for overlapping behavior).
+
+=head5 Example Usage
+
+=begin code :lang<`raku>
+# Streaming Transformer producing nodes lazily
+transformer StreamSections :streaming {
+    mold section() when { $_.name eq 'section' } do {
+        make Node.new(name => $_.name);
+    }
+}
+
+# Transformer that rewrites input in place
+transformer RewriteTree does TreeRewrite {
+    mold leaf() when { $_.is_leaf } do {
+        make $_.copy;
+    }
+}
+
+# Enforcing output type
+transformer TableToNodes returns(Array) {
+    mold row() do {
+        make Node.new(data => $_.data);
+    }
+}
+=end code
+
+=head4 3.3.2.4. Methods on the Transformer class
+
+The following methods are declared on the base Transformer class.  Those in capitals are designed to be overridden.
+
+=begin code
+class Transformer {
+	# metadata
+	has Bool $.streaming;
+	has Bool $.mutates-input;   # if true, apply may mutate in-place
+	has Str  $.mode;           # 'output-only'|'rewrite-optional'|'rewrite-mandatory'
+
+	method transform($input, :$context = $*CONTEXT, :$streaming = Nil, :$mode = 'default' --> Iterator|Mu|List|Nil) {...}
+}
+=end code
+
+=head5 C<proto method TRANSFORM($data, Iterator :$iterator)>
+
+This is the method that is called when the Transformer itself is called.
+
+The base C<TRANSFORM> method:
+
+=item Prepares the molds by calling C<ORDER-MOLDS>
+=item Walks the input data using B<Iterators>
+=item Applies molds by using the C<APPLY> method
+=item Acts as a pull source, like C<gather/take>
+
+The default iterator is a depth-first, top-down iterator.
+
+B<Walking process:>
+
+=item The input iterator is invoked, producing a sequence of nodes (lazily).
+=item Each node is matched against mold C<when> clauses in order.
+=item If a mold matches, its C<do> clause is invoked and the output collected.
+=item Nextmatching molds can be invoked using C<nextsame> or similar helpers.
+
+Direct calls to mold names bypass walk ordering.
+
+=head5 ORDER-MOLDS and @.ordered-molds
+
+This takes the molds that are part of the Transformer, and puts them in the right order in C<@.ordered-molds>.
+
+Ordering:
+
+=item Molds can have a C<:priority> trait (default 0). Highest numbers first, lowest numbers last.  Numbers can be negative.
+=item Molds with equal priority are sorted by specificity score.  So if there's only one mold with a given priority, its specificity doesn't need to be calculated.
+=item Specificity is calculated based on the C<when> clause:
+=item Multilevel axis (ancestor/descendant/preceding/following) → -100
+=item Wildcards (C<*>) → -10
+=item Each explicit path element → +5
+=item Each attribute axis → +5
+=item If there's a Union or the like, then we calculate each branch, and take the max, which becomes the specificity for this branch.
+=item Molds have a C<:tie-breaker> trait (default 0) which you are required to set if two molds have the same specificity, and could match the same node.
+=item If there are two which rank equally, and could match the same object, an error is thrown asking you to select a tie-breaker
+
+C<when> clauses are placed into an array (on the Transformer object) so that they can easily be iterated over.
+
+Here's a list of orderings we didn't choose, and why:
+=item C3MRO is for inheritance resolution, so not applicable
+=item Raku's Multiple Dispatch system is dependent on arity and types, which aren't applicable either
+=item XSLT allows explicit priorities (which we've copied), and then specificity (which we've also copied), but finally uses document ordering.  We're going to try the C<:tie-breaker> mechanism, and see how it works.
+
+=head5 APPLY method
+
+The purpose of the APPLY method is to take the node given it, and apply the molds.  It can be overridden.  It is responsible for selecting and invoking the appropriate mold(s) for a given node, B<without handling traversal or iteration>, which is already done by C<TRANSFORM>
+
+The rest of this section covers the default version that appears in C<Transformer.APPLY>.
+
+=head6 Purpose
+
+=item Apply molds to a single node according to C<@.ordered-molds>.
+=item Return the output of the B<first matching mold>.
+=item Maintain deterministic behavior consistent with XSLT: B<no fallback to other molds if a match fails>.
+=item Produce a sequence of output nodes (can be empty if no molds match).
+
+=head6 Default Algorithm
+
+=item Receive a single node C<$node>.
+=item iterate through the Transformer’s B<ordered mold list>  (already sorted by priority and specificity).  For the B<first mold whose C<when> clause matches> C<$node>:
+=item Invoke its C<do> block.
+=item Return the result (sequence of nodes or transformed data).
+=item B<Stop processing further molds for this node>.
+=item If no molds match, return an empty sequence.
+
+When exiting the routine for any reason, pop the top iterator off the stack (use the relevant phaser for this).
+
+=head5 C<transform> method
+
+=begin code
+method transform(
+	$input,
+	:$context = $*CONTEXT,
+	:$streaming = Nil,
+	:$mode = 'default'
+	--> Iterator|Mu|List|Nil
+) {...}
+=end code
+
+C<transform> is the transformation entrypoint.  It needs to determine when/how it's called, and act appropriately:
+
+=item Pre-Transformation: operates on a whole data structure
+=item Inline Transformation: operates on a single element
+=item Post-Transformation: operates on a QueryIterator.  This situation should be easy to identify as $input will be a QueryIterator.
+
+Possible values for C<$mode> include:
+
+=begin table
+C<$mode> Value | Purpose / Behaviour
+C<default> | Standard behaviour: C<.transform> decides internally whether this is pre-, inline-, or post-transformation based on the type of input. No rewriting is enforced.
+C<pre> | B<Pre-Transformation> stage: calls C<prepare($data, :$ctx)> and produces a potentially modified or annotated structure B<before traversal or query execution>.
+C<inline> | B<Inline Transformation>: calls C<apply($element, :$ctx, :$mode)> on each element as it is visited by the Walker/Strategy. Allows in-place mutation if C<$.mutates-input> is true.
+C<post> | B<Post-Transformation> stage: consumes a C<QueryIterator> and produces a derived output, optionally streaming. This is the default behaviour for normal C<.transform($iter)> calls.
+C<rewrite-optional> | Transformations may optionally mutate or replace nodes during inline application. Walker/Strategy may continue traversal after applying.
+C<rewrite-mandatory> | Forces a rewrite of the node if possible; traversal may depend on the rewritten structure. Useful for fixed-point or normalization passes.
+=end table
+
+B<Notes:>
+
+=item C<$mode> informs the Transformer B<how to interpret the input> and which internal method (C<prepare>, C<apply>, C<_transform_iterator>) to use.
+=item C<rewrite-optional> and C<rewrite-mandatory> are particularly relevant for B<tree or AST transformers>, where in-place or replacement mutations may be requested by strategies.
+=item For post-transformation pipelines, C<post> and C<default> typically behave the same.
+
+=head3 3.3.3. Molds
+
+=head4 Structure
+
+Molds define B<match-and-action rules> within a Transformer. Each mold consists of:
+
+=begin table
+Item | Example | Purpose
+Optional C<proto> or C<multi> declarator |  | See L<proto|https://docs.raku.org/language/functions#Multi-dispatch>
+Declarator | C<mold> | Declares the start of a Mold block
+Optional name/signature | C<section()> | Makes a mold directly callable, as a method
+Optional traits | C<:streaming> | Modifies the mold behaviour
+Matcher | C<when {...}> | This is a code block.  It's expected to contain a query such as those involving by the Tree Operators.  It can be used for matching nodes (like the C<select> clause on an XSLT mold)
+Action | C<do {...}> | This code block produces output nodes.  If the mold is turned into a method, this is the body of the method
+=end table
+
+=head4 Iterators, Axis Operators, and Predicates
+
+=item C<when> clauses can use B<composed iterators> (which are both callable and iterable) for path specifications:
+
+=begin code :lang<`raku>
+mold section() when { $_ ⪪⪪ <div> } do { <action on div> }
+=end code
+
+=item Axis operators (like C<⪪>, C<⪫>, C<⥷>) can be used directly within molds to select nodes.
+=item Predicates and combinators (like C<∪>, C<∩>) can refine node selection in C<when> clauses.
+
+=head4 Return Values
+
+=item If the C<do> block calls C<make>, its results are added to the output stream.
+=item Otherwise, the return value of C<do> is used as output.
+=item Returning C<$*CONTEXT> or C<$_> effectively copies the current node.
+=item If no C<do> block is provided, the C<when> clause’s value is returned.
+=item It should be possible to call C<NextMold.throw> in the body of an action, and, instead of the result of the action being put into the tree, we instead continue with the next matching mold.
+=item If no molds match a node, it does nothing
+
+=head3 3.3.4. Wrappers
+
+Wrappers allow custom pre- or post-processing of mold matches or the entire Transformer output.  They consist of:
+
+=item C<wrapper> declarator
+=item Name and signature
+=item Code block body
+
+The following wrappers will be recognised and used by the base Transformer object:
+
+=item B<TRANSFORMER> – wraps the entire Transformer output
+=item B<MOLD_MATCHER> – wraps mold match evaluation
+=item B<MOLD_ACTION> – wraps mold action execution
+
+=head4 Internals
+
+Under the hood, each wrapper is:
+=item Defined as a submethod called eg. C<WRAP_TRANSFORMER>
+=item Called up the Transformer hierarchy I<a la> C<TWEAK>.
+
+=head3 3.3.5. Magic Variables
+
+There should be three magic variables that are updated when walking the data.  These are:
+=item C<$*CONTEXT> and C<$_>: Both set to the current input context node (ie. the current item in the data being walked)
+=item C<$*CAPTURE> and C<$/>: Both set to the capture of the mold signature parameters.  These can then be returned, if desired, or accessed via C<$/<parameter1>>.
+=item C<self>: Reference to the current Transformer object
+
+=head3 3.3.6. C<Copy> service class
+
+=begin code
+module Qwiratry::Copy;
+
+multi sub copy(Mu $x) {
+    $x   # default: identity
+}
+
+multi sub copy(Positional $p) {
+    $p.clone
+}
+
+multi sub copy(Associative $a) {
+    $a.clone
+}
+
+multi sub deepcopy(Positional $p) {
+    $p.map({ deepcopy($_) }).Array
+}
+
+multi sub deepcopy(Associative $a) {
+    $a.map({ .key => deepcopy(.value) }).Hash
+}
+
+multi sub deepcopy(Mu $x) {
+    $x   # atoms, objects with identity
+}
+=end code
+
+=head5 C<copy> and C<deepcopy> Methods
+
+This section specifies the required behaviour of shallow and deep copying for all transformable node types within the Transformer framework. These methods MUST be attached to the Transformer object.
+
+=head6 C<copy()> — Shallow Copy
+
+The C<copy()> method MUST implement a shallow clone of the node.
+
+####### Required Behaviour
+
+=item Create a new instance of the same node type.
+=item First check if the node has a C<.copy()> method -- if so, call that to get the copy
+=item Copy all immediate attributes, fields, or metadata values into the new instance.
+=item B<Do not recursively copy children.>
+=item All child references MUST be shared with the original node.
+=item The operation MUST be O(1) with respect to the number of descendants.
+=item Node classes MAY implement their own C<.copy()> to customise shallow-copy behaviour, but MUST adhere to the above constraints.
+
+=head6 C<deepcopy()> — Deep Copy
+
+The C<deepcopy()> method MUST implement a full recursive clone of the entire data or DAG rooted at the node.
+
+####### Required Behaviour
+
+=item Recursively clone the node and all of its children.
+=item Maintain structural sharing:
+=item If multiple parents reference the same child (DAG structure), the resulting deep copy MUST reference a single cloned child, not duplicate subtrees.
+=item This requires maintaining a "visited" hash keyed by object identity.
+=item Detect and correctly handle cycles:
+=item When encountering a node already present in the "visited" hash, reuse the existing clone rather than descending further.
+=item For primitive, immutable leaf types (e.g., Str, Numeric, Bool), simply return the value as-is.
+=item Produce a fully independent object graph, identical in content but disjoint in identity.
+
+=head1 4. Query Execution Flow
+
+=item B<Query Extraction/Replacement>
+   Constructed via a Slang or directly in code, representing the desired search, filter, or pattern.
+
+=item B<Walker Planning>
+   The C<Walker> receives the query, analyses it, and builds an execution plan. Optimisations, index selection, and multi-phase strategies occur here.
+
+=item B<QueryIterator Production>
+   C<Walker.iterator($query)> produces a C<QueryIterator> exposing results incrementally. Multiple iterators may be produced from the same Walker/query combination.
+
+=item B<Result Consumption>
+   The consumer calls C<pull-one()> or iterates over the iterator. Lazy evaluation, backtracking, or streaming behaviours are managed internally.
+
+=head1 5. Composite and Multi-phase Walkers
+
+=item B<Composite Walkers> can chain multiple traversal strategies: e.g., first use an index, then traverse children, then filter.
+=item B<Multi-phase Walkers> separate planning, rewriting, and execution. Each phase can be optimised independently.
+=item B<Reusability>: A single Walker can produce multiple iterators for different consumers or queries.
+=item B<Backtracking>: Walkers may internally maintain state to explore alternative paths lazily.
+
+=head1 6. Slang for Query Expressions
+
+A Raku Slang can be provided to:
+
+=item Parse tree or table operators and produce a Query AST object
+=item Annotate queries for optimisation hints or execution preferences
+=item Optionally, allow inline predicates as code blocks
+
+Any operator may take a trailing block, and that block becomes a Query AST object.
+
+Slang requirements:
+
+=item Extend grammar for operator-term with trailing block.
+=item In actions, produce AST nodes for Query objects.
+=item At BEGIN-time, feed these to the Walker
+
+=head1 7. Examples
+
+=head2 7.1 Tree Walker (DFS)
+
+=begin code :lang<`raku>
+class Tree::Walker::DFS does Walker {
+    method start(RakuAST::Node $q, $node --> QueryIterator) {
+        gather {
+            sub dfs($n) {
+                take $n if $q.matches($n);
+                for $n.children -> $c { dfs($c) }
+            }
+            dfs($node);
+        }
+    }
+}
+=end code
+
+=head2 7.2 Table Walker
+
+=begin code :lang<`raku>
+class Table::Walker::Scan does Walker {
+    has @!rows;
+
+    method start(RakuAST::Node $q, @rows --> QueryIterator) {
+        gather for @rows -> $r {
+            take $r if $q.matches($r);
+        }
+    }
+}
+=end code
+
+=head2 7.3 Logic Walker
+
+=begin code :lang<`raku>
+class Logic::Walker::Backward does Walker {
+    method start(RakuAST::Node $goal, $kb --> QueryIterator) {
+        Logic::Iterator::Backward.new(:$kb, :$goal);
+    }
+}
+=end code
+
+=head1 8. Applicability Across Domains
+
+=item Trees: structural predicates, path queries
+=item Tables: predicate pushdown, index selection, joins
+=item Logic: goal evaluation and backtracking
+
+All are unified by the Query–Walker–Iterator architecture.
+
+=head1 Appendices
+
+=head1 Appendix A: Why Qwiratry?
+
+It's an acronym of sorts:
+=item B<Q>: I<Q>uery
+=item B<W>: I<W>alker
+=item B<I>: QueryI<I>terator.  Technically doesn't start with an I, but that's OK
+=item B<Ra>: I<Ra>ku.  Also, with Ra being the Egyptian sun god, it will hopefully remind us that it will shine a bright light onto your data.
+=item B<Tr>: I<Tr>ansformer
+=item B<Y>: I<Y>are.  A nautical term meaning "Easily manageable and responsive to the helm".  It's also a river in the Norfolk Broads (where the books I<Coot Club> and I<The Big Six> took place).  It also sounds like someone saying "yeah", and positivity is appropriate here.
+
+It sounds like I<Quira Tree>, which is a name for the Panama Redwood.  Which will be amusing when processing Tree data.
+
+It sounds like it's a word formed from *I<Quirat-ery>, but contracted.  And in case you're wondering, C<Quirat> can be either:
+=item an historical currency unit in Spanish/Moroccan contexts
+=item a maritime property share in old French usage
+=item The Catalan word for I<carat>
+
+These three are all from Arabic قِيرَاط (qīrāṭ, “husk”), from Ancient Greek κεράτιον (kerátion, “carob seed”), diminutive form of κέρας (kéras, “horn”).
+
+From Ancient Greek carob seeds to Arabic units of weight and Catalan carats, the etymology mirrors the idea of measuring, traversing, and transforming data.
+
+=head1 Appendix B: Raku Compilation Phases with RakuAST
+
+The items below are according to AI.
+
+=item Parsing Phase (--target=parse)
+=item Lexical analysis and tokenization
+=item Grammar parsing into a parse tree
+=item BEGIN blocks execute during this phase
+=item This is why you see "Loading Slang" with --target=parse
+AST Generation Phase (--target=ast)
+=item Parse tree → RakuAST
+=item Actions fire during this phase
+=item Semantic analysis begins
+=item Type resolution and symbol table building
+=item CHECK blocks execute after AST generation
+Optimization Phase (--target=optimize)
+=item AST optimizations
+=item Constant folding, dead code elimination, etc.
+Code Generation Phase (--target=mbc or default)
+=item RakuAST → MoarVM bytecode
+=item Final type checking and resolution
+=item INIT blocks execute before main execution
+=item START blocks execute at program start
+start
+parse
+syntaxcheck
+ast
+optimize
+mast
+mbc
+moar
+
+=end rakudoc
