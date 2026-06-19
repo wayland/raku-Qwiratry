@@ -162,7 +162,7 @@ our role MoldGrammar {
 	=end pod
 	rule mold-def($declarator) {
 		:my $*BLOCK;
-		<.enter-block-scope('Sub')>
+		<.enter-block-scope('Method')>
 		$<name>=<mold-name>?
 		[ '(' <signature> ')' ]?
 		:my $*ALSO-TARGET := $*BLOCK;
@@ -250,10 +250,11 @@ our role MoldActions {
 		my $signature = $<signature>.defined ?? compiler.compile-signature($<signature>.ast) !! Nil;
 
 		my $routine := $*BLOCK;
+		$routine.replace-scope('my');
 		if $name.defined {
 			$routine.replace-name(RakuAST::Name.from-identifier("_q_mold_$name"));
 		}
-		unless $<signature>.defined {
+		unless $signature.defined && $signature.params.elems > 0 {
 			$routine.replace-signature(compiler.implicit-mold-signature);
 		}
 		unless $<do-block>.defined {
@@ -263,7 +264,7 @@ our role MoldActions {
 		$routine.replace-body($<do-block>.ast);
 		self.attach: $/, $routine;
 
-		my $do-block = compiler.compile-blockoid($<do-block>) // try $routine.meta-object;
+		my $do-block = try $routine.meta-object // compiler.compile-blockoid($<do-block>);
 		unless $do-block.defined {
 			die "{compiler.display-name($name)}: required 'do' block could not be compiled.";
 		}

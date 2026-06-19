@@ -1,5 +1,5 @@
 #!/usr/bin/env raku
-#| Regression: slang-compiled do blocks must bind $_ to the node under transform.
+#| Regression: slang-compiled do blocks must bind $_ and self under transform.
 use Test;
 use lib 'lib';
 
@@ -15,7 +15,7 @@ class Node {
 }
 
 subtest 'slang do blocks bind topic to the node being transformed' => {
-	plan 7;
+	plan 8;
 
 	clear-collected-molds();
 	transformer TransformTree is Transformer {
@@ -32,10 +32,10 @@ subtest 'slang do blocks bind topic to the node being transformed' => {
 	my $section = $transformer.molds.first({ .name eq 'section' });
 	my $top = $transformer.molds.first({ !.name.defined || .name eq 'TOP' });
 
-	ok $section.do-block ~~ Block, 'do block compiles to Block closure, not Sub';
+	ok $section.do-block ~~ Method, 'do block compiles to Method so self can bind';
 	nok $section.do-block ~~ Sub, 'do block is not a named Sub (_q_tpl_*)';
-	is $section.do-block.count, 1,
-		'do block has implicit topic parameter like when blocks';
+	is $section.do-block.count, 2,
+		'do block has invocant plus implicit topic parameter';
 
 	ok $section.when-block ~~ Block, 'when block remains a Block closure';
 	ok $section.matches(Node.new(name => 'section')),
@@ -51,6 +51,18 @@ subtest 'slang do blocks bind topic to the node being transformed' => {
 	my $first = $transform-result ~~ List ?? $transform-result[0] !! $transform-result;
 	is $first.name, 'node',
 		'transform: TOP mold do block runs with topic for non-section nodes';
+
+	clear-collected-molds();
+	transformer SelfTree is Transformer {
+		mold selfcheck() do {
+			self.WHAT.^name;
+		}
+	}
+
+	my $self-transformer = SelfTree.new;
+	my $self-check = $self-transformer.molds.first({ .name eq 'selfcheck' });
+	is $self-check.execute(Node.new(name => 'self-check'), :transformer($self-transformer)), 'SelfTree',
+		'slang do block self refers to the current transformer';
 }
 
 done-testing;

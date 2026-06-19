@@ -321,15 +321,26 @@ class Mold is export {
 		$mold!run-with-magic-variables(
 			$node,
 			{
-				if $block ~~ Method && $transformer.defined {
-					if $block.arity == 0 && $block.count == 0 {
-						$mold!invoke-arity0($node, { $block($transformer) });
+				if $block ~~ Method {
+					my $method-self;
+					my $has-method-self = False;
+					unless $transformer.defined {
+						try {
+							$method-self = $block.signature.params[0].type;
+							$has-method-self = True;
+						}
 					}
-					elsif $block.arity >= 1 {
-						$block($transformer, $node);
+					my $self = $transformer.defined
+						?? $transformer
+						!! ($has-method-self ?? $method-self !! $mold);
+					if $block.arity <= 1 && $block.count <= 1 {
+						$mold!invoke-arity0($node, { $block($self) });
+					}
+					elsif $block.arity >= 2 {
+						$block($self, $node);
 					}
 					else {
-						$block($transformer);
+						$block($self);
 					}
 				}
 				elsif $block.arity == 0 && $block.count == 0 {
