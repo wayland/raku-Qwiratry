@@ -6,7 +6,7 @@ Defines source and destination implementations loaded through
 L<Qwiratry::Location.make>.
 
 =end pod
-use Qwiratry::Exception::Operator;
+use X::Qwiratry;
 use Qwiratry::Location::Base;
 
 class Qwiratry::Location::File::Source is Qwiratry::Location::Base::Source {

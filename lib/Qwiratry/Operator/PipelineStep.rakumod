@@ -11,7 +11,7 @@ unit module Qwiratry::Operator::PipelineStep;
 
 use Qwiratry::Format;
 use Qwiratry::Location;
-use Qwiratry::Exception::Operator;
+use X::Qwiratry;
 
 =begin pod
 

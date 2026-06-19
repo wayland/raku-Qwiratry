@@ -14,7 +14,7 @@ C<Qwiratry::Location::File::Destination>.
 
 =end pod
 use Implementation::Loader;
-use Qwiratry::Exception::Operator;
+use X::Qwiratry;
 use Qwiratry::Location::Base;
 
 class Qwiratry::Location does Implementation::Loader {

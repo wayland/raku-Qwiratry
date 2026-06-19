@@ -28,6 +28,51 @@ class X::Qwiratry::Walker is Exception {
 
 =begin pod
 
+Base exception for operator evaluation failures.
+
+=end pod
+class X::Qwiratry::Operator is X::Qwiratry::Walker {
+	has $.query-ast;
+	has Str $.operator-type = 'Unknown';
+
+	method gist(--> Str) {
+		my $ast-info = $.query-ast.defined ?? $.query-ast.^name !! 'undefined';
+		"X::Qwiratry::Operator: $.message (operator-type: $.operator-type, query-ast: $ast-info)"
+	}
+}
+
+=begin pod
+
+Raised when a format parser or renderer implementation cannot be loaded.
+
+=end pod
+class X::Qwiratry::Format::NotFound is X::Qwiratry::Operator {
+	has Str $.format is required;
+	has Str $.parse-or-render is required;
+
+	method gist(--> Str) {
+		my $module-name = 'Qwiratry::Format::' ~ $!format;
+		my $class-name = $module-name ~ '::' ~ $!parse-or-render.tc;
+		"X::Qwiratry::Format::NotFound: Format implementation $class-name not found (format: $!format, operation: $!parse-or-render)"
+	}
+}
+
+=begin pod
+
+Raised when reading from or writing to a location fails.
+
+=end pod
+class X::Qwiratry::IO::LocationError is X::Qwiratry::Operator {
+	has Str $.location is required;
+	has Str $.reason is required;
+
+	method gist(--> Str) {
+		"X::Qwiratry::IO::LocationError: Location error for '$!location' (reason: $!reason)"
+	}
+}
+
+=begin pod
+
 Exception thrown when a Qwiratry::Walker cannot interpret a Query AST element.
 This exception is thrown by Qwiratry::Walker.plan() when it encounters a query
 element it does not know how to handle.

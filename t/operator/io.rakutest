@@ -4,7 +4,7 @@ use lib 'lib';
 
 use Qwiratry::Operator::IO;
 use Qwiratry::Operator::Capability;
-use Qwiratry::Exception::Operator;
+use X::Qwiratry;
 use Qwiratry::Format;
 use Qwiratry::Format::JSONdemo;
 use Qwiratry::Format::CSVdemo;

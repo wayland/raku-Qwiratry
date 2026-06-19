@@ -12,7 +12,7 @@ use Qwiratry::Format;
 use Qwiratry::Location;
 use Qwiratry::Operator::Capability;
 use Qwiratry::Operator::PipelineStep;
-use Qwiratry::Exception::Operator;
+use X::Qwiratry;
 
 role AdaptorOperatorNode does OperatorBase {
 	has Mu $.subject;

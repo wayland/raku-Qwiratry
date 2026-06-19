@@ -14,7 +14,7 @@ C<Qwiratry::Format::JSONdemo::Render>.
 
 =end pod
 use Implementation::Loader;
-use Qwiratry::Exception::Operator;
+use X::Qwiratry;
 use Qwiratry::Format::Base;
 
 class Qwiratry::Format does Implementation::Loader {
@@ -146,7 +146,7 @@ class Qwiratry::Format does Implementation::Loader {
 		my ($type-name, $format-name) = self!type-and-format-names($type, $format);
 		my $class = self.format-class-name($type-name, $format-name);
 		unless $format-name (elem) self.formats(:type($type-name)) {
-			format-not-found(
+			X::Qwiratry::Format::NotFound.new(
 				:message("$type-name format module not found for $format"),
 				:format($format-name),
 				:parse-or-render($type-name),

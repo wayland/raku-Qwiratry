@@ -49,7 +49,7 @@ A backend module groups the source and destination implementations for one
 location family. A backend can implement only source, only destination, or both.
 
 =begin code :lang<raku>
-use Qwiratry::Exception::Operator;
+use X::Qwiratry;
 use Qwiratry::Location::Base;
 
 class Qwiratry::Location::Postgres::Source is Qwiratry::Location::Base::Source {

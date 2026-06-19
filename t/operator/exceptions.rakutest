@@ -3,7 +3,7 @@
 use Test;
 use lib 'lib';
 
-use Qwiratry::Exception::Operator;
+use X::Qwiratry;
 
 plan 10;
 
