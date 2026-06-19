@@ -24,3 +24,4 @@ specification-traceability-map/
 .kittify/
 kitty-specs/
 *.code-workspace
+docs/tickets/
