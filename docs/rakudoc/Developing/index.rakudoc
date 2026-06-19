@@ -82,4 +82,6 @@ with C<RAKUDO_RAKUAST=1> for this repository, so use:
 
 =item L<Extending Qwiratry|../Extending/index>: extension guides for formats, locations, walkers, strategies, transformers, and other extension points.
 
+=item L<Required Raku Modifications|Required-Raku-Modifications>: possible Raku language and runtime changes that would better support data-oriented programming.
+
 =end rakudoc

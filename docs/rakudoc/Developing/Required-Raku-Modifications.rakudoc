@@ -1,0 +1,75 @@
+=begin rakudoc
+
+=TITLE Required Raku Modifications
+
+=SUBTITLE Language/runtime changes that would better support data-oriented programming
+
+=head1 Overview
+
+Qwiratry can be developed as a module on today's Raku. If Qwiratry, or the
+data-oriented programming ideas behind it, were ever merged into Raku itself,
+the changes below would make that integration much easier.
+
+=head1 Dispatch Changes
+
+=head2 Multiple Dispatch Ordering
+
+Traditional Raku objects should continue to use normal Raku multiple dispatch
+ordering. Data-oriented objects should be able to choose a different ordering
+when the type needs one.
+
+The dispatch ordering should depend on the type of the invocant or matched
+object. For example, ordinary Raku objects would keep the existing candidate
+ordering, while Mold objects could use a custom ordering designed for
+data-oriented transformation rules.
+
+This would let molds remain dispatch-like and composable without forcing them
+through the same precedence rules used for ordinary methods.
+
+=head2 Orthogonal Redispatch
+
+Nice to have, but less helpful would be
+L<Orthogonal Redispatch|https://wayland.github.io/table-oriented-programming/Metanoias/Redispatch.xml>.
+
+=head1 Grammar Capabilities
+
+The useful grammar changes are the ones that let grammars participate in
+data-oriented input and output pipelines without requiring the whole data set to
+be resident in memory.
+
+=head2 Progressive And Streamable Grammars
+
+It should be possible to mark Grammars as progressive/streamable. They should
+be able to parse input incrementally instead of requiring the whole input to be
+present in memory.
+
+Important use cases include:
+
+=item Parsing network input as it arrives.
+
+=item Parsing files larger than available memory.
+
+This also might require some signalling back and forth with the downstream
+objects, for example GrammarActions or whatever replaces it.
+
+Probably the main thing to do is to be able to draw some boundary where, if the
+grammar fails, then it walks back to that point, and waits on more data.
+
+=head2 Reversible Grammars
+
+Grammars should ideally be reversible, so the same declarative structure can be
+used for rendering as well as parsing.
+
+This would let a data-oriented program describe a representation once and use
+that description both to read data into a structure and to render a structure
+back out.
+
+=head2 Chaining Replacing Actions
+
+Instead of just having a Grammar Actions object, chain the grammar to the next
+item in a pipeline. This might be a Grammar Actions object, but might be a
+Transformer, or something else. There could easily be more than one item in the
+pipeline. The idea is that we could stream tokens from the grammar to whatever
+is next in the pipeline.
+
+=end rakudoc
