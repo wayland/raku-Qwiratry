@@ -8,7 +8,6 @@ use Test;
 use lib 'lib';
 
 use Qwiratry;
-use Qwiratry::Transformer;
 use Qwiratry::Mold;
 use Qwiratry::Walker::Factory;
 use Qwiratry::Walker::Implementation::Tree;

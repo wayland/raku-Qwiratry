@@ -33,7 +33,7 @@ subtest "Basic Usage - Simple transformer" => {
     
 	my $result = $transformer.transform("input");
 	ok $result.defined, "Basic transformer works";
-	ok $result ~~ List, "Transformer returns List";
+	is $result, "transformed", "Transformer returns mold result";
 }
 
 subtest "Mold Priority" => {
