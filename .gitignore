@@ -4,7 +4,7 @@
 .opencode/
 .windsurf/
 .gemini/
-#.cursor/
+.cursor/
 .qwen/
 .kilocode/
 .augment/
@@ -19,3 +19,8 @@ __pycache__
 .kittify/templates/
 .fez
 t/tmp/
+
+specification-traceability-map/
+.kittify/
+kitty-specs/
+*.code-workspace
