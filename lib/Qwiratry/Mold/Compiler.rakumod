@@ -2,8 +2,17 @@
 
 Compile RakuAST mold components into runtime blocks and structures.
 
-Handles blockoid compilation, signature lowering, trait application, and
-conceptual method transformation for molds parsed by L<Qwiratry::Mold::Slang>.
+=head1 Overview
+
+This class is the bridge between the mold slang parser and the runtime
+L<Qwiratry::Mold> objects stored in L<Qwiratry::Mold::Registry>. The slang
+actions pass it captured RakuAST blockoids, signatures, and trait nodes; it
+turns those pieces into executable C<Block> objects, runtime C<Signature>
+objects, and mold metadata.
+
+The compiler deliberately works with RakuAST objects rather than strings. Mold
+C<when> and C<do> bodies are compiled in the current compilation context, so
+they can close over lexical declarations from the user's transformer module.
 
 =end pod
 use v6.e.PREVIEW;
@@ -15,7 +24,17 @@ class Qwiratry::Mold::Compiler {
 
 	=begin pod
 
-	Return the shared mold compiler instance.
+	=head1 Methods
+
+	=head2 C<instance()>
+
+	    method instance(--> Qwiratry::Mold::Compiler)
+
+	Returns the shared mold compiler instance.
+
+	The compiler has no per-transformer state, so callers use this singleton from
+	L<Qwiratry::Mold::Slang> actions instead of constructing a fresh helper for
+	every parsed mold.
 
 	=end pod
 	method instance(--> Qwiratry::Mold::Compiler) {
@@ -24,7 +43,16 @@ class Qwiratry::Mold::Compiler {
 
 	=begin pod
 
-	Compile a RakuAST blockoid capture to an executable C<Block>.
+	=head2 C<compile-blockoid(Mu $cap)>
+
+	    method compile-blockoid(Mu $cap)
+
+	Compiles a RakuAST blockoid capture to an executable C<Block>.
+
+	C<$cap> is expected to be a capture produced by the slang grammar for a
+	braced block such as C<when { ... }> or C<do { ... }>. The method extracts
+	the blockoid AST and delegates to the private begin-time compiler. It returns
+	C<Nil> when the capture is absent or cannot yield an AST.
 
 	=end pod
 	method compile-blockoid(Mu $cap) {
@@ -36,7 +64,17 @@ class Qwiratry::Mold::Compiler {
 
 	=begin pod
 
-	Compile a single expression as a one-statement block.
+	=head2 C<compile-block-expr(Mu $expr)>
+
+	    method compile-block-expr(Mu $expr)
+
+	Compiles a single expression as a one-statement block.
+
+	This is used for split C<when> clauses where
+	L<Qwiratry::Query::Extract> separates a navigation query expression from the
+	remaining predicate expression. Wrapping the expression in a
+	C<RakuAST::StatementList> gives the rest of the pipeline the same C<Block>
+	shape as a normal braced block.
 
 	=end pod
 	method compile-block-expr(Mu $expr) {
@@ -47,7 +85,16 @@ class Qwiratry::Mold::Compiler {
 
 	=begin pod
 
-	Default C<$_> signature for molds without an explicit signature.
+	=head2 C<implicit-mold-signature()>
+
+	    method implicit-mold-signature()
+
+	Builds the default C<$_> signature for molds without an explicit signature.
+
+	Mold matchers are invoked with the current node as their topic. When the user
+	writes C<mold name when { ... } do { ... }> with no parameter list, the slang
+	rewrites the generated routine to this implicit signature so C<$_> is bound
+	to that node.
 
 	=end pod
 	method implicit-mold-signature() {
@@ -63,7 +110,16 @@ class Qwiratry::Mold::Compiler {
 
 	=begin pod
 
-	Compile a RakuAST signature node to a runtime C<Signature> object.
+	=head2 C<compile-signature($sig-ast)>
+
+	    method compile-signature($sig-ast)
+
+	Compiles a RakuAST signature node to a runtime C<Signature> object.
+
+	The signature AST is installed on a stub C<RakuAST::Sub> and then inspected
+	through its compile-time value. This lets the rest of Qwiratry store the
+	actual runtime signature on the C<Mold>, not the parser object that produced
+	it. Existing C<Signature> objects are returned unchanged.
 
 	=end pod
 	method compile-signature($sig-ast) {
@@ -78,7 +134,17 @@ class Qwiratry::Mold::Compiler {
 
 	=begin pod
 
-	Build conceptual method structure from mold name, signature, and blocks.
+	=head2 C<transform-to-method(:$name, :$signature, :$when-block, :$do-block)>
+
+	    method transform-to-method(:$name, :$signature, :$when-block, :$do-block)
+
+	Builds conceptual method structure from mold name, signature, and blocks.
+
+	WP03 models a mold as a method-like unit: a name, an optional signature, a
+	C<where>-style constraint from the C<when> block, and a body from the C<do>
+	block. Today this structure is a hash consumed immediately by
+	C<compile-rakuast-method>; keeping it explicit documents the transformation
+	boundary between slang parsing and runtime mold construction.
 
 	=end pod
 	method transform-to-method(
@@ -98,7 +164,15 @@ class Qwiratry::Mold::Compiler {
 
 	=begin pod
 
-	Extract compiled do-block from transformed method structure.
+	=head2 C<compile-rakuast-method(%method-structure)>
+
+	    method compile-rakuast-method(%method-structure)
+
+	Extracts the compiled do-block from transformed method structure.
+
+	Returns the C<body> block only for structures produced by
+	C<transform-to-method>. Invalid or untransformed hashes return C<Nil>, letting
+	the caller fall back to the block it had already compiled.
 
 	=end pod
 	method compile-rakuast-method(%method-structure) {
@@ -108,7 +182,15 @@ class Qwiratry::Mold::Compiler {
 
 	=begin pod
 
-	Human-readable label for error messages.
+	=head2 C<display-name($name)>
+
+	    method display-name($name)
+
+	Returns a human-readable label for error messages.
+
+	Named molds are reported as C<mold NAME>; anonymous molds are reported as
+	C<unnamed mold>. Slang actions use this for diagnostics when a required block
+	is missing or cannot be compiled.
 
 	=end pod
 	method display-name($name) {
@@ -117,7 +199,18 @@ class Qwiratry::Mold::Compiler {
 
 	=begin pod
 
-	Apply C<is streaming>, C<is priority>, C<is tie-breaker>, and C<returns> traits to a mold.
+	=head2 C<apply-traits(Mold $mold, $routine)>
+
+	    method apply-traits(Mold $mold, $routine)
+
+	Applies C<is streaming>, C<is priority>, C<is tie-breaker>, and C<returns>
+	traits to a mold.
+
+	C<$routine> is the generated RakuAST routine for the mold definition. The
+	method reads its trait nodes and mutates the already-created C<Mold>:
+	C<is streaming> sets streaming mode, numeric priority and tie-breaker traits
+	feed mold ordering, and C<returns(Type)> stores the expected result type for
+	later runtime checking.
 
 	=end pod
 	method apply-traits(Mold $mold, $routine) {
@@ -147,7 +240,17 @@ class Qwiratry::Mold::Compiler {
 
 	=begin pod
 
-	Compile a RakuAST statement list body to a C<Block> at begin time.
+	=head2 C<!compile-block-body(Mu $body)>
+
+	    method !compile-block-body(Mu $body)
+
+	Compiles a RakuAST statement list body to a C<Block> at begin time.
+
+	The statement list is wrapped in C<RakuAST::Block>, lowered with
+	C<to-begin-time>, and read back through its meta-object. This is the low-level
+	operation behind C<compile-blockoid> and C<compile-block-expr>; failures are
+	contained and reported as C<Nil> so slang actions can produce mold-specific
+	error messages.
 
 	=end pod
 	method !compile-block-body(Mu $body) {
