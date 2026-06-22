@@ -104,7 +104,7 @@ role QueryIterator does Iterator is export {
 	strategies use it as the shared state container for one traversal.
 
 	=end pod
-	has Context $.context is required;
+	has Context $.context is required is built;
     
 	=begin pod
 

@@ -531,13 +531,8 @@ our sub lazy-projection($rows, @columns) is export {
 }
 
 class FilterIterator does Iterator {
-	has Iterator $!iter;
-	has $!matcher;
-
-	method BUILD(Iterator :$iter!, :$matcher!) {
-		$!iter = $iter;
-		$!matcher = $matcher;
-	}
+	has Iterator $!iter is built;
+	has $!matcher is built;
 
 	method pull-one {
 		loop {

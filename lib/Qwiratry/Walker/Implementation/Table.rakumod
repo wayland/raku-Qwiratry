@@ -41,11 +41,11 @@ class Qwiratry::Walker::Implementation::Table does Qwiratry::Walker is export {
 	}
 
 	my class TableIterator does QueryIterator {
-		has Mu $.root is required;
-		has Mu $.query-ast is required;
+		has Mu $.root is required is built;
+		has Mu $.query-ast is required is built;
 		has Iterator $!matches;
 
-		submethod BUILD(:$!root, :$!query-ast, :$!context) {
+		submethod TWEAK {
 			$!matches = select($!query-ast, $!root).iterator;
 		}
 
@@ -62,14 +62,14 @@ class Qwiratry::Walker::Implementation::Table does Qwiratry::Walker is export {
 	}
 
 	my class StrategyTableIterator does QueryIterator {
-		has Mu $.root is required;
-		has Mu $.query-ast is required;
+		has Mu $.root is required is built;
+		has Mu $.query-ast is required is built;
 		has Mu $!rows;
 		has Int $!index = 0;
 		has Bool $!finished = False;
 		has Bool $!finish-invoked = False;
 
-		submethod BUILD(:$!root, :$!query-ast, :$!context) {
+		submethod TWEAK {
 			$!rows = $!root ~~ Qwiratry::Table::Catalog
 				?? $!root.active-rows
 				!! $!root;

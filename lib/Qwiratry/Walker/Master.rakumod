@@ -59,19 +59,13 @@ my $plan = Qwiratry::Walker::Master::Plan.new(
 =end pod
 class Qwiratry::Walker::Master::Plan does Qwiratry::Walker::Plan {
 	# Original query AST (composite query, not modified)
-	has Mu $.query-ast is required;
+	has Mu $.query-ast is required is built;
     
 	# Embedded subplans from delegated walkers
-	has @.subplans;
+	has @.subplans is built;
     
 	# Execution order for subplans (optional, for future use)
-	has @.execution-order;
-    
-	# Constructor
-	submethod BUILD(:$!query-ast, :@subplans, :@execution-order) {
-		@!subplans = @subplans // Array.new;
-		@!execution-order = @execution-order // Array.new;
-	}
+	has @.execution-order is built;
     
 	# Return array of embedded subplans
 	method subplans(--> Array) {
@@ -137,12 +131,12 @@ my $result = $iter.pull-one;
 
 =end pod
 class Qwiratry::Walker::Master::Iterator does QueryIterator {
-	has Qwiratry::Walker::Master::Plan $.plan is required;
+	has Qwiratry::Walker::Master::Plan $.plan is required is built;
 	has @!order;
 	has @!subplan-iters;
 	has Int $!order-index = 0;
 
-	submethod BUILD(:$!context, :$!plan) {
+	submethod TWEAK {
 		@!order = $!plan.execution-order;
 		@!order.elems or @!order = (0..^$!plan.subplans.elems).Array;
 		@!subplan-iters = @!order.map({ $!plan.subplans[$_].iterator });
@@ -186,21 +180,13 @@ my $master-with-walkers = Qwiratry::Walker::Master.new(
 =end pod
 class Qwiratry::Walker::Master does Qwiratry::Walker {
 	# Explicitly provided candidate walkers (overrides discovery if provided)
-	has @.candidate-walkers;
+	has @.candidate-walkers is built;
     
 	# Cached discovered walkers (lazy initialization)
 	has @!discovered-walkers;
     
 	# Flag indicating if discovery has been performed
 	has Bool $!discovery-performed = False;
-    
-	# Constructor accepts optional candidate walkers
-	# If provided, discovery is skipped and explicit list is used
-	submethod BUILD(:@candidate-walkers) {
-		if @candidate-walkers {
-			@!candidate-walkers = @candidate-walkers;
-		}
-	}
     
 	# Get candidate walkers (explicit list or discovered)
 	# Returns explicit list if provided, otherwise discovers walkers

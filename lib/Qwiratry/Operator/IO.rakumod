@@ -26,11 +26,7 @@ use Qwiratry::Operator::PipelineStep;
 use X::Qwiratry;
 
 role AdaptorOperatorNode does OperatorBase {
-	has Mu $.subject;
-
-	submethod TWEAK(:$subject) {
-		$subject.defined and $!subject = $subject;
-	}
+	has Mu $.subject is built;
 
 	=begin pod
 
@@ -66,9 +62,9 @@ role LocationOperatorNode does LocationOperator does AdaptorOperatorNode {
 }
 
 class SourceOperator is RakuAST::Node does LocationOperator does OperatorBase is export {
-	has Str $.location is required;
+	has Str $.location is required is built;
 
-	submethod BUILD(Str :$!location!) {
+	submethod TWEAK {
 		Qwiratry::Location.ensure-location(:type<Source>, :location($!location));
 	}
 
@@ -220,9 +216,9 @@ class RenderOperator is RakuAST::Node does FormatOperatorNode is export {
 }
 
 class DestinationOperator is RakuAST::Node does LocationOperatorNode is export {
-	has Str $.location is required;
+	has Str $.location is required is built;
 
-	submethod BUILD(Str :$!location!) {
+	submethod TWEAK {
 		Qwiratry::Location.ensure-location(:type<Destination>, :location($!location));
 	}
 

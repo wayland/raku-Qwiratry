@@ -43,11 +43,11 @@ class Qwiratry::Walker::Implementation::Tree does Qwiratry::Walker is export {
 	}
 
 	my class TreeIterator does QueryIterator {
-		has Mu $.root is required;
-		has Mu $.query-ast;
+		has Mu $.root is required is built;
+		has Mu $.query-ast is built;
 		has Iterator $!matches;
 
-		submethod BUILD(:$!root, :$!query-ast, :$!context) {
+		submethod TWEAK {
 			$!matches = select($!query-ast, $!root).iterator;
 		}
 
@@ -64,15 +64,15 @@ class Qwiratry::Walker::Implementation::Tree does Qwiratry::Walker is export {
 	}
 
 	my class StrategyTreeIterator does QueryIterator {
-		has Mu $.root is required;
-		has Mu $.query-ast is required;
+		has Mu $.root is required is built;
+		has Mu $.query-ast is required is built;
 		has @!stack;
 		has @!yield-queue;
 		has TraversalState $!state = TraversalState.new;
 		has Bool $!finished = False;
 		has Bool $!finish-invoked = False;
 
-		submethod BUILD(:$!root, :$!query-ast, :$!context) {
+		submethod TWEAK {
 			$!root.defined and @!stack = [$!root];
 		}
 
