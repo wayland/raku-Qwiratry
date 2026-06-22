@@ -25,6 +25,11 @@ use Qwiratry::Operator::Capability;
 use Qwiratry::Operator::PipelineStep;
 use X::Qwiratry;
 
+=begin pod
+
+Base role for I/O adaptor AST nodes that participate in pipeline evaluation.
+
+=end pod
 role AdaptorOperatorNode does OperatorBase {
 	=begin pod
 
@@ -53,9 +58,25 @@ role AdaptorOperatorNode does OperatorBase {
 	}
 }
 
+=begin pod
+
+Shared behavior for location-backed source and destination operators.
+
+=end pod
 role LocationOperatorNode does LocationOperator does AdaptorOperatorNode {
 	has Str $.location is required is built;
 
+	=begin pod
+
+	=head2 C<TWEAK()>
+
+	=begin code
+	submethod TWEAK
+	=end code
+
+	Validate the configured location against the source or destination backend registry.
+
+	=end pod
 	submethod TWEAK {
 		Qwiratry::Location.ensure-location(:type(self.location-type), :location($!location));
 	}
@@ -76,6 +97,17 @@ role LocationOperatorNode does LocationOperator does AdaptorOperatorNode {
 		self.adaptor-describe("location: '$!location'")
 	}
 
+	=begin pod
+
+	=head2 C<location-implementation()>
+
+	=begin code
+	method location-implementation
+	=end code
+
+	Return the loaded location backend implementation for this operator.
+
+	=end pod
 	method location-implementation {
 		Qwiratry::Location.make(:type(self.location-type), :location(self.location))
 	}
@@ -105,35 +137,121 @@ role LocationOperatorNode does LocationOperator does AdaptorOperatorNode {
 	}
 }
 
+=begin pod
+
+AST node for reading data from an external location.
+
+=end pod
 class SourceOperator is RakuAST::Node does LocationOperatorNode is export {
+	=begin pod
+
+	=head2 C<location-type()>
+
+	=begin code
+	method location-type(--> Str)
+	=end code
+
+	Identify this location operator as a source adapter.
+
+	=end pod
 	method location-type(--> Str) {
 		'Source'
 	}
 }
 
+=begin pod
+
+AST node for writing evaluated pipeline data to an external location.
+
+=end pod
 class DestinationOperator is RakuAST::Node does LocationOperatorNode does ChainedOperator is export {
+	=begin pod
+
+	=head2 C<location-type()>
+
+	=begin code
+	method location-type(--> Str)
+	=end code
+
+	Identify this location operator as a destination adapter.
+
+	=end pod
 	method location-type(--> Str) {
 		'Destination'
 	}
 }
 
+=begin pod
+
+Shared behavior for format-backed parse and render operators.
+
+=end pod
 role FormatOperatorNode does FormatOperator does AdaptorOperatorNode does ChainedOperator {
 	has Str $.format is required is built;
 
+	=begin pod
+
+	=head2 C<TWEAK()>
+
+	=begin code
+	submethod TWEAK
+	=end code
+
+	Validate the configured format against the parse or render format registry.
+
+	=end pod
 	submethod TWEAK {
 		Qwiratry::Format.ensure-format(:type(self.format-type), :format($!format));
 	}
 
+	=begin pod
+
+	=head2 C<format-input(Mu $origin, &execute)>
+
+	=begin code
+	method format-input(Mu $origin, &execute)
+	=end code
+
+	Evaluate this format operator's subject, falling back to the pipeline origin.
+
+	=end pod
 	method format-input(Mu $origin, &execute) {
 		execute(self.subject // $origin, :$origin)
 	}
 
+	=begin pod
+
+	=head2 C<format-implementation()>
+
+	=begin code
+	method format-implementation
+	=end code
+
+	Return the loaded format implementation for this operator.
+
+	=end pod
 	method format-implementation {
 		Qwiratry::Format.make(:type(self.format-type), :format($!format))
 	}
 }
 
+=begin pod
+
+AST node for parsing text from the pipeline into structured data.
+
+=end pod
 class ParseOperator is RakuAST::Node does FormatOperatorNode is export {
+	=begin pod
+
+	=head2 C<format-type()>
+
+	=begin code
+	method format-type(--> Str)
+	=end code
+
+	Identify this format operator as a parser.
+
+	=end pod
 	method format-type(--> Str) {
 		'Parse'
 	}
@@ -181,9 +299,25 @@ class ParseOperator is RakuAST::Node does FormatOperatorNode is export {
 	}
 }
 
+=begin pod
+
+AST node for rendering structured pipeline data into text.
+
+=end pod
 class RenderOperator is RakuAST::Node does FormatOperatorNode is export {
 	has %.options;
 
+	=begin pod
+
+	=head2 C<format-type()>
+
+	=begin code
+	method format-type(--> Str)
+	=end code
+
+	Identify this format operator as a renderer.
+
+	=end pod
 	method format-type(--> Str) {
 		'Render'
 	}
