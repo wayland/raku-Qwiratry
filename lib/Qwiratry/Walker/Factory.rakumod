@@ -1,10 +1,29 @@
 =begin pod
 
-Walker factory for automatic Walker selection based on data type
+=head1 Overview
 
-This module provides a factory/registry pattern for selecting appropriate
-Walker instances based on input data type. The factory enables automatic
-Walker selection while maintaining flexibility for explicit registration.
+Walker factory for automatic walker selection based on input data shape.
+
+Transformers call this factory when the user has not supplied an explicit
+walker. It first honors explicit registrations keyed by type or role, then uses
+the built-in data-shape heuristic: flat positional collections of associative
+rows use L<Qwiratry::Walker::Implementation::Table>; other defined data uses
+L<Qwiratry::Walker::Implementation::Tree>.
+
+Discovery support is retained for tests and future plugin-style walker loading,
+but normal transformation currently depends on the built-in tree/table
+implementations.
+
+=head1 Selection Order
+
+=item Explicit registry entry for the data type name.
+
+=item Explicit registry entry for a role composed by the data type.
+
+=item Built-in data-shape heuristic: table data uses the table walker; other
+ defined data uses the tree walker.
+
+=item C<Nil> when the input is undefined or no walker can be selected.
 
 =end pod
 
@@ -24,10 +43,10 @@ sub is-table-data($data --> Bool) {
 
 =begin pod
 
-Walker factory class for automatic Walker selection.
+=head1 Class
 
-Maintains a registry of Walker types keyed by data type/role.
-Supports automatic discovery and explicit registration.
+C<Qwiratry::Walker::Factory> maintains explicit walker registrations, caches
+discovered walker types, and creates fresh walker instances for selected data.
 
 =end pod
 class Qwiratry::Walker::Factory {
@@ -45,9 +64,15 @@ class Qwiratry::Walker::Factory {
     
 	=begin pod
 
-	Get or create singleton instance of Qwiratry::Walker::Factory.
+	=head1 Methods
 
-	@returns Qwiratry::Walker::Factory - Singleton instance
+	=head2 C<instance()>
+
+	=begin code
+	method instance(--> Qwiratry::Walker::Factory)
+	=end code
+
+	Returns the shared walker factory instance.
 
 	=end pod
 	method instance(--> Qwiratry::Walker::Factory) {
@@ -56,15 +81,28 @@ class Qwiratry::Walker::Factory {
     
 	=begin pod
 
-	Get appropriate Walker for given data.
+	=head2 C<get-walker($data)>
 
-	Selection logic:
-	1. Check explicit registry entries (by type name or role)
-	2. Use type-based heuristics (e.g., Positional for arrays)
-	3. Return Nil if no Walker found
+	=begin code
+	method get-walker($data --> Mu)
+	=end code
 
-	@param $data - Data structure to get Walker for
-	@returns Qwiratry::Walker? - Walker instance or Nil if none found
+	=head3 Parameters
+
+	=item C<$data>
+
+	 The input data, root value, or rendered value handled by this operation.
+
+
+	Returns an appropriate walker instance for C<$data>, or C<Nil> for undefined
+	data.
+
+	Explicit registrations win over heuristics. If no registration matches, the
+	factory distinguishes table rows from tree-shaped data and returns the built-in
+	table or tree walker accordingly.
+
+	This makes automatic selection predictable while still allowing tests and
+	future domain adapters to override selection through C<register-walker>.
 
 	=end pod
 	method get-walker($data --> Mu) {
@@ -116,10 +154,28 @@ class Qwiratry::Walker::Factory {
     
 	=begin pod
 
-	Register a Walker type for a specific data type or role.
+	=head2 C<register-walker($type, $walker-type)>
 
-	@param $type - Type or role to register Walker for (can be type object or string name)
-	@param $walker-type - Walker type (class that does Qwiratry::Walker role)
+	=begin code
+	method register-walker($type, $walker-type)
+	=end code
+
+	=head3 Parameters
+
+	=item C<$type>
+
+	 The operation or wrapper type used to group the registration.
+
+	=item C<$walker-type>
+
+	 The walker implementation type to register for the data type.
+
+
+	Registers C<$walker-type> for a type or role name.
+
+	C<$type> may be a type object or a string. Registered entries are consulted
+	before the built-in table/tree heuristics, allowing tests and future adapters
+	to override selection for custom domains.
 
 	=end pod
 	method register-walker($type, $walker-type) {
@@ -130,17 +186,23 @@ class Qwiratry::Walker::Factory {
     
 	=begin pod
 
-	Discover available Walkers via Implementation::Loader.
+	=head2 C<!extract-walker-types(@raw)>
 
-	Scans for classes matching the Qwiratry::Walker::Implementation::* pattern in the specified
-	directories using Implementation::Loader. Results are cached for performance.
-	Discovered classes are assumed to implement Qwiratry::Walker role without runtime
-	verification.
+	=begin code
+	method !extract-walker-types(@raw --> Array)
+	=end code
 
-	@param :@paths - List of directory paths to scan (default: ['lib'])
-	@param :$refresh - If True, forces re-discovery and updates cache. If False,
-					returns cached results if available.
-	@returns Array[Qwiratry::Walker] - Array of discovered Walker type objects (not instances)
+	=head3 Parameters
+
+	=item C<@raw>
+
+	 Raw discovered walker type names before normalization.
+
+
+	Converts raw C<Implementation::Loader> results into walker type objects.
+
+	Loader failures are ignored per entry; only values that resolve and compose
+	L<Qwiratry::Walker> are returned.
 
 	=end pod
 	method !extract-walker-types(@raw --> Array) {
@@ -159,6 +221,32 @@ class Qwiratry::Walker::Factory {
 		return @found;
 	}
 
+	=begin pod
+
+	=head2 C<discover-walkers(:@paths, Bool :$refresh)>
+
+	=begin code
+	method discover-walkers(:@paths = ['lib'], Bool :$refresh = False)
+	=end code
+
+	=head3 Parameters
+
+	=item C<@paths>
+
+	 Directories to search when discovering walker implementations.
+
+	=item C<$refresh>
+
+	 Whether discovery should ignore cached results and rescan.
+
+
+	Discovers walker implementation type objects via C<Implementation::Loader>.
+
+	Results are cached unless C<:$refresh> is true. Discovery scans the built-in
+	C<Qwiratry::Walker::Implementation::*> namespace and test walker patterns, then
+	filters the result through C<!extract-walker-types>.
+
+	=end pod
 	method discover-walkers(:@paths = ['lib'], Bool :$refresh = False) {
 		# Return cached result if discovery already performed and refresh not requested
 		if $!discovery-performed && !$refresh {

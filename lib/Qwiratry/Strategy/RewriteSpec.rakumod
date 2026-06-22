@@ -1,19 +1,23 @@
 =begin pod
 
-Stub role marking rewrite specifications returned from Strategy hooks.
+=head1 Overview
 
-Distinguishes future rewrite payloads from L<ControlSignal|Qwiratry::Strategy::ControlSignal>
-return values. Concrete rewrite types will implement this role in a later feature.
+Marker role for rewrite specifications returned from strategy hooks.
+
+Strategy hooks can return control signals today, and future rewrite features need
+a separate type channel for payloads that describe structural edits. C<RewriteSpec>
+is that channel: walkers can distinguish "control traversal" from "apply this
+rewrite" without depending on a concrete rewrite class.
 
 =end pod
 unit module Qwiratry::Strategy::RewriteSpec;
 
 =begin pod
 
-Marker role for rewrite return values from C<on-match> and C<after> hooks.
+=head1 Role
 
-No methods are required today; implementations will be added when rewrite
-functionality is fully specified.
+No methods are required yet. Concrete rewrite specifications will compose this
+role when the rewrite protocol is fully specified.
 
 =end pod
 role RewriteSpec is export {

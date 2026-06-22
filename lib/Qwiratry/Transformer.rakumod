@@ -1,11 +1,19 @@
 =begin pod
 
-Transformer declarator and Transformer class for declarative data transformations
+=head1 Overview
 
-This module provides the custom `transformer` declarator and the Transformer class
-that enables pattern-matching transformations on various data structures using
-molds. Transformers integrate with the Qwiratry::Walker and Strategy systems for
-flexible data transformation workflows.
+Transformer declarator and runtime class for declarative data transformations.
+
+A C<transformer> class is composed by C<MetamodelX::TransformerHOW>. During
+composition, molds and wrappers collected by L<Qwiratry::Mold::Slang> are moved
+onto the transformer type, named molds become callable methods, and class traits
+such as C<is streaming>, C<returns>, and C<does TreeRewrite> are recorded for
+runtime use.
+
+At runtime, a transformer orders its molds, chooses a walker for the input data,
+iterates the selected nodes, and applies the first matching mold to each node.
+Wrappers and return-type checks are applied at the appropriate mold or whole
+transformer boundary.
 
 =end pod
 
@@ -53,16 +61,23 @@ Export transformer declarator via EXPORTHOW::DECLARE (defined after Transformer 
 
 =begin pod
 
-Base Transformer class
-Transformers declared with the `transformer` declarator should inherit from this
-Full implementation will be added in later work packages
+=head1 Class
+
+C<Transformer> is the base class installed behind the C<transformer> declarator.
+
+User-declared transformer classes inherit its mold ordering, traversal,
+copy/deepcopy helpers, wrapper dispatch, return checking, and callable entry
+point.
 
 =end pod
 class Transformer does Callable is export {
 	=begin pod
 
-	Molds defined in transformer body (populated in WP03).
-	Initialized from class-level registry when instance is created.
+	Molds attached to this transformer type.
+
+	The custom HOW stores compiled molds in a class-level registry keyed by type
+	identity. Instances copy that list during C<TWEAK> so traversal can order and
+	apply molds without consulting compile-time slang state.
 
 	=end pod
 	has @.molds is rw;
@@ -92,8 +107,11 @@ class Transformer does Callable is export {
     
 	=begin pod
 
-	Molds sorted by priority → specificity → tie-breaker (populated in WP04).
-	This array is populated by ORDER-MOLDS method and cached to avoid recalculation.
+	Cached mold execution order.
+
+	C<ORDER-MOLDS> populates this array by sorting priority, specificity, and
+	tie-breaker descending. The cache avoids recalculating ordering for every node
+	during a transform pass.
 
 	=end pod
 	has @.ordered-molds is rw;
@@ -101,7 +119,7 @@ class Transformer does Callable is export {
 	# Cache flag to avoid recalculating ordering
 	has Bool $!ordering-cached = False;
     
-	# Wrappers defined in transformer body (will be populated in WP08)
+	# Wrapper declarations are installed as generated methods during composition.
 	has @.wrappers;
     
 	# T052: Whether transformer has :streaming trait
@@ -120,11 +138,32 @@ class Transformer does Callable is export {
 	has Str $.mode = 'default';
     
 	=begin pod
-    
-	Make Transformer callable: MyTransform($data) syntax.
-	This will call TRANSFORM when it's implemented in WP06.
-	For WP02, this is a stub that returns self.
-    
+
+	=head1 Methods
+
+	=head2 C<CALL-ME(*@args, *%named)>
+
+	=begin code
+	method CALL-ME(*@args, *%named)
+	=end code
+
+	=head3 Parameters
+
+	=item C<@args>
+
+	 Positional input supplied when the transformer is called; the first non-pair value becomes the transform input.
+
+	=item C<%named>
+
+	 Named input and options supplied when the transformer is called; C<context>, C<streaming>, and C<mode> are routed as transform options.
+
+
+	Makes transformer types and instances callable.
+
+	Positional input becomes the transform data. Named C<context>, C<streaming>,
+	and C<mode> options are routed to C<transform>; remaining named arguments are
+	treated as data when no positional input is supplied.
+
 	=end pod
 	method CALL-ME(*@args, *%named) {
 		# T031: Call transform() method when transformer is called
@@ -148,13 +187,25 @@ class Transformer does Callable is export {
     
 	=begin pod
 
-	Apply molds to a single node, return first matching mold result.
+	=head2 C<APPLY($node)>
 
-	Iterates through ordered molds and returns the result of the first
-	matching mold. Stops after first match (no fallback to other molds).
+	=begin code
+	method APPLY($node --> Mu)
+	=end code
 
-	@param $node - Node to apply molds to
-	@returns Iterator|Mu|List|Nil - Result from first matching mold, or Nil if no match
+	=head3 Parameters
+
+	=item C<$node>
+
+	 The current node or element being matched, transformed, copied, or replaced.
+
+
+	Applies ordered molds to a single node.
+
+	The first mold whose matcher succeeds is executed. C<NextMold.throw> skips
+	that action and resumes with the next matching mold. Mold matcher/action
+	wrappers and transformer return-type checks are applied around the selected
+	mold result.
 
 	=end pod
 	method APPLY($node --> Mu) {
@@ -213,16 +264,23 @@ class Transformer does Callable is export {
     
 	=begin pod
 
-	Process transformer body AST to collect molds.
+	=head2 C<!collect-molds-from-body($body-ast)>
 
-	This method will be called by the HOW class during transformer compilation
-	to parse mold declarations from the transformer body.
+	=begin code
+	method !collect-molds-from-body($body-ast --> Array[Mold])
+	=end code
 
-	For WP03, this is a placeholder that will be enhanced when the custom HOW class
-	is implemented (currently blocked by serialization issues with extending ClassHOW).
+	=head3 Parameters
 
-	@param $body-ast - The RakuAST body of the transformer (not yet accessible)
-	@returns Array[Mold] - Array of collected Mold objects
+	=item C<$body-ast>
+
+	 The transformer body AST to scan for collected molds.
+
+
+	Compatibility hook for older body-AST collection experiments.
+
+	Current mold collection happens through L<Qwiratry::Mold::Registry> during HOW
+	composition, so this helper returns an empty typed array.
 
 	=end pod
 	method !collect-molds-from-body($body-ast --> Array[Mold]) {
@@ -233,13 +291,23 @@ class Transformer does Callable is export {
     
 	=begin pod
 
-	Add a mold to this transformer's mold collection.
+	=head2 C<add-mold(Mold $mold)>
 
-	This is a helper method for testing and manual mold registration.
-	In the final implementation, molds will be collected automatically
-	during compilation by the HOW class.
+	=begin code
+	method add-mold(Mold $mold)
+	=end code
 
-	@param Mold $mold - The mold to add
+	=head3 Parameters
+
+	=item C<$mold>
+
+	 The C<Mold> instance being registered, ordered, inspected, or copied.
+
+
+	Adds a mold to this transformer instance.
+
+	This is primarily a testing and manual-registration helper. Declarative
+	transformers normally receive molds from the HOW at class composition time.
 
 	=end pod
 	method add-mold(Mold $mold) {
@@ -251,12 +319,23 @@ class Transformer does Callable is export {
     
 	=begin pod
 
-	Process molds from body AST and store them.
+	=head2 C<!process-molds($body-ast)>
 
-	This method will be called by the HOW class during compilation.
-	For WP03, this is a placeholder that can be enhanced later.
+	=begin code
+	method !process-molds($body-ast)
+	=end code
 
-	@param $body-ast - The RakuAST body of the transformer
+	=head3 Parameters
+
+	=item C<$body-ast>
+
+	 The transformer body AST to scan for collected molds.
+
+
+	Compatibility helper that stores molds returned by C<!collect-molds-from-body>.
+
+	The active slang/HOW path bypasses this method, but keeping it documented
+	makes the older AST collection boundary explicit.
 
 	=end pod
 	method !process-molds($body-ast) {
@@ -269,17 +348,37 @@ class Transformer does Callable is export {
     
 	=begin pod
 
-	Orders molds by priority → specificity → tie-breaker.
-	Populates @.ordered-molds array with sorted molds.
-	Caches result to avoid recalculation.
+	=head2 C<ORDER-MOLDS()>
 
-	This method implements the mold ordering algorithm:
-	1. Sort by priority (highest first)
-	2. For equal priority, sort by specificity (highest first)
-	3. For equal priority and specificity, sort by tie-breaker (highest first)
-	4. Detect and report conflicts when molds have equal values
+	=begin code
+	method ORDER-MOLDS(--> Array)
+	=end code
 
-	@returns Array[Mold] - Array of molds in execution order
+	Returns molds in execution order and caches the result.
+
+	The ordering algorithm is:
+
+	=begin item :numbered
+	Sort by priority, highest first.
+	=end item
+
+	=begin item :numbered
+	For equal priority, sort by query specificity, highest first.
+	=end item
+
+	=begin item :numbered
+	For equal priority and specificity, sort by tie-breaker, highest first.
+	=end item
+
+	=begin item :numbered
+	Detect and report conflicts when molds have equal priority, specificity, and
+	tie-breaker values.
+	=end item
+
+	Specificity comes from the extracted C<when-query> when available; plain
+	predicate molds receive a small default score. Equal ordering values are
+	reported as L<X::Qwiratry::MoldOrderingConflict> because the transformer
+	cannot choose a deterministic winner.
 
 	=end pod
 	method ORDER-MOLDS(--> Array) {
@@ -333,14 +432,30 @@ class Transformer does Callable is export {
     
 	=begin pod
 
-	Main transformation method that orchestrates full transformation.
+	=head2 C<TRANSFORM($data, :$iterator)>
 
-	Calls ORDER-MOLDS to prepare molds, obtains Qwiratry::Walker via factory,
-	iterates over data nodes, and applies molds to each node.
+	=begin code
+	method TRANSFORM($data, Iterator :$iterator --> Mu)
+	=end code
 
-	@param $data - Root data structure to transform
-	@param Iterator :$iterator - Optional iterator (if not provided, uses default or Qwiratry::Walker-provided)
-	@returns Iterator|Mu|List|Nil - Transformation results
+	=head3 Parameters
+
+	=item C<$data>
+
+	 The input data, root value, or rendered value handled by this operation.
+
+	=item C<$iterator>
+
+	 The iterator that supplies traversal elements.
+
+
+	Transforms a root data structure by walking its nodes and applying molds.
+
+	The method selects a walker through L<Qwiratry::Walker::Factory> unless the
+	caller supplies an iterator, installs C<$*TRANSFORM-ROOT>, applies molds to
+	each traversed node, optionally performs tree replacement, and finally applies
+	whole-transformer wrappers. Streaming transformers return an iterator over
+	results; non-streaming transformers return a list.
 
 	=end pod
 	method TRANSFORM($data, Iterator :$iterator --> Mu) {
@@ -437,14 +552,24 @@ class Transformer does Callable is export {
     
 	=begin pod
 
-	Create default iterator for data traversal.
+	=head2 C<!default-traversal-query(Mu $data)>
 
-	Provides a simple depth-first, top-down iterator for basic data structures.
-	For more complex cases, Qwiratry::Walker-provided iterators should be used.
+	=begin code
+	method !default-traversal-query(Mu $data --> Mu)
+	=end code
 
-	@param $data - Root data structure
-	@param Qwiratry::Walker? $walker - Optional Walker (not used in MVP, for future enhancement)
-	@returns Iterator - Iterator that yields nodes
+	=head3 Parameters
+
+	=item C<$data>
+
+	 The input data, root value, or rendered value handled by this operation.
+
+
+	Builds the query used for default traversal.
+
+	Collection-like inputs are traversed with a descendant wildcard query; scalar
+	inputs are wrapped in a root query. The selected walker then decides how that
+	query maps to concrete nodes.
 
 	=end pod
 	method !default-traversal-query(Mu $data --> Mu) {
@@ -514,16 +639,37 @@ class Transformer does Callable is export {
     
 	=begin pod
 
-	Transformation entrypoint that determines mode and delegates.
+	=head2 C<transform($input, :$context, :$streaming, :$mode)>
 
-	This is the public API entrypoint. Handles mode detection and delegation
-	to appropriate methods (prepare, apply, _transform_iterator, TRANSFORM).
+	=begin code
+	method transform($input, :$context, :$streaming, :$mode --> Mu)
+	=end code
 
-	@param $input - Input data to transform
-	@param :$context - Optional context (defaults to $*CONTEXT)
-	@param :$streaming - Optional streaming override (overrides trait setting)
-	@param :$mode - Optional mode ('default', 'pre', 'inline', 'post', etc.)
-	@returns Iterator|Mu|List|Nil - Transformation results
+	=head3 Parameters
+
+	=item C<$input>
+
+	 The value supplied to the transformer entry point.
+
+	=item C<$context>
+
+	 Optional caller-provided traversal context.
+
+	=item C<$streaming>
+
+	 Optional flag selecting streaming results instead of eager materialization.
+
+	=item C<$mode>
+
+	 Optional transform mode override for inline, post, or default traversal behavior.
+
+
+	Public transformation entry point.
+
+	C<:mode> can force pre, inline, post, rewrite-optional, or rewrite-mandatory
+	behavior. Without an explicit mode, iterators use post mode, single elements
+	use inline mode, and larger structures use normal traversal. C<:streaming>
+	overrides the transformer's streaming trait for this call.
 
 	=end pod
 	method transform($input, :$context, :$streaming, :$mode --> Mu) {
@@ -587,28 +733,35 @@ class Transformer does Callable is export {
     
 	=begin pod
 
-	Calculate specificity score for a mold based on its when clause.
-	Implements basic specificity calculation for static patterns.
+	=head2 C<!calculate-specificity(Mold $mold)>
 
-	**MVP Implementation (WP04)**:
-	This is a basic implementation that provides a default specificity value
-	for molds with when blocks. Full AST analysis will be implemented when
-	query operators are available.
+	=begin code
+	method !calculate-specificity(Mold $mold --> Int)
+	=end code
 
-	**Future Enhancement**:
-	When query operators (⪪, ⪪⪪, etc.) are available, this method should analyze
-	the when-block AST to calculate specificity based on:
-	- Multilevel axis (⪪⪪): -100
-	- Wildcards (*): -10
-	- Explicit path elements: +5
-	- Attribute axes: +5
-	- Union queries: calculate each branch, take max
+	=head3 Parameters
 
-	For complex queries with dynamic predicates, specificity calculation may
-	need to be deferred to runtime evaluation.
+	=item C<$mold>
 
-	@param Mold $mold - Mold to calculate specificity for
-	@returns Int - Specificity score (higher is more specific)
+	 The C<Mold> instance being registered, ordered, inspected, or copied.
+
+
+	Calculates an ordering specificity score for C<$mold>.
+
+	Extracted navigation queries are scored by L<Qwiratry::Query::Specificity>.
+	Plain predicate molds receive a small default score, and molds without a
+	matcher receive zero. Higher scores are tried earlier when priority ties.
+
+	=head3 Future Enhancement
+
+	The navigation-query part of the original future work has been implemented:
+	C<when-query> ASTs are delegated to L<Qwiratry::Query::Specificity>, which
+	scores multilevel axes, wildcards, explicit path elements, attribute axes, and
+	union-like branches.
+
+	Predicate-only molds still use the default score. Future work may analyze
+	dynamic C<when> predicates, mixed query/predicate clauses, or other AST shapes
+	that cannot yet be reduced to a C<when-query>.
 
 	=end pod
 	method !calculate-specificity(Mold $mold --> Int) {
@@ -625,12 +778,28 @@ class Transformer does Callable is export {
     
 	=begin pod
 
-	Detect mold ordering conflicts.
-	Reports error when two molds have equal priority, specificity, and tie-breaker
-	and could match the same node.
+	=head2 C<!detect-conflicts(@sorted, %specificity-cache)>
 
-	@param Array[Mold] @sorted - Sorted array of molds
-	@param Hash %specificity-cache - Cache of calculated specificity values
+	=begin code
+	method !detect-conflicts(@sorted, %specificity-cache)
+	=end code
+
+	=head3 Parameters
+
+	=item C<@sorted>
+
+	 The molds sorted by priority and specificity for conflict detection.
+
+	=item C<%specificity-cache>
+
+	 Cached specificity scores keyed by mold identity.
+
+
+	Reports mold ordering conflicts after sorting.
+
+	Two molds with equal priority, specificity, and tie-breaker are treated as
+	ambiguous because they could both match the same node. The error names both
+	molds and suggests using explicit tie-breakers.
 
 	=end pod
 	method !detect-conflicts(@sorted, %specificity-cache) {
@@ -667,13 +836,20 @@ class Transformer does Callable is export {
     
 	=begin pod
 
-	Shallow copy a node.
+	=head2 C<copy($node)>
 
-	Delegates to L<Qwiratry::Transformer::Copy>.
-	Provides convenient access: C<$transformer.copy($node)>
+	=begin code
+	method copy($node --> Mu)
+	=end code
 
-	@param $node - Node to copy
-	@returns Mu - Shallow copy of node
+	=head3 Parameters
+
+	=item C<$node>
+
+	 The current node or element being matched, transformed, copied, or replaced.
+
+
+	Shallow-copies a node by delegating to L<Qwiratry::Transformer::Copy>.
 
 	=end pod
 	method copy($node --> Mu) {
@@ -682,13 +858,20 @@ class Transformer does Callable is export {
     
 	=begin pod
 
-	Deep copy a node.
+	=head2 C<deepcopy($node)>
 
-	Delegates to L<Qwiratry::Transformer::Copy>.
-	Provides convenient access: C<$transformer.deepcopy($node)>
+	=begin code
+	method deepcopy($node --> Mu)
+	=end code
 
-	@param $node - Node to deep copy
-	@returns Mu - Deep copy of node
+	=head3 Parameters
+
+	=item C<$node>
+
+	 The current node or element being matched, transformed, copied, or replaced.
+
+
+	Deep-copies a node by delegating to L<Qwiratry::Transformer::Copy>.
 
 	=end pod
 	method deepcopy($node --> Mu) {
@@ -696,16 +879,29 @@ class Transformer does Callable is export {
 	}
     
 	=begin pod
-    
-	T055: Pre-transformation stage (before traversal).
-    
-	Called when transform is called with :mode<pre>.
-	Operates on whole data structure before traversal.
-	Can modify or annotate structure.
-    
-	@param $data - Root data structure to prepare
-	@param :$context - Optional context
-	@returns Mu - Potentially modified structure
+
+	=head2 C<prepare($data, :$context)>
+
+	=begin code
+	method prepare($data, :$context --> Mu)
+	=end code
+
+	=head3 Parameters
+
+	=item C<$data>
+
+	 The input data, root value, or rendered value handled by this operation.
+
+	=item C<$context>
+
+	 Optional caller-provided traversal context.
+
+
+	Pre-transformation hook for C<:mode<pre>>.
+
+	The default implementation returns the data unchanged. Subclasses can
+	override it to validate, annotate, or normalize the whole root before normal
+	traversal.
     
 	=end pod
 	method prepare($data, :$context --> Mu) {
@@ -721,17 +917,33 @@ class Transformer does Callable is export {
 	}
     
 	=begin pod
-    
-	T056: Inline transformation stage (during traversal).
-    
-	Called when transform is called with :mode<inline> or rewrite modes.
-	Operates on each element during traversal.
-	Can mutate in-place if $.mutates-input is true.
-    
-	@param $element - Element to transform
-	@param :$context - Optional context
-	@param :$mode - Transformation mode (inline, rewrite-optional, rewrite-mandatory)
-	@returns Mu - Transformed element
+
+	=head2 C<apply($element, :$context, :$mode)>
+
+	=begin code
+	method apply($element, :$context, :$mode --> Mu)
+	=end code
+
+	=head3 Parameters
+
+	=item C<$element>
+
+	 The element being transformed or passed through strategy hooks.
+
+	=item C<$context>
+
+	 Optional caller-provided traversal context.
+
+	=item C<$mode>
+
+	 Optional transform mode override for inline, post, or default traversal behavior.
+
+
+	Inline transformation hook for a single element.
+
+	The default implementation runs C<APPLY>. Rewrite modes return the mold result
+	when mutation is enabled, and C<rewrite-mandatory> reports an error if no mold
+	produces a replacement.
     
 	=end pod
 	method apply($element, :$context, :$mode --> Mu) {
@@ -761,15 +973,32 @@ class Transformer does Callable is export {
 	}
     
 	=begin pod
-    
-	Transform an iterator (post mode).
-    
-	Consumes a QueryIterator or Iterator and transforms each element.
-    
-	@param Iterator $iterator - Iterator to transform
-	@param :$context - Optional context
-	@param :$streaming - Whether to return streaming results
-	@returns Iterator|List - Transformation results
+
+	=head2 C<_transform_iterator(Iterator $iterator, :$context, :$streaming)>
+
+	=begin code
+	method _transform_iterator(Iterator $iterator, :$context, :$streaming = False --> Mu)
+	=end code
+
+	=head3 Parameters
+
+	=item C<$iterator>
+
+	 The iterator that supplies traversal elements.
+
+	=item C<$context>
+
+	 Optional caller-provided traversal context.
+
+	=item C<$streaming>
+
+	 Optional flag selecting streaming results instead of eager materialization.
+
+
+	Transforms each item pulled from an iterator in post mode.
+
+	Streaming mode returns an iterator over collected results; otherwise the
+	results are returned as a list.
     
 	=end pod
 	method _transform_iterator(Iterator $iterator, :$context, :$streaming = False --> Mu) {
@@ -791,13 +1020,22 @@ class Transformer does Callable is export {
 	}
     
 	=begin pod
-    
-	Heuristic to determine if input is a single element (not a collection).
-    
-	Used for mode auto-detection.
-    
-	@param $input - Input to check
-	@returns Bool - True if appears to be single element
+
+	=head2 C<_is-single-element($input)>
+
+	=begin code
+	method _is-single-element($input --> Bool)
+	=end code
+
+	=head3 Parameters
+
+	=item C<$input>
+
+	 The value supplied to the transformer entry point.
+
+
+	Returns true when C<$input> should be treated as a single element for mode
+	auto-detection.
     
 	=end pod
 	method _is-single-element($input --> Bool) {
@@ -915,9 +1153,12 @@ my package EXPORTHOW {
 
 =begin pod
 
-Trait to ensure transformer classes inherit from Transformer base class
-This will be applied automatically by the HOW class in a future work package
-For WP02, transformers should manually inherit: `transformer MyX is Transformer { }`
+=head1 Declarator Export
+
+C<EXPORTHOW::DECLARE> exports the C<transformer> declarator. The custom HOW
+ensures declared transformer classes inherit from C<Transformer>, collects molds
+and wrappers from the slang registry, and installs generated methods during
+class composition.
 
 =end pod
 

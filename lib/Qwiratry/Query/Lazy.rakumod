@@ -1,9 +1,20 @@
 =begin pod
 
+=head1 Overview
+
 Lazy, pull-driven query evaluation for set and relational operators.
 
 C<select-seq> yields results incrementally so joins and set operations do not
 materialize full intermediate relations before the first row is consumed.
+
+This module is the lazy backend used by L<Qwiratry::Query::Match>. It exposes
+small constructors that wrap purpose-built iterator classes in C<Seq> objects.
+The public functions preserve relational semantics while delaying work until the
+caller pulls the next result.
+
+Some operations still snapshot one side of a relation when membership checks
+require it. The goal is not "never materialize"; it is to avoid building every
+intermediate result before the first downstream consumer can run.
 
 =end pod
 unit module Qwiratry::Query::Lazy;
@@ -346,30 +357,102 @@ class RenameIterator does Iterator {
 	}
 }
 
+=begin pod
+
+=head1 Exported Constructors
+
+=head2 C<lazy-natural-join($left, $right, &condition)>
+
+    our sub lazy-natural-join($left, $right, &condition --> Seq)
+
+Returns a lazy sequence of merged rows from the left and right sources.
+
+When C<&condition> is defined it decides row compatibility; otherwise rows
+join on common associative keys.
+
+=end pod
 our sub lazy-natural-join($left, $right, &condition) is export {
 	lazy-seq NaturalJoinIterator.new(:$left, :$right, :&condition)
 }
 
+=begin pod
+
+=head2 C<lazy-left-outer-join($left, $right, &condition)>
+
+    our sub lazy-left-outer-join($left, $right, &condition --> Seq)
+
+Returns matching joined rows plus unmatched left rows.
+
+=end pod
 our sub lazy-left-outer-join($left, $right, &condition) is export {
 	lazy-seq LeftOuterJoinIterator.new(:$left, :$right, :&condition)
 }
 
+=begin pod
+
+=head2 C<lazy-right-outer-join($left, $right, &condition)>
+
+    our sub lazy-right-outer-join($left, $right, &condition --> Seq)
+
+Returns matching joined rows plus unmatched right rows.
+
+=end pod
 our sub lazy-right-outer-join($left, $right, &condition) is export {
 	lazy-seq RightOuterJoinIterator.new(:$left, :$right, :&condition)
 }
 
+=begin pod
+
+=head2 C<lazy-left-semijoin($left, $right, &condition)>
+
+    our sub lazy-left-semijoin($left, $right, &condition --> Seq)
+
+Returns left rows that have at least one matching right row.
+
+=end pod
 our sub lazy-left-semijoin($left, $right, &condition) is export {
 	lazy-seq LeftSemijoinIterator.new(:$left, :$right, :&condition)
 }
 
+=begin pod
+
+=head2 C<lazy-left-antijoin($left, $right, &condition)>
+
+    our sub lazy-left-antijoin($left, $right, &condition --> Seq)
+
+Returns left rows that have no matching right row.
+
+=end pod
 our sub lazy-left-antijoin($left, $right, &condition) is export {
 	lazy-seq LeftAntijoinIterator.new(:$left, :$right, :&condition)
 }
 
+=begin pod
+
+=head2 C<lazy-cross-join($left, $right)>
+
+    our sub lazy-cross-join($left, $right --> Seq)
+
+Returns the Cartesian product of two row sources as merged rows.
+
+=end pod
 our sub lazy-cross-join($left, $right) is export {
 	lazy-seq CrossJoinIterator.new(:$left, :$right)
 }
 
+=begin pod
+
+=head2 C<lazy-union(+@sources)>
+
+    our sub lazy-union(+@sources --> Seq)
+
+Returns unique rows from each source in source order.
+
+Seen-row tracking is identity/value aware through
+L<Qwiratry::Query::Relational>, so duplicates are suppressed as rows are
+pulled.
+
+=end pod
 our sub lazy-union(+@sources) is export {
 	my Mu @prepared = @sources.map(-> $source {
 		$source ~~ Seq ?? $source.cache !! $source
@@ -377,14 +460,44 @@ our sub lazy-union(+@sources) is export {
 	lazy-seq UnionIterator.new(sources => Array.new(@prepared))
 }
 
+=begin pod
+
+=head2 C<lazy-intersection($left, $right)>
+
+    our sub lazy-intersection($left, $right --> Seq)
+
+Returns rows from C<$left> that are present in C<$right>.
+
+=end pod
 our sub lazy-intersection($left, $right) is export {
 	lazy-seq IntersectionIterator.new(:$left, :$right)
 }
 
+=begin pod
+
+=head2 C<lazy-set-difference($left, $right)>
+
+    our sub lazy-set-difference($left, $right --> Seq)
+
+Returns rows from C<$left> that are not present in C<$right>.
+
+=end pod
 our sub lazy-set-difference($left, $right) is export {
 	lazy-seq SetDifferenceIterator.new(:$left, :$right)
 }
 
+=begin pod
+
+=head2 C<lazy-symmetric-difference($left, $right)>
+
+    our sub lazy-symmetric-difference($left, $right --> Seq)
+
+Returns rows present in exactly one of the two sources.
+
+This operation snapshots both sides before yielding because each side must be
+compared against the other.
+
+=end pod
 our sub lazy-symmetric-difference($left, $right) is export {
 	my @right-list = iterator-for($right).list;
 	my @left-list = iterator-for($left).list;
@@ -399,6 +512,16 @@ our sub lazy-symmetric-difference($left, $right) is export {
 	lazy-seq ListIterator.new(items => @items)
 }
 
+=begin pod
+
+=head2 C<lazy-projection($rows, @columns)>
+
+    our sub lazy-projection($rows, @columns --> Seq)
+
+Returns rows projected to the requested columns, passing through
+non-associative values unchanged.
+
+=end pod
 our sub lazy-projection($rows, @columns) is export {
 	lazy-seq ProjectionIterator.new(:$rows, :@columns)
 }
@@ -421,11 +544,30 @@ class FilterIterator does Iterator {
 	}
 }
 
+=begin pod
+
+=head2 C<lazy-filter($source, &match)>
+
+    our sub lazy-filter($source, &match --> Seq)
+
+Returns items from C<$source> for which C<&match> is true.
+
+=end pod
 our sub lazy-filter($source, &match) is export {
 	my $inner = iterator-for($source);
 	lazy-seq FilterIterator.new(:iter($inner), :matcher(&match))
 }
 
+=begin pod
+
+=head2 C<lazy-rename($rows, %renames)>
+
+    our sub lazy-rename($rows, %renames --> Seq)
+
+Returns rows with associative keys renamed according to C<%renames>, passing
+through non-associative values unchanged.
+
+=end pod
 our sub lazy-rename($rows, %renames) is export {
 	lazy-seq RenameIterator.new(:$rows, :%renames)
 }

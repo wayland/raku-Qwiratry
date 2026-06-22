@@ -1,9 +1,19 @@
 =begin pod
 
+=head1 Overview
+
 Minimal JSON demo format module (no external dependencies).
 
 Defines C<Qwiratry::Format::JSONdemo::Parse> and C<Qwiratry::Format::JSONdemo::Render>
 implementations loaded through L<Qwiratry::Format.make>.
+
+This backend exists so source/parse/render/destination pipelines can run in a
+fresh checkout without pulling in a JSON library. The parser lowers JSON objects
+to hashes, arrays to arrays, strings to C<Str>, numbers to C<Int> or C<Num>, and
+JSON literals to Raku booleans or C<Nil>.
+
+The renderer performs the inverse for ordinary Raku scalar, positional, and
+associative values. It supports a C<:pretty> option for multi-line output.
 
 =end pod
 use Qwiratry::Format::Base;
@@ -86,6 +96,30 @@ class Qwiratry::Format::JSONdemo::Actions {
 
 class Qwiratry::Format::JSONdemo::Parse is Qwiratry::Format::Base::Parse {
 
+	=begin pod
+
+	=head1 Methods
+
+	=head2 C<parse(Str $input-string)>
+
+	=begin code
+	method parse(Str $input-string --> Mu)
+	=end code
+
+	=head3 Parameters
+
+	=item C<$input-string>
+
+	 The external text to parse into Qwiratry data.
+
+
+	Parses JSONdemo text into Raku data.
+
+	Invalid input dies with a concise demo-format error. The caller is typically
+	an adaptor pipeline, so higher layers decide whether to wrap that exception in
+	a user-facing diagnostic.
+
+	=end pod
 	method parse(Str $input-string --> Mu) {
 		my $match = Qwiratry::Format::JSONdemo::Grammar.parse(
 			$input-string,
@@ -98,6 +132,31 @@ class Qwiratry::Format::JSONdemo::Parse is Qwiratry::Format::Base::Parse {
 
 class Qwiratry::Format::JSONdemo::Render is Qwiratry::Format::Base::Render {
 
+	=begin pod
+
+	=head2 C<render(Mu $data, Associative :%options)>
+
+	=begin code
+	method render(Mu $data, Associative :%options --> Str)
+	=end code
+
+	=head3 Parameters
+
+	=item C<$data>
+
+	 The input data, root value, or rendered value handled by this operation.
+
+	=item C<%options>
+
+	 Named format options, such as rendering preferences.
+
+
+	Renders Raku data to JSONdemo text.
+
+	C<%options<pretty>> enables indentation. Other options are ignored, keeping
+	the demo renderer small while preserving the common format-backend signature.
+
+	=end pod
 	method render(Mu $data, Associative :%options --> Str) {
 		my $pretty = %options<pretty> // False;
 		self.to-json-text($data, $pretty, 0)

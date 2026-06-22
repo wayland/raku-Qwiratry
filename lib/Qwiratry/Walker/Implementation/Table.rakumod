@@ -1,9 +1,20 @@
 =begin pod
 
+=head1 Overview
+
 Table Walker for flat row collections (scan/index domain).
 
 Treats a Positional of Associative rows as a table and evaluates queries
 row-by-row without descending into nested tree structures.
+
+The factory selects this walker for positional data whose first row is
+associative and does not look like a tree node. It also works with
+L<Qwiratry::Table::Catalog>, where the active row set and foreign-key metadata
+come from the catalog rather than a plain list.
+
+Plans are reusable and iterators are lazy. With no strategy attached, iteration
+delegates to L<Qwiratry::Query::Match.select>; with a strategy attached, the
+walker scans rows explicitly so it can call strategy hooks around each row.
 
 =end pod
 
@@ -148,6 +159,34 @@ class Qwiratry::Walker::Implementation::Table does Qwiratry::Walker is export {
 		}
 	}
 
+	=begin pod
+
+	=head1 Methods
+
+	=head2 C<plan(Mu $query, Mu:D $root)>
+
+	=begin code
+	method plan(Mu $query, Mu:D $root --> Qwiratry::Walker::Plan)
+	=end code
+
+	=head3 Parameters
+
+	=item C<$query>
+
+	 The query AST or operator node being planned or tested.
+
+	=item C<$root>
+
+	 The traversal root that provides the data context for the delegated plan.
+
+
+	Builds a reusable table execution plan for C<$query> and C<$root>.
+
+	Unsupported query nodes raise L<X::Qwiratry::UnknownQueryElement> at planning
+	time. The returned plan records the query, root, and walker so each iterator
+	can create its own table context.
+
+	=end pod
 	method plan(Mu $query, Mu:D $root --> Qwiratry::Walker::Plan) {
 		unless self.supports($query) {
 			X::Qwiratry::UnknownQueryElement.new(
@@ -159,10 +198,50 @@ class Qwiratry::Walker::Implementation::Table does Qwiratry::Walker is export {
 		TablePlan.new(:query-ast($query), :root($root), :walker(self));
 	}
 
+	=begin pod
+
+	=head2 C<iterator(Qwiratry::Walker::Plan $plan)>
+
+	=begin code
+	method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator)
+	=end code
+
+	=head3 Parameters
+
+	=item C<$plan>
+
+	 The execution plan to turn into a fresh query iterator.
+
+
+	Returns a fresh iterator from an existing table plan.
+
+	Each iterator owns its C<TableContext>, including row counters and strategy
+	state, so repeated iteration over the same plan is independent.
+
+	=end pod
 	method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
 		$plan.iterator;
 	}
 
+	=begin pod
+
+	=head2 C<supports(Mu $query)>
+
+	=begin code
+	method supports(Mu $query --> Bool)
+	=end code
+
+	=head3 Parameters
+
+	=item C<$query>
+
+	 The query AST or operator node being planned or tested.
+
+
+	Returns true for query node families the table walker can evaluate:
+	navigation, set, map-reduce, and root operators.
+
+	=end pod
 	method supports(Mu $query --> Bool) {
 		return True if $query ~~ RootOperator;
 		return True if $query ~~ NavigationOperator;
@@ -171,6 +250,25 @@ class Qwiratry::Walker::Implementation::Table does Qwiratry::Walker is export {
 		False;
 	}
 
+	=begin pod
+
+	=head2 C<POST-PASS(Context $ctx)>
+
+	=begin code
+	method POST-PASS(Context $ctx)
+	=end code
+
+	=head3 Parameters
+
+	=item C<$ctx>
+
+	 The traversal context carrying walker and strategy state.
+
+
+	Runs the strategy continuation hook after traversal, recording optional test
+	instrumentation fields when the context supports them.
+
+	=end pod
 	method POST-PASS(Context $ctx) {
 		if $ctx.strategy.defined {
 			my $should-continue = $ctx.strategy.should-continue($ctx.strategy, $ctx);
@@ -179,6 +277,18 @@ class Qwiratry::Walker::Implementation::Table does Qwiratry::Walker is export {
 		}
 	}
 
+	=begin pod
+
+	=head2 C<capabilities()>
+
+	=begin code
+	method capabilities(--> Associative)
+	=end code
+
+	Returns capability metadata used by planner and introspection code. The table
+	walker advertises table navigation and incremental lazy scanning.
+
+	=end pod
 	method capabilities(--> Associative) {
 		Qwiratry::Walker::Capabilities.instance.merge(
 			Qwiratry::Walker::Capabilities.instance.navigation(:enabled(True), 'table'),

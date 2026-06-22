@@ -5,8 +5,10 @@ Location implementation factory.
 Use L<make> with an operation type and location string to obtain a concrete
 implementation object:
 
-  Qwiratry::Location.make(:type<Source>, :location<./data.json>)
-  Qwiratry::Location.make(:type<Destination>, :location<file:///tmp/out.json>)
+=begin code
+Qwiratry::Location.make(:type<Source>, :location<./data.json>)
+Qwiratry::Location.make(:type<Destination>, :location<file:///tmp/out.json>)
+=end code
 
 Location modules live under C<Qwiratry::Location::<BACKEND>> and define
 operation classes such as C<Qwiratry::Location::File::Source> and

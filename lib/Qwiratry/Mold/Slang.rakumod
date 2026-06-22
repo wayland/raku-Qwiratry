@@ -8,12 +8,14 @@ compunit when mold C<when> blocks use navigation operators (C<⪪>, C<⪪⪪>, e
 
 Mold syntax (Specification.md section 3.3.3):
 
-  mold [name] [signature] [traits] when { ... } do { ... }
+=begin code
+mold [name] [signature] [traits] when { ... } do { ... }
+=end code
 
 =head2 RakuAST implementation
 
 - Components are extracted from RakuAST blockoid/signature nodes
-- Molds are structured as conceptual Methods (WP03): when = where constraint, do = body
+- Molds are structured as conceptual methods: when = where constraint, do = body
 - No string-based compilation or MONKEY-SEE-NO-EVAL
 
 =end pod

@@ -1,20 +1,28 @@
 =begin pod
 
-TreeRewrite role for in-place rewriting transformations
+=head1 Overview
 
-This role provides the `does TreeRewrite` trait that enables transformers
-to mutate input data structures in-place. When a transformer does TreeRewrite,
-the APPLY method behavior is modified to allow immediate node replacement.
+Marker role for in-place tree rewriting transformers.
+
+A transformer that composes C<TreeRewrite> opts into mutating the input tree
+instead of only producing transformed output. L<Qwiratry::Transformer> detects
+the role at composition time, records the C<tree-rewrite> trait metadata, and
+enables C<make> to replace the current node through L<Qwiratry::Tree::Replace>
+during mold execution.
+
+The role has no methods because the behavior belongs to the transformer's
+runtime application path. Keeping the marker separate makes the opt-in visible
+in transformer declarations without adding a second inheritance hierarchy.
 
 =end pod
 unit module Qwiratry::Transformer::TreeRewrite;
 
 =begin pod
 
-TreeRewrite role that modifies APPLY behavior for in-place rewriting.
+=head1 Role
 
-When a transformer does TreeRewrite, it can mutate input nodes directly.
-The APPLY method will use `make` to immediately replace the current node.
+C<TreeRewrite> is composed by transformer classes that want C<make> to update
+the active transform root in place when a mold action emits a replacement value.
 
 =end pod
 role TreeRewrite is export {

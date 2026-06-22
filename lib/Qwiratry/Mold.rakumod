@@ -1,11 +1,18 @@
 =begin pod
 
-Mold class for pattern-matching transformation rules
+=head1 Overview
 
-This module provides the Mold class that represents individual
-transformation rules within a Transformer. Molds consist of
-a `when` block (matcher) and a `do` block (action), along with
-metadata for ordering (priority, specificity, tie-breaker).
+Runtime representation of pattern-matching transformation rules.
+
+A C<Mold> is the compiled form of a C<mold> declaration from
+L<Qwiratry::Mold::Slang>. It combines a matcher (C<when> block and/or extracted
+navigation query), an action (C<do> block), optional signature binding, and
+ordering metadata used by L<Qwiratry::Transformer>.
+
+Mold execution is also where the transformer dynamic variables are established:
+C<$_>, C<$*CONTEXT>, C<$*MAKE-OUTPUT>, C<$*TRANSFORM-ROOT>, and related rewrite
+state. That lets mold bodies look like ordinary Raku blocks while still
+participating in Qwiratry's traversal and output protocol.
 
 =end pod
 unit module Qwiratry::Mold;
@@ -46,7 +53,27 @@ our $*TRANSFORM-REWRITE is export;
 
 =begin pod
 
-Add a value to the current mold's output stream.
+=head1 Functions
+
+=head2 C<make(Mu $value)>
+
+=begin code
+sub make(Mu $value) is export
+=end code
+
+=head3 Parameters
+
+=item C<$value>
+
+ The value to emit as this mold action's result.
+
+
+ Adds C<$value> to the current mold's output stream.
+
+ C<make> is valid only while a mold action is running. If the active transformer
+ is in tree-rewrite mode, C<make> also asks L<Qwiratry::Tree::Replace> to replace
+ the current transform node under the current root. The value is returned so mold
+ actions can use C<make> in expression position.
 
 =end pod
 sub make(Mu $value) is export {
@@ -65,7 +92,11 @@ sub make(Mu $value) is export {
 
 =begin pod
 
-Skip the current mold action and continue with the next matching mold.
+=head1 Control Flow
+
+C<NextMold.throw> raises L<X::Qwiratry::NextMold>, which tells
+L<Qwiratry::Transformer.APPLY> to abandon the current mold action and continue
+with the next matching mold.
 
 =end pod
 class NextMold is export {
@@ -79,16 +110,21 @@ class NextMold is export {
 
 =begin pod
 
-Mold class representing a match-and-action rule within a Transformer.
+=head1 Class
 
-Molds define how nodes are selected (via `when` block) and transformed
-(via `do` block). Molds are ordered by priority → specificity → tie-breaker
-to determine which mold applies when multiple could match.
+C<Mold> represents a match-and-action rule within a transformer.
 
-Example:
-  mold section() when { $_.name eq 'section' } do {
-      make Node.new(name => $_.name);
-  }
+Molds are ordered by priority, query specificity, and tie-breaker before
+application. Named molds can also be installed as methods on the transformer
+class, while anonymous molds participate only in traversal.
+
+=head2 Example
+
+=begin code
+mold section() when { $_.name eq 'section' } do {
+    make Node.new(name => $_.name);
+}
+=end code
 
 =end pod
 class Mold is export {
@@ -197,13 +233,28 @@ class Mold is export {
     
 	=begin pod
 
-	Evaluates `when` block against node, returns True if matches.
+	=head1 Methods
 
-	Sets magic variables ($*CONTEXT, $_) before evaluating the when block.
-	Handles errors gracefully by returning False if evaluation fails.
+	=head2 C<matches($node)>
 
-	@param $node - Node to match against
-	@returns Bool - True if mold matches node
+	=begin code
+	method matches($node --> Bool)
+	=end code
+
+	=head3 Parameters
+
+	=item C<$node>
+
+	 The current node or element being matched, transformed, copied, or replaced.
+
+
+	Returns true when this mold applies to C<$node>.
+
+	If the slang extracted a navigation query, the query is evaluated against the
+	current transform root. For mixed query-plus-predicate molds, the query must
+	match before the predicate block runs. Predicate failures are contained and
+	reported as C<False>, keeping one bad matcher from aborting the whole mold
+	ordering pass.
 
 	=end pod
 	method matches($node --> Bool) {
@@ -368,15 +419,37 @@ class Mold is export {
     
 	=begin pod
 
-	Executes `do` block with magic variables set, returns result.
+	=head2 C<execute($node, :$transformer, :$context)>
 
-	Sets all magic variables ($*CONTEXT, $_, $*CAPTURE, $/, self) before
-	executing the do block. Handles both `make` calls and return values.
+	=begin code
+	method execute($node, :$transformer, :$context --> Mu)
+	=end code
 
-	@param $node - Node to transform
-	@param :$transformer - Transformer instance (for self reference)
-	@param :$context - Optional context (defaults to $node)
-	@returns Iterator|Mu|List|Nil - Transformation result
+	=head3 Parameters
+
+	=item C<$node>
+
+	 The current node or element being matched, transformed, copied, or replaced.
+
+	=item C<$transformer>
+
+	 The transformer instance executing this mold, used for wrapper hooks and action
+	 post-processing.
+
+	=item C<$context>
+
+	 Optional caller-provided traversal context.
+
+
+	Executes the C<do> block for C<$node> and returns the transformation result.
+
+	The method sets topic/context dynamic variables, prepares signature captures
+	for parameterized molds, chooses the correct invocant for method-like blocks,
+	and collects values emitted through C<make>. C<make> output wins over the
+	block's return value; multiple C<make> calls become a list.
+
+	When a transformer instance is supplied, mold-action wrappers and return-type
+	checking are applied before the final result is returned.
 
 	=end pod
 	method execute($node, :$transformer, :$context --> Mu) {

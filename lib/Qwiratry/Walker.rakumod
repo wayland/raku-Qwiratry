@@ -1,15 +1,15 @@
 =begin pod
 
-Qwiratry::Walker role and Qwiratry::Walker::Plan role for query execution planning
+=head1 Overview
 
-This module provides the core infrastructure roles for query execution:
-  - Qwiratry::Walker::Plan: Represents a precomputed execution strategy
-  - Qwiratry::Walker: Encapsulates how a query is executed over a data structure
+Core roles for query planning and execution.
 
-Lifecycle:
-  Qwiratry::Walker creates Qwiratry::Walker::Plan via plan() method
-  Qwiratry::Walker creates QueryIterator from Qwiratry::Walker::Plan via iterator() method
-  QueryIterator produces results incrementally via next()
+Walkers separate planning from iteration. A L<Qwiratry::Walker> analyzes a query
+and root data structure into a reusable L<Qwiratry::Walker::Plan>; the plan then
+creates L<Qwiratry::QueryIterator> instances that stream results incrementally.
+
+This split lets a planner validate unsupported query nodes early while allowing
+multiple independent iterators to run from the same plan.
 
 =end pod
 use Qwiratry::Context;
@@ -18,84 +18,118 @@ use Qwiratry::Walker::Capabilities;
 
 =begin pod
 
-Qwiratry::Walker::Plan role - precomputed execution strategy for a specific query and root.
+=head1 Plan Role
 
-Represents an execution plan created by Qwiratry::Walker.plan(). Plans are reusable
-and can produce multiple independent QueryIterator instances. Plans must
-not mutate the original Query AST.
+C<Qwiratry::Walker::Plan> represents a precomputed execution strategy for one
+query/root pair.
 
-Required methods (must be implemented by concrete classes):
-  - iterator() → QueryIterator
-  - query() → RakuAST::Node
-  - describe() → Str
+Plans are reusable and should not mutate the original query AST in observable
+ways. Concrete plans implement C<iterator>, C<query>, and C<describe>; composite
+plans can also expose C<subplans> and richer capability metadata.
 
-Optional methods (have default implementations):
-  - optimise(&modification) → Qwiratry::Walker::Plan
-  - subplans() → Array[Qwiratry::Walker::Plan]
-  - capabilities() → Associative
+=head2 Required Methods
 
-Example concrete implementation:
-  class MyPlan does Qwiratry::Walker::Plan {
-      has RakuAST::Node $.query-ast;
-      has $.root;
-      
-      method iterator(--> QueryIterator) {
-          my $ctx = MyContext.new;
-          MyIterator.new(context => $ctx, plan => self);
-      }
-      method query(--> RakuAST::Node) { $!query-ast }
-      method describe(--> Str) { "MyPlan for {$!query-ast.^name}" }
-  }
+=item C<iterator() --> QueryIterator>
+
+=item C<query() --> Mu>
+
+=item C<describe() --> Str>
+
+=head2 Optional Methods
+
+=item C<optimise(&modification)>
+
+=item C<subplans() --> Array[Qwiratry::Walker::Plan]>
+
+=item C<capabilities() --> Associative>
+
+=head2 Example
+
+=begin code
+class MyPlan does Qwiratry::Walker::Plan {
+    has RakuAST::Node $.query-ast;
+    has $.root;
+
+    method iterator(--> QueryIterator) {
+        my $ctx = MyContext.new;
+        MyIterator.new(context => $ctx, plan => self);
+    }
+    method query(--> RakuAST::Node) { $!query-ast }
+    method describe(--> Str) { "MyPlan for {$!query-ast.^name}" }
+}
+=end code
 
 =end pod
 role Qwiratry::Walker::Plan {
 	=begin pod
 
-	Produce a QueryIterator for this plan.
+	=head2 C<iterator()>
 
-	Each call creates an independent iterator with its own Context.
-	Multiple iterators from the same plan do not share mutable state.
+	=begin code
+	method iterator(--> QueryIterator)
+	=end code
 
-	@returns QueryIterator - A new iterator ready to produce results
+	Produces a query iterator for this plan.
+
+	Each call should create an independent iterator with its own context and
+	mutable traversal state.
 
 	=end pod
 	method iterator(--> QueryIterator) { ... }
     
 	=begin pod
 
-	Return the Query AST that this plan represents.
+	=head2 C<query()>
 
-	The returned AST should be treated as immutable. Plans must not
-	mutate the original Query AST in observable ways.
+	=begin code
+	method query(--> Mu)
+	=end code
 
-	@returns RakuAST::Node - The Query AST
+	Returns the query AST represented by this plan.
 
 	=end pod
 	method query(--> Mu) { ... }
     
 	=begin pod
 
-	Return a human-readable description of the execution strategy.
+	=head2 C<describe()>
 
-	Useful for debugging, profiling, and explain-plan functionality.
+	=begin code
+	method describe(--> Str)
+	=end code
 
-	@returns Str - Description of the plan
+	Returns a human-readable description for debugging, profiling, or
+	explain-plan output.
 
 	=end pod
 	method describe(--> Str) { ... }
     
 	=begin pod
 
-	Apply an optimization transformation to the plan.
+	=head2 C<optimise(&modification)>
 
-	The callback receives this plan and returns a modified version.
-	Implementations should return a new plan instance unless in-place
-	modification is safe.
+	=begin code
+	method optimise(&modification)
+	=end code
 
-	Default implementation returns self unchanged.
+	=head3 Parameters
 
-	@param &modification - Callback: Qwiratry::Walker::Plan → Qwiratry::Walker::Plan
-	@returns Qwiratry::Walker::Plan - The optimized plan (may be same or new instance)
+	=item C<&modification>
+
+	 The callback that receives this plan and returns the optimized plan.
+
+	Applies an optimization callback to the plan.
+
+	The default implementation returns C<self>. Concrete plans can override this
+	when they support plan rewriting.
+
+	Concrete implementations should return a new plan unless in-place
+	modification is known to be safe.
+
+	=head3 Return Value
+
+	Returns the optimized plan, which may be C<self> when no optimization is
+	applied.
 
 	=end pod
 	method optimise(&modification) {
@@ -106,14 +140,15 @@ role Qwiratry::Walker::Plan {
     
 	=begin pod
 
-	Return subplans for composite plan structures.
+	=head2 C<subplans()>
 
-	For composite walkers that combine multiple sub-walkers (e.g., union,
-	intersection), this returns the component plans.
+	=begin code
+	method subplans(--> Array[Qwiratry::Walker::Plan])
+	=end code
 
-	Default implementation returns empty array (non-composite plan).
+	Returns component plans for composite execution.
 
-	@returns Array[Qwiratry::Walker::Plan] - Array of Qwiratry::Walker::Plan instances (empty for simple plans)
+	Simple plans return an empty array.
 
 	=end pod
 	method subplans(--> Array[Qwiratry::Walker::Plan]) {
@@ -123,18 +158,38 @@ role Qwiratry::Walker::Plan {
     
 	=begin pod
 
-	Return capability metadata for this plan.
+	=head2 C<capabilities()>
 
-	Provides structured information about plan capabilities for introspection.
-	Format: { capability-name => { enabled => Bool, ... }, ... }
+	=begin code
+	method capabilities(--> Associative)
+	=end code
 
-	Example: { lazy => { enabled => True, type => "incremental" } }
+	Returns structured capability metadata for introspection.
 
-	Common capabilities: supports-lazy, supports-backtracking, supports-streaming
+	The default delegates to L<Qwiratry::Walker::Capabilities.default-plan>.
 
-	Default implementation returns empty hash.
+	=head3 Metadata Shape
 
-	@returns Associative - Capability metadata
+	Capability metadata is an associative value where each capability name maps
+	to a structured value such as C<{ enabled => True, type => "incremental" }>.
+
+	=head3 Common Capabilities
+
+	=item C<lazy>
+
+	The plan can produce results incrementally.
+
+	=item C<backtracking>
+
+	The plan or iterator can revisit earlier traversal state.
+
+	=item C<streaming>
+
+	The plan is suitable for streaming result consumers.
+
+	=head3 Return Value
+
+	Returns the plan capability metadata.
 
 	=end pod
 	method capabilities(--> Associative) {
@@ -144,109 +199,171 @@ role Qwiratry::Walker::Plan {
 
 =begin pod
 
-Qwiratry::Walker role - encapsulates how a query is executed over a data structure.
+=head1 Walker Role
 
-Qwiratry::Walker is the main entry point for query execution. It creates execution
-plans via plan() and can produce iterators via iterator() or start().
+C<Qwiratry::Walker> encapsulates how a query is executed over a data structure.
 
-Required methods (must be implemented by concrete classes):
-  - plan(RakuAST::Node $query, Mu $root) → Qwiratry::Walker::Plan
-  - iterator(Qwiratry::Walker::Plan $plan) → QueryIterator
+Concrete walkers implement C<plan> and C<iterator>. Optional methods have default
+implementations that can be overridden for one-shot execution, traversal pass
+hooks, capability metadata, and conservative support checks.
 
-Optional methods (have default implementations):
-  - start($query, $root) → QueryIterator (convenience: plan + iterator)
-  - PRE-PASS($ctx) - Hook called before traversal
-  - POST-PASS($ctx) - Hook called after traversal
-  - capabilities() → Associative
-  - supports($query) → Bool
+=head2 Required Methods
 
-Strategy Integration:
-  - Qwiratry::Walker can be constructed with a Strategy: Qwiratry::Walker.new(:$strategy)
-  - Strategy is stored in Context when creating iterators
-  - Concrete QueryIterator implementations should call Strategy hooks
-    during traversal via $ctx.strategy
+=item C<plan(Mu $query, Mu:D $root) --> Qwiratry::Walker::Plan>
 
-Example concrete implementation:
-  class TreeWalker does Qwiratry::Walker {
-      method plan(RakuAST::Node $query, Mu:D $root --> Qwiratry::Walker::Plan) {
-          TreePlan.new(query-ast => $query, root => $root);
-      }
-      method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
-          my $ctx = TreeContext.new(strategy => $.strategy);
-          TreeIterator.new(context => $ctx, plan => self);
-      }
-  }
+=item C<iterator(Qwiratry::Walker::Plan $plan) --> QueryIterator>
+
+=head2 Optional methods (have default implementations):
+
+=item C<start($query, $root)>: convenience method for C<plan> followed by
+ C<iterator>.
+
+=item C<PRE-PASS($ctx)> and C<POST-PASS($ctx)>: traversal pass hooks.
+
+=item C<capabilities()>: structured capability metadata.
+
+=item C<supports($query)>: conservative walker-selection predicate.
+
+=head2 Strategy Integration
+
+=item C<Qwiratry::Walker> may be constructed with a strategy, for example
+C<Qwiratry::Walker.new(:$strategy)>.
+
+=item The strategy is stored in the context when creating iterators.
+
+=item Concrete C<QueryIterator> implementations should call strategy hooks during
+traversal via C<$ctx.strategy>.
+
+=head2 Example
+
+=begin code
+class TreeWalker does Qwiratry::Walker {
+    method plan(RakuAST::Node $query, Mu:D $root --> Qwiratry::Walker::Plan) {
+        TreePlan.new(query-ast => $query, root => $root);
+    }
+    method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
+        my $ctx = TreeContext.new(strategy => $.strategy);
+        TreeIterator.new(context => $ctx, plan => self);
+    }
+}
+=end code
 
 =end pod
 role Qwiratry::Walker does Iterable {
 	=begin pod
 
-	The default Strategy for this Walker (may be undefined).
+	=head2 C<strategy>
 
-	Set via constructor: Qwiratry::Walker.new(:$strategy)
-	If undefined, no Strategy hooks will be called during traversal.
-	The Strategy is copied to Context when creating iterators, allowing
-	QueryIterator implementations to access it via $ctx.strategy.
+	The default strategy for this walker, or C<Nil>.
 
-	Type: Should be Qwiratry::Strategy (left untyped to avoid circular dependency).
+	The slot is untyped to avoid a circular dependency with L<Qwiratry::Strategy>.
+
+	=head3 Attribute
+
+	C<strategy> is copied into traversal contexts so iterators can call strategy
+	hooks during traversal. When it is undefined, no strategy hooks are called.
 
 	=end pod
 	has $.strategy;
     
 	=begin pod
 
-	Analyse the Query AST and root data structure, produce an optimised execution plan.
+	=head2 C<plan(Mu $query, Mu:D $root)>
 
-	This method creates a Qwiratry::Walker::Plan - a precomputed execution strategy.
-	The plan can then produce multiple independent QueryIterator instances
-	via plan.iterator() or walker.iterator(plan).
+	=begin code
+	method plan(Mu $query, Mu:D $root --> Qwiratry::Walker::Plan)
+	=end code
 
-	Responsibilities (MAY):
-	- Analyse AST structure (operators, blocks, predicates)
-	- Decide traversal order and strategy (DFS, BFS, index scan, join order)
-	- Identify sub-expressions for predicate pushdown or backend delegation
-	- Precompute metadata used during execution
+	=head3 Parameters
 
-	Constraints:
-	- MUST NOT mutate the shared Query AST in observable ways
-	- MAY copy or rewrite AST fragments into the Plan
-	- MUST return a reusable Qwiratry::Walker::Plan
-	- MUST throw X::Qwiratry::UnknownQueryElement if query cannot be interpreted
+	=item C<$query>
 
-	@param $query - The Query AST (RakuAST::Node)
-	@param $root - The root data structure to query
-	@returns Qwiratry::Walker::Plan - Precomputed execution strategy for the query
-	@throws X::Qwiratry::UnknownQueryElement if query cannot be interpreted
+	 The query AST or query operator node to plan.
+
+	=item C<$root>
+
+	 The defined root data structure the query will run against.
+
+	Analyzes a query/root pair and returns a reusable execution plan.
+
+	=head3 Responsibilities
+
+	=item Analyze AST structure, including operators, blocks, and predicates.
+
+	=item Decide traversal order and strategy, such as DFS, BFS, index scan, or join
+	 order.
+
+	=item Identify sub-expressions for predicate pushdown or backend delegation.
+
+	=item Precompute metadata used during execution.
+
+	=head3 Constraints
+
+	=item Must not mutate the shared query AST in observable ways.
+
+	=item May copy or rewrite AST fragments into the plan.
+
+	=item Must return a reusable C<Qwiratry::Walker::Plan>.
+
+	=item Must throw L<X::Qwiratry::UnknownQueryElement> when the query cannot be
+	 interpreted.
+
+	=head3 Return Value
+
+	Returns a reusable C<Qwiratry::Walker::Plan>. Throws
+	L<X::Qwiratry::UnknownQueryElement> when the walker cannot interpret the
+	query.
 
 	=end pod
 	method plan(Mu $query, Mu:D $root --> Qwiratry::Walker::Plan) { ... }
     
 	=begin pod
 
-	Produce a new incremental result stream from an existing execution plan.
+	=head2 C<iterator(Qwiratry::Walker::Plan $plan)>
 
-	Creates a fresh Context, initialises traversal state, and returns
-	a QueryIterator that yields results lazily.
+	=begin code
+	method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator)
+	=end code
 
-	Multiple iterators MAY be created from the same plan.
-	Iterators MUST NOT share mutable traversal state.
+	=head3 Parameters
 
-	@param $plan - The execution plan to iterate
-	@returns QueryIterator - Ready to produce results
+	=item C<$plan>
+
+	 The execution plan produced by this walker or a compatible walker.
+
+	Produces a fresh incremental result stream from an existing plan.
+
+	=head3 Return Value
+
+	Returns a C<QueryIterator> ready to produce results. Multiple iterators from
+	the same reusable plan must not share mutable traversal state.
 
 	=end pod
 	method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) { ... }
     
 	=begin pod
 
-	One-shot execution entrypoint (convenience method).
+	=head2 C<start(Mu $query, Mu:D $root)>
 
-	Equivalent to: self.plan($query, $root).iterator
-	via self.iterator(self.plan($query, $root))
+	=begin code
+	method start(Mu $query, Mu:D $root --> QueryIterator)
+	=end code
 
-	@param $query - The Query AST (RakuAST::Node)
-	@param $root - The root data structure (must be defined)
-	@returns QueryIterator - Ready to produce results
+	=head3 Parameters
+
+	=item C<$query>
+
+	 The query AST or operator node.
+
+	=item C<$root>
+
+	 The defined data structure to query.
+
+	Convenience method that plans and immediately creates an iterator.
+
+	=head3 Return Value
+
+	Returns the iterator produced from C<self.iterator(self.plan($query, $root))>.
 
 	=end pod
 	method start(Mu $query, Mu:D $root --> QueryIterator) {
@@ -255,14 +372,22 @@ role Qwiratry::Walker does Iterable {
     
 	=begin pod
 
-	Hook called before a traversal pass begins.
+	=head2 C<PRE-PASS(Context $ctx)>
 
-	Override to initialize global traversal state, prepare caches or
-	indexes, or initialize multi-pass bookkeeping. Called once per pass.
+	=begin code
+	method PRE-PASS(Context $ctx)
+	=end code
 
-	Default implementation: no-op
+	=head3 Parameters
 
-	@param $ctx - The Context for this traversal
+	=item C<$ctx>
+
+	 The context for this traversal pass.
+
+	Hook called before a traversal pass begins. The default is a no-op.
+
+	Override to initialize global traversal state, prepare caches or indexes, or
+	initialize multi-pass bookkeeping. Called once per pass.
 
 	=end pod
 	method PRE-PASS(Context $ctx) {
@@ -271,14 +396,22 @@ role Qwiratry::Walker does Iterable {
     
 	=begin pod
 
-	Hook called after a traversal pass completes.
+	=head2 C<POST-PASS(Context $ctx)>
 
-	Override to collect diagnostics, decide whether to trigger another
-	pass, or finalize results/clean up resources. Called once per pass.
+	=begin code
+	method POST-PASS(Context $ctx)
+	=end code
 
-	Default implementation: no-op
+	=head3 Parameters
 
-	@param $ctx - The Context for this traversal
+	=item C<$ctx>
+
+	 The context for this traversal pass after iteration completes.
+
+	Hook called after a traversal pass completes. The default is a no-op.
+
+	Override to collect diagnostics, decide whether to trigger another pass, or
+	finalize results and clean up resources. Called once per pass.
 
 	=end pod
 	method POST-PASS(Context $ctx) {
@@ -287,20 +420,42 @@ role Qwiratry::Walker does Iterable {
     
 	=begin pod
 
-	Return capability metadata for this walker.
+	=head2 C<capabilities()>
 
-	Provides structured information about walker capabilities:
-	- supports-lazy
-	- supports-backtracking
-	- supports-rewrite
-	- supports-multi-phase
-	- supports-streaming
+	=begin code
+	method capabilities(--> Associative)
+	=end code
 
-	Used by Transformers, Composite Walkers, and debugging/profiling tools.
+	Returns structured capability metadata for transformer, master-walker, and
+	introspection code.
 
-	Default implementation returns empty hash.
+	The default delegates to L<Qwiratry::Walker::Capabilities.default-walker>.
 
-	@returns Associative - Capability metadata
+	=head3 Common Capabilities
+
+	=item C<supports-lazy>
+
+	The walker can produce results lazily.
+
+	=item C<supports-backtracking>
+
+	The walker can revisit earlier traversal state.
+
+	=item C<supports-rewrite>
+
+	The walker can participate in rewrite operations.
+
+	=item C<supports-multi-phase>
+
+	The walker can run multiple traversal phases or passes.
+
+	=item C<supports-streaming>
+
+	The walker can feed streaming consumers.
+
+	=head3 Return Value
+
+	Returns the walker capability metadata.
 
 	=end pod
 	method capabilities(--> Associative) {
@@ -309,15 +464,26 @@ role Qwiratry::Walker does Iterable {
     
 	=begin pod
 
-	Check if this walker can interpret the given query.
+	=head2 C<supports(Mu $query)>
 
-	Returns whether this Walker can interpret the given AST.
-	Useful for Walker selection/delegation in hybrid or master walkers.
+	=begin code
+	method supports(Mu $query --> Bool)
+	=end code
 
-	Default implementation returns False (conservative).
+	=head3 Parameters
 
-	@param $query - The Query AST to check
-	@returns Bool - True if walker can interpret query
+	=item C<$query>
+
+	 The query AST or operator node being considered.
+
+	Returns whether this walker can interpret C<$query>.
+
+	The default is conservative and returns C<False>; concrete walkers override it
+	for factory and master-walker selection.
+
+	=head3 Return Value
+
+	Returns C<True> when this walker can plan the query, otherwise C<False>.
 
 	=end pod
 	method supports(Mu $query --> Bool) {

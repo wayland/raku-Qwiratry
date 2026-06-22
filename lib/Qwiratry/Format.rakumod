@@ -5,8 +5,10 @@ Format implementation factory.
 Use L<make> with an operation type and format name to obtain a concrete
 implementation object:
 
-  Qwiratry::Format.make(:type<Parse>, :format<JSONdemo>)
-  Qwiratry::Format.make(:type<Render>, :format<JSONdemo>)
+=begin code
+Qwiratry::Format.make(:type<Parse>, :format<JSONdemo>)
+Qwiratry::Format.make(:type<Render>, :format<JSONdemo>)
+=end code
 
 Format modules live under C<Qwiratry::Format::<FORMAT>> and define operation
 classes such as C<Qwiratry::Format::JSONdemo::Parse> and

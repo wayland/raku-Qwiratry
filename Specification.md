@@ -1139,9 +1139,9 @@ It's an acronym of sorts:
 * **Tr**: *Tr*ansformer
 * **Y**: *Y*are.  A nautical term meaning "Easily manageable and responsive to the helm".  It's also a river in the Norfolk Broads (where the books *Coot Club* and *The Big Six* took place).  It also sounds like someone saying "yeah", and positivity is appropriate here.  
 
-It sounds like *Quira Tree*, which is a name for the Panama Redwood.  Which will be amusing when processing Tree data.  
+It sounds like *Quira Tree*, which is a name for the Panama Redwood.  Which will be amusing when querying Tree data.  
 
-It sounds like it's a word formed from **Quirat-ery*, but contracted.  And in case you're wondering, `Quirat` can be either:
+It sounds like it's a word formed from **Quirat-ery*, but contracted (cf. pedantry, et. al.).  And in case you're wondering, `Quirat` can be either:
 * an historical currency unit in Spanish/Moroccan contexts
 * a maritime property share in old French usage
 * The Catalan word for *carat*

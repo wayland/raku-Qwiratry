@@ -1,19 +1,27 @@
 =begin pod
 
-Main Qwiratry module - provides unified entry point for all Qwiratry functionality
+=head1 Overview
 
-This module exports the core Qwiratry transformer symbols. Mold slang currently
-needs direct activation in the caller with C<use Qwiratry::Mold::Slang>.
+Main Qwiratry entry point.
 
-Example:
-  use Qwiratry::Mold::Slang;  # required for mold/wrapper syntax
-  use Qwiratry;
-  
-  transformer MyTransform {
-      mold TOP do {
-          return Node.new();
-      }
-  }
+Importing C<Qwiratry> exports the core transformer-facing symbols:
+C<Transformer>, C<Mold>, C<NextMold>, C<make>, and the C<transformer>
+declarator HOW. Mold syntax itself still depends on the slang module being
+loaded in the caller's compunit, so user code that declares molds should also
+load L<Qwiratry::Mold::Slang>.
+
+=head1 Example
+
+=begin code
+use Qwiratry::Mold::Slang;  # required for mold/wrapper syntax
+use Qwiratry;
+
+transformer MyTransform {
+    mold TOP do {
+        return Node.new();
+    }
+}
+=end code
 
 =end pod
 
@@ -32,8 +40,11 @@ sub EXPORT(|) {
 
 =begin pod
 
-Run when a compunit C<use Qwiratry>s this module. Exports the core transformer
-symbols; slang activation remains direct via C<use Qwiratry::Mold::Slang>.
+=head1 Export HOW
+
+The C<EXPORTHOW> package exposes the C<transformer> declarator to importing
+compunits. Runtime symbols are exported from C<EXPORT>; declarator syntax is
+exported through this HOW hook.
 
 =end pod
 my package EXPORTHOW {

@@ -8,11 +8,13 @@ Set, map-reduce, relational, and I/O operators share the same slang surface.
 
 Example:
 
-  use Qwiratry::Query::Slang;
+=begin code
+use Qwiratry::Query::Slang;
 
-  my $query = $root ⪪ * ⪪ <item>;
-  my $parent = $node ⪫ * :reference;
-  my $cartesian = @left × @right;
+my $query = $root ⪪ * ⪪ <item>;
+my $parent = $node ⪫ * :reference;
+my $cartesian = @left × @right;
+=end code
 
 =end pod
 unit module Qwiratry::Query::Slang;

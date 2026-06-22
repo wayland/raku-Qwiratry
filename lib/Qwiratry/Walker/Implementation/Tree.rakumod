@@ -1,10 +1,23 @@
 =begin pod
 
+=head1 Overview
+
 Default tree Walker for depth-first, top-down traversal of Raku data structures.
 
 Interprets navigation Query AST nodes for tree-shaped data (Positional children,
 Associative attributes). Invokes L<Qwiratry::Strategy> hooks when a strategy is
 attached to the Walker.
+
+This walker is selected for ordinary nested Raku data by
+L<Qwiratry::Walker::Factory>. Planning validates that the query is in the
+operator families the tree evaluator understands, then returns a reusable
+C<TreePlan>. Iteration is lazy: each plan creates a fresh context and iterator,
+and results are pulled one at a time.
+
+When a strategy is attached, the strategy-aware iterator performs an explicit
+depth-first traversal so it can call C<before>, C<on-match>, C<should-follow>,
+C<after>, and C<finish> at the right points. Without a strategy, the iterator
+delegates directly to L<Qwiratry::Query::Match.select>.
 
 =end pod
 
@@ -170,6 +183,34 @@ class Qwiratry::Walker::Implementation::Tree does Qwiratry::Walker is export {
 		}
 	}
 
+	=begin pod
+
+	=head1 Methods
+
+	=head2 C<plan(Mu $query, Mu:D $root)>
+
+	=begin code
+	method plan(Mu $query, Mu:D $root --> Qwiratry::Walker::Plan)
+	=end code
+
+	=head3 Parameters
+
+	=item C<$query>
+
+	 The query AST or operator node being planned or tested.
+
+	=item C<$root>
+
+	 The traversal root that provides the data context for the delegated plan.
+
+
+	Builds a reusable tree execution plan for C<$query> and C<$root>.
+
+	Unsupported query nodes raise L<X::Qwiratry::UnknownQueryElement> before any
+	iteration begins, giving callers a planning-time diagnostic instead of a lazy
+	failure mid-stream.
+
+	=end pod
 	method plan(Mu $query, Mu:D $root --> Qwiratry::Walker::Plan) {
 		unless self.supports($query) {
 			X::Qwiratry::UnknownQueryElement.new(
@@ -181,10 +222,51 @@ class Qwiratry::Walker::Implementation::Tree does Qwiratry::Walker is export {
 		TreePlan.new(:query-ast($query), :root($root), :walker(self));
 	}
 
+	=begin pod
+
+	=head2 C<iterator(Qwiratry::Walker::Plan $plan)>
+
+	=begin code
+	method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator)
+	=end code
+
+	=head3 Parameters
+
+	=item C<$plan>
+
+	 The execution plan to turn into a fresh query iterator.
+
+
+	Returns a new iterator from an existing plan.
+
+	The plan owns the query/root pair; every iterator receives its own
+	C<TreeContext>, so multiple iterations over the same plan do not share
+	counters or strategy state.
+
+	=end pod
 	method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {
 		$plan.iterator;
 	}
 
+	=begin pod
+
+	=head2 C<supports(Mu $query)>
+
+	=begin code
+	method supports(Mu $query --> Bool)
+	=end code
+
+	=head3 Parameters
+
+	=item C<$query>
+
+	 The query AST or operator node being planned or tested.
+
+
+	Returns true for query node families the tree walker can evaluate:
+	navigation, set, map-reduce, root, and union-list query forms.
+
+	=end pod
 	method supports(Mu $query --> Bool) {
 		return True if $query ~~ RootOperator;
 		return True if $query ~~ NavigationOperator;
@@ -194,6 +276,25 @@ class Qwiratry::Walker::Implementation::Tree does Qwiratry::Walker is export {
 		False;
 	}
 
+	=begin pod
+
+	=head2 C<POST-PASS(Context $ctx)>
+
+	=begin code
+	method POST-PASS(Context $ctx)
+	=end code
+
+	=head3 Parameters
+
+	=item C<$ctx>
+
+	 The traversal context carrying walker and strategy state.
+
+
+	Runs the strategy continuation hook after traversal, recording optional test
+	instrumentation fields when the context supports them.
+
+	=end pod
 	method POST-PASS(Context $ctx) {
 		if $ctx.strategy.defined {
 			my $should-continue = $ctx.strategy.should-continue($ctx.strategy, $ctx);
@@ -202,6 +303,18 @@ class Qwiratry::Walker::Implementation::Tree does Qwiratry::Walker is export {
 		}
 	}
 
+	=begin pod
+
+	=head2 C<capabilities()>
+
+	=begin code
+	method capabilities(--> Associative)
+	=end code
+
+	Returns capability metadata used by planner and introspection code. The tree
+	walker advertises tree navigation, incremental laziness, and rewrite support.
+
+	=end pod
 	method capabilities(--> Associative) {
 		Qwiratry::Walker::Capabilities.instance.merge(
 			Qwiratry::Walker::Capabilities.instance.navigation(:enabled(True), 'tree'),
@@ -211,6 +324,28 @@ class Qwiratry::Walker::Implementation::Tree does Qwiratry::Walker is export {
 	}
 }
 
+=begin pod
+
+=head1 Helper
+
+=head2 C<tree-children(Mu $node)>
+
+=begin code
+sub tree-children(Mu $node --> List)
+=end code
+
+=head3 Parameters
+
+=item C<$node>
+
+ The current node or element being matched, transformed, copied, or replaced.
+
+
+ Returns the immediate children used by the strategy-aware traversal loop.
+ Positional values expose their list; associative values expose a C<children>
+ field when it is positional.
+
+=end pod
 sub tree-children(Mu $node --> List) {
 	return $node.list if $node ~~ Positional;
 	if $node ~~ Associative {

@@ -28,7 +28,9 @@ class Qwiratry::Mold::Compiler {
 
 	=head2 C<instance()>
 
-	    method instance(--> Qwiratry::Mold::Compiler)
+	=begin code
+	method instance(--> Qwiratry::Mold::Compiler)
+	=end code
 
 	Returns the shared mold compiler instance.
 
@@ -45,7 +47,16 @@ class Qwiratry::Mold::Compiler {
 
 	=head2 C<compile-blockoid(Mu $cap)>
 
-	    method compile-blockoid(Mu $cap)
+	=begin code
+	method compile-blockoid(Mu $cap)
+	=end code
+
+	=head3 Parameters
+
+	=item C<$cap>
+
+	 The grammar capture containing the blockoid AST to compile.
+
 
 	Compiles a RakuAST blockoid capture to an executable C<Block>.
 
@@ -66,7 +77,16 @@ class Qwiratry::Mold::Compiler {
 
 	=head2 C<compile-block-expr(Mu $expr)>
 
-	    method compile-block-expr(Mu $expr)
+	=begin code
+	method compile-block-expr(Mu $expr)
+	=end code
+
+	=head3 Parameters
+
+	=item C<$expr>
+
+	 The RakuAST expression to wrap as a one-statement block.
+
 
 	Compiles a single expression as a one-statement block.
 
@@ -87,7 +107,9 @@ class Qwiratry::Mold::Compiler {
 
 	=head2 C<implicit-mold-signature()>
 
-	    method implicit-mold-signature()
+	=begin code
+	method implicit-mold-signature()
+	=end code
 
 	Builds the default C<$_> signature for molds without an explicit signature.
 
@@ -112,7 +134,16 @@ class Qwiratry::Mold::Compiler {
 
 	=head2 C<compile-signature($sig-ast)>
 
-	    method compile-signature($sig-ast)
+	=begin code
+	method compile-signature($sig-ast)
+	=end code
+
+	=head3 Parameters
+
+	=item C<$sig-ast>
+
+	 The RakuAST signature node, or existing C<Signature>, to normalize for runtime use.
+
 
 	Compiles a RakuAST signature node to a runtime C<Signature> object.
 
@@ -136,11 +167,32 @@ class Qwiratry::Mold::Compiler {
 
 	=head2 C<transform-to-method(:$name, :$signature, :$when-block, :$do-block)>
 
-	    method transform-to-method(:$name, :$signature, :$when-block, :$do-block)
+	=begin code
+	method transform-to-method(:$name, :$signature, :$when-block, :$do-block)
+	=end code
+
+	=head3 Parameters
+
+	=item C<$name>
+
+	 The mold name or display name being normalized.
+
+	=item C<$signature>
+
+	 The optional runtime signature for the generated mold routine.
+
+	=item C<$when-block>
+
+	 The optional predicate block that constrains whether the mold matches.
+
+	=item C<$do-block>
+
+	 The action block to execute when the mold matches.
+
 
 	Builds conceptual method structure from mold name, signature, and blocks.
 
-	WP03 models a mold as a method-like unit: a name, an optional signature, a
+	Qwiratry models a mold as a method-like unit: a name, an optional signature, a
 	C<where>-style constraint from the C<when> block, and a body from the C<do>
 	block. Today this structure is a hash consumed immediately by
 	C<compile-rakuast-method>; keeping it explicit documents the transformation
@@ -166,7 +218,16 @@ class Qwiratry::Mold::Compiler {
 
 	=head2 C<compile-rakuast-method(%method-structure)>
 
-	    method compile-rakuast-method(%method-structure)
+	=begin code
+	method compile-rakuast-method(%method-structure)
+	=end code
+
+	=head3 Parameters
+
+	=item C<%method-structure>
+
+	 The hash describing the method-like mold structure produced by the compiler pipeline.
+
 
 	Extracts the compiled do-block from transformed method structure.
 
@@ -184,7 +245,16 @@ class Qwiratry::Mold::Compiler {
 
 	=head2 C<display-name($name)>
 
-	    method display-name($name)
+	=begin code
+	method display-name($name)
+	=end code
+
+	=head3 Parameters
+
+	=item C<$name>
+
+	 The mold name or display name being normalized.
+
 
 	Returns a human-readable label for error messages.
 
@@ -201,13 +271,28 @@ class Qwiratry::Mold::Compiler {
 
 	=head2 C<apply-traits(Mold $mold, $routine)>
 
-	    method apply-traits(Mold $mold, $routine)
+	=begin code
+	method apply-traits(Mold $mold, $routine)
+	=end code
+
+	=head3 Parameters
+
+	=item C<$mold>
+
+	 The C<Mold> instance being registered, ordered, inspected, or copied.
+
+	=item C<$routine>
+
+	 The generated routine whose traits should be transferred onto the mold.
+
 
 	Applies C<is streaming>, C<is priority>, C<is tie-breaker>, and C<returns>
 	traits to a mold.
 
 	C<$routine> is the generated RakuAST routine for the mold definition. The
+	=begin code
 	method reads its trait nodes and mutates the already-created C<Mold>:
+	=end code
 	C<is streaming> sets streaming mode, numeric priority and tie-breaker traits
 	feed mold ordering, and C<returns(Type)> stores the expected result type for
 	later runtime checking.
@@ -242,7 +327,16 @@ class Qwiratry::Mold::Compiler {
 
 	=head2 C<!compile-block-body(Mu $body)>
 
-	    method !compile-block-body(Mu $body)
+	=begin code
+	method !compile-block-body(Mu $body)
+	=end code
+
+	=head3 Parameters
+
+	=item C<$body>
+
+	 The RakuAST block or statement body to compile.
+
 
 	Compiles a RakuAST statement list body to a C<Block> at begin time.
 

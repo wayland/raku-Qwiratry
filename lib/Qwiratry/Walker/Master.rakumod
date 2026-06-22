@@ -1,17 +1,30 @@
 =begin pod
 
-Master Walker for composite walker handovers
+=head1 Overview
 
-This module implements the Master Walker class that detects when handovers
-are required between domain-specific walkers and delegates planning and
-execution to appropriate walkers. The Master Walker coordinates composite
-execution for multi-domain queries.
+Master walker for composite walker handovers.
 
-The Master Walker:
-- Discovers candidate walkers via introspection (default) or accepts explicit registration
-- Detects handover requirements using domain metadata and capability checks
-- Delegates planning to domain-specific walkers and embeds resulting plans as subplans
-- Coordinates composite execution of multi-domain queries
+C<Qwiratry::Walker::Master> coordinates planning when a query may need a
+domain-specific walker. It discovers or accepts candidate walkers, checks domain
+metadata from C<is providing>, asks walkers whether they support the query
+subtree, delegates planning to the selected walker, and wraps the delegated plan
+in a composite plan.
+
+Execution remains pull-driven. A master plan produces a master iterator that
+pulls from delegated subplan iterators in execution order.
+
+=head1 Responsibilities
+
+=item Discover candidate walkers through introspection or accept explicit
+ registration from the caller.
+
+=item Detect handover requirements using domain metadata, walker capability
+ checks, AST pattern hooks, and last-resort heuristics.
+
+=item Delegate planning to the selected domain-specific walker and embed the
+ resulting subplan in a composite plan.
+
+=item Coordinate composite execution by pulling from delegated subplan iterators.
 
 =end pod
 
@@ -29,17 +42,19 @@ class Qwiratry::Walker::Master::Iterator { ... }
 
 =begin pod
 
-Composite Plan that implements Qwiratry::Walker::Plan role with embedded subplans.
+=head1 Plan
 
-Represents a composite execution plan containing subplans from multiple
-domain-specific walkers. The composite plan maintains the original query AST
-and embeds subplans as an array.
+C<Qwiratry::Walker::Master::Plan> implements L<Qwiratry::Walker::Plan> and
+stores the original query plus delegated subplans.
 
-Example:
-  my $plan = Qwiratry::Walker::Master::Plan.new(
-      query-ast => $query,
-      subplans => [$subplan1, $subplan2]
-  )
+=head2 Example
+
+=begin code
+my $plan = Qwiratry::Walker::Master::Plan.new(
+    query-ast => $query,
+    subplans => [$subplan1, $subplan2],
+)
+=end code
 
 =end pod
 class Qwiratry::Walker::Master::Plan does Qwiratry::Walker::Plan {
@@ -101,13 +116,24 @@ class Qwiratry::Walker::Master::Plan does Qwiratry::Walker::Plan {
 
 =begin pod
 
-Composite iterator that coordinates execution of multiple subplan iterators.
+=head1 Iterator
 
-For composite execution, pulls incrementally from each subplan iterator in order.
+C<Qwiratry::Walker::Master::Iterator> coordinates execution of multiple subplan
+iterators.
 
-Example:
-  my $iter = Iterator.new(context => $ctx, plan => $composite-plan);
-  my $result = $iter.pull-one();  # Returns first combined result
+It pulls incrementally from the first subplan until it is exhausted, then moves
+to the next planned subplan. That preserves lazy behavior while keeping the
+current composition model simple.
+
+=head2 Example
+
+=begin code
+my $iter = Qwiratry::Walker::Master::Iterator.new(
+    context => $ctx,
+    plan => $composite-plan,
+);
+my $result = $iter.pull-one;
+=end code
 
 =end pod
 class Qwiratry::Walker::Master::Iterator does QueryIterator {
@@ -135,17 +161,27 @@ class Qwiratry::Walker::Master::Iterator does QueryIterator {
 
 =begin pod
 
-Master Walker class that implements Qwiratry::Walker role for composite handovers.
+=head1 Class
 
-Responsible for detecting when handovers are required and delegating
-planning and execution to appropriate domain-specific Walkers.
+C<Qwiratry::Walker::Master> implements L<Qwiratry::Walker> for composite
+handovers.
 
-Constructor parameters:
-  :@candidate-walkers - Optional array of Walker instances (overrides discovery)
+Pass C<:@candidate-walkers> to make selection explicit. Without candidates, the
+master asks L<Qwiratry::Walker::Factory> to discover available walker types and
+instantiates them.
 
-Example:
-  my $master = Qwiratry::Walker::Master.new;
-  my $master-with-walkers = Qwiratry::Walker::Master.new(:candidate-walkers[@sql-walker, @json-walker]);
+=head2 Constructor Parameters
+
+=item C<:@candidate-walkers>: optional walker instances that override discovery.
+
+=head2 Example
+
+=begin code
+my $master = Qwiratry::Walker::Master.new;
+my $master-with-walkers = Qwiratry::Walker::Master.new(
+    :candidate-walkers[@sql-walker, @json-walker],
+);
+=end code
 
 =end pod
 class Qwiratry::Walker::Master does Qwiratry::Walker {
@@ -177,9 +213,30 @@ class Qwiratry::Walker::Master does Qwiratry::Walker {
     
 	=begin pod
 
-	Discover candidate walkers via introspection.
-	Scans loaded classes/types for those implementing Walker role.
-	Cached per instance to avoid repeated introspection.
+	=head1 Methods
+
+	=head2 C<discover-walkers(:@paths, Bool :$refresh)>
+
+	=begin code
+	method discover-walkers(:@paths = ['lib'], Bool :$refresh = False --> Array)
+	=end code
+
+	=head3 Parameters
+
+	=item C<@paths>
+
+	 Directories to search when discovering walker implementations.
+
+	=item C<$refresh>
+
+	 Whether discovery should ignore cached results and rescan.
+
+
+	Discovers candidate walker instances through L<Qwiratry::Walker::Factory>.
+
+	Results are cached per master instance unless C<:$refresh> is true. The
+	master walker itself is filtered out so delegation cannot recurse into another
+	master plan by accident.
 
 	=end pod
 	method discover-walkers(:@paths = ['lib'], Bool :$refresh = False --> Array) {
@@ -249,11 +306,24 @@ class Qwiratry::Walker::Master does Qwiratry::Walker {
     
 	=begin pod
 
-	Check AST pattern suitability (optional optimization).
-	Recognizes common AST patterns and matches to walker capabilities.
-	For MVP, this is a placeholder that can be enhanced later.
+	=head2 C<check-ast-pattern(Mu $subtree)>
 
-	Returns Qwiratry::Walker if pattern matches, Nil otherwise.
+	=begin code
+	method check-ast-pattern(Mu $subtree)
+	=end code
+
+	=head3 Parameters
+
+	=item C<$subtree>
+
+	 The query subtree being checked for handover or delegated planning.
+
+
+	Optional extension point for AST-pattern walker selection.
+
+	The current implementation returns C<Nil>, leaving selection to domain
+	metadata and capability checks. Keeping the method explicit documents where
+	pattern-based delegation should be added.
 
 	=end pod
 	method check-ast-pattern(Mu $subtree) {
@@ -265,11 +335,24 @@ class Qwiratry::Walker::Master does Qwiratry::Walker {
     
 	=begin pod
 
-	Use heuristics to select walker (optional, last resort).
-	Uses heuristics like node type, structure, or keywords to guess walker.
-	For MVP, this is a placeholder that can be enhanced later.
+	=head2 C<check-heuristic(Mu $subtree)>
 
-	Returns Qwiratry::Walker if heuristic matches, Nil otherwise.
+	=begin code
+	method check-heuristic(Mu $subtree)
+	=end code
+
+	=head3 Parameters
+
+	=item C<$subtree>
+
+	 The query subtree being checked for handover or delegated planning.
+
+
+	Optional last-resort extension point for heuristic walker selection.
+
+	The current implementation returns C<Nil>. Production selection should prefer
+	explicit domain metadata or walker capability responses because they produce
+	clearer diagnostics.
 
 	=end pod
 	method check-heuristic(Mu $subtree) {
@@ -283,10 +366,51 @@ class Qwiratry::Walker::Master does Qwiratry::Walker {
     
 	=begin pod
 
-	Detect handover requirement following full priority order:
-	domain metadata → capability → pattern → heuristic.
-	Returns Qwiratry::Walker if handover is needed, Nil if not.
-	Handles edge cases: no walker found, multiple walkers, walker declines.
+	=head2 C<detect-handover(Mu $subtree, $root)>
+
+	=begin code
+	method detect-handover(Mu $subtree, $root is raw)
+	=end code
+
+	=head3 Parameters
+
+	=item C<$subtree>
+
+	 The query subtree being checked for handover or delegated planning.
+
+	=item C<$root>
+
+	 The traversal root that provides the data context for the plan.
+
+
+	Selects a walker for C<$subtree> using the handover priority order.
+
+	Domain metadata is checked first. If none is available, candidate walkers are
+	asked through C<supports>. Pattern and heuristic hooks are tried last. Failure
+	to find a walker is reported as L<X::Qwiratry::UnknownQueryElement> with the
+	walkers tried and their failure reasons.
+
+	=head3 Priority Order
+
+	=item Domain metadata declared by the root data.
+
+	=item Candidate walker capability checks via C<supports>.
+
+	=item AST pattern suitability through C<check-ast-pattern>.
+
+	=item Last-resort heuristic probing through C<check-heuristic>.
+
+	=head3 Edge Cases Handled
+
+	=item Declared domains with no matching walker fail early with the declared
+	 domains and available candidate walkers.
+
+	=item Multiple capable walkers are resolved by selecting the first matching
+	 candidate in discovery or registration order.
+
+	=item No suitable walker after all checks raises
+	 L<X::Qwiratry::UnknownQueryElement> with the walkers tried and their failure
+	 reasons.
 
 	=end pod
 	method detect-handover(Mu $subtree, $root is raw) {
@@ -354,9 +478,32 @@ class Qwiratry::Walker::Master does Qwiratry::Walker {
     
 	=begin pod
 
-	Delegate planning to domain-specific walker.
-	Calls walker's plan() method and handles exceptions.
-	Handles edge case T052: walker accepts via supports() but declines during planning.
+	=head2 C<delegate-planning(Qwiratry::Walker $walker, Mu $subtree, Mu $root)>
+
+	=begin code
+	method delegate-planning(Qwiratry::Walker $walker, Mu $subtree, Mu $root --> Qwiratry::Walker::Plan)
+	=end code
+
+	=head3 Parameters
+
+	=item C<$walker>
+
+	 The candidate walker selected for delegated planning.
+
+	=item C<$subtree>
+
+	 The query subtree being checked for handover or delegated planning.
+
+	=item C<$root>
+
+	 The traversal root that provides the data context for the delegated plan.
+
+
+	Delegates planning to a selected domain-specific walker.
+
+	If a walker accepted the query through C<supports> but then rejects it during
+	C<plan>, the exception is wrapped with the selected walker name and subtree so
+	the caller can see which handover failed.
 
 	=end pod
 	method delegate-planning(Qwiratry::Walker $walker, Mu $subtree, Mu $root --> Qwiratry::Walker::Plan) {
@@ -386,8 +533,27 @@ class Qwiratry::Walker::Master does Qwiratry::Walker {
     
 	=begin pod
 
-	Required: Create execution plan from query and root.
-	Detects handovers, delegates planning, and embeds subplans in Qwiratry::Walker::Master::Plan.
+	=head2 C<plan(Mu $query, $root)>
+
+	=begin code
+	method plan(Mu $query, $root is raw --> Qwiratry::Walker::Plan)
+	=end code
+
+	=head3 Parameters
+
+	=item C<$query>
+
+	 The query AST or operator node being planned or tested.
+
+	=item C<$root>
+
+	 The traversal root that provides the data context for the delegated plan.
+
+
+	Creates a composite execution plan from C<$query> and C<$root>.
+
+	The master detects the delegated walker, extracts the delegated subtree, asks
+	that walker to plan, and embeds the subplan under the original query AST.
 
 	=end pod
 	method plan(Mu $query, $root is raw --> Qwiratry::Walker::Plan) {
@@ -419,8 +585,23 @@ class Qwiratry::Walker::Master does Qwiratry::Walker {
     
 	=begin pod
 
-	Required: Produce QueryIterator from plan.
-	Delegates to the plan's iterator() method, which handles composite execution.
+	=head2 C<iterator(Qwiratry::Walker::Plan $plan)>
+
+	=begin code
+	method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator)
+	=end code
+
+	=head3 Parameters
+
+	=item C<$plan>
+
+	 The execution plan to turn into a fresh query iterator.
+
+
+	Produces a query iterator from a master plan.
+
+	The plan is responsible for constructing the composite iterator because it
+	knows its subplans and execution order.
 
 	=end pod
 	method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) {

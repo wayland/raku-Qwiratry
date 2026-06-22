@@ -1,5 +1,7 @@
 =begin pod
 
+=head1 Overview
+
 Copy service for shallow and deep copying of transformable nodes.
 
 Provides C<.copy> and C<.deepcopy> for cloning node trees before or during
@@ -18,7 +20,15 @@ class Qwiratry::Transformer::Copy {
 
 	=begin pod
 
-	Return the shared Copy service instance.
+	=head1 Methods
+
+	=head2 C<instance()>
+
+	=begin code
+	method instance(--> Qwiratry::Transformer::Copy)
+	=end code
+
+	Returns the shared copy service instance.
 
 	=end pod
 	method instance(--> Qwiratry::Transformer::Copy) {
@@ -27,12 +37,23 @@ class Qwiratry::Transformer::Copy {
 
 	=begin pod
 
-	Shallow copy for immutable primitives and objects with identity.
+	=head2 C<copy(Mu $x)>
 
-	Returns the value as-is unless the node defines a custom C<.copy> method.
+	=begin code
+	multi method copy(Mu $x --> Mu)
+	=end code
 
-	@param $x - Value to copy
-	@returns Mu - Shallow copy (or original if identity)
+	=head3 Parameters
+
+	=item C<$x>
+
+	 The scalar value to copy or deep-copy.
+
+
+	Returns a shallow copy of a scalar or identity object.
+
+	Values that provide a custom C<copy> method use it; otherwise the original
+	value is returned unchanged.
 
 	=end pod
 	multi method copy(Mu $x --> Mu) {
@@ -44,12 +65,23 @@ class Qwiratry::Transformer::Copy {
 
 	=begin pod
 
-	Shallow copy for positional types (arrays, lists).
+	=head2 C<copy(Positional $p)>
 
-	First checks for a custom C<.copy> method; otherwise uses C<clone> (O(1)).
+	=begin code
+	multi method copy(Positional $p --> Positional)
+	=end code
 
-	@param $p - Positional value to copy
-	@returns Positional - Shallow copy (children shared with original)
+	=head3 Parameters
+
+	=item C<$p>
+
+	 The positional container whose elements should be copied.
+
+
+	Returns a shallow positional copy.
+
+	Custom C<copy> methods win; otherwise C<clone> copies the container while
+	sharing child values with the original.
 
 	=end pod
 	multi method copy(Positional $p --> Positional) {
@@ -61,12 +93,23 @@ class Qwiratry::Transformer::Copy {
 
 	=begin pod
 
-	Shallow copy for associative types (hashes, maps).
+	=head2 C<copy(Associative $a)>
 
-	First checks for a custom C<.copy> method; otherwise uses C<clone> (O(1)).
+	=begin code
+	multi method copy(Associative $a --> Associative)
+	=end code
 
-	@param $a - Associative value to copy
-	@returns Associative - Shallow copy (children shared with original)
+	=head3 Parameters
+
+	=item C<$a>
+
+	 The associative container whose values should be copied.
+
+
+	Returns a shallow associative copy.
+
+	Custom C<copy> methods win; otherwise C<clone> copies the container while
+	sharing child values with the original.
 
 	=end pod
 	multi method copy(Associative $a --> Associative) {
@@ -78,13 +121,27 @@ class Qwiratry::Transformer::Copy {
 
 	=begin pod
 
-	Deep copy for immutable primitives and objects with identity.
+	=head2 C<deepcopy(Mu $x, :%visited)>
 
-	Returns the value as-is (Str, Numeric, Bool, and identity objects).
+	=begin code
+	multi method deepcopy(Mu $x, :%visited = %() --> Mu)
+	=end code
 
-	@param $x - Value to deep copy
-	@param :%visited - Internal visited hash for cycle detection (optional)
-	@returns Mu - Deep copy (or original if identity)
+	=head3 Parameters
+
+	=item C<$x>
+
+	 The scalar value to copy or deep-copy.
+
+	=item C<%visited>
+
+	 The identity map used to preserve cycles and shared references during deep copy.
+
+
+	Returns scalar and identity values unchanged.
+
+	The C<:%visited> parameter is accepted for dispatch consistency with
+	container overloads.
 
 	=end pod
 	multi method deepcopy(Mu $x, :%visited = %() --> Mu) {
@@ -93,14 +150,28 @@ class Qwiratry::Transformer::Copy {
 
 	=begin pod
 
-	Recursive deep copy for positional types.
+	=head2 C<deepcopy(Positional $p, :%visited)>
 
-	Recursively calls C<.deepcopy> on each element. Uses the visited hash
-	for cycle detection and DAG preservation within a single call.
+	=begin code
+	multi method deepcopy(Positional $p, :%visited = %() --> Positional)
+	=end code
 
-	@param $p - Positional value to deep copy
-	@param :%visited - Internal visited hash for cycle detection
-	@returns Positional - Deep copy with all descendants cloned
+	=head3 Parameters
+
+	=item C<$p>
+
+	 The positional container whose elements should be copied.
+
+	=item C<%visited>
+
+	 The identity map used to preserve cycles and shared references during deep copy.
+
+
+	Recursively deep-copies a positional container.
+
+	C<%visited> preserves cycles and shared subgraphs within a single deepcopy
+	call, so repeated references in the input remain repeated references in the
+	copy.
 
 	=end pod
 	multi method deepcopy(Positional $p, :%visited = %() --> Positional) {
@@ -121,14 +192,27 @@ class Qwiratry::Transformer::Copy {
 
 	=begin pod
 
-	Recursive deep copy for associative types.
+	=head2 C<deepcopy(Associative $a, :%visited)>
 
-	Recursively calls C<.deepcopy> on each value. Uses the visited hash
-	for cycle detection and DAG preservation within a single call.
+	=begin code
+	multi method deepcopy(Associative $a, :%visited = %() --> Associative)
+	=end code
 
-	@param $a - Associative value to deep copy
-	@param :%visited - Internal visited hash for cycle detection
-	@returns Associative - Deep copy with all descendants cloned
+	=head3 Parameters
+
+	=item C<$a>
+
+	 The associative container whose values should be copied.
+
+	=item C<%visited>
+
+	 The identity map used to preserve cycles and shared references during deep copy.
+
+
+	Recursively deep-copies an associative container.
+
+	Keys are preserved and values are copied through the service. C<%visited>
+	handles cycles and shared subgraphs.
 
 	=end pod
 	multi method deepcopy(Associative $a, :%visited = %() --> Associative) {
