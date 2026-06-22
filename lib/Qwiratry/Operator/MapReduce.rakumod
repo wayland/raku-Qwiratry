@@ -14,9 +14,9 @@ sorted, mapped, or reduced.
 
 =head1 Operator Families
 
-C<SelectionOperator> stores a predicate. The other map-reduce operators share
-C<MapReduceOperatorNode>, which stores an optional subject and a single callable
-field specific to the operation.
+C<SelectionOperator>, C<SortOperator>, C<MapOperator>, and C<ReduceOperator>
+share C<MapReduceOperatorNode>, which stores an optional subject and describes
+the single callable field specific to the operation.
 
 =end pod
 unit module Qwiratry::Operator::MapReduce;
@@ -28,46 +28,52 @@ role MapReduceOperatorNode does MapReduceOperator does OperatorBase does Chained
 
 	=head1 Methods
 
-	=head2 C<mapreduce-describe(Str $detail)>
+	=head2 C<mapreduce-type()>
 
 	=begin code
-	method mapreduce-describe(Str $detail --> Str)
+	method mapreduce-type(--> Str)
 	=end code
 
-	=head3 Parameters
-
-	=item C<$detail>
-
-	 The operator-specific detail string to include in the description.
-
-
-	Builds a compact debug label for operators whose interesting payload is a
-	callable field such as a sort key, transform, or reduction operation.
+	Returns the operator-specific callable field label used in debug output.
 
 	=end pod
-	method mapreduce-describe(Str $detail --> Str) {
-		my $sub = self.subject-description;
-		"{self.^name}($detail$sub)"
-	}
-}
-
-class SelectionOperator is RakuAST::Node does MapReduceOperator does OperatorBase does ChainedOperator is export {
-	has Mu $.predicate is required;
+	method mapreduce-type(--> Str) { ... }
 
 	=begin pod
 
-	=head2 C<SelectionOperator.describe()>
+	=head2 C<describe()>
 
 	=begin code
 	method describe(--> Str)
 	=end code
 
-	Returns a debug label for a selection predicate and any explicit subject.
+	Builds a compact debug label for operators whose interesting payload is a
+	callable field such as a sort key, transform, or reduction operation.
 
 	=end pod
 	method describe(--> Str) {
+		my $detail = self.mapreduce-type;
 		my $sub = self.subject-description;
-		"SelectionOperator(predicate$sub)"
+		"{self.^name}($detail$sub)"
+	}
+}
+
+class SelectionOperator is RakuAST::Node does MapReduceOperatorNode is export {
+	has Mu $.predicate is required;
+
+	=begin pod
+
+	=head2 C<SelectionOperator.mapreduce-type()>
+
+	=begin code
+	method mapreduce-type(--> Str)
+	=end code
+
+	Returns the selection predicate field label.
+
+	=end pod
+	method mapreduce-type(--> Str) {
+		'predicate'
 	}
 }
 
@@ -76,17 +82,17 @@ class SortOperator is RakuAST::Node does MapReduceOperatorNode is export {
 
 	=begin pod
 
-	=head2 C<SortOperator.describe()>
+	=head2 C<SortOperator.mapreduce-type()>
 
 	=begin code
-	method describe(--> Str)
+	method mapreduce-type(--> Str)
 	=end code
 
-	Returns a debug label for sort-key evaluation.
+	Returns the sort-key field label.
 
 	=end pod
-	method describe(--> Str) {
-		self.mapreduce-describe('key-function')
+	method mapreduce-type(--> Str) {
+		'key-function'
 	}
 }
 
@@ -95,17 +101,17 @@ class MapOperator is RakuAST::Node does MapReduceOperatorNode is export {
 
 	=begin pod
 
-	=head2 C<MapOperator.describe()>
+	=head2 C<MapOperator.mapreduce-type()>
 
 	=begin code
-	method describe(--> Str)
+	method mapreduce-type(--> Str)
 	=end code
 
-	Returns a debug label for per-item transformation.
+	Returns the transform field label.
 
 	=end pod
-	method describe(--> Str) {
-		self.mapreduce-describe('transform')
+	method mapreduce-type(--> Str) {
+		'transform'
 	}
 }
 
@@ -114,16 +120,16 @@ class ReduceOperator is RakuAST::Node does MapReduceOperatorNode is export {
 
 	=begin pod
 
-	=head2 C<ReduceOperator.describe()>
+	=head2 C<ReduceOperator.mapreduce-type()>
 
 	=begin code
-	method describe(--> Str)
+	method mapreduce-type(--> Str)
 	=end code
 
-	Returns a debug label for reduction.
+	Returns the reduction operation field label.
 
 	=end pod
-	method describe(--> Str) {
-		self.mapreduce-describe('operation')
+	method mapreduce-type(--> Str) {
+		'operation'
 	}
 }
