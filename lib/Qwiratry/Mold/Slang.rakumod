@@ -293,12 +293,6 @@ our role MoldActions {
 			}
 		}
 
-		my %method-structure = compiler.transform-to-method(
-			:$name, :$signature, :$when-block, :$do-block,
-		);
-		$when-block = %method-structure<where-constraint>;
-		$do-block   = compiler.compile-rakuast-method(%method-structure) // $do-block;
-
 		my $mold = Mold.new(
 			:$name, :$signature, :$when-block, :$when-query,
 			:$combine-when-query,

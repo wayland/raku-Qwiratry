@@ -154,8 +154,8 @@ subtest "RakuAST slang implementation" => {
 		"Mold::Slang does not use MONKEY-SEE-NO-EVAL";
 	ok $slang-code.contains('use Slangify MoldGrammar, MoldActions'),
 		"Mold::Slang activates slang via Slangify";
-	ok $slang-code.contains('transform-to-method'),
-		"WP03 method transformation is implemented";
+	ok $slang-code.contains("enter-block-scope('Method')"),
+		"WP03 method transformation uses method block scope";
 }
 
 # =============================================================================
