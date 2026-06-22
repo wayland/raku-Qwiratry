@@ -22,7 +22,6 @@ unit module Qwiratry::Operator::IO;
 use Qwiratry::Format;
 use Qwiratry::Location;
 use Qwiratry::Operator::Capability;
-use Qwiratry::Operator::PipelineStep;
 use X::Qwiratry;
 
 =begin pod

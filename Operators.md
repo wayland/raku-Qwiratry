@@ -1191,11 +1191,11 @@ materialize the full result set.
 `QueryIterator` per call. The Table Walker scans rows via indexed access when a Strategy
 is attached; Master composite iterators pull incrementally from subplan iterators.
 
-**I/O pipelines**: `Qwiratry::Operator::PipelineStep` uses `select-seq` internally. Render and
+**I/O pipelines**: `Qwiratry::Operator::Capability` uses `select-seq` internally. Render and
 destination steps materialize at the pipeline boundary; upstream selection stays lazy.
 
 ```raku
-use Qwiratry::Operator::PipelineStep;
+use Qwiratry::Operator::Capability;
 
 my $query = @rows σ -> $_ { $_<score> >= 3 };
 my $result = execute($query, :origin(@rows));  # materializes at pipeline end

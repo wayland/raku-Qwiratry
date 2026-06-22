@@ -5,7 +5,7 @@ use lib 'lib';
 
 use Qwiratry::Format;
 use Qwiratry::Format::JSONdemo;
-use Qwiratry::Operator::PipelineStep;
+use Qwiratry::Operator::Capability;
 use Qwiratry::Query::Slang;
 use Qwiratry::Query::Match;
 

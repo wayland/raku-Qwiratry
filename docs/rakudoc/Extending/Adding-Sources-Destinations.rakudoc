@@ -91,7 +91,7 @@ a parser.
 
 =begin code :lang<raku>
 use Qwiratry::Operator::IO;
-use Qwiratry::Operator::PipelineStep;
+use Qwiratry::Operator::Capability;
 
 my $source = SourceOperator.new(:location<input.csv>);
 my $data = execute($source);
@@ -123,7 +123,7 @@ observable.
 
 =begin code :lang<raku>
 use Qwiratry::Operator::IO;
-use Qwiratry::Operator::PipelineStep;
+use Qwiratry::Operator::Capability;
 
 my $rendered = "name,score\nalpha,10\nbeta,5\n";
 my $destination = DestinationOperator.new(

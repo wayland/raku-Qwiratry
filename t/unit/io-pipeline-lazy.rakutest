@@ -3,7 +3,7 @@
 use Test;
 use lib 'lib';
 
-use Qwiratry::Operator::PipelineStep;
+use Qwiratry::Operator::Capability;
 use Qwiratry::Query::Slang;
 use Qwiratry::Query::Match;
 use Qwiratry::Operator::MapReduce;

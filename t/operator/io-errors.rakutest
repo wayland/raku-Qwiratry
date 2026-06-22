@@ -5,7 +5,7 @@ use lib 'lib';
 use Qwiratry::Operator::IO;
 use Qwiratry::Format;
 use X::Qwiratry;
-use Qwiratry::Operator::PipelineStep;
+use Qwiratry::Operator::Capability;
 
 plan 2;
 
@@ -43,7 +43,7 @@ subtest 'LocationError at construction and during pipeline read' => {
 	my $read-failed = False;
 	my $reason = '';
 	try {
-		Qwiratry::Operator::PipelineStep::execute(SourceOperator.new(:location($missing)));
+		Qwiratry::Operator::Capability::execute(SourceOperator.new(:location($missing)));
 		CATCH {
 			when X::Qwiratry::IO::LocationError {
 				$read-failed = True;

@@ -1,16 +1,17 @@
 =begin pod
 
-Capability roles for operator-walker compatibility checking.
+Capability roles for operator-walker compatibility checking, and default pipeline evaluation for query operators.
 
 Operators implement capability roles to declare navigation, map-reduce, set, or adaptor
 support. Walkers use C<capabilities()> metadata during C<supports()> checks.
+C<execute> is the recursive entry point that dispatches to each operator's
+C<evaluate> method.
 
 =end pod
 unit module Qwiratry::Operator::Capability;
 
 use Qwiratry::Format;
 use Qwiratry::Location;
-use Qwiratry::Operator::PipelineStep;
 
 =begin pod
 
@@ -43,6 +44,24 @@ role ChainedOperator is export {
 	=end pod
 	method subject-description(--> Str) {
 		$.subject.defined ?? " subject={$.subject.^name}" !! ''
+	}
+}
+
+=begin pod
+
+Default pipeline step for query operators: resolve data root, run C<select>, materialize.
+
+=end pod
+role PipelineStep is export {
+	=begin pod
+
+	Evaluate this operator node in a pipeline context.
+
+	=end pod
+	method evaluate(Mu :$origin, :&execute) {
+		my $root = pipeline-root(self, $origin, :&execute);
+		require Qwiratry::Query::Match;
+		seq-to-pipeline-value(Qwiratry::Query::Match::select(self, $root))
 	}
 }
 
@@ -170,4 +189,52 @@ role LocationOperator does AdaptorOperator is export {
 			'destination-backends' => Qwiratry::Location.backends(:type<Destination>).map(*.lc).Array,
 		)
 	}
+}
+
+# A few subs that help PipelineStep evaluate operators.
+
+=begin pod
+
+Recursively evaluate an operator AST node and return the pipeline result.
+
+Delegates to each operator's C<evaluate> method.
+
+=end pod
+our sub execute(Mu $op, Mu :$origin) is export {
+	$op.can('evaluate') and return $op.evaluate(:$origin, :&execute);
+	$op
+}
+
+=begin pod
+
+Resolve the data root for a query operator by walking C<subject> links leftward.
+
+=end pod
+sub pipeline-root(Mu $op, Mu $origin, :&execute --> Mu) {
+	if $op.can('subject') && $op.subject.defined {
+		$op.subject ~~ AdaptorOperator and return execute($op.subject, :$origin);
+		$op.subject.can('subject') and return pipeline-root($op.subject, $origin, :&execute);
+		return $op.subject;
+	}
+	$origin // $op
+}
+
+=begin pod
+
+Materialize a C<Seq> from C<select>: empty, singleton, or list (never a bare Seq).
+
+=end pod
+our sub seq-to-pipeline-value(Seq $seq --> Mu) is export {
+	my $iter = $seq.iterator;
+	my $first = $iter.pull-one;
+	$first ~~ IterationEnd and return ();
+	my $second = $iter.pull-one;
+	$second ~~ IterationEnd and return $first;
+	gather {
+		take $first;
+		take $second;
+		while (my $value = $iter.pull-one) !~~ IterationEnd {
+			take $value;
+		}
+	}.List
 }
