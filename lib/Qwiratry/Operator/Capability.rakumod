@@ -30,6 +30,24 @@ role OperatorBase is export {
 
 =begin pod
 
+Marks an operator node as chaining from an optional upstream subject.
+
+=end pod
+role ChainedOperator is export {
+	has Mu $.subject is built;
+
+	=begin pod
+
+	Return the standard subject fragment used in operator debug labels.
+
+	=end pod
+	method subject-description(--> Str) {
+		$.subject.defined ?? " subject={$.subject.^name}" !! ''
+	}
+}
+
+=begin pod
+
 Marks an operator as a navigation query (tree, table, or graph axes).
 
 =end pod

@@ -23,9 +23,7 @@ unit module Qwiratry::Operator::MapReduce;
 
 use Qwiratry::Operator::Capability;
 
-role MapReduceOperatorNode does MapReduceOperator does OperatorBase {
-	has Mu $.subject;
-
+role MapReduceOperatorNode does MapReduceOperator does OperatorBase does ChainedOperator {
 	=begin pod
 
 	=head1 Methods
@@ -48,13 +46,12 @@ role MapReduceOperatorNode does MapReduceOperator does OperatorBase {
 
 	=end pod
 	method mapreduce-describe(Str $detail --> Str) {
-		my $sub = $!subject.defined ?? " subject={$!subject.gist}" !! '';
+		my $sub = self.subject-description;
 		"{self.^name}($detail$sub)"
 	}
 }
 
-class SelectionOperator is RakuAST::Node does MapReduceOperator does OperatorBase is export {
-	has Mu $.subject;
+class SelectionOperator is RakuAST::Node does MapReduceOperator does OperatorBase does ChainedOperator is export {
 	has Mu $.predicate is required;
 
 	=begin pod
@@ -69,7 +66,7 @@ class SelectionOperator is RakuAST::Node does MapReduceOperator does OperatorBas
 
 	=end pod
 	method describe(--> Str) {
-		my $sub = $!subject.defined ?? " subject={$!subject.gist}" !! '';
+		my $sub = self.subject-description;
 		"SelectionOperator(predicate$sub)"
 	}
 }

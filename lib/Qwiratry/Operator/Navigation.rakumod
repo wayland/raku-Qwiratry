@@ -23,8 +23,7 @@ unit module Qwiratry::Operator::Navigation;
 
 use Qwiratry::Operator::Capability;
 
-role NavigationOperatorNode does NavigationOperator does OperatorBase {
-	has Mu $.subject;
+role NavigationOperatorNode does NavigationOperator does OperatorBase does ChainedOperator {
 	has Mu $.selector is required;
 	has $.adverbs;
 
@@ -46,7 +45,7 @@ role NavigationOperatorNode does NavigationOperator does OperatorBase {
 	=end pod
 	method describe(--> Str) {
 		my $sel = $!selector.defined ?? $!selector.gist !! 'Nil';
-		my $sub = $!subject.defined ?? " subject={$!subject.gist}" !! '';
+		my $sub = self.subject-description;
 		my $adv = $!adverbs.defined ?? " adverbs={$!adverbs.raku}" !! '';
 		"{self.operator-name}(selector: $sel$sub$adv)"
 	}
@@ -68,8 +67,7 @@ class FollowingOperator is RakuAST::Node does NavigationOperatorNode is export {
 
 class PrecedingOperator is RakuAST::Node does NavigationOperatorNode is export { }
 
-class AttributeOperator is RakuAST::Node does NavigationOperator does OperatorBase is export {
-	has Mu $.subject;
+class AttributeOperator is RakuAST::Node does NavigationOperator does OperatorBase does ChainedOperator is export {
 	has Mu $.key is required;
 
 	=begin pod
@@ -86,14 +84,12 @@ class AttributeOperator is RakuAST::Node does NavigationOperator does OperatorBa
 	=end pod
 	method describe(--> Str) {
 		my $key = $!key.defined ?? $!key.gist !! 'Nil';
-		my $sub = $!subject.defined ?? " subject={$!subject.gist}" !! '';
+		my $sub = self.subject-description;
 		"AttributeOperator(key: $key$sub)"
 	}
 }
 
-class RootOperator is RakuAST::Node does NavigationOperator does OperatorBase is export {
-	has Mu $.subject;
-
+class RootOperator is RakuAST::Node does NavigationOperator does OperatorBase does ChainedOperator is export {
 	=begin pod
 
 	=head2 C<RootOperator.describe()>
@@ -107,7 +103,7 @@ class RootOperator is RakuAST::Node does NavigationOperator does OperatorBase is
 
 	=end pod
 	method describe(--> Str) {
-		my $sub = $!subject.defined ?? " subject={$!subject.gist}" !! '';
+		my $sub = self.subject-description;
 		"RootOperator$sub"
 	}
 }
