@@ -249,6 +249,7 @@ our role MoldActions {
 	=end pod
 	method mold-def(Mu $/) {
 		my $name = $<name>.defined ?? ~$<name> !! Nil;
+		my $source-location = compiler.source-location($/);
 		my $signature = $<signature>.defined ?? compiler.compile-signature($<signature>.ast) !! Nil;
 
 		my $routine := $*BLOCK;
@@ -260,7 +261,7 @@ our role MoldActions {
 			$routine.replace-signature(compiler.implicit-mold-signature);
 		}
 		unless $<do-block>.defined {
-			die "{compiler.display-name($name)}: required 'do' block is missing. "
+			die "{compiler.display-name($name, :$source-location)}: required 'do' block is missing. "
 			~ "Syntax: mold [name] [signature] [traits] when { ... } do { ... }";
 		}
 		$routine.replace-body($<do-block>.ast);
@@ -268,7 +269,7 @@ our role MoldActions {
 
 		my $do-block = try $routine.meta-object // compiler.compile-blockoid($<do-block>);
 		unless $do-block.defined {
-			die "{compiler.display-name($name)}: required 'do' block could not be compiled.";
+			die "{compiler.display-name($name, :$source-location)}: required 'do' block could not be compiled.";
 		}
 
 		my $when-query = Nil;
@@ -294,7 +295,7 @@ our role MoldActions {
 		}
 
 		my $mold = Mold.new(
-			:$name, :$signature, :$when-block, :$when-query,
+			:$name, :$source-location, :$signature, :$when-block, :$when-query,
 			:$combine-when-query,
 			:$do-block,
 		);

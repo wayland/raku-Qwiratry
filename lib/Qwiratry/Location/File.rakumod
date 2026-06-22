@@ -55,6 +55,7 @@ class Qwiratry::Location::File::Source is Qwiratry::Location::Base::Source {
 		$path.IO.slurp
 	}
 
+	# Converts a file URI or plain path location into a filesystem path.
 	method !path-from-location(Str $location --> Str) {
 		$location.subst(/^ 'file://' /, '')
 	}
@@ -96,6 +97,7 @@ class Qwiratry::Location::File::Destination is Qwiratry::Location::Base::Destina
 		$content
 	}
 
+	# Converts a file URI or plain path location into a filesystem path.
 	method !path-from-location(Str $location --> Str) {
 		$location.subst(/^ 'file://' /, '')
 	}

@@ -185,7 +185,7 @@ subtest "Mold transformation - when/do as where/body" => {
 # =============================================================================
 
 subtest "Anonymous mold syntax" => {
-	plan 6;
+	plan 7;
 
 	clear-collected-molds();
 	transformer AnonymousMoldTest is Transformer {
@@ -201,6 +201,8 @@ subtest "Anonymous mold syntax" => {
 
 	ok $matching.defined, "Anonymous when/do mold was collected";
 	ok !$matching.name.defined, "Anonymous when/do mold has no name";
+	like $matching.source-location, /'line ' \d+ ', column ' \d+/,
+		"Anonymous mold stores source location";
 	is $matching.execute(%(type => 'element', value => 42)), "matched-42",
 		"Anonymous when/do mold executes";
 

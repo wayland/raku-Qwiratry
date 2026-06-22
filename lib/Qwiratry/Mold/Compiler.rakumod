@@ -165,10 +165,44 @@ class Qwiratry::Mold::Compiler {
 
 	=begin pod
 
-	=head2 C<display-name($name)>
+	=head2 C<source-location(Mu $match)>
 
 	=begin code
-	method display-name($name)
+	method source-location(Mu $match)
+	=end code
+
+	=head3 Parameters
+
+	=item C<$match>
+
+	 The grammar match for the declaration being reported.
+
+
+	Returns a C<line N, column M> label for a grammar match.
+
+	The slang match gives character offsets into the original source text. Qwiratry
+	stores a compact line/column label on compiled molds so anonymous declarations
+	can still be identified in diagnostics.
+
+	=end pod
+	method source-location(Mu $match) {
+		my $from = try $match.from;
+		my $orig = try $match.orig;
+		return Nil unless $from.defined && $orig.defined;
+
+		my $prefix = $orig.substr(0, $from);
+		my $line = $prefix.comb("\n").elems + 1;
+		my $last-newline = $prefix.rindex("\n");
+		my $column = $last-newline.defined ?? $from - $last-newline !! $from + 1;
+		"line $line, column $column";
+	}
+
+	=begin pod
+
+	=head2 C<display-name($name, :$source-location)>
+
+	=begin code
+	method display-name($name, :$source-location)
 	=end code
 
 	=head3 Parameters
@@ -176,6 +210,10 @@ class Qwiratry::Mold::Compiler {
 	=item C<$name>
 
 	 The mold name or display name being normalized.
+
+	=item C<$source-location>
+
+	 Optional source location label for anonymous or named molds.
 
 
 	Returns a human-readable label for error messages.
@@ -185,8 +223,9 @@ class Qwiratry::Mold::Compiler {
 	is missing or cannot be compiled.
 
 	=end pod
-	method display-name($name) {
-		$name.defined ?? "mold $name" !! "unnamed mold"
+	method display-name($name, :$source-location) {
+		my $label = $name.defined ?? "mold $name" !! "unnamed mold";
+		$source-location.defined ?? "$label at $source-location" !! $label;
 	}
 
 	=begin pod

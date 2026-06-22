@@ -91,6 +91,7 @@ class Qwiratry::Format::CSVdemo::Parse is Qwiratry::Format::Base::Parse {
 		@rows
 	}
 
+	# Parses one CSVdemo record into a list of field values.
 	method !parse-line(Str $line --> Array) {
 		my $match = Qwiratry::Format::CSVdemo::LineGrammar.parse(
 			$line,

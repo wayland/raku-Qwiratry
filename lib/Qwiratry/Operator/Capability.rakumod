@@ -122,14 +122,14 @@ role FormatOperator does AdaptorOperator is export {
 
 	=end pod
 	method capabilities(--> Associative) {
-		my @formats = (
-			|Qwiratry::Format.formats(:type<Parse>),
-			|Qwiratry::Format.formats(:type<Render>),
-		).unique.sort.map(*.lc).Array;
-		my %caps = self.adaptor-capabilities;
-		%caps<format> = True;
-		%caps<formats> = @formats;
-		%caps
+		%(
+			|self.adaptor-capabilities,
+			format => True,
+			formats => (
+				|Qwiratry::Format.formats(:type<Parse>),
+				|Qwiratry::Format.formats(:type<Render>),
+			).unique.sort.map(*.lc).Array,
+		)
 	}
 }
 
@@ -145,12 +145,11 @@ role LocationOperator does AdaptorOperator is export {
 
 	=end pod
 	method capabilities(--> Associative) {
-		my @sources = Qwiratry::Location.backends(:type<Source>).map(*.lc).Array;
-		my @destinations = Qwiratry::Location.backends(:type<Destination>).map(*.lc).Array;
-		my %caps = self.adaptor-capabilities;
-		%caps<location> = True;
-		%caps<source-backends> = @sources;
-		%caps<destination-backends> = @destinations;
-		%caps
+		%(
+			|self.adaptor-capabilities,
+			location => True,
+			'source-backends' => Qwiratry::Location.backends(:type<Source>).map(*.lc).Array,
+			'destination-backends' => Qwiratry::Location.backends(:type<Destination>).map(*.lc).Array,
+		)
 	}
 }

@@ -130,6 +130,14 @@ mold section() when { $_.name eq 'section' } do {
 class Mold is export {
 	# Optional mold name (makes mold callable as method on transformer)
 	has Str $.name;
+
+	=begin pod
+
+	Source location of the mold declaration, usually C<line N, column M>.
+	Used to identify anonymous molds in diagnostics.
+
+	=end pod
+	has Str $.source-location;
     
 	# Optional mold signature (for parameters)
 	has Signature $.signature;
@@ -211,6 +219,7 @@ class Mold is export {
 	# Constructor
 	submethod BUILD(
 		:$name,
+		:$source-location,
 		:$signature,
 		:$when-block,
 		:$when-query,
@@ -223,6 +232,7 @@ class Mold is export {
 		:$returns-type
 	) {
 		$!name = $name if $name.defined;
+		$!source-location = $source-location if $source-location.defined;
 		$!signature = $signature if $signature.defined;
 		$!when-block = $when-block if $when-block.defined;
 		$!when-query = $when-query if $when-query.defined;
@@ -234,6 +244,25 @@ class Mold is export {
 	=begin pod
 
 	=head1 Methods
+
+	=head2 C<display-name()>
+
+	=begin code
+	method display-name(--> Str)
+	=end code
+
+	Returns a diagnostic label for this mold.
+
+	Named molds use their declaration name. Anonymous molds use C<unnamed mold>,
+	with source location appended when available.
+
+	=end pod
+	method display-name(--> Str) {
+		my $label = $!name // '<unnamed mold>';
+		$!source-location.defined ?? "$label at $!source-location" !! $label;
+	}
+
+	=begin pod
 
 	=head2 C<matches($node)>
 
@@ -276,6 +305,7 @@ class Mold is export {
 		self!evaluate-when-block($node);
 	}
 
+	# Runs the when predicate with mold dynamic variables and turns failures into a non-match.
 	method !evaluate-when-block($node --> Bool) {
 		my $*MAKE-OUTPUT := Nil;
 		try {
@@ -288,6 +318,7 @@ class Mold is export {
 		False;
 	}
 
+	# Establishes the dynamic context shared by when/do blocks before invoking user code.
 	method !run-with-magic-variables($node, &code, :$context, :$setup-capture = False, :$make-output) {
 		my $*CONTEXT = $context // $node;
 		my $*MAKE-OUTPUT := $make-output if $make-output.defined;
@@ -297,14 +328,14 @@ class Mold is export {
 		code();
 	}
 
+	# Converts a signature parameter into the node field name it should bind.
 	method !param-field-name($param --> Str) {
 		my $name = $param.name;
-		$name.=subst(/^\$/, '');
-		$name.=subst(/^\@/, '');
-		$name.=subst(/^\%/, '');
+		$name.=subst(/^ <[\$\@\%]> /, '');
 		$name eq '_' ?? 'topic' !! $name;
 	}
 
+	# Builds the capture used for parameterized mold blocks from the current node.
 	method !capture-signature($node) {
 		return %() unless $!signature.defined;
 
@@ -339,6 +370,7 @@ class Mold is export {
 		%named;
 	}
 
+	# Reads a field from topic, associative nodes, or method-like node objects.
 	method !extract-field($node, $field) {
 		return $node if $field eq 'topic';
 		if $node ~~ Associative {
@@ -350,6 +382,7 @@ class Mold is export {
 		Nil;
 	}
 
+	# Invokes an arity-zero block with the current node installed as the topic.
 	method !invoke-arity0($node, &code) {
 		if $node.defined {
 			with $node { code() }
@@ -359,6 +392,7 @@ class Mold is export {
 		}
 	}
 
+	# Dispatches a generic when/do block according to its declared arity.
 	method !invoke-block($block, $node) {
 		if $block.arity == 0 && $block.count == 0 {
 			return self!invoke-arity0($node, { $block() });
@@ -367,6 +401,7 @@ class Mold is export {
 		$block($node);
 	}
 
+	# Runs the mold action, handling method blocks, transformer invocants, and captures.
 	method !invoke-do-block($block, $node, $transformer, :$context, :$make-output) {
 		my $mold = self;
 		$mold!run-with-magic-variables(
@@ -410,6 +445,7 @@ class Mold is export {
 		);
 	}
 
+	# Chooses make output over the block return value when the action emitted values.
 	method !finalize-result($block-result, @make-output) {
 		if @make-output {
 			return @make-output.elems == 1 ?? @make-output[0] !! @make-output.List;

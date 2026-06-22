@@ -75,6 +75,7 @@ class Qwiratry::Walker::Implementation::Table does Qwiratry::Walker is export {
 				!! $!root;
 		}
 
+		# Invokes finish hooks once and marks table iteration as complete.
 		method !stop-traversal() {
 			unless $!finish-invoked {
 				traversal.invoke-finish($!root, $.context);

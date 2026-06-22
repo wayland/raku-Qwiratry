@@ -76,6 +76,7 @@ class Qwiratry::Walker::Implementation::Tree does Qwiratry::Walker is export {
 			@!stack = [$!root] if $!root.defined;
 		}
 
+		# Stops tree iteration, invokes finish hooks once, and marks the iterator finished.
 		method !stop-traversal() {
 			@!stack = ();
 			unless $!finish-invoked {
@@ -85,6 +86,7 @@ class Qwiratry::Walker::Implementation::Tree does Qwiratry::Walker is export {
 			$!finished = True;
 		}
 
+		# Runs traversal hooks for one element and queues matching nodes for yielding.
 		method !visit-element(Mu $element, :$yield = True --> Mu) {
 			$!state.clear-skip;
 

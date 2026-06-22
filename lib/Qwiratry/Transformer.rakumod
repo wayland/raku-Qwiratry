@@ -579,6 +579,7 @@ class Transformer does Callable is export {
 		return RootOperator.new(:subject($data));
 	}
 
+	# Builds and drains the walker's default traversal iterator with pass hooks.
 	method !walker-traversal-seq(Mu $data, $walker --> Iterable) {
 		my $query = self!default-traversal-query($data);
 		my $plan = $walker.plan($query, $data);
@@ -593,6 +594,7 @@ class Transformer does Callable is export {
 		}
 	}
 
+	# Visits each node from a query iterator or iterable while honoring walker pass hooks.
 	method !each-traversal-node($iter, $walker, &code) {
 		if $iter ~~ QueryIterator {
 			my $ctx = $iter.context;
@@ -609,6 +611,7 @@ class Transformer does Callable is export {
 		}
 	}
 
+	# Creates the traversal iterator used when no explicit query was supplied.
 	method !create-default-iterator($data, $walker --> Mu) {
 		if $walker.defined {
 			my $query = self!default-traversal-query($data);
@@ -820,8 +823,8 @@ class Transformer does Callable is export {
                     
 					# Conservative approach: if uncertain, report conflict
 					# Molds with equal values could potentially match the same node
-					my $t1-name = $t1.name // "<unnamed mold>";
-					my $t2-name = $t2.name // "<unnamed mold>";
+					my $t1-name = $t1.display-name;
+					my $t2-name = $t2.display-name;
                     
 					X::Qwiratry::MoldOrderingConflict.new(
 						message => "Mold ordering conflict: molds '$t1-name' and '$t2-name' have equal priority ($t1.priority), specificity ($spec1), and tie-breaker ($t1.tie-breaker). Set explicit :tie-breaker values to resolve.",
@@ -1118,6 +1121,7 @@ class MetamodelX::TransformerHOW is Metamodel::ClassHOW {
 		return type;
 	}
 
+	# Installs a named mold as a callable method on the generated transformer type.
 	method !create-mold-method(Mu \type, $mold) {
 		if $mold.name.defined {
 			my $mold-copy = $mold;
@@ -1135,6 +1139,7 @@ class MetamodelX::TransformerHOW is Metamodel::ClassHOW {
 		}
 	}
 
+	# Installs a collected wrapper block as the corresponding transformer submethod.
 	method !create-wrapper-submethod(Mu \type, Str $submethod-name, $wrapper-block) {
 		return unless $wrapper-block.defined;
 		my $block = $wrapper-block;
