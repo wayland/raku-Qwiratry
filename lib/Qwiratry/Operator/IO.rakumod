@@ -54,108 +54,66 @@ role AdaptorOperatorNode does OperatorBase {
 }
 
 role LocationOperatorNode does LocationOperator does AdaptorOperatorNode {
-}
-
-class SourceOperator is RakuAST::Node does LocationOperatorNode is export {
 	has Str $.location is required is built;
 
 	submethod TWEAK {
-		Qwiratry::Location.ensure-location(:type<Source>, :location($!location));
+		Qwiratry::Location.ensure-location(:type(self.location-type), :location($!location));
 	}
 
 	=begin pod
 
-	=head2 C<SourceOperator.describe()>
+	=head2 C<describe()>
 
 	=begin code
 	method describe(--> Str)
 	=end code
 
-	Returns a debug label containing the source location.
-
-	=end pod
-	method describe(--> Str) {
-		"SourceOperator(location: '$!location')"
-	}
-
-	=begin pod
-
-	=head2 C<SourceOperator.evaluate(:$origin, :&execute)>
-
-	=begin code
-	method evaluate(Mu :$origin, :&execute)
-	=end code
-
-	=head3 Parameters
-
-	=item C<$origin>
-
-	 The root or originating value for evaluating the operator subject.
-
-	=item C<&execute>
-
-	 The callback used to evaluate this operator's subject before adapting it.
-
-
-	Reads text from the configured location. C<$origin> and C<&execute> are
-	accepted for pipeline compatibility but are not needed by source nodes.
-
-	=end pod
-	method evaluate(Mu :$origin, :&execute) {
-		Qwiratry::Location.make(:type<Source>, :location($!location)).read($!location)
-	}
-}
-
-class DestinationOperator is RakuAST::Node does LocationOperatorNode does ChainedOperator is export {
-	has Str $.location is required is built;
-
-	submethod TWEAK {
-		Qwiratry::Location.ensure-location(:type<Destination>, :location($!location));
-	}
-
-	=begin pod
-
-	=head2 C<DestinationOperator.describe()>
-
-	=begin code
-	method describe(--> Str)
-	=end code
-
-	Returns a debug label containing the destination location and any upstream
-	subject.
+	Returns a debug label containing the location and, for chained location
+	operators, any upstream subject.
 
 	=end pod
 	method describe(--> Str) {
 		self.adaptor-describe("location: '$!location'")
 	}
 
+	method location-implementation {
+		Qwiratry::Location.make(:type(self.location-type), :location(self.location))
+	}
+
 	=begin pod
 
-	=head2 C<DestinationOperator.evaluate(:$origin, :&execute)>
+	=head2 C<evaluate(:$origin, :&execute)>
 
 	=begin code
 	method evaluate(Mu :$origin, :&execute)
 	=end code
 
-	=head3 Parameters
-
-	=item C<$origin>
-
-	 The root or originating value for evaluating the operator subject.
-
-	=item C<&execute>
-
-	 The callback used to evaluate this operator's subject before adapting it.
-
-
-	Evaluates the subject (or pipeline origin), writes it to the configured
-	location, and returns the written content for pipeline pass-through.
+	Reads source locations directly. Destination locations evaluate their subject
+	or pipeline origin, write that content, and return it for pass-through.
 
 	=end pod
 	method evaluate(Mu :$origin, :&execute) {
+		my $implementation = self.location-implementation;
+
+		if self.location-type eq 'Source' {
+			return $implementation.read(self.location);
+		}
+
 		my $content = execute(self.subject // $origin, :$origin);
-		Qwiratry::Location.make(:type<Destination>, :location($!location)).write($!location, $content);
+		$implementation.write(self.location, $content);
 		$content
+	}
+}
+
+class SourceOperator is RakuAST::Node does LocationOperatorNode is export {
+	method location-type(--> Str) {
+		'Source'
+	}
+}
+
+class DestinationOperator is RakuAST::Node does LocationOperatorNode does ChainedOperator is export {
+	method location-type(--> Str) {
+		'Destination'
 	}
 }
 
