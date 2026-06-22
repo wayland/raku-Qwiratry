@@ -36,7 +36,7 @@ class Qwiratry::Format::Base::Parse {
 	Parses external text into structured Raku data.
 
 	Concrete parsers override this method. Callers normally reach it through
-	L<Qwiratry::Operator::PipelineStep.parse-data> or
+	L<Qwiratry::Operator::IO::ParseOperator> or
 	C<Qwiratry::Format.make(:type<Parse>, :format(...))>.
 
 	=end pod

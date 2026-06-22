@@ -9,8 +9,6 @@ C<execute> is the recursive entry point that dispatches to C<evaluate>.
 =end pod
 unit module Qwiratry::Operator::PipelineStep;
 
-use Qwiratry::Format;
-use Qwiratry::Location;
 use X::Qwiratry;
 
 =begin pod
@@ -59,53 +57,6 @@ our sub pipeline-root(Mu $op, Mu $origin, :&execute --> Mu) is export {
 
 sub is-adaptor-operator(Mu $subject --> Bool) {
 	so $subject.^roles.map(*.^name).grep({ .contains(any('AdaptorOperator', 'FormatOperator', 'LocationOperator')) })
-}
-
-=begin pod
-
-Read text from a file location. Throws L<X::Qwiratry::IO::LocationError> for
-unsupported backends or missing files.
-
-=end pod
-our sub read-location(Str $location --> Str) is export {
-	Qwiratry::Location.make(:type<Source>, :$location).read($location)
-}
-
-=begin pod
-
-Write pipeline output to a file, creating parent directories when needed.
-
-=end pod
-our sub write-location(Str $location, Mu $content) is export {
-	Qwiratry::Location.make(:type<Destination>, :$location).write($location, $content)
-}
-
-=begin pod
-
-Parse external text via L<Qwiratry::Format>.
-
-=end pod
-our sub parse-data(Str $format, Str $text) is export {
-	Qwiratry::Format.make(:type<Parse>, :$format).parse($text)
-}
-
-=begin pod
-
-Render in-memory data via L<Qwiratry::Format>.
-
-=end pod
-our sub render-data(Str $format, Mu $data, Associative $options) is export {
-	Qwiratry::Format.make(:type<Render>, :$format).render(pipeline-render-payload($data), |%($options // %()))
-}
-
-=begin pod
-
-Normalize lazy C<Seq> results from C<select> into a plain list for rendering.
-
-=end pod
-our sub pipeline-render-payload(Mu $data --> Mu) is export {
-	$data ~~ Seq and return $data.list;
-	$data
 }
 
 =begin pod

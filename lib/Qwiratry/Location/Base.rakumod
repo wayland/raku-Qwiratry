@@ -36,8 +36,8 @@ class Qwiratry::Location::Base::Source {
 	Reads text from C<$location>.
 
 	Concrete source backends override this method. The pipeline reaches it through
-	L<Qwiratry::Operator::PipelineStep.read-location> after
-	L<Qwiratry::Location> has chosen and validated the backend.
+	L<Qwiratry::Operator::IO::SourceOperator> after L<Qwiratry::Location> has chosen
+	and validated the backend.
 
 	=end pod
 	method read(Str $location --> Str) {

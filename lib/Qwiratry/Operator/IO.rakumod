@@ -107,7 +107,7 @@ class SourceOperator is RakuAST::Node does LocationOperator does OperatorBase is
 
 	=end pod
 	method evaluate(Mu :$origin, :&execute) {
-		read-location($!location)
+		Qwiratry::Location.make(:type<Source>, :location($!location)).read($!location)
 	}
 }
 
@@ -158,7 +158,7 @@ class ParseOperator is RakuAST::Node does FormatOperatorNode is export {
 	=end pod
 	method evaluate(Mu :$origin, :&execute) {
 		my $text = execute($!subject // $origin, :$origin);
-		parse-data($!format, $text)
+		Qwiratry::Format.make(:type<Parse>, :format($!format)).parse($text)
 	}
 }
 
@@ -211,7 +211,9 @@ class RenderOperator is RakuAST::Node does FormatOperatorNode is export {
 	=end pod
 	method evaluate(Mu :$origin, :&execute) {
 		my $data = execute($!subject // $origin, :$origin);
-		render-data($!format, $data, %.options)
+		my $payload = $data ~~ Seq ?? $data.list !! $data;
+		Qwiratry::Format.make(:type<Render>, :format($!format))
+			.render($payload, |%(%.options // %()))
 	}
 }
 
@@ -263,7 +265,7 @@ class DestinationOperator is RakuAST::Node does LocationOperatorNode is export {
 	=end pod
 	method evaluate(Mu :$origin, :&execute) {
 		my $content = execute($!subject // $origin, :$origin);
-		write-location($!location, $content);
+		Qwiratry::Location.make(:type<Destination>, :location($!location)).write($!location, $content);
 		$content
 	}
 }

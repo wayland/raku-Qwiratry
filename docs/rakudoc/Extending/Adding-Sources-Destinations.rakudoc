@@ -171,16 +171,6 @@ Receives data from a location.
 
 Outputs data to a location.
 
-=item C<Qwiratry::Operator::PipelineStep::read-location>
-
-Delegation helper used by source operators to receive data through
-C<Qwiratry::Location>.
-
-=item C<Qwiratry::Operator::PipelineStep::write-location>
-
-Delegation helper used by destination operators to output data through
-C<Qwiratry::Location>.
-
 =item C<Qwiratry::Location>
 
 Factory that discovers location backends and creates source or destination
