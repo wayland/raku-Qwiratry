@@ -37,7 +37,7 @@ class Qwiratry::Query::Extract {
 	=end pod
 	method from-when-block(Block $when-block --> Mu) {
 		my $result = try { $when-block(NavQueryTopic.new) };
-		return $result if $result ~~ NavigationOperator;
+		$result ~~ NavigationOperator and return $result;
 		Nil
 	}
 
@@ -49,12 +49,12 @@ class Qwiratry::Query::Extract {
 	=end pod
 	method is-pure-navigation-when(Block $when-block --> Bool) {
 		my $with-topic = self.from-when-block($when-block);
-		return False unless $with-topic.defined;
+		$with-topic.defined or return False;
 
 		my $with-scalar = try { $when-block(42) };
-		return False unless $with-scalar ~~ NavigationOperator;
-		return False unless $with-scalar.^name eq $with-topic.^name;
-		return False unless self!selectors-equivalent($with-topic, $with-scalar);
+		$with-scalar ~~ NavigationOperator or return False;
+		$with-scalar.^name eq $with-topic.^name or return False;
+		self!selectors-equivalent($with-topic, $with-scalar) or return False;
 		True
 	}
 
@@ -64,9 +64,9 @@ class Qwiratry::Query::Extract {
 
 	=end pod
 	method split-from-blockoid(Mu $blockoid-cap --> Hash) {
-		return %() unless $blockoid-cap.defined;
+		$blockoid-cap.defined or return %();
 		my $body = try $blockoid-cap.ast;
-		return %() unless $body.defined;
+		$body.defined or return %();
 		self!split-when-navigation-ast($body);
 	}
 
@@ -76,12 +76,12 @@ class Qwiratry::Query::Extract {
 
 	=end pod
 	method !selectors-equivalent(Mu $a, Mu $b --> Bool) {
-		return False unless $a.can('selector') && $b.can('selector');
+		$a.can('selector') && $b.can('selector') or return False;
 		my $left = $a.selector;
 		my $right = $b.selector;
-		return True if !$left.defined && !$right.defined;
-		return False unless $left.defined && $right.defined;
-		return $left eqv $right if $left ~~ Str && $right ~~ Str;
+		!$left.defined && !$right.defined and return True;
+		$left.defined && $right.defined or return False;
+		$left ~~ Str && $right ~~ Str and return $left eqv $right;
 		$left.gist eq $right.gist
 	}
 
@@ -91,7 +91,7 @@ class Qwiratry::Query::Extract {
 
 	=end pod
 	method !infix-name(Mu $infix --> Str) {
-		return $infix.operator if $infix.can('operator');
+		$infix.can('operator') and return $infix.operator;
 		try $infix.name // ~$infix
 	}
 
@@ -101,9 +101,9 @@ class Qwiratry::Query::Extract {
 
 	=end pod
 	method !infix-is-navigation(Mu $infix --> Bool) {
-		return False unless $infix.defined;
+		$infix.defined or return False;
 		my $name = self!infix-name($infix);
-		return False unless $name.defined;
+		$name.defined or return False;
 		so $name eq any(@NAV-INFIX)
 	}
 
@@ -113,9 +113,9 @@ class Qwiratry::Query::Extract {
 
 	=end pod
 	method !infix-is-conjunction(Mu $infix --> Bool) {
-		return False unless $infix.defined;
+		$infix.defined or return False;
 		my $name = self!infix-name($infix);
-		return False unless $name.defined;
+		$name.defined or return False;
 		so $name eq any(<&& and>)
 	}
 
@@ -127,13 +127,13 @@ class Qwiratry::Query::Extract {
 	method !when-body-expression(Mu $body --> Mu) {
 		if $body.WHAT.^name eq 'RakuAST::Blockoid' {
 			my $inner = try $body.statement-list;
-			return self!when-body-expression($inner) if $inner.defined;
+			$inner.defined and return self!when-body-expression($inner);
 		}
 		if $body ~~ RakuAST::StatementList {
 			my @stmts = $body.statements;
-			return Nil unless @stmts == 1;
+			@stmts == 1 or return Nil;
 			my $stmt = @stmts[0];
-			return $stmt.expression if $stmt.can('expression');
+			$stmt.can('expression') and return $stmt.expression;
 		}
 		Nil
 	}
@@ -144,7 +144,7 @@ class Qwiratry::Query::Extract {
 
 	=end pod
 	method !is-navigation-expr(Mu $expr --> Bool) {
-		return False unless $expr.defined;
+		$expr.defined or return False;
 		return True if $expr.WHAT.^name eq 'RakuAST::ApplyInfix'
 			&& self!infix-is-navigation($expr.infix);
 		False
@@ -157,7 +157,7 @@ class Qwiratry::Query::Extract {
 	=end pod
 	method !split-when-navigation-ast(Mu $body --> Hash) {
 		my $expr = self!when-body-expression($body);
-		return %() unless $expr.defined;
+		$expr.defined or return %();
 
 		if $expr.WHAT.^name eq 'RakuAST::ApplyInfix' && self!infix-is-conjunction($expr.infix) {
 			my $left = $expr.left;
@@ -167,7 +167,7 @@ class Qwiratry::Query::Extract {
 			}
 		}
 
-		return %(query => $expr) if self!is-navigation-expr($expr);
+		self!is-navigation-expr($expr) and return %(query => $expr);
 		%()
 	}
 }

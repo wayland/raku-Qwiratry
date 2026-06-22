@@ -67,9 +67,9 @@ class Qwiratry::Mold::Compiler {
 
 	=end pod
 	method compile-blockoid(Mu $cap) {
-		return Nil unless $cap.defined;
+		$cap.defined or return Nil;
 		my $body = try $cap.ast;
-		return Nil unless $body.defined;
+		$body.defined or return Nil;
 		self!compile-block-body($body);
 	}
 
@@ -154,8 +154,8 @@ class Qwiratry::Mold::Compiler {
 
 	=end pod
 	method compile-signature($sig-ast) {
-		return Nil unless $sig-ast.defined;
-		return $sig-ast if $sig-ast ~~ Signature;
+		$sig-ast.defined or return Nil;
+		$sig-ast ~~ Signature and return $sig-ast;
 		my $stub := RakuAST::Sub.new(
 			:signature($sig-ast),
 			body => RakuAST::Blockoid.new(),
@@ -188,7 +188,7 @@ class Qwiratry::Mold::Compiler {
 	method source-location(Mu $match) {
 		my $from = try $match.from;
 		my $orig = try $match.orig;
-		return Nil unless $from.defined && $orig.defined;
+		$from.defined && $orig.defined or return Nil;
 
 		my $prefix = $orig.substr(0, $from);
 		my $line = $prefix.comb("\n").elems + 1;
@@ -260,7 +260,7 @@ class Qwiratry::Mold::Compiler {
 
 	=end pod
 	method apply-traits(Mold $mold, $routine) {
-		return unless $routine.traits.defined;
+		$routine.traits.defined or return;
 		for $routine.traits -> $trait {
 			if $trait ~~ RakuAST::Trait::Is {
 				my $name = try $trait.name.simple-identifier // ~$trait.name;
@@ -313,7 +313,7 @@ class Qwiratry::Mold::Compiler {
 		try {
 			$block.to-begin-time($*R, $*CU.context);
 			my $code = $block.meta-object;
-			return $code if $code.defined;
+			$code.defined and return $code;
 		}
 		Nil
 	}

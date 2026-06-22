@@ -35,10 +35,10 @@ class Qwiratry::Table::Schema {
 	) {
 		my %table-map = %$tables;
 		my @fks = @foreign-keys;
-		@fks = self.infer-foreign-keys($tables) if !@fks && $infer-fks;
+		!@fks && $infer-fks and @fks = self.infer-foreign-keys($tables);
 		my $active = $active-table;
 		unless $active.defined {
-			$active = %table-map.keys.first if %table-map.keys.elems == 1;
+			%table-map.keys.elems == 1 and $active = %table-map.keys.first;
 		}
 		Qwiratry::Table::Catalog.new(
 			:tables(Hash.new(%table-map)),
@@ -63,7 +63,7 @@ class Qwiratry::Table::Schema {
 
 	=end pod
 	method discover(Mu $origin is raw --> Mu) {
-		return $origin if $origin ~~ Qwiratry::Table::Catalog;
+		$origin ~~ Qwiratry::Table::Catalog and return $origin;
 
 		my $schema = Qwiratry::Walker::Providing.instance.schema($origin);
 		if $schema.defined {
@@ -135,7 +135,7 @@ class Qwiratry::Table::Schema {
 	=end pod
 	method !catalog-from-providing-schema(Associative $schema, Mu $origin --> Mu) {
 		my %tables = self!schema-tables($schema, $origin);
-		return Nil unless %tables;
+		%tables or return Nil;
 		self.catalog-from-tables(
 			%tables,
 			:foreign-keys(self!schema-foreign-keys($schema)),
@@ -150,7 +150,7 @@ class Qwiratry::Table::Schema {
 
 	=end pod
 	method !schema-tables(Associative $schema, Mu $origin --> Associative) {
-		return %($schema<tables>) if $schema<tables> ~~ Associative;
+		$schema<tables> ~~ Associative and return %($schema<tables>);
 		if $schema<table-name>.defined && $origin ~~ Positional {
 			return %(($schema<table-name> => $origin));
 		}
@@ -170,9 +170,9 @@ class Qwiratry::Table::Schema {
 
 	=end pod
 	method !schema-foreign-keys(Associative $source --> List) {
-		return () unless $source<foreign-keys>:exists;
+		$source<foreign-keys>:exists or return ();
 		my $raw = $source<foreign-keys>;
-		return $raw.list if $raw ~~ Positional;
+		$raw ~~ Positional and return $raw.list;
 		()
 	}
 
@@ -192,7 +192,7 @@ class Qwiratry::Table::Schema {
 	=end pod
 	method !schema-table-name(Mu $origin --> Mu) {
 		my $schema = Qwiratry::Walker::Providing.instance.schema($origin);
-		return $schema<table-name> if $schema.defined && $schema<table-name>.defined;
+		$schema.defined && $schema<table-name>.defined and return $schema<table-name>;
 		Nil
 	}
 
@@ -202,7 +202,7 @@ class Qwiratry::Table::Schema {
 
 	=end pod
 	method !is-multi-table-root(Associative $root --> Bool) {
-		return False unless $root.keys;
+		$root.keys or return False;
 		$root.pairs.grep({ $_.value ~~ Positional && !($_.value ~~ Associative) }).so
 	}
 
@@ -226,13 +226,13 @@ class Qwiratry::Table::Schema {
 
 	=end pod
 	method !infer-primary-key(Positional $rows, Str $table-name --> Mu) {
-		return Nil unless $rows.elems && $rows[0] ~~ Associative;
+		$rows.elems && $rows[0] ~~ Associative or return Nil;
 		my @cols = $rows[0].keys.sort;
 		my $singular = self!singular-table-name($table-name);
 		my $preferred = "{$singular}_id";
-		return $preferred if @cols.grep(* eq $preferred).so;
+		@cols.grep(* eq $preferred).so and return $preferred;
 		my @id-cols = @cols.grep({ $_ ~~ / '_id' $ / });
-		return @id-cols[0] if @id-cols;
+		@id-cols and return @id-cols[0];
 		@cols[0]
 	}
 
@@ -242,7 +242,7 @@ class Qwiratry::Table::Schema {
 
 	=end pod
 	method !singular-table-name(Str $table-name --> Str) {
-		return $table-name.substr(0, *-1) if $table-name.ends-with('s') && $table-name.chars > 1;
+		$table-name.ends-with('s') && $table-name.chars > 1 and return $table-name.substr(0, *-1);
 		$table-name
 	}
 
@@ -252,9 +252,9 @@ class Qwiratry::Table::Schema {
 
 	=end pod
 	method !column-references-table(Str $column, Str $to-table, Str $to-pk --> Bool) {
-		return True if $column eq $to-pk;
+		$column eq $to-pk and return True;
 		my $singular = self!singular-table-name($to-table);
-		return True if $column eq "{$singular}_id" && $to-pk eq "{$singular}_id";
+		$column eq "{$singular}_id" && $to-pk eq "{$singular}_id" and return True;
 		False
 	}
 }

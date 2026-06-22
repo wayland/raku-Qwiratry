@@ -77,7 +77,7 @@ class Qwiratry::Format::CSVdemo::Parse is Qwiratry::Format::Base::Parse {
 	=end pod
 	method parse(Str $input-string --> Mu) {
 		my @lines = $input-string.lines.grep(*.chars);
-		return @() unless @lines;
+		@lines or return @();
 		my @records = @lines.map({ self!parse-line($_) });
 		my @headers = @records[0].Slip;
 		my @rows;
@@ -131,7 +131,7 @@ class Qwiratry::Format::CSVdemo::Render is Qwiratry::Format::Base::Render {
 	=end pod
 	method render(Mu $data, Associative :%options --> Str) {
 		my @rows = $data ~~ Positional ?? $data.list !! ($data,);
-		return '' unless @rows;
+		@rows or return '';
 		my @headers = @rows[0].keys.sort;
 		my @lines = (@headers.join(','));
 		for @rows -> $row {

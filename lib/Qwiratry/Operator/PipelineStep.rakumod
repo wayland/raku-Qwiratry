@@ -39,7 +39,7 @@ Delegates to each operator's C<evaluate> method.
 
 =end pod
 our sub execute(Mu $op, Mu :$origin) is export {
-	return $op.evaluate(:$origin, :&execute) if $op.can('evaluate');
+	$op.can('evaluate') and return $op.evaluate(:$origin, :&execute);
 	$op
 }
 
@@ -50,8 +50,8 @@ Resolve the data root for a query operator by walking C<subject> links leftward.
 =end pod
 our sub pipeline-root(Mu $op, Mu $origin, :&execute --> Mu) is export {
 	if $op.can('subject') && $op.subject.defined {
-		return execute($op.subject, :$origin) if is-adaptor-operator($op.subject);
-		return pipeline-root($op.subject, $origin, :&execute) if $op.subject.can('subject');
+		is-adaptor-operator($op.subject) and return execute($op.subject, :$origin);
+		$op.subject.can('subject') and return pipeline-root($op.subject, $origin, :&execute);
 		return $op.subject;
 	}
 	$origin // $op
@@ -104,7 +104,7 @@ Normalize lazy C<Seq> results from C<select> into a plain list for rendering.
 
 =end pod
 our sub pipeline-render-payload(Mu $data --> Mu) is export {
-	return $data.list if $data ~~ Seq;
+	$data ~~ Seq and return $data.list;
 	$data
 }
 
@@ -116,9 +116,9 @@ Materialize a C<Seq> from C<select>: empty, singleton, or list (never a bare Seq
 our sub seq-to-pipeline-value(Seq $seq --> Mu) is export {
 	my $iter = $seq.iterator;
 	my $first = $iter.pull-one;
-	return () if $first ~~ IterationEnd;
+	$first ~~ IterationEnd and return ();
 	my $second = $iter.pull-one;
-	return $first if $second ~~ IterationEnd;
+	$second ~~ IterationEnd and return $first;
 	gather {
 		take $first;
 		take $second;

@@ -34,10 +34,10 @@ use Qwiratry::Walker::Implementation::Tree;
 use Qwiratry::Walker::Implementation::Table;
 
 sub is-table-data($data --> Bool) {
-	return False unless $data ~~ Positional;
-	return False if $data.elems == 0;
-	return False unless $data[0] ~~ Associative;
-	return False if $data[0]<children>:exists;
+	$data ~~ Positional or return False;
+	$data.elems == 0 and return False;
+	$data[0] ~~ Associative or return False;
+	$data[0]<children>:exists and return False;
 	True
 }
 
@@ -214,7 +214,7 @@ class Qwiratry::Walker::Factory {
 				next if $value ~~ Exception;
 				try {
 					my $type = ::($name);
-					@found.push($type) if $type.does(Qwiratry::Walker);
+					$type.does(Qwiratry::Walker) and @found.push($type);
 				}
 			}
 		}
@@ -254,7 +254,7 @@ class Qwiratry::Walker::Factory {
 		}
 
 		my @search-paths = @paths;
-		@search-paths.push('lib') unless @search-paths.grep(* eq 'lib');
+		@search-paths.grep(* eq 'lib') or @search-paths.push('lib');
 
 		try {
 			my $discoverer = Implementation::Loader.new;

@@ -54,7 +54,7 @@ class Qwiratry::Walker::Implementation::Table does Qwiratry::Walker is export {
 			given $next {
 				when IterationEnd { return IterationEnd; }
 				default {
-					$.context.rows-scanned++ if $.context.defined;
+					$.context.defined and $.context.rows-scanned++;
 					$next
 				}
 			}
@@ -96,7 +96,7 @@ class Qwiratry::Walker::Implementation::Table does Qwiratry::Walker is export {
 				my $before = traversal.run-before($row, $.context, $state);
 				if $state.stopped {
 					self!stop-traversal;
-					return $row if $before ~~ ControlSignal && $before != SKIP_ELEMENT;
+					$before ~~ ControlSignal && $before != SKIP_ELEMENT and return $row;
 					return IterationEnd;
 				}
 				next if $before ~~ ControlSignal && $before == SKIP_ELEMENT;
@@ -104,7 +104,7 @@ class Qwiratry::Walker::Implementation::Table does Qwiratry::Walker is export {
 				traversal.run-on-match($row, $!query-ast, $!root, $.context, $state);
 				if $state.stopped {
 					self!stop-traversal;
-					return $row if node-matches($!query-ast, $row, :origin($!root));
+					node-matches($!query-ast, $row, :origin($!root)) and return $row;
 					return IterationEnd;
 				}
 
@@ -114,7 +114,7 @@ class Qwiratry::Walker::Implementation::Table does Qwiratry::Walker is export {
 				}
 
 				next unless node-matches($!query-ast, $row, :origin($!root));
-				$.context.rows-scanned++ if $.context.defined;
+				$.context.defined and $.context.rows-scanned++;
 				return $row;
 			}
 
@@ -244,10 +244,10 @@ class Qwiratry::Walker::Implementation::Table does Qwiratry::Walker is export {
 
 	=end pod
 	method supports(Mu $query --> Bool) {
-		return True if $query ~~ RootOperator;
-		return True if $query ~~ NavigationOperator;
-		return True if $query ~~ SetOperator;
-		return True if $query ~~ MapReduceOperator;
+		$query ~~ RootOperator and return True;
+		$query ~~ NavigationOperator and return True;
+		$query ~~ SetOperator and return True;
+		$query ~~ MapReduceOperator and return True;
 		False;
 	}
 
@@ -273,8 +273,8 @@ class Qwiratry::Walker::Implementation::Table does Qwiratry::Walker is export {
 	method POST-PASS(Context $ctx) {
 		if $ctx.strategy.defined {
 			my $should-continue = $ctx.strategy.should-continue($ctx.strategy, $ctx);
-			$ctx.should-continue-calls++ if $ctx.can('should-continue-calls');
-			$ctx.should-continue-result = $should-continue if $ctx.can('should-continue-result');
+			$ctx.can('should-continue-calls') and $ctx.should-continue-calls++;
+			$ctx.can('should-continue-result') and $ctx.should-continue-result = $should-continue;
 		}
 	}
 

@@ -144,7 +144,7 @@ class Qwiratry::Walker::Master::Iterator does QueryIterator {
 
 	submethod BUILD(:$!context, :$!plan) {
 		@!order = $!plan.execution-order;
-		@!order = (0..^$!plan.subplans.elems).Array unless @!order.elems;
+		@!order.elems or @!order = (0..^$!plan.subplans.elems).Array;
 		@!subplan-iters = @!order.map({ $!plan.subplans[$_].iterator });
 	}
 
@@ -152,7 +152,7 @@ class Qwiratry::Walker::Master::Iterator does QueryIterator {
 		while $!order-index < @!subplan-iters.elems {
 			my $iter = @!subplan-iters[$!order-index];
 			my $result = $iter.pull-one;
-			return $result unless $result ~~ IterationEnd;
+			$result ~~ IterationEnd or return $result;
 			$!order-index++;
 		}
 		IterationEnd

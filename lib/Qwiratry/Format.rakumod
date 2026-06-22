@@ -45,20 +45,22 @@ class Qwiratry::Format does Implementation::Loader {
 	=end pod
 	method normalize-type-name(Str $type --> Str) {
 		my $name = $type.subst(/\.rakumod$/, '');
-		$name = $name.split('::').[*-1] if $name.contains('::');
+		$name.contains('::') and $name = $name.split('::').[*-1];
 		$name.tc
 	}
 
 	=begin pod
 
-	Normalize format labels (for example C<jsondemo> or C<Qwiratry::Format::JSONdemo>).
+	Normalize format labels (for example C<jsondemo> or C<Qwiratry::Format::JSONdemo>)
+	to discovered module names when available.
 
 	=end pod
 	method normalize-format-name(Str $format --> Str) {
+		self.DEFINITE or return self.instance.normalize-format-name($format);
 		my $name = $format.subst(/\.rakumod$/, '');
-		$name = $name.split('::').[*-1] if $name.contains('::');
-		return 'CSVdemo' if $name.lc eq 'csvdemo';
-		return 'JSONdemo' if $name.lc eq 'jsondemo';
+		$name.contains('::') and $name = $name.split('::').[*-1];
+		my $canonical = self!canonical-format-name($name);
+		$canonical.defined and return $canonical;
 		$name.uc
 	}
 
@@ -85,11 +87,29 @@ class Qwiratry::Format does Implementation::Loader {
 		'Qwiratry::Format::Base::' ~ self.normalize-type-name($type)
 	}
 
+	# Return format module labels from discovered Qwiratry::Format::* modules.
+	method !discovered-format-names(--> List) {
+		self.find-module-pattern(
+			:globs([FORMAT-GLOB]),
+			:paths(@LIB-PATHS),
+		).map({
+			my @parts = .split('::');
+			@parts == 3 ?? @parts[2] !! Nil;
+		}).grep({
+			.defined && .uc ne 'BASE'
+		}).Array
+	}
+
+	# Resolve user-provided spelling to the format module's canonical name.
+	method !canonical-format-name(Str $name --> Mu) {
+		self!discovered-format-names.first({ .lc eq $name.lc })
+	}
+
 	# Derive a format label from a discovered format module FQCN.
 	method !format-name-from-module(Str $module --> Str) {
-		return Nil unless $module.split('::').elems == 3;
-		my $format = self.normalize-format-name($module.split('::')[2]);
-		return Nil if $format eq 'BASE';
+		$module.split('::').elems == 3 or return Nil;
+		my $format = $module.split('::')[2];
+		$format.uc eq 'BASE' and return Nil;
 		$format
 	}
 
@@ -111,7 +131,7 @@ class Qwiratry::Format does Implementation::Loader {
 			);
 		};
 		my $base = try { ::($base-class) };
-		return $implementation if !($base =:= Nil) && $implementation ~~ $base;
+		!($base =:= Nil) && $implementation ~~ $base and return $implementation;
 		False
 	}
 
@@ -121,7 +141,7 @@ class Qwiratry::Format does Implementation::Loader {
 
 	=end pod
 	method formats(Str :$type! --> List) {
-		return self.instance.formats(:$type) unless self.DEFINITE;
+		self.DEFINITE or return self.instance.formats(:$type);
 		my $type-name = self.normalize-type-name($type);
 		unless %!format-list-cache{$type-name}:exists {
 			%!format-list-cache{$type-name} = self.find-module-pattern(
@@ -144,7 +164,7 @@ class Qwiratry::Format does Implementation::Loader {
 
 	=end pod
 	method ensure-format(Str :$type!, Str :$format! --> Str) {
-		return self.instance.ensure-format(:$type, :$format) unless self.DEFINITE;
+		self.DEFINITE or return self.instance.ensure-format(:$type, :$format);
 		my ($type-name, $format-name) = self!type-and-format-names($type, $format);
 		my $class = self.format-class-name($type-name, $format-name);
 		unless $format-name (elem) self.formats(:type($type-name)) {

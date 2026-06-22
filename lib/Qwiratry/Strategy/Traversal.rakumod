@@ -27,7 +27,7 @@ class Qwiratry::Strategy::TraversalState is export {
 
 	=end pod
 	method handle-signal(Mu $signal --> Mu) {
-		return Nil unless $signal ~~ ControlSignal;
+		$signal ~~ ControlSignal or return Nil;
 		if $signal == STOP_TRAVERSAL {
 			$!stopped = True;
 			return STOP_TRAVERSAL;
@@ -81,9 +81,8 @@ class Qwiratry::Strategy::Traversal is export {
 
 	=end pod
 	method invoke-finish(Mu $root, Context $ctx --> Mu) {
-		return unless $ctx.strategy.defined;
-		$ctx.finish-result = $ctx.strategy.finish($root, $ctx)
-			if $ctx.can('finish-result');
+		$ctx.strategy.defined or return;
+		$ctx.can('finish-result') and $ctx.finish-result = $ctx.strategy.finish($root, $ctx);
 		Nil
 	}
 
@@ -93,10 +92,9 @@ class Qwiratry::Strategy::Traversal is export {
 
 	=end pod
 	method run-before(Mu $element, Context $ctx, Qwiratry::Strategy::TraversalState $state --> Mu) {
-		return Nil unless $ctx.strategy.defined;
+		$ctx.strategy.defined or return Nil;
 		my $signal = $ctx.strategy.before($element, $ctx);
-		$ctx.before-calls.push({ element => $element, signal => $signal })
-			if $ctx.can('before-calls');
+		$ctx.can('before-calls') and $ctx.before-calls.push({ element => $element, signal => $signal });
 		$state.handle-signal($signal);
 	}
 
@@ -106,13 +104,12 @@ class Qwiratry::Strategy::Traversal is export {
 
 	=end pod
 	method run-on-match(Mu $element, Mu $query, Mu $origin, Context $ctx, Qwiratry::Strategy::TraversalState $state --> Mu) {
-		return Nil unless $ctx.strategy.defined;
-		return Nil unless node-matches($query, $element, :$origin);
+		$ctx.strategy.defined or return Nil;
+		node-matches($query, $element, :$origin) or return Nil;
 
 		my $match = QueryMatch.new(:element($element), :query($query), :origin($origin));
 		my $result = $ctx.strategy.on-match($element, $match, $ctx);
-		$ctx.on-match-calls.push({ element => $element, result => $result })
-			if $ctx.can('on-match-calls');
+		$ctx.can('on-match-calls') and $ctx.on-match-calls.push({ element => $element, result => $result });
 		$state.handle-signal($result);
 	}
 
@@ -122,10 +119,9 @@ class Qwiratry::Strategy::Traversal is export {
 
 	=end pod
 	method run-after(Mu $element, Context $ctx, Qwiratry::Strategy::TraversalState $state --> Mu) {
-		return Nil unless $ctx.strategy.defined;
+		$ctx.strategy.defined or return Nil;
 		my $signal = $ctx.strategy.after($element, $ctx);
-		$ctx.after-calls.push({ element => $element, signal => $signal })
-			if $ctx.can('after-calls');
+		$ctx.can('after-calls') and $ctx.after-calls.push({ element => $element, signal => $signal });
 		$state.handle-signal($signal);
 	}
 
@@ -135,10 +131,9 @@ class Qwiratry::Strategy::Traversal is export {
 
 	=end pod
 	method should-follow(Mu $origin, Str $relation, Mu $target, Context $ctx --> Bool) {
-		return True unless $ctx.strategy.defined;
+		$ctx.strategy.defined or return True;
 		my $result = $ctx.strategy.should-follow($origin, $relation, $target, $ctx);
-		$ctx.should-follow-calls.push({ origin => $origin, target => $target, result => $result })
-			if $ctx.can('should-follow-calls');
+		$ctx.can('should-follow-calls') and $ctx.should-follow-calls.push({ origin => $origin, target => $target, result => $result });
 		$result
 	}
 }

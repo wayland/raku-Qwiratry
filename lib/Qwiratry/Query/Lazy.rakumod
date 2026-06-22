@@ -28,7 +28,7 @@ use Qwiratry::Query::Relational;
 my sub relational() { Qwiratry::Query::Relational.instance }
 
 sub iterator-for(Mu $source --> Iterator) {
-	return $source if $source ~~ Iterator;
+	$source ~~ Iterator and return $source;
 	if $source ~~ Seq {
 		return $source.iterator;
 	}
@@ -40,7 +40,7 @@ sub lazy-seq(Iterator $iter --> Seq) {
 }
 
 sub source-list(Mu $source --> List) {
-	return $source.list if $source ~~ Seq | List | Array;
+	$source ~~ Seq | List | Array and return $source.list;
 	if $source ~~ Positional {
 		return $source.list;
 	}
@@ -65,7 +65,7 @@ class ListIterator does Iterator {
 	has Int $!idx = 0;
 
 	method pull-one {
-		return IterationEnd if $!idx >= @.items;
+		$!idx >= @.items and return IterationEnd;
 		@.items[$!idx++]
 	}
 }
@@ -83,7 +83,7 @@ class UnionIterator does Iterator {
 	method pull-one {
 		loop {
 			unless $!iter.defined {
-				return IterationEnd if $!source-idx >= @.sources;
+				$!source-idx >= @.sources and return IterationEnd;
 				my $src = @.sources[$!source-idx++];
 				$!iter = iterator-for($src);
 			}
@@ -114,8 +114,8 @@ class IntersectionIterator does Iterator {
 		}
 		loop {
 			my $lrow = pull-next($!left-iter);
-			return IterationEnd if $lrow ~~ IterationEnd;
-			return $lrow if relational.node-in-list($lrow, @!right-list);
+			$lrow ~~ IterationEnd and return IterationEnd;
+			relational.node-in-list($lrow, @!right-list) and return $lrow;
 		}
 	}
 }
@@ -135,14 +135,14 @@ class SetDifferenceIterator does Iterator {
 		}
 		loop {
 			my $lrow = pull-next($!left-iter);
-			return IterationEnd if $lrow ~~ IterationEnd;
-			return $lrow unless relational.row-in-list($lrow, @!right-list);
+			$lrow ~~ IterationEnd and return IterationEnd;
+			relational.row-in-list($lrow, @!right-list) or return $lrow;
 		}
 	}
 }
 
 our sub lazy-from-list(@items --> Seq) is export {
-	return ().Seq unless @items;
+	@items or return ().Seq;
 	lazy-seq ListIterator.new(items => @items)
 }
 
@@ -159,7 +159,7 @@ class NaturalJoinIterator does Iterator {
 			unless $!current-left.defined {
 				$!left-iter //= iterator-for($.left);
 				$!current-left = pull-next($!left-iter);
-				return IterationEnd if $!current-left ~~ IterationEnd;
+				$!current-left ~~ IterationEnd and return IterationEnd;
 				next unless $!current-left ~~ Associative;
 				$!right-iter = iterator-for($.right);
 			}
@@ -173,7 +173,7 @@ class NaturalJoinIterator does Iterator {
 			my $matches = &!condition.defined
 				?? &!condition($!current-left, $rrow)
 				!! relational.join-on-common-keys($!current-left, $rrow);
-			return relational.merge-rows($!current-left, $rrow) if $matches;
+			$matches and return relational.merge-rows($!current-left, $rrow);
 		}
 	}
 }
@@ -188,11 +188,11 @@ class LeftOuterJoinIterator does Iterator {
 	has @!pending;
 
 	method pull-one {
-		return @!pending.shift if @!pending;
+		@!pending and return @!pending.shift;
 		loop {
 			$!left-iter //= iterator-for($.left);
 			$!current-left = pull-next($!left-iter);
-			return IterationEnd if $!current-left ~~ IterationEnd;
+			$!current-left ~~ IterationEnd and return IterationEnd;
 
 			my @matches;
 			$!right-iter = iterator-for($.right);
@@ -202,7 +202,7 @@ class LeftOuterJoinIterator does Iterator {
 				my $ok = &!condition.defined
 					?? &!condition($!current-left, $rrow)
 					!! relational.join-on-common-keys($!current-left, $rrow);
-				@matches.push(relational.merge-rows($!current-left, $rrow)) if $ok;
+				$ok and @matches.push(relational.merge-rows($!current-left, $rrow));
 			}
 			if @matches {
 				@!pending = @matches;
@@ -223,11 +223,11 @@ class RightOuterJoinIterator does Iterator {
 	has @!pending;
 
 	method pull-one {
-		return @!pending.shift if @!pending;
+		@!pending and return @!pending.shift;
 		loop {
 			$!right-iter //= iterator-for($.right);
 			$!current-right = pull-next($!right-iter);
-			return IterationEnd if $!current-right ~~ IterationEnd;
+			$!current-right ~~ IterationEnd and return IterationEnd;
 
 			my @matches;
 			$!left-iter = iterator-for($.left);
@@ -237,7 +237,7 @@ class RightOuterJoinIterator does Iterator {
 				my $ok = &!condition.defined
 					?? &!condition($lrow, $!current-right)
 					!! relational.join-on-common-keys($lrow, $!current-right);
-				@matches.push(relational.merge-rows($lrow, $!current-right)) if $ok;
+				$ok and @matches.push(relational.merge-rows($lrow, $!current-right));
 			}
 			if @matches {
 				@!pending = @matches;
@@ -258,7 +258,7 @@ class LeftSemijoinIterator does Iterator {
 		$!left-iter //= iterator-for($.left);
 		loop {
 			my $lrow = pull-next($!left-iter);
-			return IterationEnd if $lrow ~~ IterationEnd;
+			$lrow ~~ IterationEnd and return IterationEnd;
 			my $right-iter = iterator-for($.right);
 			loop {
 				my $rrow = pull-next($right-iter);
@@ -266,7 +266,7 @@ class LeftSemijoinIterator does Iterator {
 				my $ok = &!condition.defined
 					?? &!condition($lrow, $rrow)
 					!! relational.join-on-common-keys($lrow, $rrow);
-				return %($lrow) if $ok;
+				$ok and return %($lrow);
 			}
 		}
 	}
@@ -282,7 +282,7 @@ class LeftAntijoinIterator does Iterator {
 		$!left-iter //= iterator-for($.left);
 		loop {
 			my $lrow = pull-next($!left-iter);
-			return IterationEnd if $lrow ~~ IterationEnd;
+			$lrow ~~ IterationEnd and return IterationEnd;
 			my $matched = False;
 			my $right-iter = iterator-for($.right);
 			loop {
@@ -296,7 +296,7 @@ class LeftAntijoinIterator does Iterator {
 					last;
 				}
 			}
-			return %($lrow) unless $matched;
+			$matched or return %($lrow);
 		}
 	}
 }
@@ -313,7 +313,7 @@ class CrossJoinIterator does Iterator {
 			unless $!current-left.defined {
 				$!left-iter //= iterator-for($.left);
 				$!current-left = pull-next($!left-iter);
-				return IterationEnd if $!current-left ~~ IterationEnd;
+				$!current-left ~~ IterationEnd and return IterationEnd;
 				$!right-iter = iterator-for($.right);
 			}
 			my $rrow = pull-next($!right-iter);
@@ -336,7 +336,7 @@ class ProjectionIterator does Iterator {
 		$!iter //= iterator-for($.rows);
 		loop {
 			my $row = pull-next($!iter);
-			return IterationEnd if $row ~~ IterationEnd;
+			$row ~~ IterationEnd and return IterationEnd;
 			return $row ~~ Associative ?? relational.project-row($row, @.columns) !! $row;
 		}
 	}
@@ -351,7 +351,7 @@ class RenameIterator does Iterator {
 		$!iter //= iterator-for($.rows);
 		loop {
 			my $row = pull-next($!iter);
-			return IterationEnd if $row ~~ IterationEnd;
+			$row ~~ IterationEnd and return IterationEnd;
 			return $row ~~ Associative ?? relational.rename-row($row, %.renames) !! $row;
 		}
 	}
@@ -503,10 +503,14 @@ our sub lazy-symmetric-difference($left, $right) is export {
 	my @left-list = iterator-for($left).list;
 	my @items = gather {
 		for @left-list -> $row {
-			take $row unless relational.row-in-list($row, @right-list);
+			unless relational.row-in-list($row, @right-list) {
+				take $row;
+			}
 		}
 		for @right-list -> $row {
-			take $row unless relational.row-in-list($row, @left-list);
+			unless relational.row-in-list($row, @left-list) {
+				take $row;
+			}
 		}
 	};
 	lazy-seq ListIterator.new(items => @items)
@@ -538,8 +542,8 @@ class FilterIterator does Iterator {
 	method pull-one {
 		loop {
 			my $item = pull-next($!iter);
-			return IterationEnd if $item ~~ IterationEnd;
-			return $item if $!matcher($item);
+			$item ~~ IterationEnd and return IterationEnd;
+			$!matcher($item) and return $item;
 		}
 	}
 }
@@ -580,6 +584,6 @@ sub row-key(Mu $row --> Str) {
 		}
 		return @parts.join('|');
 	}
-	return ~$row.WHICH if $row ~~ Mu;
+	$row ~~ Mu and return ~$row.WHICH;
 	~$row
 }

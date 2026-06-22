@@ -29,7 +29,7 @@ role AdaptorOperatorNode does OperatorBase {
 	has Mu $.subject;
 
 	submethod TWEAK(:$subject) {
-		$!subject = $subject if $subject.defined;
+		$subject.defined and $!subject = $subject;
 	}
 
 	=begin pod

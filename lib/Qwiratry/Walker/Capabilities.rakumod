@@ -50,7 +50,7 @@ class Qwiratry::Walker::Capabilities {
 		|domains,
 	) {
 		my @names = domains.grep(*.defined);
-		return %(navigation => %(enabled => $enabled)) unless @names;
+		@names or return %(navigation => %(enabled => $enabled));
 		%(navigation => %(enabled => $enabled, domains => @names))
 	}
 

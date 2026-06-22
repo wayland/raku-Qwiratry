@@ -128,7 +128,7 @@ Activate mold slang once and cache the activation status.
 
 =end pod
 sub activate-mold-slang() is export {
-	return $activation-status if $activation-status.defined;
+	$activation-status.defined and return $activation-status;
 	$activation-status = slang-already-active() ?? 'slangify' !! 'slangify';
 	$activation-status
 }
@@ -279,7 +279,7 @@ our role MoldActions {
 			my %parts = extract.split-from-blockoid($<when-block>);
 			if %parts<query>.defined {
 				my $query-block = compiler.compile-block-expr(%parts<query>);
-				$when-query = extract.from-when-block($query-block) if $query-block.defined;
+				$query-block.defined and $when-query = extract.from-when-block($query-block);
 				$when-block = %parts<predicate>:exists
 					?? compiler.compile-block-expr(%parts<predicate>)
 					!! Nil;
@@ -287,7 +287,7 @@ our role MoldActions {
 			}
 			else {
 				$when-block = compiler.compile-blockoid($<when-block>);
-				$when-query = extract.from-when-block($when-block) if $when-block.defined;
+				$when-block.defined and $when-query = extract.from-when-block($when-block);
 				if $when-query.defined && extract.is-pure-navigation-when($when-block) {
 					$when-block = Nil;
 				}

@@ -69,7 +69,7 @@ class SimpleQueryIterator does QueryIterator {
     has Int $!index = 0;
 
     method pull-one(--> Mu) {
-        return IterationEnd if $!index >= @!items.elems;
+        $!index >= @!items.elems and return IterationEnd;
         @!items[$!index++]
     }
 }

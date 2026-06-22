@@ -72,14 +72,14 @@ class Qwiratry::Tree::Replace {
 
 	=end pod
 	method replace-node(Mu $old, Mu $new, Mu $root --> Bool) {
-		return False unless $old.defined && $new.defined && $root.defined;
+		$old.defined && $new.defined && $root.defined or return False;
 
 		if $old === $root {
 			return self!merge-into-container($root, $new);
 		}
 
 		my $parent = find-parent-in-tree($old, $root);
-		return False unless $parent.defined;
+		$parent.defined or return False;
 		self!replace-in-parent($parent, $old, $new);
 	}
 

@@ -598,11 +598,11 @@ class Transformer does Callable is export {
 	method !each-traversal-node($iter, $walker, &code) {
 		if $iter ~~ QueryIterator {
 			my $ctx = $iter.context;
-			$walker.PRE-PASS($ctx) if $walker.defined;
+			$walker.defined and $walker.PRE-PASS($ctx);
 			while (my $node = $iter.pull-one) !~~ IterationEnd {
 				code($node);
 			}
-			$walker.POST-PASS($ctx) if $walker.defined;
+			$walker.defined and $walker.POST-PASS($ctx);
 			return;
 		}
 
@@ -1042,9 +1042,9 @@ class Transformer does Callable is export {
     
 	=end pod
 	method _is-single-element($input --> Bool) {
-		return False if $input ~~ Iterator;
-		return False if $input ~~ Positional;
-		return !($input<children> ~~ Positional) if $input ~~ Associative;
+		$input ~~ Iterator and return False;
+		$input ~~ Positional and return False;
+		$input ~~ Associative and return !($input<children> ~~ Positional);
 		return True;
 	}
 }
@@ -1141,7 +1141,7 @@ class MetamodelX::TransformerHOW is Metamodel::ClassHOW {
 
 	# Installs a collected wrapper block as the corresponding transformer submethod.
 	method !create-wrapper-submethod(Mu \type, Str $submethod-name, $wrapper-block) {
-		return unless $wrapper-block.defined;
+		$wrapper-block.defined or return;
 		my $block = $wrapper-block;
 		my $submethod = submethod (|c) {
 			$block(|c);

@@ -92,7 +92,7 @@ class Qwiratry::Location::File::Destination is Qwiratry::Location::Base::Destina
 	method write(Str $location, Mu $content --> Mu) {
 		my $text = $content ~~ Str ?? $content !! ~$content;
 		my $path = self!path-from-location($location);
-		$path.IO.parent.mkdir unless $path.IO.parent.d;
+		$path.IO.parent.d or $path.IO.parent.mkdir;
 		spurt $path, $text;
 		$content
 	}

@@ -7,7 +7,7 @@ Abstract base classes for format implementations.
 L<Qwiratry::Format> discovers concrete format modules dynamically and verifies
 that each operation class inherits from the matching base class here. A format
 module normally provides C<::Parse> and/or C<::Render> classes under its format
-namespace, for example C<Qwiratry::Format::JSONdemo::Parse>.
+namespace, for example C<Qwiratry::Format::MyFormat::Parse>.
 
 These classes are contracts rather than useful implementations. The default
 methods throw so an incomplete plugin fails at the first attempted parse or

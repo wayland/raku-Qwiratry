@@ -42,7 +42,7 @@ class Qwiratry::Query::Specificity {
 
 	=end pod
 	method score(Mu $query --> Int) {
-		return 0 unless $query.defined;
+		$query.defined or return 0;
 
 		if $query ~~ NavigationOperator {
 			my $total = self!operator-contribution($query);
@@ -56,7 +56,7 @@ class Qwiratry::Query::Specificity {
 			my $max = 0;
 			for $query.list -> $branch {
 				my $branch-score = self.score($branch);
-				$max = $branch-score if $branch-score > $max;
+				$branch-score > $max and $max = $branch-score;
 			}
 			return $max;
 		}
@@ -69,7 +69,7 @@ class Qwiratry::Query::Specificity {
 		}
 
 		if $query ~~ SelectionOperator | SortOperator | MapOperator | ReduceOperator {
-			return self.score($query.subject) if $query.can('subject') && $query.subject.defined;
+			$query.can('subject') && $query.subject.defined and return self.score($query.subject);
 			return 0;
 		}
 
@@ -82,7 +82,7 @@ class Qwiratry::Query::Specificity {
 
 	=end pod
 	method !is-union-query(Mu $query --> Bool) {
-		return False unless $query.WHAT === Array || $query.WHAT === List;
+		$query.WHAT === Array || $query.WHAT === List or return False;
 		$query.elems > 0 && $query[0] ~~ NavigationOperator;
 	}
 
@@ -117,8 +117,8 @@ class Qwiratry::Query::Specificity {
 
 	=end pod
 	method !selector-contribution(Mu $selector --> Int) {
-		return -10 if selector.is-wildcard($selector);
-		return 5 if selector.is-explicit-path($selector);
+		selector.is-wildcard($selector) and return -10;
+		selector.is-explicit-path($selector) and return 5;
 		0;
 	}
 }

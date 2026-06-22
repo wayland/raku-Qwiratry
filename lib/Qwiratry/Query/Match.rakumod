@@ -46,7 +46,7 @@ extracted from C<when { $_ ⪪ ... }> blocks.
 
 =end pod
 our sub when-query-matches(Mu $query, Mu $node, Mu :$origin --> Bool) is export {
-	return False unless $query.defined;
+	$query.defined or return False;
 	if query-uses-topic($query) {
 		return mold-topic-matches($query, $node, :$origin);
 	}
@@ -54,10 +54,10 @@ our sub when-query-matches(Mu $query, Mu $node, Mu :$origin --> Bool) is export 
 }
 
 sub query-uses-topic(Mu $query --> Bool) {
-	return True if $query ~~ NavQueryTopic;
+	$query ~~ NavQueryTopic and return True;
 	if $query.can('subject') && $query.subject.defined {
-		return True if $query.subject ~~ NavQueryTopic;
-		return query-uses-topic($query.subject) if $query.subject ~~ NavigationOperator;
+		$query.subject ~~ NavQueryTopic and return True;
+		$query.subject ~~ NavigationOperator and return query-uses-topic($query.subject);
 	}
 	False
 }
@@ -70,20 +70,20 @@ sub match-topic-chain(Mu $query, Mu $node, Mu :$origin --> Bool) {
 	given $query {
 		when NavQueryTopic { True }
 		when ChildOperator {
-			return False unless selector.matches(.selector, $node);
-			return True if .subject ~~ NavQueryTopic;
+			selector.matches(.selector, $node) or return False;
+			.subject ~~ NavQueryTopic and return True;
 			my $parent = tree-parent($node, :$origin);
-			return False unless $parent.defined;
+			$parent.defined or return False;
 			match-topic-chain(.subject, $parent, :$origin);
 		}
 		when DescendantOperator {
-			return False unless selector.matches(.selector, $node);
-			return True if .subject ~~ NavQueryTopic;
+			selector.matches(.selector, $node) or return False;
+			.subject ~~ NavQueryTopic and return True;
 			match-topic-chain(.subject, $node, :$origin);
 		}
 		default {
 			my $leaf = navigation-leaf($query);
-			return False unless $leaf.defined && $leaf.can('selector');
+			$leaf.defined && $leaf.can('selector') or return False;
 			selector.matches($leaf.selector, $node);
 		}
 	}
@@ -114,18 +114,18 @@ Return True when C<$node> appears in the result of C<select($query, $origin)>.
 our sub node-matches(Mu $query, Mu $node, Mu :$origin --> Bool) is export {
 	my $start = query-origin($query, $origin);
 	for select-list($query, $start) -> $candidate {
-		return True if $candidate === $node;
+		$candidate === $node and return True;
 	}
 	False
 }
 
 sub select-list(Mu $query, Mu $origin --> List) {
-	return () unless $query.defined;
+	$query.defined or return ();
 	select-seq($query, $origin).list;
 }
 
 sub select-seq(Mu $query, Mu $origin --> Seq) {
-	return ().Seq unless $query.defined;
+	$query.defined or return ().Seq;
 
 	given $query {
 		when UnionOperator {
@@ -243,7 +243,7 @@ sub select-seq(Mu $query, Mu $origin --> Seq) {
 		}
 		default {
 			my @items = select-list-eager($query, $origin);
-			return ().Seq unless @items;
+			@items or return ().Seq;
 			return lazy-from-list(@items);
 		}
 	}
@@ -260,7 +260,7 @@ sub relation-source(Mu $operand, Mu $origin) {
 }
 
 sub select-list-eager(Mu $query, Mu $origin --> List) {
-	return () unless $query.defined;
+	$query.defined or return ();
 
 	given $query {
 		when RootOperator {
@@ -277,7 +277,7 @@ sub select-list-eager(Mu $query, Mu $origin --> List) {
 				}
 				else {
 					for tree-children($base) -> $child {
-						@results.push($child) if selector.matches($query.selector, $child);
+						selector.matches($query.selector, $child) and @results.push($child);
 					}
 				}
 			}
@@ -293,7 +293,7 @@ sub select-list-eager(Mu $query, Mu $origin --> List) {
 				}
 				else {
 					for tree-descendants($base) -> $desc {
-						@results.push($desc) if selector.matches($query.selector, $desc);
+						selector.matches($query.selector, $desc) and @results.push($desc);
 					}
 				}
 			}
@@ -304,7 +304,7 @@ sub select-list-eager(Mu $query, Mu $origin --> List) {
 			my @results;
 			for @bases -> $base {
 				my $value = attribute-value($base, $query.key);
-				@results.push($value) if $value.defined;
+				$value.defined and @results.push($value);
 			}
 			return @results;
 		}
@@ -334,7 +334,7 @@ sub select-list-eager(Mu $query, Mu $origin --> List) {
 				}
 				else {
 					for tree-ancestors($base, :$origin) -> $anc {
-						@results.push($anc) if selector.matches($query.selector, $anc);
+						selector.matches($query.selector, $anc) and @results.push($anc);
 					}
 				}
 			}
@@ -355,8 +355,9 @@ sub select-list-eager(Mu $query, Mu $origin --> List) {
 				next unless $index.defined;
 				my @candidates = sibling-candidates($query, @siblings, $index);
 				for @candidates -> $candidate {
-					@results.push($candidate)
-						if selector.matches($query.selector, $candidate);
+					if selector.matches($query.selector, $candidate) {
+						@results.push($candidate);
+					}
 				}
 			}
 			return @results;
@@ -386,7 +387,7 @@ sub select-list-eager(Mu $query, Mu $origin --> List) {
 			my @elements = select-list($query.element, $origin);
 			my @results;
 			for @elements -> $elem {
-				@results.push($elem) if relational.row-in-list($elem, @collection);
+				relational.row-in-list($elem, @collection) and @results.push($elem);
 			}
 			return @results;
 		}
@@ -521,7 +522,7 @@ sub select-list-eager(Mu $query, Mu $origin --> List) {
 		}
 		when ReduceOperator {
 			my @items = mapreduce-items($query, $origin);
-			return () unless @items;
+			@items or return ();
 			my &op = $query.operation;
 			my $acc = @items.shift;
 			for @items -> $item {
@@ -563,7 +564,7 @@ sub query-origin(Mu $query, Mu $fallback --> Mu) {
 }
 
 sub tree-children(Mu $node --> List) {
-	return $node.list if $node ~~ Positional;
+	$node ~~ Positional and return $node.list;
 	if $node ~~ Associative {
 		if $node<children> ~~ Positional {
 			return $node<children>.list;
@@ -582,17 +583,17 @@ sub tree-descendants(Mu $node --> Seq) {
 }
 
 sub tree-parent(Mu $node, Mu :$origin --> Mu) {
-	return $node.parent if $node.can('parent');
-	return find-parent-in-tree($node, $origin) if $origin.defined;
+	$node.can('parent') and return $node.parent;
+	$origin.defined and return find-parent-in-tree($node, $origin);
 	Nil
 }
 
 our sub find-parent-in-tree(Mu $node, Mu $current --> Mu) is export {
-	return Nil unless $current.defined;
+	$current.defined or return Nil;
 	for tree-children($current) -> $child {
-		return $current if $child === $node;
+		$child === $node and return $current;
 		my $found = find-parent-in-tree($node, $child);
-		return $found if $found.defined;
+		$found.defined and return $found;
 	}
 	Nil
 }
@@ -609,13 +610,13 @@ sub tree-ancestors(Mu $node, Mu :$origin --> Seq) {
 
 sub sibling-context(Mu $node, Mu :$origin --> Associative) {
 	my $parent = tree-parent($node, :$origin);
-	return %(all => tree-children($parent)) if $parent.defined;
+	$parent.defined and return %(all => tree-children($parent));
 	%(all => ());
 }
 
 sub sibling-index(@siblings, Mu $node) {
 	for 0..^@siblings -> $i {
-		return $i if @siblings[$i] === $node;
+		@siblings[$i] === $node and return $i;
 	}
 	Nil
 }
@@ -652,7 +653,7 @@ sub attribute-value(Mu $node, Mu $key --> Mu) {
 }
 
 sub is-union-query-list(Mu $query --> Bool) {
-	return False unless $query.WHAT === Array || $query.WHAT === List;
+	$query.WHAT === Array || $query.WHAT === List or return False;
 	$query.elems > 0 && $query[0] ~~ NavigationOperator;
 }
 
@@ -725,7 +726,7 @@ sub reduce-with(&op, Mu $acc, Mu $item --> Mu) {
 }
 
 sub relation-row-snapshot(Mu $source) {
-	return Array.new($source.list) if $source ~~ Positional;
+	$source ~~ Positional and return Array.new($source.list);
 	$source
 }
 
@@ -759,7 +760,7 @@ sub selection-relation-source(Mu $query, Mu $origin) {
 
 sub select-relation(Mu $operand, Mu $origin --> List) {
 	if $operand ~~ Positional {
-		return $operand.list unless $operand ~~ NavigationOperator;
+		$operand ~~ NavigationOperator or return $operand.list;
 	}
 	select-list($operand, $origin)
 }

@@ -30,7 +30,7 @@ class Qwiratry::Walker::Providing {
 
 	=end pod
 	method !container($obj is raw) {
-		return $obj if $obj ~~ Positional || $obj ~~ Associative;
+		$obj ~~ Positional || $obj ~~ Associative and return $obj;
 		if (my $var = try { $obj.VAR }) {
 			return $var;
 		}
@@ -80,7 +80,7 @@ class Qwiratry::Walker::Providing {
 		my $key = self!container($obj).WHICH;
 		if %!metadata{$key}:exists {
 			my $result = %!metadata{$key};
-			return $result if $result;
+			$result and return $result;
 		}
 		Nil
 	}
@@ -97,13 +97,13 @@ class Qwiratry::Walker::Providing {
 
 		if %!metadata{$key}:exists {
 			my $result = %!metadata{$key};
-			return $result if $result;
+			$result and return $result;
 		}
 
 		if @!pending {
 			my @names = @!pending.shift.split(/\s+/);
 			self.bind-domains($obj, @names);
-			return @names if @names;
+			@names and return @names;
 		}
 
 		Nil
@@ -126,7 +126,7 @@ class Qwiratry::Walker::Providing {
 	=end pod
 	method schema(Mu $obj is raw --> Mu) {
 		my $key = self!container($obj).WHICH;
-		%!schema{$key} if %!schema{$key}:exists;
+		return %!schema{$key}:exists ?? %!schema{$key} !! Nil;
 	}
 }
 

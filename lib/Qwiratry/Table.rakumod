@@ -42,15 +42,15 @@ class Catalog is export {
 	}
 
 	method active-rows(--> List) {
-		return () unless $!active-table.defined && $!tables{$!active-table}:exists;
+		$!active-table.defined && $!tables{$!active-table}:exists or return ();
 		$!tables{$!active-table}.list;
 	}
 
 	method table-name-for(Associative $row --> Mu) {
 		for $!tables.pairs -> $pair {
 			for $pair.value.list -> $candidate {
-				return $pair.key if $candidate === $row;
-				return $pair.key if Qwiratry::Query::Relational.instance.row-equal($candidate, $row);
+				$candidate === $row and return $pair.key;
+				Qwiratry::Query::Relational.instance.row-equal($candidate, $row) and return $pair.key;
 			}
 		}
 		Nil
@@ -68,23 +68,27 @@ class Catalog is export {
 	method referencing-keys-for(Str $referenced-table --> List) {
 		gather {
 			for @!foreign-keys -> $fk {
-				take $fk if $fk.to-table eq $referenced-table;
+				if $fk.to-table eq $referenced-table {
+					take $fk;
+				}
 			}
 		}.List
 	}
 
 	method follow-fk(Associative $row, Str $from-table, Str $column --> List) {
 		my $fk = self.fk-for($from-table, $column);
-		return () unless $fk.defined;
-		return () unless $!tables{$fk.to-table}:exists;
+		$fk.defined or return ();
+		$!tables{$fk.to-table}:exists or return ();
 
 		my $value = $row{$column};
-		return () unless $value.defined;
+		$value.defined or return ();
 
 		gather {
 			for $!tables{$fk.to-table}.list -> $target {
 				next unless $target{$fk.to-column}:exists;
-				take $target if ~($target{$fk.to-column}) eq ~$value;
+				if ~($target{$fk.to-column}) eq ~$value {
+					take $target;
+				}
 			}
 		}.List
 	}
@@ -128,22 +132,22 @@ Child-axis navigation: active table rows, FK follow, or column filter.
 
 		if $base ~~ Catalog {
 			my $table-name = $base.active-table // '';
-			return () unless $table-name && $base.tables{$table-name}:exists;
+			$table-name && $base.tables{$table-name}:exists or return ();
 			my @rows = $base.tables{$table-name}.list;
-			return @rows if selector.is-wildcard($sel);
+			selector.is-wildcard($sel) and return @rows;
 			return @rows.grep({ selector.table-row-matches($_, $sel) }).List;
 		}
 
 		if $base ~~ Positional && !($base ~~ Associative) {
-			return $base.list if selector.is-wildcard($sel);
+			selector.is-wildcard($sel) and return $base.list;
 			return ();
 		}
 
 		if $base ~~ Associative {
 			my $from-table = self.table-name-for($base);
-			return () unless $from-table.defined;
+			$from-table.defined or return ();
 
-			return ($base,) if selector.is-wildcard($sel);
+			selector.is-wildcard($sel) and return ($base,);
 
 			my $column = selector.normalize-key($sel);
 			return self.follow-fk($base, $from-table, $column);
@@ -165,16 +169,16 @@ Parent-axis navigation: owning table or referencing rows when C<:reference>.
 		if $base ~~ Associative {
 			if $reference {
 				my $table-name = self.table-name-for($base);
-				return () unless $table-name.defined;
+				$table-name.defined or return ();
 				return self.referencing-rows($base, $table-name);
 			}
 			my $table-name = self.table-name-for($base);
-			return () unless $table-name.defined && self.tables{$table-name}:exists;
+			$table-name.defined && self.tables{$table-name}:exists or return ();
 			return (self.tables{$table-name},);
 		}
 
 		if $base ~~ Catalog || ($base ~~ Positional && !($base ~~ Associative)) {
-			return ($base,) if selector.is-wildcard($sel);
+			selector.is-wildcard($sel) and return ($base,);
 		}
 
 		()
@@ -206,17 +210,19 @@ Sibling-axis navigation within a table's ordered row list.
 		if $base ~~ Catalog || ($base ~~ Positional && !($base ~~ Associative)) {
 			return ();
 		}
-		return () unless self.is-table-row($base);
+		self.is-table-row($base) or return ();
 
 		my $ctx = self!row-order-context($base);
-		return () unless $ctx.defined;
+		$ctx.defined or return ();
 		my @rows = $ctx<rows>.list;
 		my $index = $ctx<index>;
 
 		my @candidates = self!sibling-candidates($op, @rows, $index);
 		gather {
 			for @candidates -> $candidate {
-				take $candidate if self!sibling-matches-selector($candidate, $op.selector);
+				if self!sibling-matches-selector($candidate, $op.selector) {
+					take $candidate;
+				}
 			}
 		}.List
 	}
@@ -228,7 +234,7 @@ Return True when a parent operator requests C<:reference> (incoming FK lookup).
 
 =end pod
 	method !parent-has-reference(Mu $op --> Bool) {
-		return True if $op.adverbs.defined && $op.adverbs<reference>;
+		$op.adverbs.defined && $op.adverbs<reference> and return True;
 		try { $op.reference } orelse False
 	}
 
@@ -239,7 +245,7 @@ Return True when a descendant operator requests C<:recursive> FK traversal.
 
 =end pod
 	method !descendant-has-recursive(Mu $op --> Bool) {
-		return True if $op.adverbs.defined && $op.adverbs<recursive>;
+		$op.adverbs.defined && $op.adverbs<recursive> and return True;
 		try { $op.recursive } orelse False
 	}
 
@@ -251,10 +257,10 @@ Recursively follow foreign keys from a row for descendant queries.
 =end pod
 	method !recursive-fk-results(Associative $row, Mu $op --> List) {
 		my $from-table = self.table-name-for($row);
-		return () unless $from-table.defined;
+		$from-table.defined or return ();
 
 		my @columns = self!descendant-fk-columns($op, $from-table);
-		return () unless @columns;
+		@columns or return ();
 
 		my %visited;
 		gather {
@@ -274,11 +280,11 @@ Depth-first FK walk helper for L<table-recursive-fk-results>.
 		%visited,
 	) {
 		my $key = self!row-visit-key($row);
-		return if %visited{$key}:exists;
+		%visited{$key}:exists and return;
 		%visited{$key} = True;
 
 		my $from-table = self.table-name-for($row);
-		return unless $from-table.defined;
+		$from-table.defined or return;
 
 		for @columns -> $column {
 			for self.follow-fk($row, $from-table, $column) -> $related {
@@ -299,7 +305,9 @@ Columns to follow for recursive descendant navigation from C<$from-table>.
 		if selector.is-wildcard($sel) {
 			return gather {
 				for self.foreign-keys -> $fk {
-					take $fk.from-column if $fk.from-table eq $from-table;
+					if $fk.from-table eq $from-table {
+						take $fk.from-column;
+					}
 				}
 			}.unique.List;
 		}
@@ -307,7 +315,7 @@ Columns to follow for recursive descendant navigation from C<$from-table>.
 			return $sel.map({ selector.normalize-key($_) }).grep(*.chars).unique.List;
 		}
 		my $column = selector.normalize-key($sel);
-		return ($column,) if $column.chars;
+		$column.chars and return ($column,);
 		()
 	}
 
@@ -319,14 +327,16 @@ Build a visit key for cycle detection during recursive FK walks.
 =end pod
 	method !row-visit-key(Associative $row --> Str) {
 		my $table = self.table-name-for($row);
-		return $row.WHICH unless $table.defined;
+		$table.defined or return $row.WHICH;
 
 		my @pk-cols = gather {
 			for self.foreign-keys -> $fk {
-				take $fk.to-column if $fk.to-table eq $table;
+				if $fk.to-table eq $table {
+					take $fk.to-column;
+				}
 			}
 		}.unique;
-		@pk-cols = $row.keys.sort unless @pk-cols;
+		@pk-cols or @pk-cols = $row.keys.sort;
 
 		my $pk = [ $row{$_} // '' for @pk-cols ].join('|');
 		"$table|$pk"
@@ -340,7 +350,7 @@ Locate a row's index and table row list for ordered-row sibling navigation.
 =end pod
 	method !row-order-context(Associative $row --> Mu) {
 		my $table-name = self.table-name-for($row);
-		return unless $table-name.defined && self.tables{$table-name}:exists;
+		$table-name.defined && self.tables{$table-name}:exists or return;
 		my @rows = self.tables{$table-name}.list;
 		for 0..^@rows -> $i {
 			return %(rows => @rows, index => $i) if @rows[$i] === $row
@@ -358,11 +368,11 @@ Return candidate sibling rows for following/preceding operators.
 	method !sibling-candidates(Mu $op, @rows, Int $index --> List) {
 		given $op {
 			when FollowingSiblingOperator {
-				return (@rows[$index + 1],) if $index + 1 < @rows;
+				$index + 1 < @rows and return (@rows[$index + 1],);
 				return ();
 			}
 			when PrecedingSiblingOperator {
-				return (@rows[$index - 1],) if $index > 0;
+				$index > 0 and return (@rows[$index - 1],);
 				return ();
 			}
 			when FollowingOperator {
@@ -384,7 +394,7 @@ Filter sibling candidates by selector match.
 
 =end pod
 	method !sibling-matches-selector(Associative $row, Mu $sel --> Bool) {
-		return True if selector.is-wildcard($sel);
+		selector.is-wildcard($sel) and return True;
 		selector.table-row-matches($row, $sel);
 	}
 }

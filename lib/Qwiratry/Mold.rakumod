@@ -231,14 +231,14 @@ class Mold is export {
 		:$!streaming = False,
 		:$returns-type
 	) {
-		$!name = $name if $name.defined;
-		$!source-location = $source-location if $source-location.defined;
-		$!signature = $signature if $signature.defined;
-		$!when-block = $when-block if $when-block.defined;
-		$!when-query = $when-query if $when-query.defined;
+		$name.defined and $!name = $name;
+		$source-location.defined and $!source-location = $source-location;
+		$signature.defined and $!signature = $signature;
+		$when-block.defined and $!when-block = $when-block;
+		$when-query.defined and $!when-query = $when-query;
 		$!combine-when-query = $combine-when-query;
-		$!specificity = $specificity if $specificity.defined;
-		$!returns-type = $returns-type if $returns-type.defined;
+		$specificity.defined and $!specificity = $specificity;
+		$returns-type.defined and $!returns-type = $returns-type;
 	}
     
 	=begin pod
@@ -290,7 +290,7 @@ class Mold is export {
 		my $origin = $*TRANSFORM-ROOT // $node;
 
 		if $.combine-when-query && $!when-query.defined {
-			return False unless when-query-matches($!when-query, $node, :$origin);
+			when-query-matches($!when-query, $node, :$origin) or return False;
 			return $!when-block.defined ?? self!evaluate-when-block($node) !! True;
 		}
 
@@ -337,7 +337,7 @@ class Mold is export {
 
 	# Builds the capture used for parameterized mold blocks from the current node.
 	method !capture-signature($node) {
-		return %() unless $!signature.defined;
+		$!signature.defined or return %();
 
 		my @params = $!signature.params;
 		if !@params || (@params == 1 && self!param-field-name(@params[0]) eq 'topic') {
@@ -365,16 +365,16 @@ class Mold is export {
 			}
 		}
 
-		return %named if @pos == 0;
-		return %(|%named, pos => @pos) if @pos;
+		@pos == 0 and return %named;
+		@pos and return %(|%named, pos => @pos);
 		%named;
 	}
 
 	# Reads a field from topic, associative nodes, or method-like node objects.
 	method !extract-field($node, $field) {
-		return $node if $field eq 'topic';
+		$field eq 'topic' and return $node;
 		if $node ~~ Associative {
-			return $node{$field} if $node{$field}:exists;
+			$node{$field}:exists and return $node{$field};
 		}
 		try {
 			return $node."$field"();
@@ -397,7 +397,7 @@ class Mold is export {
 		if $block.arity == 0 && $block.count == 0 {
 			return self!invoke-arity0($node, { $block() });
 		}
-		return $block($node) if $block.arity == 1;
+		$block.arity == 1 and return $block($node);
 		$block($node);
 	}
 

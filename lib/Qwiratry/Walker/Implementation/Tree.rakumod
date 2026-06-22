@@ -56,7 +56,7 @@ class Qwiratry::Walker::Implementation::Tree does Qwiratry::Walker is export {
 			given $next {
 				when IterationEnd { return IterationEnd; }
 				default {
-					$.context.nodes-visited++ if $.context.defined;
+					$.context.defined and $.context.nodes-visited++;
 					$next
 				}
 			}
@@ -73,7 +73,7 @@ class Qwiratry::Walker::Implementation::Tree does Qwiratry::Walker is export {
 		has Bool $!finish-invoked = False;
 
 		submethod BUILD(:$!root, :$!query-ast, :$!context) {
-			@!stack = [$!root] if $!root.defined;
+			$!root.defined and @!stack = [$!root];
 		}
 
 		# Stops tree iteration, invokes finish hooks once, and marks the iterator finished.
@@ -101,7 +101,7 @@ class Qwiratry::Walker::Implementation::Tree does Qwiratry::Walker is export {
 
 			if node-matches($!query-ast, $element, :origin($!root)) {
 				@!yield-queue.push($element);
-				$.context.nodes-visited++ if $.context.defined;
+				$.context.defined and $.context.nodes-visited++;
 			}
 
 			traversal.run-on-match($element, $!query-ast, $!root, $.context, $!state);
@@ -270,11 +270,11 @@ class Qwiratry::Walker::Implementation::Tree does Qwiratry::Walker is export {
 
 	=end pod
 	method supports(Mu $query --> Bool) {
-		return True if $query ~~ RootOperator;
-		return True if $query ~~ NavigationOperator;
-		return True if $query ~~ SetOperator;
-		return True if $query ~~ MapReduceOperator;
-		return True if $query.WHAT === Array || $query.WHAT === List;
+		$query ~~ RootOperator and return True;
+		$query ~~ NavigationOperator and return True;
+		$query ~~ SetOperator and return True;
+		$query ~~ MapReduceOperator and return True;
+		$query.WHAT === Array || $query.WHAT === List and return True;
 		False;
 	}
 
@@ -300,8 +300,8 @@ class Qwiratry::Walker::Implementation::Tree does Qwiratry::Walker is export {
 	method POST-PASS(Context $ctx) {
 		if $ctx.strategy.defined {
 			my $should-continue = $ctx.strategy.should-continue($ctx.strategy, $ctx);
-			$ctx.should-continue-calls++ if $ctx.can('should-continue-calls');
-			$ctx.should-continue-result = $should-continue if $ctx.can('should-continue-result');
+			$ctx.can('should-continue-calls') and $ctx.should-continue-calls++;
+			$ctx.can('should-continue-result') and $ctx.should-continue-result = $should-continue;
 		}
 	}
 
@@ -349,7 +349,7 @@ sub tree-children(Mu $node --> List)
 
 =end pod
 sub tree-children(Mu $node --> List) {
-	return $node.list if $node ~~ Positional;
+	$node ~~ Positional and return $node.list;
 	if $node ~~ Associative {
 		if $node<children> ~~ Positional {
 			return $node<children>.list;

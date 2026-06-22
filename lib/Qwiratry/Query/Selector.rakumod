@@ -26,8 +26,8 @@ class Qwiratry::Query::Selector {
 
 	=end pod
 	method is-wildcard(Mu $selector --> Bool) {
-		return True if $selector ~~ Whatever;
-		return True if $selector ~~ Str && $selector eq any(<* **>);
+		$selector ~~ Whatever and return True;
+		$selector ~~ Str && $selector eq any(<* **>) and return True;
 		False
 	}
 
@@ -37,10 +37,10 @@ class Qwiratry::Query::Selector {
 
 	=end pod
 	method is-explicit-path(Mu $selector --> Bool) {
-		return False unless $selector.defined;
-		return False if self.is-wildcard($selector);
-		return True if $selector ~~ Str && $selector.chars > 0;
-		return True if $selector ~~ Callable;
+		$selector.defined or return False;
+		self.is-wildcard($selector) and return False;
+		$selector ~~ Str && $selector.chars > 0 and return True;
+		$selector ~~ Callable and return True;
 		False
 	}
 
@@ -50,7 +50,7 @@ class Qwiratry::Query::Selector {
 
 	=end pod
 	method normalize-key(Mu $key --> Str) {
-		return $key if $key ~~ Str;
+		$key ~~ Str and return $key;
 		if $key ~~ List && $key.elems == 1 {
 			return self.normalize-key($key[0]);
 		}
@@ -63,7 +63,7 @@ class Qwiratry::Query::Selector {
 
 	=end pod
 	method normalize-name(Str $selector --> Str) {
-		return $selector.substr(1, *-2) if $selector.starts-with('<') && $selector.ends-with('>');
+		$selector.starts-with('<') && $selector.ends-with('>') and return $selector.substr(1, *-2);
 		$selector
 	}
 
@@ -73,7 +73,7 @@ class Qwiratry::Query::Selector {
 
 	=end pod
 	method table-row-matches(Associative $row, Mu $selector --> Bool) {
-		return True if self.is-wildcard($selector);
+		self.is-wildcard($selector) and return True;
 		if $selector ~~ Str {
 			my $col = self.normalize-name($selector);
 			return $row{$col}:exists;
@@ -87,9 +87,9 @@ class Qwiratry::Query::Selector {
 
 	=end pod
 	method matches(Mu $selector, Mu $node --> Bool) {
-		return True if self.is-wildcard($selector);
+		self.is-wildcard($selector) and return True;
 		if $selector ~~ List {
-			return True if $selector.grep({ self.matches($_, $node) }).so;
+			$selector.grep({ self.matches($_, $node) }).so and return True;
 			return False;
 		}
 		if $selector ~~ Str {
@@ -105,10 +105,10 @@ class Qwiratry::Query::Selector {
 
 	=end pod
 	method node-name(Mu $node --> Mu) {
-		return $node if $node ~~ Str;
+		$node ~~ Str and return $node;
 		if $node ~~ Associative {
 			for <name tag type> -> $field {
-				return ~($node{$field}) if $node{$field}:exists;
+				$node{$field}:exists and return ~($node{$field});
 			}
 		}
 		Nil

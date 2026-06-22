@@ -27,16 +27,16 @@ class Qwiratry::Query::Relational {
 
 	=end pod
 	method row-equal(Mu $a, Mu $b --> Bool) {
-		return True if $a === $b;
+		$a === $b and return True;
 		if $a ~~ Associative && $b ~~ Associative {
 			my @keys = ($a.keys, $b.keys).flat.map({ self!normalize-key-name($_) }).unique.sort;
 			for @keys -> $name {
 				next unless $a{$name}:exists && $b{$name}:exists;
 				my $va = $a{$name};
 				my $vb = $b{$name};
-				return False unless $va.defined == $vb.defined;
+				$va.defined == $vb.defined or return False;
 				next unless $va.defined;
-				return False unless ~$va eq ~$vb;
+				~$va eq ~$vb or return False;
 			}
 			return True;
 		}
@@ -51,7 +51,7 @@ class Qwiratry::Query::Relational {
 	=end pod
 	method row-in-list(Mu $row, @list --> Bool) {
 		for @list -> $candidate {
-			return True if self.row-equal($row, $candidate);
+			self.row-equal($row, $candidate) and return True;
 		}
 		False
 	}
@@ -64,7 +64,7 @@ class Qwiratry::Query::Relational {
 	=end pod
 	method node-in-list(Mu $node, @list --> Bool) {
 		for @list -> $candidate {
-			return True if $candidate === $node;
+			$candidate === $node and return True;
 			return True if $node ~~ Associative && $candidate ~~ Associative
 				&& self.row-equal($node, $candidate);
 		}
@@ -78,7 +78,7 @@ class Qwiratry::Query::Relational {
 
 	=end pod
 	method common-keys(Mu $left, Mu $right --> List) {
-		return () unless $left ~~ Associative && $right ~~ Associative;
+		$left ~~ Associative && $right ~~ Associative or return ();
 		my @left-keys = $left.keys.map({ self!normalize-key-name($_) });
 		my @right-keys = $right.keys.map({ self!normalize-key-name($_) });
 		(@left-keys (&) @right-keys).sort.List
@@ -116,7 +116,7 @@ class Qwiratry::Query::Relational {
 				my $matches = &condition
 					?? condition($lrow, $rrow)
 					!! self.join-on-common-keys($lrow, $rrow);
-				@result.push(self.merge-rows($lrow, $rrow)) if $matches;
+				$matches and @result.push(self.merge-rows($lrow, $rrow));
 			}
 		}
 		@result
@@ -130,11 +130,11 @@ class Qwiratry::Query::Relational {
 	=end pod
 	method join-on-common-keys(Associative $l, Associative $r --> Bool) {
 		my @keys = self.common-keys($l, $r);
-		return False unless @keys;
+		@keys or return False;
 		for @keys -> $key {
 			my $name = self!normalize-key-name($key);
 			next unless $l{$name}:exists && $r{$name}:exists;
-			return False unless ~($l{$name}) eq ~($r{$name});
+			~($l{$name}) eq ~($r{$name}) or return False;
 		}
 		True
 	}
@@ -151,7 +151,7 @@ class Qwiratry::Query::Relational {
 			my @matches;
 			for @right -> $rrow {
 				my $ok = &condition ?? condition($lrow, $rrow) !! self.join-on-common-keys($lrow, $rrow);
-				@matches.push(self.merge-rows($lrow, $rrow)) if $ok;
+				$ok and @matches.push(self.merge-rows($lrow, $rrow));
 			}
 			if @matches {
 				@result.append(@matches);
@@ -175,7 +175,7 @@ class Qwiratry::Query::Relational {
 			my @matches;
 			for @left -> $lrow {
 				my $ok = &condition ?? condition($lrow, $rrow) !! self.join-on-common-keys($lrow, $rrow);
-				@matches.push(self.merge-rows($lrow, $rrow)) if $ok;
+				$ok and @matches.push(self.merge-rows($lrow, $rrow));
 			}
 			if @matches {
 				@result.append(@matches);
@@ -250,7 +250,7 @@ class Qwiratry::Query::Relational {
 					last;
 				}
 			}
-			@result.push(%($lrow)) unless $matched;
+			$matched or @result.push(%($lrow));
 		}
 		@result
 	}
@@ -291,7 +291,7 @@ class Qwiratry::Query::Relational {
 		my %proj;
 		for @columns -> $col {
 			my $name = self!normalize-col-name($col);
-			%proj{$name} = $row{$name} if $row{$name}:exists;
+			$row{$name}:exists and %proj{$name} = $row{$name};
 		}
 		%proj
 	}
@@ -320,7 +320,7 @@ class Qwiratry::Query::Relational {
 	=end pod
 	method is-subset-of(@left, @right --> Bool) {
 		for @left -> $lrow {
-			return False unless self.row-in-list($lrow, @right);
+			self.row-in-list($lrow, @right) or return False;
 		}
 		True
 	}
@@ -332,9 +332,9 @@ class Qwiratry::Query::Relational {
 
 	=end pod
 	method collections-equal(@left, @right --> Bool) {
-		return False unless @left.elems == @right.elems;
+		@left.elems == @right.elems or return False;
 		for @left -> $lrow {
-			return False unless self.row-in-list($lrow, @right);
+			self.row-in-list($lrow, @right) or return False;
 		}
 		True
 	}
@@ -348,10 +348,10 @@ class Qwiratry::Query::Relational {
 	method symmetric-difference(@left, @right) {
 		my @result;
 		for @left -> $row {
-			@result.push($row) unless self.row-in-list($row, @right);
+			self.row-in-list($row, @right) or @result.push($row);
 		}
 		for @right -> $row {
-			@result.push($row) unless self.row-in-list($row, @left);
+			self.row-in-list($row, @left) or @result.push($row);
 		}
 		@result
 	}
@@ -363,7 +363,7 @@ class Qwiratry::Query::Relational {
 
 	=end pod
 	method relational-division(@left, @right) {
-		return () unless @right;
+		@right or return ();
 		my @result;
 		for @left -> $candidate {
 			my $ok = True;
@@ -379,7 +379,7 @@ class Qwiratry::Query::Relational {
 					last;
 				}
 			}
-			@result.push($candidate) if $ok;
+			$ok and @result.push($candidate);
 		}
 		@result
 	}
@@ -391,8 +391,8 @@ class Qwiratry::Query::Relational {
 
 	=end pod
 	method !normalize-key-name(Mu $key --> Str) {
-		return $key if $key ~~ Str;
-		return $key.key if $key ~~ Pair;
+		$key ~~ Str and return $key;
+		$key ~~ Pair and return $key.key;
 		~$key
 	}
 
@@ -403,12 +403,12 @@ class Qwiratry::Query::Relational {
 
 	=end pod
 	method !normalize-col-name(Mu $col --> Str) {
-		return $col if $col ~~ Str;
+		$col ~~ Str and return $col;
 		if $col ~~ List && $col.elems == 1 {
 			return self!normalize-col-name($col[0]);
 		}
 		my $name = ~$col;
-		$name = $name.substr(1, *-2) if $name.starts-with('<') && $name.ends-with('>');
+		$name.starts-with('<') && $name.ends-with('>') and $name = $name.substr(1, *-2);
 		$name
 	}
 }

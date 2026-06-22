@@ -163,7 +163,7 @@ class Qwiratry::Format::JSONdemo::Render is Qwiratry::Format::Base::Render {
 	}
 
 	method to-json-text($value, Bool $pretty, Int $indent --> Str) {
-		return 'null' unless $value.defined;
+		$value.defined or return 'null';
 		if $value ~~ Str {
 			my $escaped = $value;
 			$escaped = $escaped.subst(/[\x22]/, '\\"', :g);
@@ -172,11 +172,11 @@ class Qwiratry::Format::JSONdemo::Render is Qwiratry::Format::Base::Render {
 			$escaped = $escaped.subst(/\t/, '\\t', :g);
 			return q["] ~ $escaped ~ q["];
 		}
-		return $value.raku if $value ~~ Bool || $value ~~ Int || $value ~~ Num;
+		$value ~~ Bool || $value ~~ Int || $value ~~ Num and return $value.raku;
 
 		if $value ~~ Associative {
 			my @pairs = $value.pairs.sort(*.key);
-			return '{}' unless @pairs;
+			@pairs or return '{}';
 			my $pad = $pretty ?? ' ' x ($indent + 2) !! '';
 			my $sep = $pretty ?? (",\n") !! ',';
 			my $inner = @pairs.map(-> $p {
@@ -188,7 +188,7 @@ class Qwiratry::Format::JSONdemo::Render is Qwiratry::Format::Base::Render {
 		}
 
 		if $value ~~ Positional {
-			return '[]' unless $value.elems;
+			$value.elems or return '[]';
 			my $pad = $pretty ?? ' ' x ($indent + 2) !! '';
 			my $sep = $pretty ?? (",\n") !! ',';
 			my $inner = $value.map({

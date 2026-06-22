@@ -45,7 +45,7 @@ class Qwiratry::Location does Implementation::Loader {
 	=end pod
 	method normalize-type-name(Str $type --> Str) {
 		my $name = $type.subst(/\.rakumod$/, '');
-		$name = $name.split('::').[*-1] if $name.contains('::');
+		$name.contains('::') and $name = $name.split('::').[*-1];
 		$name.tc
 	}
 
@@ -56,7 +56,7 @@ class Qwiratry::Location does Implementation::Loader {
 	=end pod
 	method normalize-backend-name(Str $backend --> Str) {
 		my $name = $backend.subst(/\.rakumod$/, '');
-		$name = $name.split('::').[*-1] if $name.contains('::');
+		$name.contains('::') and $name = $name.split('::').[*-1];
 		$name.lc.split(/<[-_]>+/).map(*.tc).join
 	}
 
@@ -69,7 +69,7 @@ class Qwiratry::Location does Implementation::Loader {
 		if $location ~~ /^ (<[A..Za..z]> <[\w+.\-]>* ) '://' / {
 			return self.normalize-backend-name(~$0);
 		}
-		return 'File' if self!looks-like-local-path($location);
+		self!looks-like-local-path($location) and return 'File';
 		self!invalid-location($location);
 	}
 
@@ -98,9 +98,9 @@ class Qwiratry::Location does Implementation::Loader {
 
 	# Derive a backend label from a discovered backend module FQCN.
 	method !backend-name-from-module(Str $module --> Str) {
-		return Nil unless $module.split('::').elems == 3;
+		$module.split('::').elems == 3 or return Nil;
 		my $backend = self.normalize-backend-name($module.split('::')[2]);
-		return Nil if $backend eq 'Base';
+		$backend eq 'Base' and return Nil;
 		$backend
 	}
 
@@ -139,7 +139,7 @@ class Qwiratry::Location does Implementation::Loader {
 			);
 		};
 		my $base = try { ::($base-class) };
-		return $implementation if !($base =:= Nil) && $implementation ~~ $base;
+		!($base =:= Nil) && $implementation ~~ $base and return $implementation;
 		False
 	}
 
@@ -149,7 +149,7 @@ class Qwiratry::Location does Implementation::Loader {
 
 	=end pod
 	method backends(Str :$type! --> List) {
-		return self.instance.backends(:$type) unless self.DEFINITE;
+		self.DEFINITE or return self.instance.backends(:$type);
 		my $type-name = self.normalize-type-name($type);
 		unless %!backend-list-cache{$type-name}:exists {
 			%!backend-list-cache{$type-name} = self.find-module-pattern(
@@ -172,7 +172,7 @@ class Qwiratry::Location does Implementation::Loader {
 
 	=end pod
 	method ensure-location(Str :$type!, Str :$location! --> Str) {
-		return self.instance.ensure-location(:$type, :$location) unless self.DEFINITE;
+		self.DEFINITE or return self.instance.ensure-location(:$type, :$location);
 		my $type-name = self.normalize-type-name($type);
 		my $backend-name = self.backend-name-from-location($location);
 		my $class = self.backend-class-name($type-name, $backend-name);
