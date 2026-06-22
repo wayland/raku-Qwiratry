@@ -7,8 +7,9 @@ use Qwiratry::Query::Slang;
 use Qwiratry::Transformer;
 use Qwiratry::Mold;
 use Qwiratry::Query::Match;
+use Qwiratry::Operator::Set;
 
-plan 4;
+plan 6;
 
 my $tree = [
 	%(name => 'section', children => [
@@ -93,4 +94,45 @@ subtest 'Slang extracts mixed when blocks into query and predicate' => {
 
 	my $*TRANSFORM-ROOT := $mixed-tree;
 	is $t.TRANSFORM($mixed-tree), ('v1'), 'mixed when matches only items that pass predicate';
+}
+
+subtest 'Slang extracts set-composed when queries as pure queries' => {
+	plan 4;
+
+	clear-collected-molds();
+	transformer IntersectionWhenTest is Transformer {
+		mold item when { ($_ ⪪⪪ <item>) ∩ ($_ ⪪⪪ <*>) } do { "i{$_<value>}" }
+	}
+
+	my $t = IntersectionWhenTest.new;
+	my $tpl = $t.molds.first({ $_.name eq 'item' });
+
+	ok $tpl.when-query ~~ IntersectionOperator, 'intersection when block yields set query';
+	nok $tpl.when-block.defined, 'pure set-composed query does not keep predicate block';
+	ok $tpl.when-query.left.subject ~~ NavQueryTopic, 'left query branch is topic-rooted';
+	is $t.TRANSFORM($tree).sort, ('i1', 'i2'), 'intersection when query transforms common nodes';
+}
+
+subtest 'Slang splits set-composed query and predicate conjunctions' => {
+	plan 4;
+
+	my $mixed-tree = [
+		%(name => 'section', children => [
+			%(name => 'item', value => 1),
+			%(name => 'item'),
+		]),
+	];
+
+	clear-collected-molds();
+	transformer MixedIntersectionWhenTest is Transformer {
+		mold item when { (($_ ⪪⪪ <item>) ∩ ($_ ⪪⪪ <*>)) && .<value>:exists } do { "i{$_<value>}" }
+	}
+
+	my $t = MixedIntersectionWhenTest.new;
+	my $tpl = $t.molds.first({ $_.name eq 'item' });
+
+	ok $tpl.when-query ~~ IntersectionOperator, 'mixed intersection when block yields set query';
+	ok $tpl.when-block.defined, 'mixed intersection keeps predicate block';
+	ok $tpl.combine-when-query, 'mixed intersection requires query and predicate';
+	is $t.TRANSFORM($mixed-tree), ('i1'), 'mixed intersection matches only nodes passing predicate';
 }

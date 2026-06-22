@@ -59,6 +59,9 @@ sub query-uses-topic(Mu $query --> Bool) {
 		$query.subject ~~ NavQueryTopic and return True;
 		$query.subject ~~ NavigationOperator and return query-uses-topic($query.subject);
 	}
+	if $query.can('left') && $query.can('right') {
+		return query-uses-topic($query.left) || query-uses-topic($query.right);
+	}
 	False
 }
 
@@ -69,6 +72,23 @@ sub mold-topic-matches(Mu $query, Mu $node, Mu :$origin --> Bool) {
 sub match-topic-chain(Mu $query, Mu $node, Mu :$origin --> Bool) {
 	given $query {
 		when NavQueryTopic { True }
+		when UnionOperator {
+			return match-topic-chain(.left, $node, :$origin)
+				|| match-topic-chain(.right, $node, :$origin);
+		}
+		when IntersectionOperator {
+			return match-topic-chain(.left, $node, :$origin)
+				&& match-topic-chain(.right, $node, :$origin);
+		}
+		when SetDifferenceOperator {
+			return match-topic-chain(.left, $node, :$origin)
+				&& !match-topic-chain(.right, $node, :$origin);
+		}
+		when SymmetricDifferenceOperator {
+			my $left = match-topic-chain(.left, $node, :$origin);
+			my $right = match-topic-chain(.right, $node, :$origin);
+			return ($left && !$right) || (!$left && $right);
+		}
 		when ChildOperator {
 			selector.matches(.selector, $node) or return False;
 			.subject ~~ NavQueryTopic and return True;

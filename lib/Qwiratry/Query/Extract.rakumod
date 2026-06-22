@@ -17,6 +17,7 @@ use Qwiratry::Query::Match;
 class Qwiratry::Query::Extract {
 
 	my constant @NAV-INFIX = «⪪ ⪫ ⪪⪪ ⪫⪫ ⪨ ⪩ ⪨⪨ ⪩⪩ ⥷»;
+	my constant @QUERY-COMBINATOR-INFIX = «∪ ∩ ∖ ⊖»;
 
 	my $instance;
 
@@ -31,31 +32,29 @@ class Qwiratry::Query::Extract {
 
 	=begin pod
 
-	Run C<$when-block> with L<NavQueryTopic> as C<$_> and return a navigation
+	Run C<$when-block> with L<NavQueryTopic> as C<$_> and return a query
 	operator when the block body is a pure query expression.
 
 	=end pod
 	method from-when-block(Block $when-block --> Mu) {
 		my $result = try { $when-block(NavQueryTopic.new) };
-		$result ~~ NavigationOperator and return $result;
+		self!is-query-operator($result) and return $result;
 		Nil
 	}
 
 	=begin pod
 
-	Return True when C<$when-block> always evaluates to the same navigation operator
+	Return True when C<$when-block> always evaluates to the same query operator
 	shape (varying only in the C<$_> subject).
 
 	=end pod
-	method is-pure-navigation-when(Block $when-block --> Bool) {
+	method is-pure-query-when(Block $when-block --> Bool) {
 		my $with-topic = self.from-when-block($when-block);
 		$with-topic.defined or return False;
 
 		my $with-scalar = try { $when-block(42) };
-		$with-scalar ~~ NavigationOperator or return False;
-		$with-scalar.^name eq $with-topic.^name or return False;
-		self!selectors-equivalent($with-topic, $with-scalar) or return False;
-		True
+		self!is-query-operator($with-scalar) or return False;
+		self!queries-equivalent($with-topic, $with-scalar)
 	}
 
 	=begin pod
@@ -87,6 +86,35 @@ class Qwiratry::Query::Extract {
 
 	=begin pod
 
+	Compare query operators for the same structural shape and selectors.
+
+	=end pod
+	method !queries-equivalent(Mu $a, Mu $b --> Bool) {
+		$a.^name eq $b.^name or return False;
+		if $a ~~ NavigationOperator {
+			self!selectors-equivalent($a, $b) or return False;
+			if $a.can('subject') && $b.can('subject') {
+				my $left = $a.subject;
+				my $right = $b.subject;
+				!$left.defined && !$right.defined and return True;
+				$left.defined && $right.defined or return False;
+				$left ~~ NavQueryTopic || $right ~~ NavQueryTopic and return True;
+				$left ~~ NavigationOperator && $right ~~ NavigationOperator
+					and return self!queries-equivalent($left, $right);
+			}
+			return True;
+		}
+		if $a ~~ SetOperator {
+			$a.can('left') && $a.can('right') && $b.can('left') && $b.can('right')
+				or return False;
+			return self!queries-equivalent($a.left, $b.left)
+				&& self!queries-equivalent($a.right, $b.right);
+		}
+		False
+	}
+
+	=begin pod
+
 	Resolve the operator name from a RakuAST infix node.
 
 	=end pod
@@ -109,14 +137,35 @@ class Qwiratry::Query::Extract {
 
 	=begin pod
 
-	Return True when the infix operator is logical conjunction (C<&&> / C<and>).
+	Return True when the infix operator is boolean conjunction (C<&&> / C<and>).
 
 	=end pod
-	method !infix-is-conjunction(Mu $infix --> Bool) {
+	method !infix-is-boolean-conjunction(Mu $infix --> Bool) {
 		$infix.defined or return False;
 		my $name = self!infix-name($infix);
 		$name.defined or return False;
 		so $name eq any(<&& and>)
+	}
+
+	=begin pod
+
+	Return True when the infix operator combines query result sets.
+
+	=end pod
+	method !infix-is-query-combinator(Mu $infix --> Bool) {
+		$infix.defined or return False;
+		my $name = self!infix-name($infix);
+		$name.defined or return False;
+		so $name eq any(@QUERY-COMBINATOR-INFIX)
+	}
+
+	=begin pod
+
+	Return True when C<$value> is a query operator value.
+
+	=end pod
+	method !is-query-operator(Mu $value --> Bool) {
+		$value ~~ NavigationOperator | MapReduceOperator | SetOperator
 	}
 
 	=begin pod
@@ -140,13 +189,54 @@ class Qwiratry::Query::Extract {
 
 	=begin pod
 
-	Return True when C<$expr> is a navigation infix application in RakuAST form.
+	Return the expression inside a single-expression parenthesized AST node.
 
 	=end pod
-	method !is-navigation-expr(Mu $expr --> Bool) {
-		$expr.defined or return False;
-		return True if $expr.WHAT.^name eq 'RakuAST::ApplyInfix'
-			&& self!infix-is-navigation($expr.infix);
+	method !unwrap-expression(Mu $expr --> Mu) {
+		$expr.defined or return Nil;
+		if $expr.WHAT.^name eq 'RakuAST::Circumfix::Parentheses' {
+			my $inner = try $expr.semilist;
+			$inner.defined and return self!unwrap-expression($inner);
+			my $first = try $expr.first;
+			$first.defined and return self!unwrap-expression($first);
+		}
+		if $expr.WHAT.^name eq 'RakuAST::SemiList' {
+			my @statements = try $expr.statements;
+			if @statements == 1 {
+				my $statement = @statements[0];
+				my $expression = try $statement.expression;
+				$expression.defined and return self!unwrap-expression($expression);
+				return self!unwrap-expression($statement);
+			}
+			my $first = try $expr.first;
+			$first.defined and return self!unwrap-expression($first);
+		}
+		$expr
+	}
+
+	=begin pod
+
+	Return True when C<$expr> is a query expression in RakuAST form.
+
+	=end pod
+	method !is-query-expr(Mu $expr --> Bool) {
+		my $core = self!unwrap-expression($expr);
+		$core.defined or return False;
+		return True if $core.WHAT.^name eq 'RakuAST::ApplyInfix'
+			&& self!infix-is-navigation($core.infix);
+		return True if $core.WHAT.^name eq 'RakuAST::ApplyInfix'
+			&& self!infix-is-query-combinator($core.infix)
+			&& self!is-query-expr($core.left)
+			&& self!is-query-expr($core.right);
+		if $core.WHAT.^name eq 'RakuAST::ApplyListInfix'
+				&& self!infix-is-query-combinator($core.infix) {
+			my @operands = try $core.operands;
+			@operands.elems > 1 or return False;
+			for @operands -> $operand {
+				self!is-query-expr($operand) or return False;
+			}
+			return True;
+		}
 		False
 	}
 
@@ -156,18 +246,19 @@ class Qwiratry::Query::Extract {
 
 	=end pod
 	method !split-when-navigation-ast(Mu $body --> Hash) {
-		my $expr = self!when-body-expression($body);
+		my $expr = self!unwrap-expression(self!when-body-expression($body));
 		$expr.defined or return %();
 
-		if $expr.WHAT.^name eq 'RakuAST::ApplyInfix' && self!infix-is-conjunction($expr.infix) {
-			my $left = $expr.left;
-			my $right = $expr.right;
-			if self!is-navigation-expr($left) {
+		if $expr.WHAT.^name eq 'RakuAST::ApplyInfix'
+				&& self!infix-is-boolean-conjunction($expr.infix) {
+			my $left = self!unwrap-expression($expr.left);
+			my $right = self!unwrap-expression($expr.right);
+			if self!is-query-expr($left) {
 				return %(query => $left, predicate => $right);
 			}
 		}
 
-		self!is-navigation-expr($expr) and return %(query => $expr);
+		self!is-query-expr($expr) and return %(query => $expr);
 		%()
 	}
 }

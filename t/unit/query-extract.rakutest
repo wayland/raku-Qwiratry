@@ -6,10 +6,11 @@ use Qwiratry::Query::Extract;
 use Qwiratry::Query::Match;
 use Qwiratry::Query::Slang;
 use Qwiratry::Operator::Navigation;
+use Qwiratry::Operator::Set;
 
 my constant extract = Qwiratry::Query::Extract.instance;
 
-plan 6;
+plan 7;
 
 subtest 'from-when-block captures topic-rooted query' => {
 	plan 3;
@@ -21,14 +22,14 @@ subtest 'from-when-block captures topic-rooted query' => {
 	is $query.selector, 'item', 'selector preserved';
 }
 
-subtest 'is-pure-navigation-when detects pure query when blocks' => {
+subtest 'is-pure-query-when detects pure query when blocks' => {
 	plan 2;
 
 	my $pure = { $_ ⪪ <section> };
 	my $mixed = { $_ ⪪⪪ <item> && .<value>:exists };
 
-	ok extract.is-pure-navigation-when($pure), 'pure query when block recognized';
-	nok extract.is-pure-navigation-when($mixed), 'mixed predicate when block rejected';
+	ok extract.is-pure-query-when($pure), 'pure query when block recognized';
+	nok extract.is-pure-query-when($mixed), 'mixed predicate when block rejected';
 }
 
 subtest 'when-query-matches topic-rooted queries by selector' => {
@@ -74,6 +75,23 @@ subtest 'when-query-matches chained topic child operators' => {
 	ok when-query-matches($query, $item, :origin($tree)), 'item under section matches chain';
 	nok when-query-matches($query, $section, :origin($tree)), 'section alone does not match item chain';
 	nok when-query-matches($query, $item), 'chain requires transform root for parent lookup';
+}
+
+subtest 'from-when-block captures set-composed query' => {
+	plan 4;
+
+	my $query = extract.from-when-block({ ($_ ⪪⪪ <item>) ∩ ($_ ⪪⪪ <*>) });
+	ok $query ~~ IntersectionOperator, 'intersection query extracted';
+	ok $query.left.subject ~~ NavQueryTopic, 'left branch is topic-rooted';
+	ok $query.right.subject ~~ NavQueryTopic, 'right branch is topic-rooted';
+
+	my $tree = [
+		%(name => 'section', children => [
+			%(name => 'item', value => 1),
+		]),
+	];
+	ok when-query-matches($query, $tree[0]<children>[0], :origin($tree)),
+		'intersection query matches common result';
 }
 
 subtest 'mixed query and predicate matching' => {

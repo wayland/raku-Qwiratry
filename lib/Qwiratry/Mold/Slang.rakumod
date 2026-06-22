@@ -288,7 +288,7 @@ our role MoldActions {
 			else {
 				$when-block = compiler.compile-blockoid($<when-block>);
 				$when-block.defined and $when-query = extract.from-when-block($when-block);
-				if $when-query.defined && extract.is-pure-navigation-when($when-block) {
+				if $when-query.defined && extract.is-pure-query-when($when-block) {
 					$when-block = Nil;
 				}
 			}
