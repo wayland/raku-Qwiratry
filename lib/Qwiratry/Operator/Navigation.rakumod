@@ -23,7 +23,7 @@ unit module Qwiratry::Operator::Navigation;
 
 use Qwiratry::Operator::Capability;
 
-role NavigationOperatorNode does NavigationOperator does OperatorBase does ChainedOperator {
+role NavigationOperatorNode does NavigationOperator does OperatorBase does ChainedOperator does EagerEvaluatedOperator {
 	has Mu $.selector is required;
 	has $.adverbs;
 
@@ -67,7 +67,7 @@ class FollowingOperator is RakuAST::Node does NavigationOperatorNode is export {
 
 class PrecedingOperator is RakuAST::Node does NavigationOperatorNode is export { }
 
-class AttributeOperator is RakuAST::Node does NavigationOperator does OperatorBase does ChainedOperator is export {
+class AttributeOperator is RakuAST::Node does NavigationOperator does OperatorBase does ChainedOperator does EagerEvaluatedOperator is export {
 	has Mu $.key is required;
 
 	=begin pod
@@ -89,7 +89,7 @@ class AttributeOperator is RakuAST::Node does NavigationOperator does OperatorBa
 	}
 }
 
-class RootOperator is RakuAST::Node does NavigationOperator does OperatorBase does ChainedOperator is export {
+class RootOperator is RakuAST::Node does NavigationOperator does OperatorBase does ChainedOperator does EagerEvaluatedOperator is export {
 	=begin pod
 
 	=head2 C<RootOperator.describe()>

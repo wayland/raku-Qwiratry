@@ -27,30 +27,74 @@ use Qwiratry::Query::Evaluator::Set;
 use Qwiratry::Query::Evaluator::Join;
 use Qwiratry::Query::Evaluator::Row;
 use Qwiratry::Query::Evaluator::Filter;
+use Qwiratry::Query::Evaluator::Navigation;
+use Qwiratry::Query::Evaluator::Relational;
+use Qwiratry::Query::Evaluator::MapReduce;
 use Qwiratry::Table;
 use Qwiratry::Table::Schema;
 use Qwiratry::Query::Selector;
 
 my sub relational() { Qwiratry::Query::Relational.instance }
 my constant selector = Qwiratry::Query::Selector.instance;
-my constant evaluators = %(
-	UnionOperator => UnionEvaluator.new,
-	IntersectionOperator => IntersectionEvaluator.new,
-	SetDifferenceOperator => SetDifferenceEvaluator.new,
-	SymmetricDifferenceOperator => SymmetricDifferenceEvaluator.new,
-	InnerJoinOperator => InnerJoinEvaluator.new,
-	LeftOuterJoinOperator => LeftOuterJoinEvaluator.new,
-	RightOuterJoinOperator => RightOuterJoinEvaluator.new,
-	FullOuterJoinOperator => FullOuterJoinEvaluator.new,
-	LeftSemijoinOperator => LeftSemijoinEvaluator.new,
-	RightSemijoinOperator => RightSemijoinEvaluator.new,
-	LeftAntijoinOperator => LeftAntijoinEvaluator.new,
-	RightAntijoinOperator => RightAntijoinEvaluator.new,
-	CrossJoinOperator => CrossJoinEvaluator.new,
-	ProjectionOperator => ProjectionEvaluator.new,
-	RenameOperator => RenameEvaluator.new,
-	SelectionOperator => SelectionEvaluator.new,
-);
+
+my sub evaluators() {
+	state %evaluators = %(
+		UnionOperator => UnionEvaluator.new,
+		IntersectionOperator => IntersectionEvaluator.new,
+		SetDifferenceOperator => SetDifferenceEvaluator.new,
+		SymmetricDifferenceOperator => SymmetricDifferenceEvaluator.new,
+		InnerJoinOperator => InnerJoinEvaluator.new,
+		LeftOuterJoinOperator => LeftOuterJoinEvaluator.new,
+		RightOuterJoinOperator => RightOuterJoinEvaluator.new,
+		FullOuterJoinOperator => FullOuterJoinEvaluator.new,
+		LeftSemijoinOperator => LeftSemijoinEvaluator.new,
+		RightSemijoinOperator => RightSemijoinEvaluator.new,
+		LeftAntijoinOperator => LeftAntijoinEvaluator.new,
+		RightAntijoinOperator => RightAntijoinEvaluator.new,
+		CrossJoinOperator => CrossJoinEvaluator.new,
+		ProjectionOperator => ProjectionEvaluator.new,
+		RenameOperator => RenameEvaluator.new,
+		SelectionOperator => SelectionEvaluator.new,
+		RootOperator => RootEvaluator.new(:select-list(&select-list)),
+		ChildOperator => ChildEvaluator.new(:select-list(&select-list)),
+		DescendantOperator => DescendantEvaluator.new(:select-list(&select-list)),
+		AttributeOperator => AttributeEvaluator.new(:select-list(&select-list)),
+		ParentOperator => ParentEvaluator.new(:select-list(&select-list)),
+		AncestorOperator => AncestorEvaluator.new(:select-list(&select-list)),
+		FollowingSiblingOperator => FollowingSiblingEvaluator.new(:select-list(&select-list)),
+		PrecedingSiblingOperator => PrecedingSiblingEvaluator.new(:select-list(&select-list)),
+		FollowingOperator => FollowingEvaluator.new(:select-list(&select-list)),
+		PrecedingOperator => PrecedingEvaluator.new(:select-list(&select-list)),
+		ElementOfOperator => ElementOfEvaluator.new(
+			:select-list(&select-list),
+			:select-relation(&select-relation),
+		),
+		ContainsOperator => ContainsEvaluator.new(
+			:select-list(&select-list),
+			:select-relation(&select-relation),
+		),
+		SubsetOperator => SubsetEvaluator.new(
+			:select-list(&select-list),
+			:select-relation(&select-relation),
+		),
+		SubsetOrEqualOperator => SubsetOrEqualEvaluator.new(
+			:select-list(&select-list),
+			:select-relation(&select-relation),
+		),
+		IdentityOperator => IdentityEvaluator.new(
+			:select-list(&select-list),
+			:select-relation(&select-relation),
+		),
+		DivisionOperator => DivisionEvaluator.new(
+			:select-list(&select-list),
+			:select-relation(&select-relation),
+		),
+		SortOperator => SortEvaluator.new(:select-list(&select-list)),
+		MapOperator => MapEvaluator.new(:select-list(&select-list)),
+		ReduceOperator => ReduceEvaluator.new(:select-list(&select-list)),
+	);
+	%evaluators
+}
 
 =begin pod
 
@@ -171,26 +215,20 @@ sub select-seq(Mu $query, Mu $origin --> Seq) {
 	$query.defined or return ().Seq;
 
 	given $query {
-		when UnionOperator | IntersectionOperator | SetDifferenceOperator
-				| SymmetricDifferenceOperator | InnerJoinOperator
-				| LeftOuterJoinOperator | RightOuterJoinOperator
-				| FullOuterJoinOperator | LeftSemijoinOperator
-				| RightSemijoinOperator | LeftAntijoinOperator
-				| RightAntijoinOperator | CrossJoinOperator
-				| ProjectionOperator | RenameOperator {
-			my $evaluator = evaluators{$query.^shortname};
-			$evaluator.defined or return ().Seq;
-			return $evaluator.select-seq($query, $origin, :&relation-source);
-		}
 		when SelectionOperator {
-			my $evaluator = evaluators{$query.^shortname};
-			$evaluator.defined or return ().Seq;
+			my $evaluator = evaluators(){$query.evaluator-key}
+				// die "No evaluator registered for {$query.^name}";
 			return $evaluator.select-seq(
 				$query,
 				$origin,
 				:&selection-relation-source,
 				:&selection-predicate-matches,
 			);
+		}
+		when LazyEvaluatedOperator {
+			my $evaluator = evaluators(){$query.evaluator-key}
+				// die "No evaluator registered for {$query.^name}";
+			return $evaluator.select-seq($query, $origin, :&relation-source);
 		}
 		default {
 			my @items = select-list-eager($query, $origin);
@@ -214,164 +252,10 @@ sub select-list-eager(Mu $query, Mu $origin --> List) {
 	$query.defined or return ();
 
 	given $query {
-		when RootOperator {
-			my $base = $query.subject.defined ?? $query.subject !! $origin;
-			return ($base,);
-		}
-		when ChildOperator {
-			my @bases = resolve-bases($query, $origin);
-			my $catalog = Qwiratry::Table::Schema.instance.discover($origin);
-			my @results;
-			for @bases -> $base {
-				if $catalog.defined {
-					@results.append($catalog.child-results($base, $query));
-				}
-				else {
-					for tree-children($base) -> $child {
-						selector.matches($query.selector, $child) and @results.push($child);
-					}
-				}
-			}
-			return @results;
-		}
-		when DescendantOperator {
-			my @bases = resolve-bases($query, $origin);
-			my $catalog = Qwiratry::Table::Schema.instance.discover($origin);
-			my @results;
-			for @bases -> $base {
-				if $catalog.defined {
-					@results.append($catalog.descendant-results($base, $query));
-				}
-				else {
-					for tree-descendants($base) -> $desc {
-						selector.matches($query.selector, $desc) and @results.push($desc);
-					}
-				}
-			}
-			return @results;
-		}
-		when AttributeOperator {
-			my @bases = resolve-bases($query, $origin);
-			my @results;
-			for @bases -> $base {
-				my $value = attribute-value($base, $query.key);
-				$value.defined and @results.push($value);
-			}
-			return @results;
-		}
-		when ParentOperator {
-			my @bases = resolve-bases($query, $origin);
-			my $catalog = Qwiratry::Table::Schema.instance.discover($origin);
-			my @results;
-			for @bases -> $base {
-				if $catalog.defined {
-					@results.append($catalog.parent-results($base, $query));
-				}
-				else {
-					my $parent = tree-parent($base, :$origin);
-					@results.push($parent) if $parent.defined
-						&& selector.matches($query.selector, $parent);
-				}
-			}
-			return @results;
-		}
-		when AncestorOperator {
-			my @bases = resolve-bases($query, $origin);
-			my $catalog = Qwiratry::Table::Schema.instance.discover($origin);
-			my @results;
-			for @bases -> $base {
-				if $catalog.defined {
-					@results.append($catalog.parent-results($base, $query));
-				}
-				else {
-					for tree-ancestors($base, :$origin) -> $anc {
-						selector.matches($query.selector, $anc) and @results.push($anc);
-					}
-				}
-			}
-			return @results;
-		}
-		when FollowingSiblingOperator | PrecedingSiblingOperator
-				| FollowingOperator | PrecedingOperator {
-			my @bases = resolve-bases($query, $origin);
-			my $catalog = Qwiratry::Table::Schema.instance.discover($origin);
-			my @results;
-			for @bases -> $base {
-				if $catalog.defined && $catalog.is-table-row($base) {
-					@results.append($catalog.sibling-results($base, $query));
-					next;
-				}
-				my @siblings = sibling-context($base, :$origin)<all>;
-				my $index = sibling-index(@siblings, $base);
-				next unless $index.defined;
-				my @candidates = sibling-candidates($query, @siblings, $index);
-				for @candidates -> $candidate {
-					if selector.matches($query.selector, $candidate) {
-						@results.push($candidate);
-					}
-				}
-			}
-			return @results;
-		}
-		when ElementOfOperator {
-			my @collection = select-list($query.collection, $origin);
-			my @elements = select-list($query.element, $origin);
-			my @results;
-			for @elements -> $elem {
-				relational.row-in-list($elem, @collection) and @results.push($elem);
-			}
-			return @results;
-		}
-		when ContainsOperator {
-			my @collection = select-list($query.collection, $origin);
-			my @elements = select-list($query.element, $origin);
-			return @collection.grep(-> $row {
-				@elements.grep(-> $elem { relational.row-equal($elem, $row) }).so
-			}).List;
-		}
-		when SubsetOperator {
-			my @left = select-list($query.left, $origin);
-			my @right = select-list($query.right, $origin);
-			return relational.is-subset-of(@left, @right)
-				&& !relational.collections-equal(@left, @right)
-				?? @left.List !! ();
-		}
-		when SubsetOrEqualOperator {
-			my @left = select-list($query.left, $origin);
-			my @right = select-list($query.right, $origin);
-			return relational.is-subset-of(@left, @right) ?? @left.List !! ();
-		}
-		when IdentityOperator {
-			my @left = select-relation($query.left, $origin);
-			my @right = select-relation($query.right, $origin);
-			return relational.collections-equal(@left, @right) ?? @left.List !! ();
-		}
-		when DivisionOperator {
-			my @left = select-relation($query.left, $origin);
-			my @right = select-relation($query.right, $origin);
-			return relational.relational-division(@left, @right).List;
-		}
-		when SortOperator {
-			my @items = mapreduce-items($query, $origin);
-			my &key = $query.key-function;
-			return @items.sort(-> $a, $b {
-				code-result(&key, $a) cmp code-result(&key, $b)
-			}).List;
-		}
-		when MapOperator {
-			my @items = mapreduce-items($query, $origin);
-			my &transform = $query.transform;
-			return @items.map(-> $item { code-result(&transform, $item) }).List;
-		}
-		when ReduceOperator {
-			my @items = mapreduce-items($query, $origin);
-			@items or return ();
-			my &op = $query.operation;
-			my $acc = @items.shift;
-			for @items -> $item {
-				$acc = reduce-with(&op, $acc, $item);
-			}
-			return ($acc,);
+		when EagerEvaluatedOperator {
+			my $evaluator = evaluators(){$query.evaluator-key}
+				// die "No eager evaluator registered for {$query.^name}";
+			return $evaluator.eager($query, $origin);
 		}
 		default {
 			if is-union-query-list($query) {
@@ -384,16 +268,6 @@ sub select-list-eager(Mu $query, Mu $origin --> List) {
 			return ();
 		}
 	}
-}
-
-sub resolve-bases(Mu $op, Mu $origin --> List) {
-	if $op.can('subject') && $op.subject.defined {
-		if $op.subject ~~ NavigationOperator {
-			return select-list($op.subject, $origin);
-		}
-		return ($op.subject,);
-	}
-	return ($origin,);
 }
 
 sub query-origin(Mu $query, Mu $fallback --> Mu) {
@@ -416,15 +290,6 @@ sub tree-children(Mu $node --> List) {
 	();
 }
 
-sub tree-descendants(Mu $node --> Seq) {
-	gather {
-		for tree-children($node) -> $child {
-			take $child;
-			take $_ for tree-descendants($child);
-		}
-	}
-}
-
 sub tree-parent(Mu $node, Mu :$origin --> Mu) {
 	$node.can('parent') and return $node.parent;
 	$origin.defined and return find-parent-in-tree($node, $origin);
@@ -437,60 +302,6 @@ our sub find-parent-in-tree(Mu $node, Mu $current --> Mu) is export {
 		$child === $node and return $current;
 		my $found = find-parent-in-tree($node, $child);
 		$found.defined and return $found;
-	}
-	Nil
-}
-
-sub tree-ancestors(Mu $node, Mu :$origin --> Seq) {
-	gather {
-		my $current = tree-parent($node, :$origin);
-		while $current.defined {
-			take $current;
-			$current = tree-parent($current, :$origin);
-		}
-	}
-}
-
-sub sibling-context(Mu $node, Mu :$origin --> Associative) {
-	my $parent = tree-parent($node, :$origin);
-	$parent.defined and return %(all => tree-children($parent));
-	%(all => ());
-}
-
-sub sibling-index(@siblings, Mu $node) {
-	for 0..^@siblings -> $i {
-		@siblings[$i] === $node and return $i;
-	}
-	Nil
-}
-
-sub sibling-candidates(Mu $op, @siblings, Int $index --> List) {
-	given $op {
-		when FollowingSiblingOperator {
-			return @siblings[$index+1 .. *];
-		}
-		when PrecedingSiblingOperator {
-			return @siblings[0 ..^ $index];
-		}
-		when FollowingOperator {
-			return @siblings[$index+1 .. *];
-		}
-		when PrecedingOperator {
-			return @siblings[0 ..^ $index];
-		}
-		default {
-			return ();
-		}
-	}
-}
-
-sub attribute-value(Mu $node, Mu $key --> Mu) {
-	my $name = selector.normalize-key($key);
-	if $node ~~ Associative && $node{$name}:exists {
-		return $node{$name};
-	}
-	if $node.can($name) {
-		return $node.$name;
 	}
 	Nil
 }
@@ -519,53 +330,6 @@ sub selection-predicate-matches(&pred, Mu $base --> Bool) {
 		}
 	};
 	return $result // False;
-}
-
-sub mapreduce-items(Mu $query, Mu $origin --> List) {
-	if $query.subject.defined {
-		if $query.subject ~~ NavigationOperator | RootOperator | SetOperator | MapReduceOperator {
-			return select-list($query.subject, $origin);
-		}
-		if $query.subject ~~ AdaptorOperator {
-			return $origin ~~ Positional ?? $origin.list !! ($origin,);
-		}
-		if $query.subject ~~ Positional {
-			return $query.subject.list;
-		}
-		return ($query.subject,);
-	}
-	if $origin ~~ Qwiratry::Table::Catalog {
-		return $origin.active-rows;
-	}
-	if $origin ~~ Positional {
-		return $origin.list;
-	}
-	($origin,);
-}
-
-sub code-result(&code, Mu $item --> Mu) {
-	try {
-		if &code.arity == 1 {
-			code($item);
-		}
-		else {
-			with $item { code() }
-		}
-	} orelse $item
-}
-
-sub reduce-with(&op, Mu $acc, Mu $item --> Mu) {
-	try {
-		if &op.arity == 2 {
-			op($acc, $item);
-		}
-		elsif &op.arity == 1 {
-			op($item);
-		}
-		else {
-			with $acc { with $item { op() } }
-		}
-	} orelse $acc
 }
 
 sub relation-row-snapshot(Mu $source) {

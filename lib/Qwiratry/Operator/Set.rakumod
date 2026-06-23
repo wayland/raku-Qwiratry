@@ -50,7 +50,7 @@ role BinarySetOperatorNode does SetOperator does OperatorBase {
 	}
 }
 
-role JoinOperatorNode does BinarySetOperatorNode {
+role JoinOperatorNode does BinarySetOperatorNode does LazyEvaluatedOperator {
 	has Mu $.condition;
 }
 
@@ -58,15 +58,15 @@ role UnarySetOperatorNode does SetOperator does OperatorBase {
 	method operator-name(--> Str) { self.^name }
 }
 
-class UnionOperator is RakuAST::Node does BinarySetOperatorNode is export { }
+class UnionOperator is RakuAST::Node does BinarySetOperatorNode does LazyEvaluatedOperator is export { }
 
-class IntersectionOperator is RakuAST::Node does BinarySetOperatorNode is export { }
+class IntersectionOperator is RakuAST::Node does BinarySetOperatorNode does LazyEvaluatedOperator is export { }
 
-class SetDifferenceOperator is RakuAST::Node does BinarySetOperatorNode is export { }
+class SetDifferenceOperator is RakuAST::Node does BinarySetOperatorNode does LazyEvaluatedOperator is export { }
 
-class SymmetricDifferenceOperator is RakuAST::Node does BinarySetOperatorNode is export { }
+class SymmetricDifferenceOperator is RakuAST::Node does BinarySetOperatorNode does LazyEvaluatedOperator is export { }
 
-class ElementOfOperator is RakuAST::Node does SetOperator does OperatorBase is export {
+class ElementOfOperator is RakuAST::Node does SetOperator does OperatorBase does EagerEvaluatedOperator is export {
 	has Mu $.element is required;
 	has Mu $.collection is required;
 
@@ -87,7 +87,7 @@ class ElementOfOperator is RakuAST::Node does SetOperator does OperatorBase is e
 	}
 }
 
-class ContainsOperator is RakuAST::Node does SetOperator does OperatorBase is export {
+class ContainsOperator is RakuAST::Node does SetOperator does OperatorBase does EagerEvaluatedOperator is export {
 	has Mu $.collection is required;
 	has Mu $.element is required;
 
@@ -108,13 +108,13 @@ class ContainsOperator is RakuAST::Node does SetOperator does OperatorBase is ex
 	}
 }
 
-class SubsetOperator is RakuAST::Node does BinarySetOperatorNode is export { }
+class SubsetOperator is RakuAST::Node does BinarySetOperatorNode does EagerEvaluatedOperator is export { }
 
-class SubsetOrEqualOperator is RakuAST::Node does BinarySetOperatorNode is export { }
+class SubsetOrEqualOperator is RakuAST::Node does BinarySetOperatorNode does EagerEvaluatedOperator is export { }
 
-class IdentityOperator is RakuAST::Node does BinarySetOperatorNode is export { }
+class IdentityOperator is RakuAST::Node does BinarySetOperatorNode does EagerEvaluatedOperator is export { }
 
-class ProjectionOperator is RakuAST::Node does SetOperator does OperatorBase is export {
+class ProjectionOperator is RakuAST::Node does SetOperator does OperatorBase does LazyEvaluatedOperator is export {
 	has Mu $.relation is required;
 	has @.columns is required;
 
@@ -134,7 +134,7 @@ class ProjectionOperator is RakuAST::Node does SetOperator does OperatorBase is 
 	}
 }
 
-class RenameOperator is RakuAST::Node does SetOperator does OperatorBase is export {
+class RenameOperator is RakuAST::Node does SetOperator does OperatorBase does LazyEvaluatedOperator is export {
 	has Mu $.relation is required;
 	has %.renames is required;
 
@@ -171,6 +171,6 @@ class LeftAntijoinOperator is RakuAST::Node does JoinOperatorNode is export { }
 
 class RightAntijoinOperator is RakuAST::Node does JoinOperatorNode is export { }
 
-class DivisionOperator is RakuAST::Node does BinarySetOperatorNode is export { }
+class DivisionOperator is RakuAST::Node does BinarySetOperatorNode does EagerEvaluatedOperator is export { }
 
-class CrossJoinOperator is RakuAST::Node does BinarySetOperatorNode is export { }
+class CrossJoinOperator is RakuAST::Node does BinarySetOperatorNode does LazyEvaluatedOperator is export { }

@@ -58,7 +58,7 @@ role MapReduceOperatorNode does MapReduceOperator does OperatorBase does Chained
 	}
 }
 
-class SelectionOperator is RakuAST::Node does MapReduceOperatorNode is export {
+class SelectionOperator is RakuAST::Node does MapReduceOperatorNode does LazyEvaluatedOperator is export {
 	has Mu $.predicate is required;
 
 	=begin pod
@@ -77,7 +77,7 @@ class SelectionOperator is RakuAST::Node does MapReduceOperatorNode is export {
 	}
 }
 
-class SortOperator is RakuAST::Node does MapReduceOperatorNode is export {
+class SortOperator is RakuAST::Node does MapReduceOperatorNode does EagerEvaluatedOperator is export {
 	has Mu $.key-function is required;
 
 	=begin pod
@@ -96,7 +96,7 @@ class SortOperator is RakuAST::Node does MapReduceOperatorNode is export {
 	}
 }
 
-class MapOperator is RakuAST::Node does MapReduceOperatorNode is export {
+class MapOperator is RakuAST::Node does MapReduceOperatorNode does EagerEvaluatedOperator is export {
 	has Mu $.transform is required;
 
 	=begin pod
@@ -115,7 +115,7 @@ class MapOperator is RakuAST::Node does MapReduceOperatorNode is export {
 	}
 }
 
-class ReduceOperator is RakuAST::Node does MapReduceOperatorNode is export {
+class ReduceOperator is RakuAST::Node does MapReduceOperatorNode does EagerEvaluatedOperator is export {
 	has Mu $.operation is required;
 
 	=begin pod

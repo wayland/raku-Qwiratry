@@ -49,6 +49,26 @@ role ChainedOperator is export {
 
 =begin pod
 
+Marks an operator that has a lazy evaluator registered in C<Qwiratry::Query::Match>.
+
+=end pod
+role LazyEvaluatedOperator is export {
+	method evaluation-mode(--> Str) { 'lazy' }
+	method evaluator-key(--> Str) { self.^shortname }
+}
+
+=begin pod
+
+Marks an operator intentionally handled by eager query matching.
+
+=end pod
+role EagerEvaluatedOperator is export {
+	method evaluation-mode(--> Str) { 'eager' }
+	method evaluator-key(--> Str) { self.^shortname }
+}
+
+=begin pod
+
 Default pipeline step for query operators: resolve data root, run C<select>, materialize.
 
 =end pod
