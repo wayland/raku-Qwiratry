@@ -52,6 +52,43 @@ class SetDifferenceIterator does Iterator does LazyEvaluator is export {
 	}
 }
 
+class SymmetricDifferenceIterator does Iterator does LazyEvaluator is export {
+	has Mu $.left is required;
+	has Mu $.right is required;
+	has @!left-list;
+	has @!right-list;
+	has Bool $!ready = False;
+	has Str $!phase = 'left';
+	has Int $!idx = 0;
+
+	method !prepare {
+		$!ready and return;
+		@!left-list = self.source-list($.left);
+		@!right-list = self.source-list($.right);
+		$!ready = True;
+	}
+
+	method pull-one {
+		self!prepare;
+		loop {
+			if $!phase eq 'left' {
+				if $!idx >= @!left-list {
+					$!phase = 'right';
+					$!idx = 0;
+					next;
+				}
+				my $row = @!left-list[$!idx++];
+				self.relation-common.row-in-list($row, @!right-list) or return $row;
+				next;
+			}
+
+			$!idx >= @!right-list and return IterationEnd;
+			my $row = @!right-list[$!idx++];
+			self.relation-common.row-in-list($row, @!left-list) or return $row;
+		}
+	}
+}
+
 class IntersectionEvaluator does LazyEvaluator is export {
 	method select-seq(IntersectionOperator $query, Mu $origin, :&relation-source! --> Seq) {
 		self.lazy(
@@ -103,20 +140,6 @@ class SymmetricDifferenceEvaluator does LazyEvaluator is export {
 	}
 
 	method lazy($left, $right --> Seq) {
-		my @right-list = self.source-list($right);
-		my @left-list = self.source-list($left);
-		my @items = gather {
-			for @left-list -> $row {
-				unless self.relation-common.row-in-list($row, @right-list) {
-					take $row;
-				}
-			}
-			for @right-list -> $row {
-				unless self.relation-common.row-in-list($row, @left-list) {
-					take $row;
-				}
-			}
-		};
-		self.lazy-from-list(@items)
+		self.seq-from-iterator(SymmetricDifferenceIterator.new(:$left, :$right))
 	}
 }
