@@ -37,7 +37,10 @@ class Qwiratry::Query::Extract {
 
 	=end pod
 	method from-when-block(Block $when-block --> Mu) {
-		my $result = try { $when-block(NavQueryTopic.new) };
+		my $result = try {
+			my $*QWIRATRY-BUILD-QUERY = True;
+			$when-block(NavQueryTopic.new)
+		};
 		self!is-query-operator($result) and return $result;
 		Nil
 	}
@@ -52,7 +55,10 @@ class Qwiratry::Query::Extract {
 		my $with-topic = self.from-when-block($when-block);
 		$with-topic.defined or return False;
 
-		my $with-scalar = try { $when-block(42) };
+		my $with-scalar = try {
+			my $*QWIRATRY-BUILD-QUERY = True;
+			$when-block(42)
+		};
 		self!is-query-operator($with-scalar) or return False;
 		self!queries-equivalent($with-topic, $with-scalar)
 	}

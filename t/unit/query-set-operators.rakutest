@@ -23,7 +23,7 @@ my $tree = [
 
 subtest 'union combines query results' => {
 	plan 2;
-	my $query = ($tree ⪪⪪ <item>) ∪ ($tree ⪪⪪ <meta>);
+	my $query = query-ast({ ($tree ⪪⪪ <item>) ∪ ($tree ⪪⪪ <meta>) });
 	my @results = query-runtime.select($query, $tree).list;
 	is @results.elems, 3, 'union yields item and meta branches';
 	ok @results.grep({ $_<name> eq 'item' }), 'item present in union';
@@ -31,23 +31,25 @@ subtest 'union combines query results' => {
 
 subtest 'intersection keeps shared nodes only' => {
 	plan 1;
-	my $query = (DescendantOperator.new(:subject($tree), :selector('*')))
-		∩ ($tree ⪪⪪ <item>);
+	my $query = query-ast({
+		(DescendantOperator.new(:subject($tree), :selector('*')))
+			∩ ($tree ⪪⪪ <item>)
+	});
 	my @results = query-runtime.select($query, $tree).list;
 	is @results.elems, 2, 'intersection keeps item nodes only';
 }
 
 subtest 'selection predicate filters results' => {
 	plan 1;
-	my $query = $tree ⪪⪪ <item> σ -> $_ { $_<value> > 1 };
+	my $query = query-ast({ $tree ⪪⪪ <item> σ -> $_ { $_<value> > 1 } });
 	my @results = query-runtime.select($query, $tree).list;
 	is @results[0]<value>, 2, 'selection keeps item with value > 1';
 }
 
 subtest 'set operator specificity uses max branch' => {
 	plan 1;
-	my $union = ($tree ⪪ <section>) ∪ ($tree ⪪⪪ <item>);
-	ok specificity.score($union) >= specificity.score($tree ⪪⪪ <item>),
+	my $union = query-ast({ ($tree ⪪ <section>) ∪ ($tree ⪪⪪ <item>) });
+	ok specificity.score($union) >= specificity.score(query-ast({ $tree ⪪⪪ <item> })),
 		'union specificity at least as specific as strongest branch';
 }
 

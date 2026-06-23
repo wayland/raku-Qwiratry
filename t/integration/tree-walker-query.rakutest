@@ -21,7 +21,7 @@ subtest 'Tree Walker iterator yields query matches only' => {
 	plan 2;
 
 	my $walker = Qwiratry::Walker::Implementation::Tree.new;
-	my $query = $tree ⪪⪪ <item>;
+	my $query = query-ast({ $tree ⪪⪪ <item> });
 	my $plan = $walker.plan($query, $tree);
 	my $iter = $plan.iterator;
 	my @values = gather {
@@ -38,11 +38,11 @@ subtest 'Mold when-query matches nodes via Query::Match' => {
 
 	my $transformer = Transformer.new;
 	$transformer.add-mold(Mold.new(
-		:when-query($tree ⪪⪪ <item>),
+		:when-query(query-ast({ $tree ⪪⪪ <item> })),
 		do-block => -> $_ { "item-{$_<value>}" },
 	));
 	$transformer.add-mold(Mold.new(
-		:when-query($tree ⪪ <section>),
+		:when-query(query-ast({ $tree ⪪ <section> })),
 		do-block => -> { 'section' },
 	));
 
@@ -60,7 +60,7 @@ subtest 'TRANSFORM applies molds only on query-selected nodes' => {
 
 	my $transformer = Transformer.new;
 	$transformer.add-mold(Mold.new(
-		:when-query($tree ⪪⪪ <item>),
+		:when-query(query-ast({ $tree ⪪⪪ <item> })),
 		do-block => -> $_ { "v{$_<value>}" },
 	));
 

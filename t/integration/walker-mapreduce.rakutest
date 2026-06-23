@@ -41,7 +41,7 @@ subtest 'Table walker executes selection, sort, map, and reduce' => {
 	ok $walker.supports(SelectionOperator.new(:predicate(-> $_ { True }))),
 		'Table walker supports SelectionOperator';
 
-	my $select-query = @rows σ -> $_ { $_<status> eq 'active' };
+	my $select-query = query-ast({ @rows σ -> $_ { $_<status> eq 'active' } });
 	my @active = rows-from-iter($walker.start($select-query, @rows));
 	is @active.elems, 2, 'selection filters active rows';
 
@@ -62,7 +62,7 @@ subtest 'Tree walker executes selection and sort on descendant query' => {
 	plan 3;
 
 	my $walker = Qwiratry::Walker::Implementation::Tree.new;
-	my $base = $tree ⪪⪪ <item>;
+	my $base = query-ast({ $tree ⪪⪪ <item> });
 	ok $walker.supports(SortOperator.new(:subject($base), :key-function(-> $_ { $_<value> }))),
 		'Tree walker supports SortOperator';
 

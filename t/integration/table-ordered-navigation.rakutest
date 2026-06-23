@@ -23,7 +23,7 @@ subtest 'Following sibling returns next row' => {
 	plan 2;
 
 	my $order = @orders[0];
-	my @next = query-runtime.select($order ⪨ <*>, $catalog).List;
+	my @next = query-runtime.select(query-ast({ $order ⪨ <*> }), $catalog).List;
 	is @next.elems, 1, 'one following sibling';
 	is @next[0]<order_id>, 2, 'next row in table order';
 }
@@ -32,7 +32,7 @@ subtest 'Preceding sibling returns previous row' => {
 	plan 2;
 
 	my $order = @orders[2];
-	my @prev = query-runtime.select($order ⪩ <*>, $catalog).List;
+	my @prev = query-runtime.select(query-ast({ $order ⪩ <*> }), $catalog).List;
 	is @prev.elems, 1, 'one preceding sibling';
 	is @prev[0]<order_id>, 2, 'previous row in table order';
 }
@@ -41,7 +41,7 @@ subtest 'Following returns all later rows' => {
 	plan 1;
 
 	my $order = @orders[1];
-	my @later = query-runtime.select($order ⪨⪨ <*>, $catalog).List;
+	my @later = query-runtime.select(query-ast({ $order ⪨⪨ <*> }), $catalog).List;
 	is [@later.map(*<order_id>)], (3, 4), 'all rows after current position';
 }
 
@@ -49,7 +49,7 @@ subtest 'Preceding returns all earlier rows' => {
 	plan 1;
 
 	my $order = @orders[2];
-	my @earlier = query-runtime.select($order ⪩⪩ <*>, $catalog).List;
+	my @earlier = query-runtime.select(query-ast({ $order ⪩⪩ <*> }), $catalog).List;
 	is [@earlier.map(*<order_id>)], (1, 2), 'all rows before current position';
 }
 
@@ -57,13 +57,13 @@ subtest 'Last row has no following sibling' => {
 	plan 1;
 
 	my $order = @orders[3];
-	is query-runtime.select($order ⪨ <*>, $catalog).elems, 0, 'no following sibling on last row';
+	is query-runtime.select(query-ast({ $order ⪨ <*> }), $catalog).elems, 0, 'no following sibling on last row';
 }
 
 subtest 'Table base returns empty for sibling operators' => {
 	plan 1;
 
-	is query-runtime.select($catalog ⪨ <*>, $catalog).elems, 0, 'sibling operator on table returns empty';
+	is query-runtime.select(query-ast({ $catalog ⪨ <*> }), $catalog).elems, 0, 'sibling operator on table returns empty';
 }
 
 done-testing;

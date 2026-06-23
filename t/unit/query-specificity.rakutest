@@ -39,7 +39,7 @@ subtest 'chained navigation accumulates scores' => {
 	plan 1;
 
 	my $root = %(name => 'root');
-	my $query = $root ⪪ <*> ⪪ <item>;
+	my $query = query-ast({ $root ⪪ <*> ⪪ <item> });
 	is specificity.score($query), -5,
 		'chained child operators accumulate subject and selector scores';
 }

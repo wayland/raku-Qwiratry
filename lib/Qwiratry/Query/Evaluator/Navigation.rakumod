@@ -30,6 +30,12 @@ role NavigationEagerEvaluator does EagerEvaluator does TreeNavigation {
 			if $op.subject ~~ NavigationOperator {
 				return self.select-list-for($op.subject, $origin);
 			}
+			if $op.subject ~~ Seq {
+				return $op.subject.list;
+			}
+			if $op.subject ~~ Iterator {
+				return Seq.new($op.subject).list;
+			}
 			return ($op.subject,);
 		}
 		($origin,)

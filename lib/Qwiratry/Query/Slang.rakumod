@@ -1,18 +1,21 @@
 =begin pod
 
-Query operator syntax: infix and prefix forms that build query AST nodes.
+Query operator syntax: infix and prefix forms that evaluate query AST nodes.
 
 Load this module in any compunit that uses navigation operators such as C<⪪> or C<⇤>.
 Cross join uses C<×> (U+00D7) with typed multis so numeric C<3 × 4> still works.
 Set, map-reduce, relational, and I/O operators share the same slang surface.
+Use C<query-ast { ... }> when a planner, mold, or explicit runtime call needs the raw
+Qwiratry query AST instead of the evaluated C<Seq>.
 
 Example:
 
 =begin code
 use Qwiratry::Query::Slang;
 
-my $query = $root ⪪ * ⪪ <item>;
-my $parent = $node ⪫ * :reference;
+my @items = $root ⪪ * ⪪ <item>;
+my @parents = $node ⪫ * :reference;
+my $query = query-ast({ $root ⪪ * ⪪ <item> });
 my $cartesian = @left × @right;
 =end code
 
@@ -24,6 +27,34 @@ use Qwiratry::Operator::Set;
 use Qwiratry::Operator::MapReduce;
 use Qwiratry::Operator::IO;
 use Qwiratry::Operator::Capability;
+use Qwiratry::Query::Topic;
+
+our $*QWIRATRY-BUILD-QUERY is export = False;
+our $*QWIRATRY-QUERY-ORIGIN is export = Nil;
+
+sub query-ast(&block) is export {
+	my $*QWIRATRY-BUILD-QUERY = True;
+	block()
+}
+
+sub with-query-origin(Mu $origin, &block) is export {
+	my $*QWIRATRY-QUERY-ORIGIN = $origin;
+	block()
+}
+
+sub build-query(*@values --> Bool) {
+	$*QWIRATRY-BUILD-QUERY
+		|| @values.grep({ $_ ~~ OperatorBase | NavQueryTopic }).so
+}
+
+sub query-origin(Mu $fallback --> Mu) {
+	$*QWIRATRY-QUERY-ORIGIN // $fallback
+}
+
+sub evaluate-query(Mu $query, Mu $fallback --> Seq) {
+	require ::('Qwiratry::Query::Runtime');
+	::('Qwiratry::Query::Runtime').instance.select($query, query-origin($fallback))
+}
 
 =begin pod
 
@@ -54,7 +85,8 @@ Child axis (C<⪪>): direct children matching C<$right>.
 
 =end pod
 multi sub infix:<⪪>(Mu $left, Mu $right) is export {
-	nav-new(ChildOperator, $left, $right)
+	my $query = nav-new(ChildOperator, $left, $right);
+	build-query($left, $right) ?? $query !! evaluate-query($query, $left)
 }
 
 =begin pod
@@ -63,7 +95,8 @@ Parent axis (C<⪫>): parent or referencing rows; C<:reference> for incoming FKs
 
 =end pod
 multi sub infix:<⪫>(Mu $left, Mu $right, *%adverbs) is export {
-	nav-new(ParentOperator, $left, $right, |(%adverbs ?? :adverbs(%adverbs) !! |()))
+	my $query = nav-new(ParentOperator, $left, $right, |(%adverbs ?? :adverbs(%adverbs) !! |()));
+	build-query($left, $right) ?? $query !! evaluate-query($query, $left)
 }
 
 =begin pod
@@ -72,7 +105,8 @@ Descendant axis (C<⪪⪪>): nested children; C<:recursive> for table FK walks.
 
 =end pod
 multi sub infix:<⪪⪪>(Mu $left, Mu $right, *%adverbs) is export {
-	nav-new(DescendantOperator, $left, $right, |(%adverbs ?? :adverbs(%adverbs) !! |()))
+	my $query = nav-new(DescendantOperator, $left, $right, |(%adverbs ?? :adverbs(%adverbs) !! |()));
+	build-query($left, $right) ?? $query !! evaluate-query($query, $left)
 }
 
 =begin pod
@@ -81,7 +115,8 @@ Ancestor axis (C<⪫⪫>): ancestor nodes matching C<$right>.
 
 =end pod
 multi sub infix:<⪫⪫>(Mu $left, Mu $right) is export {
-	nav-new(AncestorOperator, $left, $right)
+	my $query = nav-new(AncestorOperator, $left, $right);
+	build-query($left, $right) ?? $query !! evaluate-query($query, $left)
 }
 
 =begin pod
@@ -90,7 +125,8 @@ Following-sibling axis (C<⪨>): next sibling in document/table order.
 
 =end pod
 multi sub infix:<⪨>(Mu $left, Mu $right) is export {
-	nav-new(FollowingSiblingOperator, $left, $right)
+	my $query = nav-new(FollowingSiblingOperator, $left, $right);
+	build-query($left, $right) ?? $query !! evaluate-query($query, $left)
 }
 
 =begin pod
@@ -99,7 +135,8 @@ Preceding-sibling axis (C<⪩>): previous sibling in document/table order.
 
 =end pod
 multi sub infix:<⪩>(Mu $left, Mu $right) is export {
-	nav-new(PrecedingSiblingOperator, $left, $right)
+	my $query = nav-new(PrecedingSiblingOperator, $left, $right);
+	build-query($left, $right) ?? $query !! evaluate-query($query, $left)
 }
 
 =begin pod
@@ -108,7 +145,8 @@ Following axis (C<⪨⪨>): all following nodes in order.
 
 =end pod
 multi sub infix:<⪨⪨>(Mu $left, Mu $right) is export {
-	nav-new(FollowingOperator, $left, $right)
+	my $query = nav-new(FollowingOperator, $left, $right);
+	build-query($left, $right) ?? $query !! evaluate-query($query, $left)
 }
 
 =begin pod
@@ -117,7 +155,8 @@ Preceding axis (C<⪩⪩>): all preceding nodes in order.
 
 =end pod
 multi sub infix:<⪩⪩>(Mu $left, Mu $right) is export {
-	nav-new(PrecedingOperator, $left, $right)
+	my $query = nav-new(PrecedingOperator, $left, $right);
+	build-query($left, $right) ?? $query !! evaluate-query($query, $left)
 }
 
 =begin pod
@@ -126,7 +165,8 @@ Attribute axis (C<⥷>): read attribute or column C<$right> from C<$left>.
 
 =end pod
 multi sub infix:<⥷>(Mu $left, Mu $right) is export {
-	AttributeOperator.new(:subject($left), :key($right))
+	my $query = AttributeOperator.new(:subject($left), :key($right));
+	build-query($left, $right) ?? $query !! evaluate-query($query, $left)
 }
 
 =begin pod
@@ -135,7 +175,8 @@ Root postfix (C<⇤>): re-root the query at C<$subject>.
 
 =end pod
 multi sub postfix:<⇤>(Mu $subject) is export {
-	RootOperator.new(:$subject)
+	my $query = RootOperator.new(:$subject);
+	build-query($subject) ?? $query !! evaluate-query($query, $subject)
 }
 
 =begin pod
@@ -199,11 +240,13 @@ multi sub infix:<σ>(OperatorBase $left, &predicate) is export {
 }
 
 multi sub infix:<σ>(Mu $left, &predicate) is export {
-	SelectionOperator.new(:subject($left), :predicate(&predicate))
+	my $query = SelectionOperator.new(:subject($left), :predicate(&predicate));
+	build-query($left) ?? $query !! evaluate-query($query, $left)
 }
 
 multi sub prefix:<σ>(&predicate, Mu $subject) is export {
-	SelectionOperator.new(:subject($subject), :predicate(&predicate))
+	my $query = SelectionOperator.new(:subject($subject), :predicate(&predicate));
+	build-query($subject) ?? $query !! evaluate-query($query, $subject)
 }
 
 =begin pod

@@ -54,7 +54,7 @@ subtest 'when-query-matches uses full select for explicit subjects' => {
 			%(name => 'item', value => 1),
 		]),
 	];
-	my $query = $tree ⪪⪪ <item>;
+	my $query = query-ast { $tree ⪪⪪ <item> };
 	my $item = $tree[0]<children>[0];
 
 	ok query-runtime.when-query-matches($query, $item, :origin($tree)), 'explicit-subject query matches';

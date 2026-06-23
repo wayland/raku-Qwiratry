@@ -47,7 +47,7 @@ subtest 'TRANSFORM with mutates-input replaces matched nodes' => {
 	my $transformer = Transformer.new;
 	$transformer.mutates-input = True;
 	$transformer.add-mold(Mold.new(
-		:when-query($data ⪪⪪ <item>),
+		:when-query(query-ast({ $data ⪪⪪ <item> })),
 		do-block => -> $_ { %(name => 'item', value => $_<value> * 10) },
 	));
 

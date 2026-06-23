@@ -34,22 +34,33 @@ my $catalog = make-catalog(
 	:active-table('orders'),
 );
 
-plan 11;
+plan 12;
 
 subtest 'Child follows foreign key from row to related rows' => {
 	plan 2;
 
 	my $order = @orders[0];
-	my @related = query-runtime.select($order ⪪ <customer_id>, $catalog).List;
+	my @related = query-runtime.select(query-ast({ $order ⪪ <customer_id> }), $catalog).List;
 	is @related.elems, 1, 'FK navigation returns one customer row';
 	is @related[0]<name>, 'Alice', 'matched customer name';
+}
+
+subtest 'Child operator evaluates directly with query origin' => {
+	plan 3;
+
+	my $order = @orders[0];
+	my $result = with-query-origin($catalog, { $order ⪪ <customer_id> });
+	ok $result ~~ Seq, 'direct navigation returns a lazy Seq';
+	my @related = $result.List;
+	is @related.elems, 1, 'direct FK navigation returns one customer row';
+	is @related[0]<name>, 'Alice', 'direct navigation matched customer name';
 }
 
 subtest 'Child on non-FK column returns empty' => {
 	plan 1;
 
 	my $order = @orders[0];
-	my @related = query-runtime.select($order ⪪ <total>, $catalog).List;
+	my @related = query-runtime.select(query-ast({ $order ⪪ <total> }), $catalog).List;
 	is @related.elems, 0, 'non-FK column yields no related rows';
 }
 
@@ -57,7 +68,7 @@ subtest 'Null foreign key returns empty' => {
 	plan 1;
 
 	my $order = @orders[3];
-	my @related = query-runtime.select($order ⪪ <customer_id>, $catalog).List;
+	my @related = query-runtime.select(query-ast({ $order ⪪ <customer_id> }), $catalog).List;
 	is @related.elems, 0, 'null FK value yields empty result';
 }
 
@@ -65,7 +76,7 @@ subtest 'Attribute returns column value without following FK' => {
 	plan 2;
 
 	my $order = @orders[0];
-	my @values = query-runtime.select($order ⥷ <customer_id>, $catalog).List;
+	my @values = query-runtime.select(query-ast({ $order ⥷ <customer_id> }), $catalog).List;
 	is @values.elems, 1, 'attribute returns one value';
 	is @values[0], 10, 'attribute value is the FK column value';
 }
@@ -74,7 +85,7 @@ subtest 'Parent with :reference returns referencing rows' => {
 	plan 2;
 
 	my $customer = @customers[0];
-	my @referencing = query-runtime.select($customer ⪫ <*> :reference, $catalog).List;
+	my @referencing = query-runtime.select(query-ast({ $customer ⪫ <*> :reference }), $catalog).List;
 	is @referencing.elems, 2, 'customer referenced by two orders';
 	ok @referencing.grep({ .<order_id> == any(1, 3) }), 'orders reference the customer';
 }
@@ -83,7 +94,7 @@ subtest 'Parent without :reference returns containing table' => {
 	plan 2;
 
 	my $order = @orders[0];
-	my @parents = query-runtime.select($order ⪫ <*>, $catalog).List;
+	my @parents = query-runtime.select(query-ast({ $order ⪫ <*> }), $catalog).List;
 	is @parents.elems, 1, 'parent returns one container';
 	ok @parents[0] === @orders, 'container is the orders table';
 }
@@ -94,7 +105,7 @@ subtest 'Descendant on row throws without :recursive' => {
 	my $order = @orders[0];
 	my $threw = False;
 	try {
-		query-runtime.select($order ⪪⪪ <customer_id>, $catalog).List;
+		query-runtime.select(query-ast({ $order ⪪⪪ <customer_id> }), $catalog).List;
 		CATCH {
 			default { $threw = True }
 		}
@@ -105,7 +116,7 @@ subtest 'Descendant on row throws without :recursive' => {
 subtest 'Descendant on table matches child wildcard' => {
 	plan 1;
 
-	my @rows = query-runtime.select($catalog ⪪⪪ <*>, $catalog).List;
+	my @rows = query-runtime.select(query-ast({ $catalog ⪪⪪ <*> }), $catalog).List;
 	is @rows.elems, @orders.elems, 'table descendant wildcard returns all rows';
 }
 
@@ -113,7 +124,7 @@ subtest 'Descendant on row with :recursive follows foreign key' => {
 	plan 2;
 
 	my $order = @orders[0];
-	my @related = query-runtime.select($order ⪪⪪ <customer_id> :recursive, $catalog).List;
+	my @related = query-runtime.select(query-ast({ $order ⪪⪪ <customer_id> :recursive }), $catalog).List;
 	is @related.elems, 1, ':recursive follows FK once from order row';
 	is @related[0]<name>, 'Alice', ':recursive resolves customer row';
 }
@@ -121,7 +132,7 @@ subtest 'Descendant on row with :recursive follows foreign key' => {
 subtest 'Child on table with wildcard returns all rows' => {
 	plan 1;
 
-	my @rows = query-runtime.select($catalog ⪪ <*>, $catalog).List;
+	my @rows = query-runtime.select(query-ast({ $catalog ⪪ <*> }), $catalog).List;
 	is @rows.elems, @orders.elems, 'table child wildcard returns all rows';
 }
 

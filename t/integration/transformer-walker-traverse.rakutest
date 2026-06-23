@@ -47,13 +47,13 @@ subtest 'when-query specificity orders molds at equal priority' => {
 	$transformer.add-mold(Mold.new(
 		when-block => -> { True },
 		do-block => -> { 'wildcard' },
-		:when-query($root ⪪ <*>),
+		:when-query(query-ast({ $root ⪪ <*> })),
 		priority => 5,
 	));
 	$transformer.add-mold(Mold.new(
 		when-block => -> { True },
 		do-block => -> { 'explicit' },
-		:when-query($root ⪪ <item>),
+		:when-query(query-ast({ $root ⪪ <item> })),
 		priority => 5,
 	));
 

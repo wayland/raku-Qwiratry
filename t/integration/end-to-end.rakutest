@@ -26,7 +26,7 @@ subtest 'navigation selection sort on in-memory table' => {
 	plan 2;
 
 	my $walker = Qwiratry::Walker::Implementation::Table.new;
-	my $query = (@rows σ -> $_ { $_<dept> eq 'eng' }) ⇅ -> $_ { $_<score> };
+	my $query = query-ast({ (@rows σ -> $_ { $_<dept> eq 'eng' }) ⇅ -> $_ { $_<score> } });
 	my @names = gather {
 		my $iter = $walker.start($query, @rows);
 		while (my $row = $iter.pull-one) !~~ IterationEnd {
@@ -35,8 +35,10 @@ subtest 'navigation selection sort on in-memory table' => {
 	};
 	is @names, <alpha gamma>, 'filter then sort orders engineering rows';
 
-	my $union = (@rows σ -> $_ { $_<score> >= 20 })
-		∪ (@rows σ -> $_ { $_<name> eq 'beta' });
+	my $union = query-ast({
+		(@rows σ -> $_ { $_<score> >= 20 })
+			∪ (@rows σ -> $_ { $_<name> eq 'beta' })
+	});
 	my @union-names = query-runtime.select($union, @rows).map(*<name>).sort.list;
 	is @union-names, <beta gamma>, 'set union combines filtered row sets';
 }

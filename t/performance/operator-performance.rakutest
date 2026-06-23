@@ -21,7 +21,7 @@ sub build-simple-nav(Int $n) {
 }
 
 sub build-composed(Int $n) {
-	my $query = @rows σ -> $_ { $_<id> > 0 };
+	my $query = query-ast({ @rows σ -> $_ { $_<id> > 0 } });
 	for ^$n {
 		$query = UnionOperator.new(
 			:left($query),

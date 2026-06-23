@@ -736,8 +736,6 @@ explicitly or let `discover-catalog` infer them from your data root.
 ```raku
 use Qwiratry::Table;
 use Qwiratry::Query::Slang;
-use Qwiratry::Query::Runtime;
-my constant query-runtime = Qwiratry::Query::Runtime.instance;
 
 my @orders = [
     %(order_id => 1, customer_id => 10),
@@ -760,7 +758,7 @@ my $catalog = make-catalog(
 );
 
 my $order = @orders[0];
-my @customer = query-runtime.select($order ⪪ <customer_id>, $catalog).List;
+my @customer = with-query-origin($catalog, { $order ⪪ <customer_id> }).List;
 # → one row: %(customer_id => 10, name => 'Alice')
 ```
 
@@ -774,7 +772,7 @@ builds a catalog and `infer-foreign-keys` guesses links from `orders.customer_id
 use Qwiratry::Table::Schema;
 
 my %database = %(orders => @orders, customers => @customers);
-my @related = query-runtime.select($order ⪪ <customer_id>, %database).List;
+my @related = with-query-origin(%database, { $order ⪪ <customer_id> }).List;
 ```
 
 #### 5.3.3 Attached schema via `providing` metadata
@@ -789,7 +787,7 @@ attach-schema(@orders, %(
     tables => %(orders => @orders, customers => @customers),
 ));
 
-my @related = query-runtime.select(@orders[0] ⪪ <customer_id>, @orders).List;
+my @related = with-query-origin(@orders, { @orders[0] ⪪ <customer_id> }).List;
 ```
 
 #### 5.3.4 Table-row navigation semantics (current implementation)
@@ -808,7 +806,7 @@ my @related = query-runtime.select(@orders[0] ⪪ <customer_id>, @orders).List;
 
 ```raku
 my $customer = @customers[0];
-my @orders-for-customer = query-runtime.select($customer ⪫ <*> :reference, $catalog).List;
+my @orders-for-customer = with-query-origin($catalog, { $customer ⪫ <*> :reference }).List;
 # → both orders with customer_id == 10
 ```
 
@@ -818,8 +816,9 @@ my @orders-for-customer = query-runtime.select($customer ⪫ <*> :reference, $ca
   - They may compose iterators to retrieve nodes along the specified axis
   - They may be translated into other query languages (e.g., SQL for database walkers)
   - They may use domain-specific traversal strategies
-- Operators are both **callable** and **iterable**, usable with Transformers for smartmatching
-- Operators do not perform traversal themselves; they rely on **Walkers** to interpret and execute them
+- In normal code, query slang operators evaluate through `Qwiratry::Query::Runtime` and return lazy `Seq` results
+- Use `query-ast({ ... })` when a Walker, Mold, planner, or explicit runtime call needs raw operator AST
+- Raw operators do not perform traversal themselves; they rely on **Walkers** or the query runtime to interpret and execute them
 - Predicates and combinators (like union `∪`, intersection `∩`, difference `∖`) can be applied after or during operator execution
 
 ## 6. Set Operators
@@ -1168,17 +1167,28 @@ my $optimized = $root ⪪⪪ * σ { $_.name eq 'item' && $_.value > 10 };
 
 ### 7.6 Lazy Evaluation
 
-Query execution is **pull-based**: `query-runtime.select()` returns a lazy `Seq`, and Walkers produce
+Query execution is **pull-based**: query operators and `query-runtime.select()` return lazy `Seq` values, and Walkers produce
 `QueryIterator` instances that yield one result per `pull-one` / `next` call.
 
-**`select` and `select-seq`** (`Qwiratry::Query::Runtime`):
+**Default query operators**:
 
 ```raku
+use Qwiratry::Query::Slang;
+
+my @rows = [%(score => 1), %(score => 5), %(score => 3)];
+my $seq = @rows σ -> $_ { $_<score> >= 3 };  # lazy Seq — no rows evaluated yet
+my $first = $seq.first;                      # pulls until first match
+```
+
+**Raw AST plus `select` / `select-seq`** (`Qwiratry::Query::Runtime`):
+
+```raku
+use Qwiratry::Query::Slang;
 use Qwiratry::Query::Runtime;
 my constant query-runtime = Qwiratry::Query::Runtime.instance;
 
 my @rows = [%(score => 1), %(score => 5), %(score => 3)];
-my $query = @rows σ -> $_ { $_<score> >= 3 };
+my $query = query-ast({ @rows σ -> $_ { $_<score> >= 3 } });
 
 my $seq = query-runtime.select($query, @rows);   # lazy Seq — no rows evaluated yet
 my $first = $seq.first;            # pulls until first match
@@ -1199,7 +1209,7 @@ destination steps materialize at the pipeline boundary; upstream selection stays
 ```raku
 use Qwiratry::Operator::Capability;
 
-my $query = @rows σ -> $_ { $_<score> >= 3 };
+my $query = query-ast({ @rows σ -> $_ { $_<score> >= 3 } });
 my $result = execute($query, :origin(@rows));  # materializes at pipeline end
 ```
 

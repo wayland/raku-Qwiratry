@@ -155,6 +155,8 @@ also does TreeNavigation;
 
 	method select-seq(Mu $query, Mu $origin --> Seq) {
 		$query.defined or return ().Seq;
+		$query ~~ Seq and return $query;
+		$query ~~ Iterator and return Seq.new($query);
 
 		given $query {
 			when SelectionOperator {

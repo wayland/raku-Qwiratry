@@ -32,7 +32,7 @@ subtest 'Independent iterators from the same plan' => {
 
 	my $walker = Qwiratry::Walker::Implementation::Table.new;
 	my @rows = [%(id => 1), %(id => 2), %(id => 3)];
-	my $query = @rows σ -> $_ { True };
+	my $query = query-ast({ @rows σ -> $_ { True } });
 	my $plan = $walker.plan($query, @rows);
 
 	my $iter1 = $plan.iterator;
@@ -125,7 +125,7 @@ subtest 'next() works through Walker plan iterator' => {
 
 	my $walker = Qwiratry::Walker::Implementation::Table.new;
 	my @rows = [%(id => 10), %(id => 20)];
-	my $query = @rows σ -> $_ { True };
+	my $query = query-ast({ @rows σ -> $_ { True } });
 	my $iter = $walker.plan($query, @rows).iterator;
 
 	is $iter.next<id>, 10, 'next() returns first row from plan iterator';

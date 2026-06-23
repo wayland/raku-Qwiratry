@@ -127,10 +127,10 @@ subtest 'Table FK navigation from quickstart' => {
 		:active-table('orders'),
 	);
 
-	is eager-first(query-runtime.select(@orders[0] ⪪ <customer_id>, $catalog))<name>, 'Alice',
+	is eager-first(query-runtime.select(query-ast({ @orders[0] ⪪ <customer_id> }), $catalog))<name>, 'Alice',
 		'FK navigation resolves customer row';
 
-	is eager-first(query-runtime.select(@customers[0] ⪫ <*> :reference, $catalog))<order_id>, 1,
+	is eager-first(query-runtime.select(query-ast({ @customers[0] ⪫ <*> :reference }), $catalog))<order_id>, 1,
 		'reverse FK finds referencing order';
 }
 
@@ -146,8 +146,8 @@ subtest 'Ordered row and lazy patterns from quickstart' => {
 	];
 	my $catalog = make-catalog(:rows(@rows), :active-table('rows'));
 
-	is eager-first(query-runtime.select(@rows[1] ⪨ <*>, $catalog))<id>, 3, 'following sibling';
-	is eager-first(query-runtime.select(@rows[1] ⪩ <*>, $catalog))<id>, 1, 'preceding sibling';
+	is eager-first(query-runtime.select(query-ast({ @rows[1] ⪨ <*> }), $catalog))<id>, 3, 'following sibling';
+	is eager-first(query-runtime.select(query-ast({ @rows[1] ⪩ <*> }), $catalog))<id>, 1, 'preceding sibling';
 
 	my $query = @rows σ -> $_ { True };
 	ok query-runtime.select($query, @rows) ~~ Seq, 'select returns lazy Seq';

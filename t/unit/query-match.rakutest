@@ -7,7 +7,7 @@ my constant query-runtime = Qwiratry::Query::Runtime.instance;
 use Qwiratry::Query::Slang;
 use Qwiratry::Operator::Navigation;
 
-plan 6;
+plan 7;
 
 my $tree = [
 	%(name => 'section', children => [
@@ -20,7 +20,7 @@ my $tree = [
 subtest 'child operator selects direct children by name' => {
 	plan 2;
 
-	my $query = $tree ⪪ <section>;
+	my $query = query-ast({ $tree ⪪ <section> });
 	my @matches = query-runtime.select($query, $tree).List;
 	is @matches.elems, 1, 'one section child';
 	is @matches[0]<name>, 'section', 'matched section node';
@@ -29,7 +29,7 @@ subtest 'child operator selects direct children by name' => {
 subtest 'descendant operator selects nested nodes' => {
 	plan 3;
 
-	my $query = $tree ⪪⪪ <item>;
+	my $query = query-ast({ $tree ⪪⪪ <item> });
 	my @matches = query-runtime.select($query, $tree).List;
 	is @matches.elems, 2, 'two item descendants';
 	ok @matches[0]<value> == 1 || @matches[0]<value> == 2, 'first item has value';
@@ -65,8 +65,23 @@ subtest 'attribute operator reads associative keys' => {
 subtest 'chained child operators compose' => {
 	plan 2;
 
-	my $query = $tree ⪪ <section> ⪪ <item>;
+	my $query = query-ast({ $tree ⪪ <section> ⪪ <item> });
 	my @matches = query-runtime.select($query, $tree).List;
 	is @matches.elems, 2, 'section items selected through chain';
 	ok @matches.grep({ .<name> eq 'item' }).elems == 2, 'all matches are items';
+}
+
+subtest 'navigation slang evaluates chained operators directly' => {
+	plan 3;
+
+	my $section = %(name => 'section', children => [
+		%(name => 'item', value => 1),
+		%(name => 'item', value => 2),
+	]);
+	my $root = [$section];
+	my $result = $root ⪪ <section> ⪪ <item>;
+	ok $result ~~ Seq, 'direct navigation chain returns lazy Seq';
+	my @matches = $result.List;
+	is @matches.elems, 2, 'direct chain selects nested items';
+	is @matches[0]<value>, 1, 'direct chain preserves node values';
 }

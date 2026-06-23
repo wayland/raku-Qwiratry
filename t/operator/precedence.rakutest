@@ -15,7 +15,7 @@ my @rows = [%(a => 1), %(a => 2)];
 subtest 'Postfix root binds to subject before replication operators' => {
 	plan 2;
 
-	my $query = ($root ⪪ <item>)⇤;
+	my $query = query-ast({ ($root ⪪ <item>)⇤ });
 	ok $query ~~ RootOperator, 'postfix root applies to navigation expression';
 	ok $query.subject ~~ ChildOperator, 'root subject is child navigation node';
 }
@@ -23,7 +23,7 @@ subtest 'Postfix root binds to subject before replication operators' => {
 subtest 'Selection binds to navigation expression as subject' => {
 	plan 3;
 
-	my $query = $root ⪪⪪ <item> σ -> $_ { True };
+	my $query = query-ast({ $root ⪪⪪ <item> σ -> $_ { True } });
 	ok $query ~~ SelectionOperator, 'selection follows navigation';
 	ok $query.subject ~~ DescendantOperator, 'selection subject is descendant operator';
 	is $query.subject.selector, 'item', 'nested selector preserved under selection';
@@ -46,7 +46,7 @@ subtest 'Join and map-reduce nest with explicit subjects' => {
 	my $join = @rows ⨝ @rows;
 	ok $join ~~ InnerJoinOperator, 'join operator constructs InnerJoinOperator';
 
-	my $sorted = (@rows σ -> $_ { True }) ⇅ -> $_ { $_<a> };
+	my $sorted = query-ast({ (@rows σ -> $_ { True }) ⇅ -> $_ { $_<a> } });
 	ok $sorted ~~ SortOperator, 'sort follows selection in chain';
 	ok $sorted.subject ~~ SelectionOperator, 'sort subject is selection operator';
 }

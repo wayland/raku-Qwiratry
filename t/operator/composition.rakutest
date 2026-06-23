@@ -36,12 +36,12 @@ subtest 'Query slang builds chained navigation AST' => {
 	plan 5;
 
 	my $root = %(name => 'root');
-	my $query = $root ⪪ <*> ⪪ <item>;
+	my $query = query-ast({ $root ⪪ <*> ⪪ <item> });
 	ok $query ~~ ChildOperator, 'chained ⪪ produces ChildOperator';
 	ok $query.subject ~~ ChildOperator, 'outer operator wraps inner ⪪';
 	is $query.selector, 'item', 'outer selector is preserved';
 
-	my $parent = $root ⪫ <*> :reference;
+	my $parent = query-ast({ $root ⪫ <*> :reference });
 	ok $parent ~~ ParentOperator, '⪫ builds ParentOperator';
 	ok $parent.adverbs<reference>, '⪫ captures :reference adverb';
 }
@@ -50,11 +50,11 @@ subtest 'Root postfix and attribute infix compose with navigation' => {
 	plan 3;
 
 	my $node = %(name => 'node');
-	my $root-query = $node⇤;
+	my $root-query = query-ast({ $node⇤ });
 	ok $root-query ~~ RootOperator, 'postfix ⇤ builds RootOperator';
 	is $root-query.subject, $node, '⇤ stores subject';
 
-	my $attr = $node ⥷ <status>;
+	my $attr = query-ast({ $node ⥷ <status> });
 	ok $attr ~~ AttributeOperator, '⥷ builds AttributeOperator';
 }
 
@@ -62,7 +62,7 @@ subtest 'Navigation and selection compose immutably' => {
 	plan 3;
 
 	my $root = %(name => 'root');
-	my $nav = $root ⪪⪪ <item>;
+	my $nav = query-ast({ $root ⪪⪪ <item> });
 	my $query = $nav σ -> $_ { True };
 	ok $query ~~ SelectionOperator, 'selection wraps navigation query';
 	ok $query.subject ~~ DescendantOperator, 'selection subject is descendant operator';
@@ -73,7 +73,7 @@ subtest 'Navigation and sort compose with subject chaining' => {
 	plan 3;
 
 	my $root = %(name => 'root');
-	my $nav = $root ⪪ <section>;
+	my $nav = query-ast({ $root ⪪ <section> });
 	my $sorted = $nav ⇅ -> $_ { $_<name> };
 	ok $sorted ~~ SortOperator, 'sort follows navigation operator';
 	ok $sorted.subject ~~ ChildOperator, 'sort subject is child navigation';
@@ -84,8 +84,8 @@ subtest 'Set operators compose with navigation branches' => {
 	plan 3;
 
 	my $tree = %(name => 'root');
-	my $left = $tree ⪪⪪ <item>;
-	my $right = $tree ⪪⪪ <meta>;
+	my $left = query-ast({ $tree ⪪⪪ <item> });
+	my $right = query-ast({ $tree ⪪⪪ <meta> });
 	my $query = $left ∪ $right;
 	ok $query ~~ UnionOperator, 'union combines navigation queries';
 	ok $query.left ~~ DescendantOperator, 'left branch is descendant query';
