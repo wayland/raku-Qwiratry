@@ -222,20 +222,27 @@ class Qwiratry::Query::Extract {
 	method !is-query-expr(Mu $expr --> Bool) {
 		my $core = self!unwrap-expression($expr);
 		$core.defined or return False;
-		return True if $core.WHAT.^name eq 'RakuAST::ApplyInfix'
-			&& self!infix-is-navigation($core.infix);
-		return True if $core.WHAT.^name eq 'RakuAST::ApplyInfix'
-			&& self!infix-is-query-combinator($core.infix)
-			&& self!is-query-expr($core.left)
-			&& self!is-query-expr($core.right);
-		if $core.WHAT.^name eq 'RakuAST::ApplyListInfix'
-				&& self!infix-is-query-combinator($core.infix) {
-			my @operands = try $core.operands;
-			@operands.elems > 1 or return False;
-			for @operands -> $operand {
-				self!is-query-expr($operand) or return False;
+		given $core.WHAT.^name {
+			when 'RakuAST::ApplyInfix' {
+				if self!infix-is-navigation($core.infix) {
+					return True;
+				}
+				if self!infix-is-query-combinator($core.infix)
+						&& self!is-query-expr($core.left)
+						&& self!is-query-expr($core.right) {
+					return True;
+				}
 			}
-			return True;
+			when 'RakuAST::ApplyListInfix' {
+				if self!infix-is-query-combinator($core.infix) {
+					my @operands = try $core.operands;
+					@operands.elems > 1 or return False;
+					for @operands -> $operand {
+						self!is-query-expr($operand) or return False;
+					}
+					return True;
+				}
+			}
 		}
 		False
 	}
