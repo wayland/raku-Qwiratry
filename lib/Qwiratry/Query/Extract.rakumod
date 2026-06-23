@@ -14,6 +14,17 @@ use Qwiratry::Operator::Navigation;
 use Qwiratry::Operator::Capability;
 use Qwiratry::Query::Topic;
 
+=begin pod
+
+=head2 C<class Qwiratry::Query::Extract>
+
+=begin code :lang<raku>
+class Qwiratry::Query::Extract
+=end code
+
+Defines C<Qwiratry::Query::Extract>.
+
+=end pod
 class Qwiratry::Query::Extract {
 
 	my constant @NAV-INFIX = «⪪ ⪫ ⪪⪪ ⪫⪫ ⪨ ⪩ ⪨⪨ ⪩⪩ ⥷»;
@@ -26,6 +37,17 @@ class Qwiratry::Query::Extract {
 	Return the shared Extract service instance.
 
 	=end pod
+	=begin pod
+
+	=head2 C<method instance>
+
+	=begin code :lang<raku>
+	method instance(--> Qwiratry::Query::Extract)
+	=end code
+
+	Documents C<method instance>.
+
+	=end pod
 	method instance(--> Qwiratry::Query::Extract) {
 		$instance //= self.new
 	}
@@ -34,6 +56,21 @@ class Qwiratry::Query::Extract {
 
 	Run C<$when-block> with L<NavQueryTopic> as C<$_> and return a query
 	operator when the block body is a pure query expression.
+
+	=end pod
+	=begin pod
+
+	=head2 C<method from-when-block>
+
+	=begin code :lang<raku>
+	method from-when-block(Block $when-block --> Mu)
+	=end code
+
+	Documents C<method from-when-block>.
+
+	=item C<$when-block>
+
+	The C<$when-block> parameter.
 
 	=end pod
 	method from-when-block(Block $when-block --> Mu) {
@@ -49,6 +86,21 @@ class Qwiratry::Query::Extract {
 
 	Return True when C<$when-block> always evaluates to the same query operator
 	shape (varying only in the C<$_> subject).
+
+	=end pod
+	=begin pod
+
+	=head2 C<method is-pure-query-when>
+
+	=begin code :lang<raku>
+	method is-pure-query-when(Block $when-block --> Bool)
+	=end code
+
+	Documents C<method is-pure-query-when>.
+
+	=item C<$when-block>
+
+	The C<$when-block> parameter.
 
 	=end pod
 	method is-pure-query-when(Block $when-block --> Bool) {
@@ -68,6 +120,21 @@ class Qwiratry::Query::Extract {
 	Split a mold C<when> blockoid AST into navigation query and predicate parts.
 
 	=end pod
+	=begin pod
+
+	=head2 C<method split-from-blockoid>
+
+	=begin code :lang<raku>
+	method split-from-blockoid(Mu $blockoid-cap --> Hash)
+	=end code
+
+	Documents C<method split-from-blockoid>.
+
+	=item C<$blockoid-cap>
+
+	The C<$blockoid-cap> parameter.
+
+	=end pod
 	method split-from-blockoid(Mu $blockoid-cap --> Hash) {
 		$blockoid-cap.defined or return %();
 		my $body = try $blockoid-cap.ast;
@@ -75,11 +142,11 @@ class Qwiratry::Query::Extract {
 		self!split-when-navigation-ast($body);
 	}
 
-	=begin pod
-
-	Compare navigation selectors from two operators for structural equivalence.
-
-	=end pod
+	# method !selectors-equivalent(Mu $a, Mu $b --> Bool)
+	#
+	# Documents the private C<method !selectors-equivalent> helper.
+	# $a - The $a parameter.
+	# $b - The $b parameter.
 	method !selectors-equivalent(Mu $a, Mu $b --> Bool) {
 		$a.can('selector') && $b.can('selector') or return False;
 		my $left = $a.selector;
@@ -90,11 +157,11 @@ class Qwiratry::Query::Extract {
 		$left.gist eq $right.gist
 	}
 
-	=begin pod
-
-	Compare query operators for the same structural shape and selectors.
-
-	=end pod
+	# method !queries-equivalent(Mu $a, Mu $b --> Bool)
+	#
+	# Documents the private C<method !queries-equivalent> helper.
+	# $a - The $a parameter.
+	# $b - The $b parameter.
 	method !queries-equivalent(Mu $a, Mu $b --> Bool) {
 		$a.^name eq $b.^name or return False;
 		if $a ~~ NavigationOperator {
@@ -119,21 +186,19 @@ class Qwiratry::Query::Extract {
 		False
 	}
 
-	=begin pod
-
-	Resolve the operator name from a RakuAST infix node.
-
-	=end pod
+	# method !infix-name(Mu $infix --> Str)
+	#
+	# Documents the private C<method !infix-name> helper.
+	# $infix - The $infix parameter.
 	method !infix-name(Mu $infix --> Str) {
 		$infix.can('operator') and return $infix.operator;
 		try $infix.name // ~$infix
 	}
 
-	=begin pod
-
-	Return True when the infix operator is a Qwiratry navigation operator.
-
-	=end pod
+	# method !infix-is-navigation(Mu $infix --> Bool)
+	#
+	# Documents the private C<method !infix-is-navigation> helper.
+	# $infix - The $infix parameter.
 	method !infix-is-navigation(Mu $infix --> Bool) {
 		$infix.defined or return False;
 		my $name = self!infix-name($infix);
@@ -141,11 +206,10 @@ class Qwiratry::Query::Extract {
 		so $name eq any(@NAV-INFIX)
 	}
 
-	=begin pod
-
-	Return True when the infix operator is boolean conjunction (C<&&> / C<and>).
-
-	=end pod
+	# method !infix-is-boolean-conjunction(Mu $infix --> Bool)
+	#
+	# Documents the private C<method !infix-is-boolean-conjunction> helper.
+	# $infix - The $infix parameter.
 	method !infix-is-boolean-conjunction(Mu $infix --> Bool) {
 		$infix.defined or return False;
 		my $name = self!infix-name($infix);
@@ -153,11 +217,10 @@ class Qwiratry::Query::Extract {
 		so $name eq any(<&& and>)
 	}
 
-	=begin pod
-
-	Return True when the infix operator combines query result sets.
-
-	=end pod
+	# method !infix-is-query-combinator(Mu $infix --> Bool)
+	#
+	# Documents the private C<method !infix-is-query-combinator> helper.
+	# $infix - The $infix parameter.
 	method !infix-is-query-combinator(Mu $infix --> Bool) {
 		$infix.defined or return False;
 		my $name = self!infix-name($infix);
@@ -165,20 +228,18 @@ class Qwiratry::Query::Extract {
 		so $name eq any(@QUERY-COMBINATOR-INFIX)
 	}
 
-	=begin pod
-
-	Return True when C<$value> is a query operator value.
-
-	=end pod
+	# method !is-query-operator(Mu $value --> Bool)
+	#
+	# Documents the private C<method !is-query-operator> helper.
+	# $value - The $value parameter.
 	method !is-query-operator(Mu $value --> Bool) {
 		$value ~~ NavigationOperator | MapReduceOperator | SetOperator
 	}
 
-	=begin pod
-
-	Extract the single expression from a C<when> block body AST, if unambiguous.
-
-	=end pod
+	# method !when-body-expression(Mu $body --> Mu)
+	#
+	# Documents the private C<method !when-body-expression> helper.
+	# $body - The $body parameter.
 	method !when-body-expression(Mu $body --> Mu) {
 		if $body.WHAT.^name eq 'RakuAST::Blockoid' {
 			my $inner = try $body.statement-list;
@@ -193,11 +254,10 @@ class Qwiratry::Query::Extract {
 		Nil
 	}
 
-	=begin pod
-
-	Return the expression inside a single-expression parenthesized AST node.
-
-	=end pod
+	# method !unwrap-expression(Mu $expr --> Mu)
+	#
+	# Documents the private C<method !unwrap-expression> helper.
+	# $expr - The $expr parameter.
 	method !unwrap-expression(Mu $expr --> Mu) {
 		$expr.defined or return Nil;
 		if $expr.WHAT.^name eq 'RakuAST::Circumfix::Parentheses' {
@@ -220,11 +280,10 @@ class Qwiratry::Query::Extract {
 		$expr
 	}
 
-	=begin pod
-
-	Return True when C<$expr> is a query expression in RakuAST form.
-
-	=end pod
+	# method !is-query-expr(Mu $expr --> Bool)
+	#
+	# Documents the private C<method !is-query-expr> helper.
+	# $expr - The $expr parameter.
 	method !is-query-expr(Mu $expr --> Bool) {
 		my $core = self!unwrap-expression($expr);
 		$core.defined or return False;
@@ -253,11 +312,10 @@ class Qwiratry::Query::Extract {
 		False
 	}
 
-	=begin pod
-
-	Split a C<when> body into navigation query and optional predicate AST fragments.
-
-	=end pod
+	# method !split-when-navigation-ast(Mu $body --> Hash)
+	#
+	# Documents the private C<method !split-when-navigation-ast> helper.
+	# $body - The $body parameter.
 	method !split-when-navigation-ast(Mu $body --> Hash) {
 		my $expr = self!unwrap-expression(self!when-body-expression($body));
 		$expr.defined or return %();

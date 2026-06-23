@@ -5,6 +5,17 @@
 Shared relation comparison and merge helpers used across query evaluators.
 
 =end pod
+=begin pod
+
+=head2 C<class Qwiratry::Query::RelationCommon>
+
+=begin code :lang<raku>
+class Qwiratry::Query::RelationCommon
+=end code
+
+Defines C<Qwiratry::Query::RelationCommon>.
+
+=end pod
 class Qwiratry::Query::RelationCommon {
 
 	my $instance;
@@ -14,6 +25,17 @@ class Qwiratry::Query::RelationCommon {
 	Return the shared RelationCommon service instance.
 
 	=end pod
+	=begin pod
+
+	=head2 C<method instance>
+
+	=begin code :lang<raku>
+	method instance(--> Qwiratry::Query::RelationCommon)
+	=end code
+
+	Documents C<method instance>.
+
+	=end pod
 	method instance(--> Qwiratry::Query::RelationCommon) {
 		$instance //= self.new
 	}
@@ -21,6 +43,25 @@ class Qwiratry::Query::RelationCommon {
 	=begin pod
 
 	Compare two rows or scalars for equality (associative rows compare normalized keys).
+
+	=end pod
+	=begin pod
+
+	=head2 C<method row-equal>
+
+	=begin code :lang<raku>
+	method row-equal(Mu $a, Mu $b --> Bool)
+	=end code
+
+	Documents C<method row-equal>.
+
+	=item C<$a>
+
+	The C<$a> parameter.
+
+	=item C<$b>
+
+	The C<$b> parameter.
 
 	=end pod
 	method row-equal(Mu $a, Mu $b --> Bool) {
@@ -47,6 +88,25 @@ class Qwiratry::Query::RelationCommon {
 	Return True when C<$row> matches any row in C<@list> via L<row-equal>.
 
 	=end pod
+	=begin pod
+
+	=head2 C<method row-in-list>
+
+	=begin code :lang<raku>
+	method row-in-list(Mu $row, @list --> Bool)
+	=end code
+
+	Documents C<method row-in-list>.
+
+	=item C<$row>
+
+	The C<$row> parameter.
+
+	=item C<@list>
+
+	The C<@list> parameter.
+
+	=end pod
 	method row-in-list(Mu $row, @list --> Bool) {
 		for @list -> $candidate {
 			self.row-equal($row, $candidate) and return True;
@@ -57,6 +117,25 @@ class Qwiratry::Query::RelationCommon {
 	=begin pod
 
 	Return True when C<$node> is in C<@list> by identity or row equality.
+
+	=end pod
+	=begin pod
+
+	=head2 C<method node-in-list>
+
+	=begin code :lang<raku>
+	method node-in-list(Mu $node, @list --> Bool)
+	=end code
+
+	Documents C<method node-in-list>.
+
+	=item C<$node>
+
+	The C<$node> parameter.
+
+	=item C<@list>
+
+	The C<@list> parameter.
 
 	=end pod
 	method node-in-list(Mu $node, @list --> Bool) {
@@ -73,6 +152,25 @@ class Qwiratry::Query::RelationCommon {
 	Return sorted column names present in both associative rows.
 
 	=end pod
+	=begin pod
+
+	=head2 C<method common-keys>
+
+	=begin code :lang<raku>
+	method common-keys(Mu $left, Mu $right --> List)
+	=end code
+
+	Documents C<method common-keys>.
+
+	=item C<$left>
+
+	The C<$left> parameter.
+
+	=item C<$right>
+
+	The C<$right> parameter.
+
+	=end pod
 	method common-keys(Mu $left, Mu $right --> List) {
 		$left ~~ Associative && $right ~~ Associative or return ();
 		my @left-keys = $left.keys.map({ self!normalize-key-name($_) });
@@ -83,6 +181,25 @@ class Qwiratry::Query::RelationCommon {
 	=begin pod
 
 	Merge two associative rows; conflicting values must stringify equally.
+
+	=end pod
+	=begin pod
+
+	=head2 C<method merge-rows>
+
+	=begin code :lang<raku>
+	method merge-rows(Associative $left, Associative $right --> Hash)
+	=end code
+
+	Documents C<method merge-rows>.
+
+	=item C<$left>
+
+	The C<$left> parameter.
+
+	=item C<$right>
+
+	The C<$right> parameter.
 
 	=end pod
 	method merge-rows(Associative $left, Associative $right --> Hash) {
@@ -101,6 +218,25 @@ class Qwiratry::Query::RelationCommon {
 	Return True when all common keys between two rows have equal string values.
 
 	=end pod
+	=begin pod
+
+	=head2 C<method join-on-common-keys>
+
+	=begin code :lang<raku>
+	method join-on-common-keys(Associative $l, Associative $r --> Bool)
+	=end code
+
+	Documents C<method join-on-common-keys>.
+
+	=item C<$l>
+
+	The C<$l> parameter.
+
+	=item C<$r>
+
+	The C<$r> parameter.
+
+	=end pod
 	method join-on-common-keys(Associative $l, Associative $r --> Bool) {
 		my @keys = self.common-keys($l, $r);
 		@keys or return False;
@@ -112,11 +248,10 @@ class Qwiratry::Query::RelationCommon {
 		True
 	}
 
-	=begin pod
-
-	Normalize a hash key, pair, or string to a string column name.
-
-	=end pod
+	# method !normalize-key-name(Mu $key --> Str)
+	#
+	# Documents the private C<method !normalize-key-name> helper.
+	# $key - The $key parameter.
 	method !normalize-key-name(Mu $key --> Str) {
 		$key ~~ Str and return $key;
 		$key ~~ Pair and return $key.key;

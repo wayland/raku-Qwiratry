@@ -4,10 +4,13 @@ Calculate mold ordering specificity scores from navigation Query AST nodes.
 
 Scoring follows Specification.md section 3.3.2.4 (ORDER-MOLDS):
 
-- Multilevel axes (descendant, ancestor, following, preceding) → −100
-- Wildcards → −10
-- Explicit path elements → +5
-- Attribute axes → +5
+=item Multilevel axes (descendant, ancestor, following, preceding) → −100
+
+=item Wildcards → −10
+
+=item Explicit path elements → +5
+
+=item Attribute axes → +5
 
 Higher scores mean more specific molds and win ordering ties.
 
@@ -18,6 +21,17 @@ use Qwiratry::Operator::Set;
 use Qwiratry::Operator::MapReduce;
 use Qwiratry::Query::Selector;
 
+=begin pod
+
+=head2 C<class Qwiratry::Query::Specificity>
+
+=begin code :lang<raku>
+class Qwiratry::Query::Specificity
+=end code
+
+Defines C<Qwiratry::Query::Specificity>.
+
+=end pod
 class Qwiratry::Query::Specificity {
 
 	my constant selector = Qwiratry::Query::Selector.instance;
@@ -27,6 +41,17 @@ class Qwiratry::Query::Specificity {
 	=begin pod
 
 	Return the shared Specificity scorer instance.
+
+	=end pod
+	=begin pod
+
+	=head2 C<method instance>
+
+	=begin code :lang<raku>
+	method instance(--> Qwiratry::Query::Specificity)
+	=end code
+
+	Documents C<method instance>.
 
 	=end pod
 	method instance(--> Qwiratry::Query::Specificity) {
@@ -39,6 +64,21 @@ class Qwiratry::Query::Specificity {
 
 	Nested navigation operators accumulate scores from subject chains. Union-like
 	structures use the maximum branch score.
+
+	=end pod
+	=begin pod
+
+	=head2 C<method score>
+
+	=begin code :lang<raku>
+	method score(Mu $query --> Int)
+	=end code
+
+	Documents C<method score>.
+
+	=item C<$query>
+
+	The C<$query> parameter.
 
 	=end pod
 	method score(Mu $query --> Int) {
@@ -76,21 +116,19 @@ class Qwiratry::Query::Specificity {
 		0;
 	}
 
-	=begin pod
-
-	Return True when C<$query> is a positional list of navigation operators (union syntax).
-
-	=end pod
+	# method !is-union-query(Mu $query --> Bool)
+	#
+	# Documents the private C<method !is-union-query> helper.
+	# $query - The $query parameter.
 	method !is-union-query(Mu $query --> Bool) {
 		$query.WHAT === Array || $query.WHAT === List or return False;
 		$query.elems > 0 && $query[0] ~~ NavigationOperator;
 	}
 
-	=begin pod
-
-	Score contribution from a single navigation operator node.
-
-	=end pod
+	# method !operator-contribution(Mu $op --> Int)
+	#
+	# Documents the private C<method !operator-contribution> helper.
+	# $op - The $op parameter.
 	method !operator-contribution(Mu $op --> Int) {
 		given $op {
 			when DescendantOperator | AncestorOperator | FollowingOperator | PrecedingOperator {
@@ -111,11 +149,10 @@ class Qwiratry::Query::Specificity {
 		}
 	}
 
-	=begin pod
-
-	Score a navigation selector (wildcard, explicit path, or other).
-
-	=end pod
+	# method !selector-contribution(Mu $selector --> Int)
+	#
+	# Documents the private C<method !selector-contribution> helper.
+	# $selector - The $selector parameter.
 	method !selector-contribution(Mu $selector --> Int) {
 		selector.is-wildcard($selector) and return -10;
 		selector.is-explicit-path($selector) and return 5;

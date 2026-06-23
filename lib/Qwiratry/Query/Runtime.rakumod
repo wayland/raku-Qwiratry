@@ -35,10 +35,32 @@ also does TreeNavigation;
 	has $.relation-common = Qwiratry::Query::RelationCommon.instance;
 	has $.lazy-evaluator = BasicLazyEvaluator.new;
 
+	=begin pod
+
+	=head2 C<method instance>
+
+	=begin code :lang<raku>
+	method instance(--> Qwiratry::Query::Runtime)
+	=end code
+
+	Documents C<method instance>.
+
+	=end pod
 	method instance(--> Qwiratry::Query::Runtime) {
 		$instance //= self.new
 	}
 
+	=begin pod
+
+	=head2 C<method evaluators>
+
+	=begin code :lang<raku>
+	method evaluators()
+	=end code
+
+	Documents C<method evaluators>.
+
+	=end pod
 	method evaluators() {
 		unless %!evaluators {
 			my &select-list = -> Mu $query, Mu $origin {
@@ -89,6 +111,29 @@ also does TreeNavigation;
 		%!evaluators
 	}
 
+	=begin pod
+
+	=head2 C<method when-query-matches>
+
+	=begin code :lang<raku>
+	method when-query-matches(Mu $query, Mu $node, Mu :$origin --> Bool)
+	=end code
+
+	Documents C<method when-query-matches>.
+
+	=item C<$query>
+
+	The C<$query> parameter.
+
+	=item C<$node>
+
+	The C<$node> parameter.
+
+	=item C<$origin>
+
+	The C<$origin> parameter.
+
+	=end pod
 	method when-query-matches(Mu $query, Mu $node, Mu :$origin --> Bool) {
 		$query.defined or return False;
 		if self.query-uses-topic($query) {
@@ -97,6 +142,21 @@ also does TreeNavigation;
 		self.node-matches($query, $node, :$origin);
 	}
 
+	=begin pod
+
+	=head2 C<method query-uses-topic>
+
+	=begin code :lang<raku>
+	method query-uses-topic(Mu $query --> Bool)
+	=end code
+
+	Documents C<method query-uses-topic>.
+
+	=item C<$query>
+
+	The C<$query> parameter.
+
+	=end pod
 	method query-uses-topic(Mu $query --> Bool) {
 		self.is-topic($query) and return True;
 		if $query.can('subject') && $query.subject.defined {
@@ -111,10 +171,56 @@ also does TreeNavigation;
 		False
 	}
 
+	=begin pod
+
+	=head2 C<method mold-topic-matches>
+
+	=begin code :lang<raku>
+	method mold-topic-matches(Mu $query, Mu $node, Mu :$origin --> Bool)
+	=end code
+
+	Documents C<method mold-topic-matches>.
+
+	=item C<$query>
+
+	The C<$query> parameter.
+
+	=item C<$node>
+
+	The C<$node> parameter.
+
+	=item C<$origin>
+
+	The C<$origin> parameter.
+
+	=end pod
 	method mold-topic-matches(Mu $query, Mu $node, Mu :$origin --> Bool) {
 		self.match-topic-chain($query, $node, :$origin);
 	}
 
+	=begin pod
+
+	=head2 C<method match-topic-chain>
+
+	=begin code :lang<raku>
+	method match-topic-chain(Mu $query, Mu $node, Mu :$origin --> Bool)
+	=end code
+
+	Documents C<method match-topic-chain>.
+
+	=item C<$query>
+
+	The C<$query> parameter.
+
+	=item C<$node>
+
+	The C<$node> parameter.
+
+	=item C<$origin>
+
+	The C<$origin> parameter.
+
+	=end pod
 	method match-topic-chain(Mu $query, Mu $node, Mu :$origin --> Bool) {
 		$query.defined or return False;
 		self.is-topic($query) and return True;
@@ -136,10 +242,52 @@ also does TreeNavigation;
 		False
 	}
 
+	=begin pod
+
+	=head2 C<method select>
+
+	=begin code :lang<raku>
+	method select(Mu $query, Mu $origin --> Seq)
+	=end code
+
+	Documents C<method select>.
+
+	=item C<$query>
+
+	The C<$query> parameter.
+
+	=item C<$origin>
+
+	The C<$origin> parameter.
+
+	=end pod
 	method select(Mu $query, Mu $origin --> Seq) {
 		self.select-seq($query, $origin);
 	}
 
+	=begin pod
+
+	=head2 C<method node-matches>
+
+	=begin code :lang<raku>
+	method node-matches(Mu $query, Mu $node, Mu :$origin --> Bool)
+	=end code
+
+	Documents C<method node-matches>.
+
+	=item C<$query>
+
+	The C<$query> parameter.
+
+	=item C<$node>
+
+	The C<$node> parameter.
+
+	=item C<$origin>
+
+	The C<$origin> parameter.
+
+	=end pod
 	method node-matches(Mu $query, Mu $node, Mu :$origin --> Bool) {
 		my $start = self.query-origin($query, $origin);
 		for self.select-list($query, $start) -> $candidate {
@@ -148,11 +296,49 @@ also does TreeNavigation;
 		False
 	}
 
+	=begin pod
+
+	=head2 C<method select-list>
+
+	=begin code :lang<raku>
+	method select-list(Mu $query, Mu $origin --> List)
+	=end code
+
+	Documents C<method select-list>.
+
+	=item C<$query>
+
+	The C<$query> parameter.
+
+	=item C<$origin>
+
+	The C<$origin> parameter.
+
+	=end pod
 	method select-list(Mu $query, Mu $origin --> List) {
 		$query.defined or return ();
 		self.select-seq($query, $origin).list;
 	}
 
+	=begin pod
+
+	=head2 C<method select-seq>
+
+	=begin code :lang<raku>
+	method select-seq(Mu $query, Mu $origin --> Seq)
+	=end code
+
+	Documents C<method select-seq>.
+
+	=item C<$query>
+
+	The C<$query> parameter.
+
+	=item C<$origin>
+
+	The C<$origin> parameter.
+
+	=end pod
 	method select-seq(Mu $query, Mu $origin --> Seq) {
 		$query.defined or return ().Seq;
 		$query ~~ Seq and return $query;
@@ -187,6 +373,25 @@ also does TreeNavigation;
 		}
 	}
 
+	=begin pod
+
+	=head2 C<method relation-source>
+
+	=begin code :lang<raku>
+	method relation-source(Mu $operand, Mu $origin)
+	=end code
+
+	Documents C<method relation-source>.
+
+	=item C<$operand>
+
+	The C<$operand> parameter.
+
+	=item C<$origin>
+
+	The C<$origin> parameter.
+
+	=end pod
 	method relation-source(Mu $operand, Mu $origin) {
 		if $operand ~~ NavigationOperator | SetOperator | MapReduceOperator | AdaptorOperator | RootOperator {
 			return self.select-seq($operand, $origin);
@@ -197,6 +402,25 @@ also does TreeNavigation;
 		self.select-seq($operand, $origin);
 	}
 
+	=begin pod
+
+	=head2 C<method select-list-eager>
+
+	=begin code :lang<raku>
+	method select-list-eager(Mu $query, Mu $origin --> List)
+	=end code
+
+	Documents C<method select-list-eager>.
+
+	=item C<$query>
+
+	The C<$query> parameter.
+
+	=item C<$origin>
+
+	The C<$origin> parameter.
+
+	=end pod
 	method select-list-eager(Mu $query, Mu $origin --> List) {
 		$query.defined or return ();
 
@@ -219,6 +443,25 @@ also does TreeNavigation;
 		}
 	}
 
+	=begin pod
+
+	=head2 C<method query-origin>
+
+	=begin code :lang<raku>
+	method query-origin(Mu $query, Mu $fallback --> Mu)
+	=end code
+
+	Documents C<method query-origin>.
+
+	=item C<$query>
+
+	The C<$query> parameter.
+
+	=item C<$fallback>
+
+	The C<$fallback> parameter.
+
+	=end pod
 	method query-origin(Mu $query, Mu $fallback --> Mu) {
 		if $query.can('subject') && $query.subject.defined {
 			if $query.subject ~~ NavigationOperator {
@@ -229,11 +472,41 @@ also does TreeNavigation;
 		$fallback
 	}
 
+	=begin pod
+
+	=head2 C<method is-union-query-list>
+
+	=begin code :lang<raku>
+	method is-union-query-list(Mu $query --> Bool)
+	=end code
+
+	Documents C<method is-union-query-list>.
+
+	=item C<$query>
+
+	The C<$query> parameter.
+
+	=end pod
 	method is-union-query-list(Mu $query --> Bool) {
 		$query.WHAT === Array || $query.WHAT === List or return False;
 		$query.elems > 0 && $query[0] ~~ NavigationOperator;
 	}
 
+	=begin pod
+
+	=head2 C<method unique-nodes>
+
+	=begin code :lang<raku>
+	method unique-nodes(*@nodes --> List)
+	=end code
+
+	Documents C<method unique-nodes>.
+
+	=item C<@nodes>
+
+	The C<@nodes> parameter.
+
+	=end pod
 	method unique-nodes(*@nodes --> List) {
 		my @unique;
 		for @nodes -> $node {
@@ -243,6 +516,25 @@ also does TreeNavigation;
 		@unique
 	}
 
+	=begin pod
+
+	=head2 C<method select-relation>
+
+	=begin code :lang<raku>
+	method select-relation(Mu $operand, Mu $origin --> List)
+	=end code
+
+	Documents C<method select-relation>.
+
+	=item C<$operand>
+
+	The C<$operand> parameter.
+
+	=item C<$origin>
+
+	The C<$origin> parameter.
+
+	=end pod
 	method select-relation(Mu $operand, Mu $origin --> List) {
 		if $operand ~~ Positional {
 			$operand ~~ NavigationOperator or return $operand.list;
@@ -250,6 +542,21 @@ also does TreeNavigation;
 		self.select-list($operand, $origin)
 	}
 
+	=begin pod
+
+	=head2 C<method is-topic>
+
+	=begin code :lang<raku>
+	method is-topic(Mu $query --> Bool)
+	=end code
+
+	Documents C<method is-topic>.
+
+	=item C<$query>
+
+	The C<$query> parameter.
+
+	=end pod
 	method is-topic(Mu $query --> Bool) {
 		$query ~~ NavQueryTopic
 	}
