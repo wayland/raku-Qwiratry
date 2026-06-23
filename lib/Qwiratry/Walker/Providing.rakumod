@@ -149,30 +149,3 @@ Discover domain metadata from an object (export wrapper for L<domains>).
 sub providing-domains($obj is raw) is export {
 	Qwiratry::Walker::Providing.instance.domains($obj);
 }
-
-=begin pod
-
-Cached domain lookup without consuming the pending queue.
-
-=end pod
-sub cached-providing-domains($obj is raw) is export {
-	Qwiratry::Walker::Providing.instance.cached-domains($obj);
-}
-
-=begin pod
-
-Bind schema metadata to a container (export wrapper for L<bind-schema>).
-
-=end pod
-our sub bind-providing-schema(Mu $obj is raw, Associative $schema) is export {
-	Qwiratry::Walker::Providing.instance.bind-schema($obj, $schema);
-}
-
-=begin pod
-
-Look up schema metadata for a container.
-
-=end pod
-sub providing-schema(Mu $obj is raw --> Mu) is export {
-	Qwiratry::Walker::Providing.instance.schema($obj);
-}
