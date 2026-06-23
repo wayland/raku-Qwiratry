@@ -63,8 +63,8 @@ class Qwiratry::Query::Selector {
 
 	=end pod
 	method normalize-name(Str $selector --> Str) {
-		$selector.starts-with('<') && $selector.ends-with('>') and return $selector.substr(1, *-2);
-		$selector
+		# Strip one enclosing pair of angle brackets, if present.
+		$selector ~~ S/^ '<' (.*) '>' $/$0/
 	}
 
 	=begin pod
