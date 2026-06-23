@@ -10,11 +10,11 @@ only the helper methods they need.
 =end pod
 unit module Qwiratry::Query::Evaluator::Eager;
 
-use Qwiratry::Query::Relational;
+use Qwiratry::Query::RelationCommon;
 
 role EagerEvaluator is export {
-	method relational() {
-		Qwiratry::Query::Relational.instance
+	method relation-common() {
+		Qwiratry::Query::RelationCommon.instance
 	}
 
 	method eager(Mu $query, Mu $origin --> List) { ... }

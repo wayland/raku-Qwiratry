@@ -31,7 +31,7 @@ class UnionIterator does Iterator does LazyEvaluator is export {
 				$!iter = Nil;
 				next;
 			}
-			next if self.relational.node-in-list($row, @!seen);
+			next if self.relation-common.node-in-list($row, @!seen);
 			@!seen.push($row);
 			return $row;
 		}

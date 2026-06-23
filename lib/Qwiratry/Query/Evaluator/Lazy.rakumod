@@ -10,7 +10,7 @@ normalize replay-sensitive sources, and pull from mixed source types.
 =end pod
 unit module Qwiratry::Query::Evaluator::Lazy;
 
-use Qwiratry::Query::Relational;
+use Qwiratry::Query::RelationCommon;
 
 class ListIterator does Iterator is export {
 	has Mu @.items is required;
@@ -23,8 +23,8 @@ class ListIterator does Iterator is export {
 }
 
 role LazyEvaluator is export {
-	method relational() {
-		Qwiratry::Query::Relational.instance
+	method relation-common() {
+		Qwiratry::Query::RelationCommon.instance
 	}
 
 	method prepare-sources(+@sources) {

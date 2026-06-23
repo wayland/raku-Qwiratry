@@ -6,7 +6,7 @@ Table catalog for foreign-key-aware navigation (Operators.md section 5.2).
 unit module Qwiratry::Table;
 
 use Qwiratry::Operator::Navigation;
-use Qwiratry::Query::Relational;
+use Qwiratry::Query::RelationCommon;
 use Qwiratry::Query::Selector;
 
 my constant selector = Qwiratry::Query::Selector.instance;
@@ -50,7 +50,7 @@ class Catalog is export {
 		for $!tables.pairs -> $pair {
 			for $pair.value.list -> $candidate {
 				$candidate === $row and return $pair.key;
-				Qwiratry::Query::Relational.instance.row-equal($candidate, $row) and return $pair.key;
+				Qwiratry::Query::RelationCommon.instance.row-equal($candidate, $row) and return $pair.key;
 			}
 		}
 		Nil
@@ -354,7 +354,7 @@ Locate a row's index and table row list for ordered-row sibling navigation.
 		my @rows = self.tables{$table-name}.list;
 		for 0..^@rows -> $i {
 			return %(rows => @rows, index => $i) if @rows[$i] === $row
-				|| Qwiratry::Query::Relational.instance.row-equal(@rows[$i], $row);
+				|| Qwiratry::Query::RelationCommon.instance.row-equal(@rows[$i], $row);
 		}
 		Nil
 	}

@@ -10,7 +10,38 @@ unit module Qwiratry::Query::Evaluator::Row;
 use Qwiratry::Operator::Set;
 use Qwiratry::Query::Evaluator::Lazy;
 
-class ProjectionIterator does Iterator does LazyEvaluator is export {
+role RowShapingEvaluator does LazyEvaluator {
+	method project-row(Associative $row, @columns) {
+		my %proj;
+		for @columns -> $col {
+			my $name = self!normalize-col-name($col);
+			$row{$name}:exists and %proj{$name} = $row{$name};
+		}
+		%proj
+	}
+
+	method rename-row(Associative $row, %renames) {
+		my %result = %($row);
+		for %renames.pairs -> $p {
+			if %result{$p.key}:exists {
+				%result{$p.value} = %result.delete($p.key);
+			}
+		}
+		%result
+	}
+
+	method !normalize-col-name(Mu $col --> Str) {
+		$col ~~ Str and return $col;
+		if $col ~~ List && $col.elems == 1 {
+			return self!normalize-col-name($col[0]);
+		}
+		my $name = ~$col;
+		$name.starts-with('<') && $name.ends-with('>') and $name = $name.substr(1, *-2);
+		$name
+	}
+}
+
+class ProjectionIterator does Iterator does RowShapingEvaluator is export {
 	has Mu $.rows is required;
 	has Mu @.columns is required;
 	has Iterator $!iter;
@@ -20,12 +51,12 @@ class ProjectionIterator does Iterator does LazyEvaluator is export {
 		loop {
 			my $row = self.pull-next($!iter);
 			$row ~~ IterationEnd and return IterationEnd;
-			return $row ~~ Associative ?? self.relational.project-row($row, @.columns) !! $row;
+			return $row ~~ Associative ?? self.project-row($row, @.columns) !! $row;
 		}
 	}
 }
 
-class RenameIterator does Iterator does LazyEvaluator is export {
+class RenameIterator does Iterator does RowShapingEvaluator is export {
 	has Mu $.rows is required;
 	has %.renames is required;
 	has Iterator $!iter;
@@ -35,7 +66,7 @@ class RenameIterator does Iterator does LazyEvaluator is export {
 		loop {
 			my $row = self.pull-next($!iter);
 			$row ~~ IterationEnd and return IterationEnd;
-			return $row ~~ Associative ?? self.relational.rename-row($row, %.renames) !! $row;
+			return $row ~~ Associative ?? self.rename-row($row, %.renames) !! $row;
 		}
 	}
 }

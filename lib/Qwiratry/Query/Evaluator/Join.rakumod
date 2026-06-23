@@ -39,8 +39,8 @@ class NaturalJoinIterator does Iterator does LazyEvaluator is export {
 			next unless $rrow ~~ Associative;
 			my $matches = &!condition.defined
 				?? &!condition($!current-left, $rrow)
-				!! self.relational.join-on-common-keys($!current-left, $rrow);
-			$matches and return self.relational.merge-rows($!current-left, $rrow);
+				!! self.relation-common.join-on-common-keys($!current-left, $rrow);
+			$matches and return self.relation-common.merge-rows($!current-left, $rrow);
 		}
 	}
 }
@@ -68,8 +68,8 @@ class LeftOuterJoinIterator does Iterator does LazyEvaluator is export {
 				last if $rrow ~~ IterationEnd;
 				my $ok = &!condition.defined
 					?? &!condition($!current-left, $rrow)
-					!! self.relational.join-on-common-keys($!current-left, $rrow);
-				$ok and @matches.push(self.relational.merge-rows($!current-left, $rrow));
+					!! self.relation-common.join-on-common-keys($!current-left, $rrow);
+				$ok and @matches.push(self.relation-common.merge-rows($!current-left, $rrow));
 			}
 			if @matches {
 				@!pending = @matches;
@@ -103,8 +103,8 @@ class RightOuterJoinIterator does Iterator does LazyEvaluator is export {
 				last if $lrow ~~ IterationEnd;
 				my $ok = &!condition.defined
 					?? &!condition($lrow, $!current-right)
-					!! self.relational.join-on-common-keys($lrow, $!current-right);
-				$ok and @matches.push(self.relational.merge-rows($lrow, $!current-right));
+					!! self.relation-common.join-on-common-keys($lrow, $!current-right);
+				$ok and @matches.push(self.relation-common.merge-rows($lrow, $!current-right));
 			}
 			if @matches {
 				@!pending = @matches;
@@ -132,7 +132,7 @@ class LeftSemijoinIterator does Iterator does LazyEvaluator is export {
 				last if $rrow ~~ IterationEnd;
 				my $ok = &!condition.defined
 					?? &!condition($lrow, $rrow)
-					!! self.relational.join-on-common-keys($lrow, $rrow);
+					!! self.relation-common.join-on-common-keys($lrow, $rrow);
 				$ok and return %($lrow);
 			}
 		}
@@ -157,7 +157,7 @@ class LeftAntijoinIterator does Iterator does LazyEvaluator is export {
 				last if $rrow ~~ IterationEnd;
 				my $ok = &!condition.defined
 					?? &!condition($lrow, $rrow)
-					!! self.relational.join-on-common-keys($lrow, $rrow);
+					!! self.relation-common.join-on-common-keys($lrow, $rrow);
 				if $ok {
 					$matched = True;
 					last;
@@ -189,7 +189,7 @@ class CrossJoinIterator does Iterator does LazyEvaluator is export {
 				$!right-iter = Nil;
 				next;
 			}
-			return self.relational.merge-rows($!current-left, $rrow);
+			return self.relation-common.merge-rows($!current-left, $rrow);
 		}
 	}
 }

@@ -15,7 +15,7 @@ use Qwiratry::Operator::Capability;
 use Qwiratry::Operator::Set;
 use Qwiratry::Operator::MapReduce;
 use Qwiratry::Operator::IO;
-use Qwiratry::Query::Relational;
+use Qwiratry::Query::RelationCommon;
 use Qwiratry::Query::Topic;
 use Qwiratry::Query::TreeNavigation;
 use Qwiratry::Query::Evaluator::Lazy;
@@ -32,7 +32,7 @@ also does TreeNavigation;
 
 	my $instance;
 	has %!evaluators;
-	has $.relational = Qwiratry::Query::Relational.instance;
+	has $.relation-common = Qwiratry::Query::RelationCommon.instance;
 	has $.lazy-evaluator = BasicLazyEvaluator.new;
 
 	method instance(--> Qwiratry::Query::Runtime) {
@@ -237,7 +237,7 @@ also does TreeNavigation;
 	method unique-nodes(*@nodes --> List) {
 		my @unique;
 		for @nodes -> $node {
-			next if $.relational.node-in-list($node, @unique);
+			next if $.relation-common.node-in-list($node, @unique);
 			@unique.push($node);
 		}
 		@unique

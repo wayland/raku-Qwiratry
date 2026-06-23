@@ -26,7 +26,7 @@ class IntersectionIterator does Iterator does LazyEvaluator is export {
 		loop {
 			my $lrow = self.pull-next($!left-iter);
 			$lrow ~~ IterationEnd and return IterationEnd;
-			self.relational.node-in-list($lrow, @!right-list) and return $lrow;
+			self.relation-common.node-in-list($lrow, @!right-list) and return $lrow;
 		}
 	}
 }
@@ -47,7 +47,7 @@ class SetDifferenceIterator does Iterator does LazyEvaluator is export {
 		loop {
 			my $lrow = self.pull-next($!left-iter);
 			$lrow ~~ IterationEnd and return IterationEnd;
-			self.relational.row-in-list($lrow, @!right-list) or return $lrow;
+			self.relation-common.row-in-list($lrow, @!right-list) or return $lrow;
 		}
 	}
 }
@@ -107,12 +107,12 @@ class SymmetricDifferenceEvaluator does LazyEvaluator is export {
 		my @left-list = self.source-list($left);
 		my @items = gather {
 			for @left-list -> $row {
-				unless self.relational.row-in-list($row, @right-list) {
+				unless self.relation-common.row-in-list($row, @right-list) {
 					take $row;
 				}
 			}
 			for @right-list -> $row {
-				unless self.relational.row-in-list($row, @left-list) {
+				unless self.relation-common.row-in-list($row, @left-list) {
 					take $row;
 				}
 			}
