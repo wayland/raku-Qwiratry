@@ -126,6 +126,20 @@ role NavigationEagerEvaluator does EagerEvaluator {
 		}
 		Nil
 	}
+
+	method navigation-leaf(Mu $query --> Mu) {
+		if $query.can('subject') && $query.subject.defined
+				&& $query.subject ~~ NavigationOperator {
+			return self.navigation-leaf($query.subject);
+		}
+		$query
+	}
+
+	method topic-matches(Mu $query, Mu $node, Mu :$origin, :&topic-matches! --> Bool) {
+		my $leaf = self.navigation-leaf($query);
+		$leaf.defined && $leaf.can('selector') or return False;
+		self.selector.matches($leaf.selector, $node);
+	}
 }
 
 class RootEvaluator does NavigationEagerEvaluator is export {
@@ -152,6 +166,13 @@ class ChildEvaluator does NavigationEagerEvaluator is export {
 		}
 		@results
 	}
+
+	method topic-matches(ChildOperator $query, Mu $node, Mu :$origin, :&topic-matches! --> Bool) {
+		self.selector.matches($query.selector, $node) or return False;
+		my $parent = self.tree-parent($node, :$origin);
+		$parent.defined or return False;
+		topic-matches($query.subject, $parent, :$origin);
+	}
 }
 
 class DescendantEvaluator does NavigationEagerEvaluator is export {
@@ -170,6 +191,11 @@ class DescendantEvaluator does NavigationEagerEvaluator is export {
 			}
 		}
 		@results
+	}
+
+	method topic-matches(DescendantOperator $query, Mu $node, Mu :$origin, :&topic-matches! --> Bool) {
+		self.selector.matches($query.selector, $node) or return False;
+		topic-matches($query.subject, $node, :$origin);
 	}
 }
 

@@ -60,6 +60,11 @@ class IntersectionEvaluator does LazyEvaluator is export {
 		)
 	}
 
+	method topic-matches(IntersectionOperator $query, Mu $node, Mu :$origin, :&topic-matches! --> Bool) {
+		topic-matches($query.left, $node, :$origin)
+			&& topic-matches($query.right, $node, :$origin)
+	}
+
 	method lazy($left, $right --> Seq) {
 		self.seq-from-iterator(IntersectionIterator.new(:$left, :$right))
 	}
@@ -73,6 +78,11 @@ class SetDifferenceEvaluator does LazyEvaluator is export {
 		)
 	}
 
+	method topic-matches(SetDifferenceOperator $query, Mu $node, Mu :$origin, :&topic-matches! --> Bool) {
+		topic-matches($query.left, $node, :$origin)
+			&& !topic-matches($query.right, $node, :$origin)
+	}
+
 	method lazy($left, $right --> Seq) {
 		self.seq-from-iterator(SetDifferenceIterator.new(:$left, :$right))
 	}
@@ -84,6 +94,12 @@ class SymmetricDifferenceEvaluator does LazyEvaluator is export {
 			relation-source($query.left, $origin),
 			relation-source($query.right, $origin),
 		)
+	}
+
+	method topic-matches(SymmetricDifferenceOperator $query, Mu $node, Mu :$origin, :&topic-matches! --> Bool) {
+		my $left = topic-matches($query.left, $node, :$origin);
+		my $right = topic-matches($query.right, $node, :$origin);
+		($left && !$right) || (!$left && $right)
 	}
 
 	method lazy($left, $right --> Seq) {

@@ -29,7 +29,6 @@
     "Qwiratry::Location::Base": "lib/Qwiratry/Location/Base.rakumod",
     "Qwiratry::Location::File": "lib/Qwiratry/Location/File.rakumod",
     "Qwiratry::Query::Relational": "lib/Qwiratry/Query/Relational.rakumod",
-    "Qwiratry::Query::Lazy": "lib/Qwiratry/Query/Lazy.rakumod",
     "Qwiratry::Query::Evaluator::Lazy": "lib/Qwiratry/Query/Evaluator/Lazy.rakumod",
     "Qwiratry::Query::Evaluator::Union": "lib/Qwiratry/Query/Evaluator/Union.rakumod",
     "Qwiratry::Query::Evaluator::Set": "lib/Qwiratry/Query/Evaluator/Set.rakumod",

@@ -46,6 +46,11 @@ class UnionEvaluator does LazyEvaluator is export {
 		)
 	}
 
+	method topic-matches(UnionOperator $query, Mu $node, Mu :$origin, :&topic-matches! --> Bool) {
+		topic-matches($query.left, $node, :$origin)
+			|| topic-matches($query.right, $node, :$origin)
+	}
+
 	method lazy(+@sources --> Seq) {
 		my Mu @prepared = self.prepare-sources(|@sources);
 		self.seq-from-iterator(UnionIterator.new(sources => Array.new(@prepared)))

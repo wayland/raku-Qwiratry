@@ -21,7 +21,7 @@ use Qwiratry::Operator::Set;
 use Qwiratry::Operator::MapReduce;
 use Qwiratry::Operator::IO;
 use Qwiratry::Query::Relational;
-use Qwiratry::Query::Lazy;
+use Qwiratry::Query::Evaluator::Lazy;
 use Qwiratry::Query::Evaluator::Union;
 use Qwiratry::Query::Evaluator::Set;
 use Qwiratry::Query::Evaluator::Join;
@@ -32,11 +32,11 @@ use Qwiratry::Query::Evaluator::Relational;
 use Qwiratry::Query::Evaluator::MapReduce;
 use Qwiratry::Table;
 use Qwiratry::Table::Schema;
-use Qwiratry::Query::Selector;
 
 my sub relational() { Qwiratry::Query::Relational.instance }
-my constant selector = Qwiratry::Query::Selector.instance;
+my constant lazy-evaluator = BasicLazyEvaluator.new;
 
+# TODO: Redo this when Raku macros are implemented
 my sub evaluators() {
 	state %evaluators = %(
 		UnionOperator => UnionEvaluator.new,
@@ -137,51 +137,21 @@ sub mold-topic-matches(Mu $query, Mu $node, Mu :$origin --> Bool) {
 }
 
 sub match-topic-chain(Mu $query, Mu $node, Mu :$origin --> Bool) {
-	given $query {
-		when NavQueryTopic { True }
-		when UnionOperator {
-			return match-topic-chain(.left, $node, :$origin)
-				|| match-topic-chain(.right, $node, :$origin);
-		}
-		when IntersectionOperator {
-			return match-topic-chain(.left, $node, :$origin)
-				&& match-topic-chain(.right, $node, :$origin);
-		}
-		when SetDifferenceOperator {
-			return match-topic-chain(.left, $node, :$origin)
-				&& !match-topic-chain(.right, $node, :$origin);
-		}
-		when SymmetricDifferenceOperator {
-			my $left = match-topic-chain(.left, $node, :$origin);
-			my $right = match-topic-chain(.right, $node, :$origin);
-			return ($left && !$right) || (!$left && $right);
-		}
-		when ChildOperator {
-			selector.matches(.selector, $node) or return False;
-			.subject ~~ NavQueryTopic and return True;
-			my $parent = tree-parent($node, :$origin);
-			$parent.defined or return False;
-			match-topic-chain(.subject, $parent, :$origin);
-		}
-		when DescendantOperator {
-			selector.matches(.selector, $node) or return False;
-			.subject ~~ NavQueryTopic and return True;
-			match-topic-chain(.subject, $node, :$origin);
-		}
-		default {
-			my $leaf = navigation-leaf($query);
-			$leaf.defined && $leaf.can('selector') or return False;
-			selector.matches($leaf.selector, $node);
-		}
-	}
-}
+	$query.defined or return False;
+	$query ~~ NavQueryTopic and return True;
+	$query.can('evaluator-key') or return False;
 
-sub navigation-leaf(Mu $query --> Mu) {
-	if $query.can('subject') && $query.subject.defined
-			&& $query.subject ~~ NavigationOperator {
-		return navigation-leaf($query.subject);
+	my $evaluator = evaluators(){$query.evaluator-key};
+	if $evaluator.defined && $evaluator.can('topic-matches') {
+		return $evaluator.topic-matches(
+			$query,
+			$node,
+			:$origin,
+			:topic-matches(&match-topic-chain),
+		);
 	}
-	$query
+
+	False
 }
 
 =begin pod
@@ -233,7 +203,7 @@ sub select-seq(Mu $query, Mu $origin --> Seq) {
 		default {
 			my @items = select-list-eager($query, $origin);
 			@items or return ().Seq;
-			return lazy-from-list(@items);
+			return lazy-evaluator.lazy-from-list(@items);
 		}
 	}
 }
@@ -288,12 +258,6 @@ sub tree-children(Mu $node --> List) {
 		}
 	}
 	();
-}
-
-sub tree-parent(Mu $node, Mu :$origin --> Mu) {
-	$node.can('parent') and return $node.parent;
-	$origin.defined and return find-parent-in-tree($node, $origin);
-	Nil
 }
 
 our sub find-parent-in-tree(Mu $node, Mu $current --> Mu) is export {
