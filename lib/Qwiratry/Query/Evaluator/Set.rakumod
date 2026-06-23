@@ -54,39 +54,39 @@ class SetDifferenceIterator does Iterator does LazyEvaluator is export {
 
 class IntersectionEvaluator does LazyEvaluator is export {
 	method select-seq(IntersectionOperator $query, Mu $origin, :&relation-source! --> Seq) {
-		self.lazy-intersection(
+		self.lazy(
 			relation-source($query.left, $origin),
 			relation-source($query.right, $origin),
 		)
 	}
 
-	method lazy-intersection($left, $right --> Seq) {
-		self.lazy-seq(IntersectionIterator.new(:$left, :$right))
+	method lazy($left, $right --> Seq) {
+		self.seq-from-iterator(IntersectionIterator.new(:$left, :$right))
 	}
 }
 
 class SetDifferenceEvaluator does LazyEvaluator is export {
 	method select-seq(SetDifferenceOperator $query, Mu $origin, :&relation-source! --> Seq) {
-		self.lazy-set-difference(
+		self.lazy(
 			relation-source($query.left, $origin),
 			relation-source($query.right, $origin),
 		)
 	}
 
-	method lazy-set-difference($left, $right --> Seq) {
-		self.lazy-seq(SetDifferenceIterator.new(:$left, :$right))
+	method lazy($left, $right --> Seq) {
+		self.seq-from-iterator(SetDifferenceIterator.new(:$left, :$right))
 	}
 }
 
 class SymmetricDifferenceEvaluator does LazyEvaluator is export {
 	method select-seq(SymmetricDifferenceOperator $query, Mu $origin, :&relation-source! --> Seq) {
-		self.lazy-symmetric-difference(
+		self.lazy(
 			relation-source($query.left, $origin),
 			relation-source($query.right, $origin),
 		)
 	}
 
-	method lazy-symmetric-difference($left, $right --> Seq) {
+	method lazy($left, $right --> Seq) {
 		my @right-list = self.source-list($right);
 		my @left-list = self.source-list($left);
 		my @items = gather {

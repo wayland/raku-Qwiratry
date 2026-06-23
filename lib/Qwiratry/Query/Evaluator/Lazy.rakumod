@@ -41,13 +41,13 @@ role LazyEvaluator is export {
 		$source.list.iterator;
 	}
 
-	method lazy-seq(Iterator $iter --> Seq) {
+	method seq-from-iterator(Iterator $iter --> Seq) {
 		Seq.new($iter)
 	}
 
 	method lazy-from-list(@items --> Seq) {
 		@items or return ().Seq;
-		self.lazy-seq(ListIterator.new(items => @items))
+		self.seq-from-iterator(ListIterator.new(items => @items))
 	}
 
 	method source-list(Mu $source --> List) {

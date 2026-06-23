@@ -198,62 +198,110 @@ role JoinEvaluator does LazyEvaluator {
 	method condition-for(Mu $query) {
 		$query.condition.defined ?? $query.condition !! Nil
 	}
-
-	method lazy-natural-join($left, $right, &condition --> Seq) {
-		self.lazy-seq(NaturalJoinIterator.new(:$left, :$right, :&condition))
-	}
-
-	method lazy-left-outer-join($left, $right, &condition --> Seq) {
-		self.lazy-seq(LeftOuterJoinIterator.new(:$left, :$right, :&condition))
-	}
-
-	method lazy-right-outer-join($left, $right, &condition --> Seq) {
-		self.lazy-seq(RightOuterJoinIterator.new(:$left, :$right, :&condition))
-	}
-
-	method lazy-left-semijoin($left, $right, &condition --> Seq) {
-		self.lazy-seq(LeftSemijoinIterator.new(:$left, :$right, :&condition))
-	}
-
-	method lazy-left-antijoin($left, $right, &condition --> Seq) {
-		self.lazy-seq(LeftAntijoinIterator.new(:$left, :$right, :&condition))
-	}
-
-	method lazy-cross-join($left, $right --> Seq) {
-		self.lazy-seq(CrossJoinIterator.new(:$left, :$right))
-	}
 }
 
 class InnerJoinEvaluator does JoinEvaluator is export {
 	method select-seq(InnerJoinOperator $query, Mu $origin, :&relation-source! --> Seq) {
 		my &cond = self.condition-for($query);
-		self.lazy-natural-join(
+		self.lazy(
 			relation-source($query.left, $origin),
 			relation-source($query.right, $origin),
 			&cond,
 		)
+	}
+
+	method lazy($left, $right, &condition --> Seq) {
+		self.seq-from-iterator(NaturalJoinIterator.new(:$left, :$right, :&condition))
 	}
 }
 
 class LeftOuterJoinEvaluator does JoinEvaluator is export {
 	method select-seq(LeftOuterJoinOperator $query, Mu $origin, :&relation-source! --> Seq) {
 		my &cond = self.condition-for($query);
-		self.lazy-left-outer-join(
+		self.lazy(
 			relation-source($query.left, $origin),
 			relation-source($query.right, $origin),
 			&cond,
 		)
+	}
+
+	method lazy($left, $right, &condition --> Seq) {
+		self.seq-from-iterator(LeftOuterJoinIterator.new(:$left, :$right, :&condition))
 	}
 }
 
 class RightOuterJoinEvaluator does JoinEvaluator is export {
 	method select-seq(RightOuterJoinOperator $query, Mu $origin, :&relation-source! --> Seq) {
 		my &cond = self.condition-for($query);
-		self.lazy-right-outer-join(
+		self.lazy(
 			relation-source($query.left, $origin),
 			relation-source($query.right, $origin),
 			&cond,
 		)
+	}
+
+	method lazy($left, $right, &condition --> Seq) {
+		self.seq-from-iterator(RightOuterJoinIterator.new(:$left, :$right, :&condition))
+	}
+}
+
+class LeftSemijoinEvaluator does JoinEvaluator is export {
+	method select-seq(LeftSemijoinOperator $query, Mu $origin, :&relation-source! --> Seq) {
+		my &cond = self.condition-for($query);
+		self.lazy(
+			relation-source($query.left, $origin),
+			relation-source($query.right, $origin),
+			&cond,
+		)
+	}
+
+	method lazy($left, $right, &condition --> Seq) {
+		self.seq-from-iterator(LeftSemijoinIterator.new(:$left, :$right, :&condition))
+	}
+}
+
+class RightSemijoinEvaluator does JoinEvaluator is export {
+	method select-seq(RightSemijoinOperator $query, Mu $origin, :&relation-source! --> Seq) {
+		my &cond = self.condition-for($query);
+		self.lazy(
+			relation-source($query.right, $origin),
+			relation-source($query.left, $origin),
+			&cond,
+		)
+	}
+
+	method lazy($left, $right, &condition --> Seq) {
+		self.seq-from-iterator(LeftSemijoinIterator.new(:$left, :$right, :&condition))
+	}
+}
+
+class LeftAntijoinEvaluator does JoinEvaluator is export {
+	method select-seq(LeftAntijoinOperator $query, Mu $origin, :&relation-source! --> Seq) {
+		my &cond = self.condition-for($query);
+		self.lazy(
+			relation-source($query.left, $origin),
+			relation-source($query.right, $origin),
+			&cond,
+		)
+	}
+
+	method lazy($left, $right, &condition --> Seq) {
+		self.seq-from-iterator(LeftAntijoinIterator.new(:$left, :$right, :&condition))
+	}
+}
+
+class RightAntijoinEvaluator does JoinEvaluator is export {
+	method select-seq(RightAntijoinOperator $query, Mu $origin, :&relation-source! --> Seq) {
+		my &cond = self.condition-for($query);
+		self.lazy(
+			relation-source($query.right, $origin),
+			relation-source($query.left, $origin),
+			&cond,
+		)
+	}
+
+	method lazy($left, $right, &condition --> Seq) {
+		self.seq-from-iterator(LeftAntijoinIterator.new(:$left, :$right, :&condition))
 	}
 }
 
@@ -262,63 +310,29 @@ class FullOuterJoinEvaluator does JoinEvaluator is export {
 		my &cond = self.condition-for($query);
 		my $left = relation-source($query.left, $origin);
 		my $right = relation-source($query.right, $origin);
-		union-evaluator.lazy-union(
-			self.lazy-natural-join($left, $right, &cond),
-			self.lazy-left-antijoin($left, $right, &cond),
-			self.lazy-left-antijoin($right, $left, &cond),
-		)
+		self.lazy($left, $right, &cond)
 	}
-}
 
-class LeftSemijoinEvaluator does JoinEvaluator is export {
-	method select-seq(LeftSemijoinOperator $query, Mu $origin, :&relation-source! --> Seq) {
-		my &cond = self.condition-for($query);
-		self.lazy-left-semijoin(
-			relation-source($query.left, $origin),
-			relation-source($query.right, $origin),
-			&cond,
-		)
-	}
-}
-
-class RightSemijoinEvaluator does JoinEvaluator is export {
-	method select-seq(RightSemijoinOperator $query, Mu $origin, :&relation-source! --> Seq) {
-		my &cond = self.condition-for($query);
-		self.lazy-left-semijoin(
-			relation-source($query.right, $origin),
-			relation-source($query.left, $origin),
-			&cond,
-		)
-	}
-}
-
-class LeftAntijoinEvaluator does JoinEvaluator is export {
-	method select-seq(LeftAntijoinOperator $query, Mu $origin, :&relation-source! --> Seq) {
-		my &cond = self.condition-for($query);
-		self.lazy-left-antijoin(
-			relation-source($query.left, $origin),
-			relation-source($query.right, $origin),
-			&cond,
-		)
-	}
-}
-
-class RightAntijoinEvaluator does JoinEvaluator is export {
-	method select-seq(RightAntijoinOperator $query, Mu $origin, :&relation-source! --> Seq) {
-		my &cond = self.condition-for($query);
-		self.lazy-left-antijoin(
-			relation-source($query.right, $origin),
-			relation-source($query.left, $origin),
-			&cond,
+	method lazy($left, $right, &condition --> Seq) {
+		my $inner = InnerJoinEvaluator.new;
+		my $left-anti = LeftAntijoinEvaluator.new;
+		union-evaluator.lazy(
+			$inner.lazy($left, $right, &condition),
+			$left-anti.lazy($left, $right, &condition),
+			$left-anti.lazy($right, $left, &condition),
 		)
 	}
 }
 
 class CrossJoinEvaluator does JoinEvaluator is export {
 	method select-seq(CrossJoinOperator $query, Mu $origin, :&relation-source! --> Seq) {
-		self.lazy-cross-join(
+		self.lazy(
 			relation-source($query.left, $origin),
 			relation-source($query.right, $origin),
 		)
+	}
+
+	method lazy($left, $right --> Seq) {
+		self.seq-from-iterator(CrossJoinIterator.new(:$left, :$right))
 	}
 }

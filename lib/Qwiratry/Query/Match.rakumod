@@ -33,22 +33,24 @@ use Qwiratry::Query::Selector;
 
 my sub relational() { Qwiratry::Query::Relational.instance }
 my constant selector = Qwiratry::Query::Selector.instance;
-my constant union-evaluator = UnionEvaluator.new;
-my constant intersection-evaluator = IntersectionEvaluator.new;
-my constant set-difference-evaluator = SetDifferenceEvaluator.new;
-my constant symmetric-difference-evaluator = SymmetricDifferenceEvaluator.new;
-my constant inner-join-evaluator = InnerJoinEvaluator.new;
-my constant left-outer-join-evaluator = LeftOuterJoinEvaluator.new;
-my constant right-outer-join-evaluator = RightOuterJoinEvaluator.new;
-my constant full-outer-join-evaluator = FullOuterJoinEvaluator.new;
-my constant left-semijoin-evaluator = LeftSemijoinEvaluator.new;
-my constant right-semijoin-evaluator = RightSemijoinEvaluator.new;
-my constant left-antijoin-evaluator = LeftAntijoinEvaluator.new;
-my constant right-antijoin-evaluator = RightAntijoinEvaluator.new;
-my constant cross-join-evaluator = CrossJoinEvaluator.new;
-my constant projection-evaluator = ProjectionEvaluator.new;
-my constant rename-evaluator = RenameEvaluator.new;
-my constant selection-evaluator = SelectionEvaluator.new;
+my constant evaluators = %(
+	UnionOperator => UnionEvaluator.new,
+	IntersectionOperator => IntersectionEvaluator.new,
+	SetDifferenceOperator => SetDifferenceEvaluator.new,
+	SymmetricDifferenceOperator => SymmetricDifferenceEvaluator.new,
+	InnerJoinOperator => InnerJoinEvaluator.new,
+	LeftOuterJoinOperator => LeftOuterJoinEvaluator.new,
+	RightOuterJoinOperator => RightOuterJoinEvaluator.new,
+	FullOuterJoinOperator => FullOuterJoinEvaluator.new,
+	LeftSemijoinOperator => LeftSemijoinEvaluator.new,
+	RightSemijoinOperator => RightSemijoinEvaluator.new,
+	LeftAntijoinOperator => LeftAntijoinEvaluator.new,
+	RightAntijoinOperator => RightAntijoinEvaluator.new,
+	CrossJoinOperator => CrossJoinEvaluator.new,
+	ProjectionOperator => ProjectionEvaluator.new,
+	RenameOperator => RenameEvaluator.new,
+	SelectionOperator => SelectionEvaluator.new,
+);
 
 =begin pod
 
@@ -169,53 +171,21 @@ sub select-seq(Mu $query, Mu $origin --> Seq) {
 	$query.defined or return ().Seq;
 
 	given $query {
-		when UnionOperator {
-			return union-evaluator.select-seq($query, $origin, :&relation-source);
-		}
-		when IntersectionOperator {
-			return intersection-evaluator.select-seq($query, $origin, :&relation-source);
-		}
-		when SetDifferenceOperator {
-			return set-difference-evaluator.select-seq($query, $origin, :&relation-source);
-		}
-		when SymmetricDifferenceOperator {
-			return symmetric-difference-evaluator.select-seq($query, $origin, :&relation-source);
-		}
-		when InnerJoinOperator {
-			return inner-join-evaluator.select-seq($query, $origin, :&relation-source);
-		}
-		when LeftOuterJoinOperator {
-			return left-outer-join-evaluator.select-seq($query, $origin, :&relation-source);
-		}
-		when RightOuterJoinOperator {
-			return right-outer-join-evaluator.select-seq($query, $origin, :&relation-source);
-		}
-		when FullOuterJoinOperator {
-			return full-outer-join-evaluator.select-seq($query, $origin, :&relation-source);
-		}
-		when LeftSemijoinOperator {
-			return left-semijoin-evaluator.select-seq($query, $origin, :&relation-source);
-		}
-		when RightSemijoinOperator {
-			return right-semijoin-evaluator.select-seq($query, $origin, :&relation-source);
-		}
-		when LeftAntijoinOperator {
-			return left-antijoin-evaluator.select-seq($query, $origin, :&relation-source);
-		}
-		when RightAntijoinOperator {
-			return right-antijoin-evaluator.select-seq($query, $origin, :&relation-source);
-		}
-		when CrossJoinOperator {
-			return cross-join-evaluator.select-seq($query, $origin, :&relation-source);
-		}
-		when ProjectionOperator {
-			return projection-evaluator.select-seq($query, $origin, :&relation-source);
-		}
-		when RenameOperator {
-			return rename-evaluator.select-seq($query, $origin, :&relation-source);
+		when UnionOperator | IntersectionOperator | SetDifferenceOperator
+				| SymmetricDifferenceOperator | InnerJoinOperator
+				| LeftOuterJoinOperator | RightOuterJoinOperator
+				| FullOuterJoinOperator | LeftSemijoinOperator
+				| RightSemijoinOperator | LeftAntijoinOperator
+				| RightAntijoinOperator | CrossJoinOperator
+				| ProjectionOperator | RenameOperator {
+			my $evaluator = evaluators{$query.^shortname};
+			$evaluator.defined or return ().Seq;
+			return $evaluator.select-seq($query, $origin, :&relation-source);
 		}
 		when SelectionOperator {
-			return selection-evaluator.select-seq(
+			my $evaluator = evaluators{$query.^shortname};
+			$evaluator.defined or return ().Seq;
+			return $evaluator.select-seq(
 				$query,
 				$origin,
 				:&selection-relation-source,
@@ -343,26 +313,6 @@ sub select-list-eager(Mu $query, Mu $origin --> List) {
 			}
 			return @results;
 		}
-		when UnionOperator {
-			my @left = select-relation($query.left, $origin);
-			my @right = select-relation($query.right, $origin);
-			return unique-nodes(|@left, |@right);
-		}
-		when IntersectionOperator {
-			my @left = select-relation($query.left, $origin);
-			my @right = select-relation($query.right, $origin);
-			return @left.grep(-> $node { relational.node-in-list($node, @right) }).List;
-		}
-		when SetDifferenceOperator {
-			my @left = select-relation($query.left, $origin);
-			my @right = select-relation($query.right, $origin);
-			return @left.grep(-> $node { !relational.node-in-list($node, @right) }).List;
-		}
-		when SymmetricDifferenceOperator {
-			my @left = select-relation($query.left, $origin);
-			my @right = select-relation($query.right, $origin);
-			return relational.symmetric-difference(@left, @right).List;
-		}
 		when ElementOfOperator {
 			my @collection = select-list($query.collection, $origin);
 			my @elements = select-list($query.element, $origin);
@@ -396,98 +346,10 @@ sub select-list-eager(Mu $query, Mu $origin --> List) {
 			my @right = select-relation($query.right, $origin);
 			return relational.collections-equal(@left, @right) ?? @left.List !! ();
 		}
-		when ProjectionOperator {
-			my @rows = select-list($query.relation, $origin);
-			return @rows.map(-> $row {
-				$row ~~ Associative ?? relational.project-row($row, $query.columns) !! $row
-			}).List;
-		}
-		when RenameOperator {
-			my @rows = select-list($query.relation, $origin);
-			return @rows.map(-> $row {
-				$row ~~ Associative ?? relational.rename-row($row, $query.renames) !! $row
-			}).List;
-		}
-		when InnerJoinOperator {
-			my @left = select-relation($query.left, $origin);
-			my @right = select-relation($query.right, $origin);
-			my &cond = $query.condition.defined ?? $query.condition !! Nil;
-			return join-with-condition(&cond, "natural-join", @left, @right).List;
-		}
-		when LeftOuterJoinOperator {
-			my @left = select-relation($query.left, $origin);
-			my @right = select-relation($query.right, $origin);
-			my &cond = $query.condition.defined ?? $query.condition !! Nil;
-			return join-with-condition(&cond, "left-outer-join", @left, @right).List;
-		}
-		when RightOuterJoinOperator {
-			my @left = select-relation($query.left, $origin);
-			my @right = select-relation($query.right, $origin);
-			my &cond = $query.condition.defined ?? $query.condition !! Nil;
-			return join-with-condition(&cond, "right-outer-join", @left, @right).List;
-		}
-		when FullOuterJoinOperator {
-			my @left = select-relation($query.left, $origin);
-			my @right = select-relation($query.right, $origin);
-			my &cond = $query.condition.defined ?? $query.condition !! Nil;
-			return join-with-condition(&cond, "full-outer-join", @left, @right).List;
-		}
-		when LeftSemijoinOperator {
-			my @left = select-relation($query.left, $origin);
-			my @right = select-relation($query.right, $origin);
-			my &cond = $query.condition.defined ?? $query.condition !! Nil;
-			return join-with-condition(&cond, "left-semijoin", @left, @right).List;
-		}
-		when RightSemijoinOperator {
-			my @left = select-relation($query.left, $origin);
-			my @right = select-relation($query.right, $origin);
-			my &cond = $query.condition.defined ?? $query.condition !! Nil;
-			return join-with-condition(&cond, "right-semijoin", @left, @right).List;
-		}
-		when LeftAntijoinOperator {
-			my @left = select-relation($query.left, $origin);
-			my @right = select-relation($query.right, $origin);
-			my &cond = $query.condition.defined ?? $query.condition !! Nil;
-			return join-with-condition(&cond, "left-antijoin", @left, @right).List;
-		}
-		when RightAntijoinOperator {
-			my @left = select-relation($query.left, $origin);
-			my @right = select-relation($query.right, $origin);
-			my &cond = $query.condition.defined ?? $query.condition !! Nil;
-			return join-with-condition(&cond, "right-antijoin", @left, @right).List;
-		}
-		when CrossJoinOperator {
-			my @left = select-relation($query.left, $origin);
-			my @right = select-relation($query.right, $origin);
-			return relational.cross-join(@left, @right).List;
-		}
 		when DivisionOperator {
 			my @left = select-relation($query.left, $origin);
 			my @right = select-relation($query.right, $origin);
 			return relational.relational-division(@left, @right).List;
-		}
-		when SelectionOperator {
-			my @bases;
-			if $query.subject ~~ NavigationOperator | RootOperator {
-				@bases = select-list($query.subject, $origin);
-			}
-			elsif $query.subject ~~ AdaptorOperator {
-				@bases = $origin ~~ Positional ?? $origin.list !! ($origin,);
-			}
-			elsif $query.subject ~~ Qwiratry::Table::Catalog {
-				@bases = $query.subject.active-rows;
-			}
-			elsif $query.subject ~~ Positional {
-				@bases = $query.subject.list;
-			}
-			else {
-				@bases = ($query.subject,);
-			}
-			if !@bases && $origin ~~ Qwiratry::Table::Catalog {
-				@bases = $origin.active-rows;
-			}
-			my &pred = $query.predicate;
-			return @bases.grep(-> $base { selection-predicate-matches(&pred, $base) }).List;
 		}
 		when SortOperator {
 			my @items = mapreduce-items($query, $origin);
@@ -744,12 +606,4 @@ sub select-relation(Mu $operand, Mu $origin --> List) {
 		$operand ~~ NavigationOperator or return $operand.list;
 	}
 	select-list($operand, $origin)
-}
-
-sub join-with-condition(&cond, Str $join-method, @left, @right --> List) {
-	my $rel = relational;
-	if &cond.defined {
-		return $rel.$join-method(@left, @right, &cond);
-	}
-	$rel.$join-method(@left, @right);
 }

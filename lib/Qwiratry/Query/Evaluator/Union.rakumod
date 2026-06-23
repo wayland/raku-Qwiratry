@@ -40,14 +40,14 @@ class UnionIterator does Iterator does LazyEvaluator is export {
 
 class UnionEvaluator does LazyEvaluator is export {
 	method select-seq(UnionOperator $query, Mu $origin, :&relation-source! --> Seq) {
-		self.lazy-union(
+		self.lazy(
 			relation-source($query.left, $origin),
 			relation-source($query.right, $origin),
 		)
 	}
 
-	method lazy-union(+@sources --> Seq) {
+	method lazy(+@sources --> Seq) {
 		my Mu @prepared = self.prepare-sources(|@sources);
-		self.lazy-seq(UnionIterator.new(sources => Array.new(@prepared)))
+		self.seq-from-iterator(UnionIterator.new(sources => Array.new(@prepared)))
 	}
 }

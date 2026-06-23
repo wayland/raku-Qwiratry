@@ -33,11 +33,11 @@ class SelectionEvaluator does LazyEvaluator is export {
 	) {
 		my $source = selection-relation-source($query, $origin);
 		my &pred = $query.predicate;
-		self.lazy-filter($source, -> $base { selection-predicate-matches(&pred, $base) })
+		self.lazy($source, -> $base { selection-predicate-matches(&pred, $base) })
 	}
 
-	method lazy-filter($source, &match --> Seq) {
+	method lazy($source, &match --> Seq) {
 		my $inner = self.iterator-for($source);
-		self.lazy-seq(FilterIterator.new(:iter($inner), :matcher(&match)))
+		self.seq-from-iterator(FilterIterator.new(:iter($inner), :matcher(&match)))
 	}
 }

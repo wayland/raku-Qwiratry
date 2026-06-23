@@ -38,53 +38,53 @@ our sub lazy-from-list(@items --> Seq) is export {
 }
 
 our sub lazy-union(+@sources --> Seq) is export {
-	union-evaluator.lazy-union(|@sources)
+	union-evaluator.lazy(|@sources)
 }
 
 our sub lazy-intersection($left, $right --> Seq) is export {
-	intersection-evaluator.lazy-intersection($left, $right)
+	intersection-evaluator.lazy($left, $right)
 }
 
 our sub lazy-set-difference($left, $right --> Seq) is export {
-	set-difference-evaluator.lazy-set-difference($left, $right)
+	set-difference-evaluator.lazy($left, $right)
 }
 
 our sub lazy-symmetric-difference($left, $right --> Seq) is export {
-	symmetric-difference-evaluator.lazy-symmetric-difference($left, $right)
+	symmetric-difference-evaluator.lazy($left, $right)
 }
 
 our sub lazy-natural-join($left, $right, &condition --> Seq) is export {
-	inner-join-evaluator.lazy-natural-join($left, $right, &condition)
+	inner-join-evaluator.lazy($left, $right, &condition)
 }
 
 our sub lazy-left-outer-join($left, $right, &condition --> Seq) is export {
-	left-outer-join-evaluator.lazy-left-outer-join($left, $right, &condition)
+	left-outer-join-evaluator.lazy($left, $right, &condition)
 }
 
 our sub lazy-right-outer-join($left, $right, &condition --> Seq) is export {
-	right-outer-join-evaluator.lazy-right-outer-join($left, $right, &condition)
+	right-outer-join-evaluator.lazy($left, $right, &condition)
 }
 
 our sub lazy-left-semijoin($left, $right, &condition --> Seq) is export {
-	left-semijoin-evaluator.lazy-left-semijoin($left, $right, &condition)
+	left-semijoin-evaluator.lazy($left, $right, &condition)
 }
 
 our sub lazy-left-antijoin($left, $right, &condition --> Seq) is export {
-	left-antijoin-evaluator.lazy-left-antijoin($left, $right, &condition)
+	left-antijoin-evaluator.lazy($left, $right, &condition)
 }
 
 our sub lazy-cross-join($left, $right --> Seq) is export {
-	cross-join-evaluator.lazy-cross-join($left, $right)
+	cross-join-evaluator.lazy($left, $right)
 }
 
 our sub lazy-projection($rows, @columns --> Seq) is export {
-	projection-evaluator.lazy-projection($rows, @columns)
+	projection-evaluator.lazy($rows, @columns)
 }
 
 our sub lazy-rename($rows, %renames --> Seq) is export {
-	rename-evaluator.lazy-rename($rows, %renames)
+	rename-evaluator.lazy($rows, %renames)
 }
 
 our sub lazy-filter($source, &match --> Seq) is export {
-	selection-evaluator.lazy-filter($source, &match)
+	selection-evaluator.lazy($source, &match)
 }

@@ -42,26 +42,26 @@ class RenameIterator does Iterator does LazyEvaluator is export {
 
 class ProjectionEvaluator does LazyEvaluator is export {
 	method select-seq(ProjectionOperator $query, Mu $origin, :&relation-source! --> Seq) {
-		self.lazy-projection(
+		self.lazy(
 			relation-source($query.relation, $origin),
 			$query.columns,
 		)
 	}
 
-	method lazy-projection($rows, @columns --> Seq) {
-		self.lazy-seq(ProjectionIterator.new(:$rows, :@columns))
+	method lazy($rows, @columns --> Seq) {
+		self.seq-from-iterator(ProjectionIterator.new(:$rows, :@columns))
 	}
 }
 
 class RenameEvaluator does LazyEvaluator is export {
 	method select-seq(RenameOperator $query, Mu $origin, :&relation-source! --> Seq) {
-		self.lazy-rename(
+		self.lazy(
 			relation-source($query.relation, $origin),
 			$query.renames,
 		)
 	}
 
-	method lazy-rename($rows, %renames --> Seq) {
-		self.lazy-seq(RenameIterator.new(:$rows, :%renames))
+	method lazy($rows, %renames --> Seq) {
+		self.seq-from-iterator(RenameIterator.new(:$rows, :%renames))
 	}
 }
