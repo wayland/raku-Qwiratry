@@ -5,7 +5,8 @@ use lib 'lib';
 
 use Qwiratry::Operator::Capability;
 use Qwiratry::Query::Slang;
-use Qwiratry::Query::Match;
+use Qwiratry::Query::Runtime;
+my constant query-runtime = Qwiratry::Query::Runtime.instance;
 use Qwiratry::Operator::MapReduce;
 
 plan 2;
@@ -19,7 +20,7 @@ subtest 'Selection queries evaluate lazily via select-seq' => {
 		:predicate(-> $_ { $_<score> >= 3 }),
 	);
 
-	my $seq = select($query, @rows);
+	my $seq = query-runtime.select($query, @rows);
 	ok $seq ~~ Seq, 'selection returns a lazy Seq';
 }
 

@@ -6,7 +6,8 @@ use lib 'lib';
 use Qwiratry::Walker::Providing;
 use Qwiratry::Table::Schema;
 use Qwiratry::Query::Slang;
-use Qwiratry::Query::Match;
+use Qwiratry::Query::Runtime;
+my constant query-runtime = Qwiratry::Query::Runtime.instance;
 
 my @orders = [
 	%(order_id => 1, customer_id => 10, total => 100),
@@ -25,7 +26,7 @@ subtest 'Multi-table root infers foreign keys' => {
 
 	my %database = %(orders => @orders, customers => @customers);
 	my $order = @orders[0];
-	my @related = select($order ⪪ <customer_id>, %database).List;
+	my @related = query-runtime.select($order ⪪ <customer_id>, %database).List;
 
 	is @related.elems, 1, 'inferred FK navigation returns one customer';
 	is @related[0]<name>, 'Alice', 'inferred FK resolves correct row';
@@ -41,7 +42,7 @@ subtest 'Providing schema metadata enables FK navigation' => {
 	));
 
 	my $order = @orders-only[0];
-	my @related = select($order ⪪ <customer_id>, @orders-only).List;
+	my @related = query-runtime.select($order ⪪ <customer_id>, @orders-only).List;
 	is @related.elems, 1, 'providing schema enables FK follow';
 	is @related[0]<name>, 'Alice', 'customer resolved via attached schema';
 }
@@ -51,7 +52,7 @@ subtest 'Parent :reference works with discovered catalog' => {
 
 	my %database = %(orders => @orders, customers => @customers);
 	my $customer = @customers[0];
-	my @referencing = select($customer ⪫ <*> :reference, %database).List;
+	my @referencing = query-runtime.select($customer ⪫ <*> :reference, %database).List;
 	is @referencing.elems, 1, 'reverse FK lookup via inferred schema';
 }
 

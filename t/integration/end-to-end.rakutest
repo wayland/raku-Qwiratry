@@ -8,7 +8,8 @@ use Qwiratry::Format;
 use Qwiratry::Format::JSONdemo;
 use Qwiratry::Operator::Capability;
 use Qwiratry::Query::Slang;
-use Qwiratry::Query::Match;
+use Qwiratry::Query::Runtime;
+my constant query-runtime = Qwiratry::Query::Runtime.instance;
 
 plan 2;
 
@@ -36,7 +37,7 @@ subtest 'navigation selection sort on in-memory table' => {
 
 	my $union = (@rows σ -> $_ { $_<score> >= 20 })
 		∪ (@rows σ -> $_ { $_<name> eq 'beta' });
-	my @union-names = select($union, @rows).map(*<name>).sort.list;
+	my @union-names = query-runtime.select($union, @rows).map(*<name>).sort.list;
 	is @union-names, <beta gamma>, 'set union combines filtered row sets';
 }
 

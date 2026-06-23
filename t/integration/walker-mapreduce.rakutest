@@ -6,7 +6,8 @@ use lib 'lib';
 use Qwiratry::Walker::Implementation::Table;
 use Qwiratry::Walker::Implementation::Tree;
 use Qwiratry::Query::Slang;
-use Qwiratry::Query::Match;
+use Qwiratry::Query::Runtime;
+my constant query-runtime = Qwiratry::Query::Runtime.instance;
 use Qwiratry::Operator::MapReduce;
 
 plan 2;
@@ -54,7 +55,7 @@ subtest 'Table walker executes selection, sort, map, and reduce' => {
 
 	my @scores = @rows.map(*<score>);
 	my $reduce-query = @scores ⌿ { $^a + $^b };
-	is select($reduce-query, @scores)[0], 35, 'reduce aggregates scores';
+	is query-runtime.select($reduce-query, @scores)[0], 35, 'reduce aggregates scores';
 }
 
 subtest 'Tree walker executes selection and sort on descendant query' => {

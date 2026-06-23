@@ -6,7 +6,9 @@ use Qwiratry::Mold::Slang;
 use Qwiratry::Query::Slang;
 use Qwiratry::Transformer;
 use Qwiratry::Mold;
-use Qwiratry::Query::Match;
+use Qwiratry::Query::Runtime;
+use Qwiratry::Query::Topic;
+my constant query-runtime = Qwiratry::Query::Runtime.instance;
 use Qwiratry::Operator::Set;
 
 plan 6;

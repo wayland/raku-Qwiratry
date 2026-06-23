@@ -10,10 +10,11 @@ unit module Qwiratry::Query::Evaluator::Navigation;
 use Qwiratry::Operator::Navigation;
 use Qwiratry::Operator::Capability;
 use Qwiratry::Query::Evaluator::Eager;
+use Qwiratry::Query::TreeNavigation;
 use Qwiratry::Query::Selector;
 use Qwiratry::Table::Schema;
 
-role NavigationEagerEvaluator does EagerEvaluator {
+role NavigationEagerEvaluator does EagerEvaluator does TreeNavigation {
 	has &.select-list is required;
 
 	method selector() {
@@ -38,16 +39,6 @@ role NavigationEagerEvaluator does EagerEvaluator {
 		Qwiratry::Table::Schema.instance.discover($origin)
 	}
 
-	method tree-children(Mu $node --> List) {
-		$node ~~ Positional and return $node.list;
-		if $node ~~ Associative {
-			if $node<children> ~~ Positional {
-				return $node<children>.list;
-			}
-		}
-		()
-	}
-
 	method tree-descendants(Mu $node --> Seq) {
 		gather {
 			for self.tree-children($node) -> $child {
@@ -60,16 +51,6 @@ role NavigationEagerEvaluator does EagerEvaluator {
 	method tree-parent(Mu $node, Mu :$origin --> Mu) {
 		$node.can('parent') and return $node.parent;
 		$origin.defined and return self.find-parent-in-tree($node, $origin);
-		Nil
-	}
-
-	method find-parent-in-tree(Mu $node, Mu $current --> Mu) {
-		$current.defined or return Nil;
-		for self.tree-children($current) -> $child {
-			$child === $node and return $current;
-			my $found = self.find-parent-in-tree($node, $child);
-			$found.defined and return $found;
-		}
 		Nil
 	}
 

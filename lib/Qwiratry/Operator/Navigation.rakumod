@@ -10,7 +10,7 @@ during planning. Execution semantics (tree vs table vs graph) are Walker-specifi
 The query slang lowers navigation syntax such as child, descendant, sibling, and
 attribute axes into these node classes. Each node stores only the structural
 pieces of the query: an optional C<subject>, a selector or key, and any adverbs.
-Walkers and L<Qwiratry::Query::Match> provide the domain-specific meaning.
+Walkers and L<Qwiratry::Query::Runtime> provide the domain-specific meaning.
 
 =head1 Operator Families
 

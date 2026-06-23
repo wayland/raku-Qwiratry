@@ -3,7 +3,7 @@
 Shared selector normalization and matching for query evaluation.
 
 Centralizes wildcard detection, path normalization, and node/row matching used by
-L<Qwiratry::Query::Match>, L<Qwiratry::Query::Specificity>, and
+L<Qwiratry::Query::Runtime>, L<Qwiratry::Query::Specificity>, and
 L<Qwiratry::Table::Catalog> navigation.
 
 =end pod

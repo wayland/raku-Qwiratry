@@ -1,6 +1,6 @@
 =begin pod
 
-Relational-algebra helpers for set operator execution in L<Qwiratry::Query::Match>.
+Relational-algebra helpers for set operator execution in L<Qwiratry::Query::Runtime>.
 
 Pure functions over row lists and associative rows: equality, joins, projections,
 and set operations used when evaluating lazy and eager query pipelines.

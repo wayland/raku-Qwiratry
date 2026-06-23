@@ -9,7 +9,7 @@ order, transform, and aggregate query results.
 
 The query slang captures user-supplied callables and optional subjects in these
 nodes. Evaluation is intentionally outside the node classes: walkers and
-L<Qwiratry::Query::Match> decide which stream of items is being filtered,
+L<Qwiratry::Query::Runtime> decide which stream of items is being filtered,
 sorted, mapped, or reduced.
 
 =head1 Operator Families

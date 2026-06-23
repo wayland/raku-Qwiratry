@@ -4,7 +4,8 @@ use Test;
 use lib 'lib';
 
 use Qwiratry::Operator::Set;
-use Qwiratry::Query::Match;
+use Qwiratry::Query::Runtime;
+my constant query-runtime = Qwiratry::Query::Runtime.instance;
 
 plan 2;
 
@@ -28,7 +29,7 @@ subtest 'Inner join pulls operands incrementally' => {
 	my $right = CountingRows.new(:label('right'), :max(4));
 	my $query = InnerJoinOperator.new(:left($left), :right($right));
 
-	my $iter = select($query, $left).iterator;
+	my $iter = query-runtime.select($query, $left).iterator;
 	my $first = $iter.pull-one;
 
 	ok $first !~~ IterationEnd, 'lazy join yields a first row';
@@ -43,7 +44,7 @@ subtest 'Union does not pre-scan both branches' => {
 	my $right = CountingRows.new(:label('b'), :max(3));
 	my $query = UnionOperator.new(:left($left), :right($right));
 
-	my $iter = select($query, $left).iterator;
+	my $iter = query-runtime.select($query, $left).iterator;
 	my $first = $iter.pull-one;
 
 	ok $first !~~ IterationEnd, 'lazy union yields first row';

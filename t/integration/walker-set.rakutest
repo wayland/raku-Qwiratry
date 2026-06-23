@@ -5,7 +5,8 @@ use lib 'lib';
 
 use Qwiratry::Walker::Implementation::Table;
 use Qwiratry::Query::Slang;
-use Qwiratry::Query::Match;
+use Qwiratry::Query::Runtime;
+my constant query-runtime = Qwiratry::Query::Runtime.instance;
 use Qwiratry::Operator::MapReduce;
 use Qwiratry::Operator::Set;
 

@@ -13,7 +13,7 @@ L<Qwiratry::Table::Catalog>, where the active row set and foreign-key metadata
 come from the catalog rather than a plain list.
 
 Plans are reusable and iterators are lazy. With no strategy attached, iteration
-delegates to L<Qwiratry::Query::Match.select>; with a strategy attached, the
+delegates to L<Qwiratry::Query::Runtime.select>; with a strategy attached, the
 walker scans rows explicitly so it can call strategy hooks around each row.
 
 =end pod
@@ -26,13 +26,14 @@ use Qwiratry::Operator::Navigation;
 use Qwiratry::Operator::Capability;
 use Qwiratry::Operator::Set;
 use Qwiratry::Operator::MapReduce;
-use Qwiratry::Query::Match;
+use Qwiratry::Query::Runtime;
 use Qwiratry::Table;
 use Qwiratry::Strategy::Traversal;
 use Qwiratry::Strategy::ControlSignal;
 use X::Qwiratry;
 
 my constant traversal = Qwiratry::Strategy::Traversal.instance;
+my constant query-runtime = Qwiratry::Query::Runtime.instance;
 
 class Qwiratry::Walker::Implementation::Table does Qwiratry::Walker is export {
 	my class TableContext does Context {
@@ -46,7 +47,7 @@ class Qwiratry::Walker::Implementation::Table does Qwiratry::Walker is export {
 		has Iterator $!matches;
 
 		submethod TWEAK {
-			$!matches = select($!query-ast, $!root).iterator;
+			$!matches = query-runtime.select($!query-ast, $!root).iterator;
 		}
 
 		method pull-one(--> Mu) {
@@ -104,7 +105,7 @@ class Qwiratry::Walker::Implementation::Table does Qwiratry::Walker is export {
 				traversal.run-on-match($row, $!query-ast, $!root, $.context, $state);
 				if $state.stopped {
 					self!stop-traversal;
-					node-matches($!query-ast, $row, :origin($!root)) and return $row;
+					query-runtime.node-matches($!query-ast, $row, :origin($!root)) and return $row;
 					return IterationEnd;
 				}
 
@@ -113,7 +114,7 @@ class Qwiratry::Walker::Implementation::Table does Qwiratry::Walker is export {
 					self!stop-traversal;
 				}
 
-				next unless node-matches($!query-ast, $row, :origin($!root));
+				next unless query-runtime.node-matches($!query-ast, $row, :origin($!root));
 				$.context.defined and $.context.rows-scanned++;
 				return $row;
 			}

@@ -736,7 +736,8 @@ explicitly or let `discover-catalog` infer them from your data root.
 ```raku
 use Qwiratry::Table;
 use Qwiratry::Query::Slang;
-use Qwiratry::Query::Match;
+use Qwiratry::Query::Runtime;
+my constant query-runtime = Qwiratry::Query::Runtime.instance;
 
 my @orders = [
     %(order_id => 1, customer_id => 10),
@@ -759,7 +760,7 @@ my $catalog = make-catalog(
 );
 
 my $order = @orders[0];
-my @customer = select($order ⪪ <customer_id>, $catalog).List;
+my @customer = query-runtime.select($order ⪪ <customer_id>, $catalog).List;
 # → one row: %(customer_id => 10, name => 'Alice')
 ```
 
@@ -773,7 +774,7 @@ builds a catalog and `infer-foreign-keys` guesses links from `orders.customer_id
 use Qwiratry::Table::Schema;
 
 my %database = %(orders => @orders, customers => @customers);
-my @related = select($order ⪪ <customer_id>, %database).List;
+my @related = query-runtime.select($order ⪪ <customer_id>, %database).List;
 ```
 
 #### 5.3.3 Attached schema via `providing` metadata
@@ -788,7 +789,7 @@ attach-schema(@orders, %(
     tables => %(orders => @orders, customers => @customers),
 ));
 
-my @related = select(@orders[0] ⪪ <customer_id>, @orders).List;
+my @related = query-runtime.select(@orders[0] ⪪ <customer_id>, @orders).List;
 ```
 
 #### 5.3.4 Table-row navigation semantics (current implementation)
@@ -807,7 +808,7 @@ my @related = select(@orders[0] ⪪ <customer_id>, @orders).List;
 
 ```raku
 my $customer = @customers[0];
-my @orders-for-customer = select($customer ⪫ <*> :reference, $catalog).List;
+my @orders-for-customer = query-runtime.select($customer ⪫ <*> :reference, $catalog).List;
 # → both orders with customer_id == 10
 ```
 
@@ -1167,18 +1168,19 @@ my $optimized = $root ⪪⪪ * σ { $_.name eq 'item' && $_.value > 10 };
 
 ### 7.6 Lazy Evaluation
 
-Query execution is **pull-based**: `select()` returns a lazy `Seq`, and Walkers produce
+Query execution is **pull-based**: `query-runtime.select()` returns a lazy `Seq`, and Walkers produce
 `QueryIterator` instances that yield one result per `pull-one` / `next` call.
 
-**`select` and `select-seq`** (`Qwiratry::Query::Match`):
+**`select` and `select-seq`** (`Qwiratry::Query::Runtime`):
 
 ```raku
-use Qwiratry::Query::Match;
+use Qwiratry::Query::Runtime;
+my constant query-runtime = Qwiratry::Query::Runtime.instance;
 
 my @rows = [%(score => 1), %(score => 5), %(score => 3)];
 my $query = @rows σ -> $_ { $_<score> >= 3 };
 
-my $seq = select($query, @rows);   # lazy Seq — no rows evaluated yet
+my $seq = query-runtime.select($query, @rows);   # lazy Seq — no rows evaluated yet
 my $first = $seq.first;            # pulls until first match
 ```
 

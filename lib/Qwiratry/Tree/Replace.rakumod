@@ -18,7 +18,9 @@ the root itself is being replaced, compatible containers are mutated in place so
 external references to the root remain valid.
 
 =end pod
-use Qwiratry::Query::Match;
+use Qwiratry::Query::TreeNavigation;
+
+my constant tree-navigation = BasicTreeNavigation.new;
 
 class Qwiratry::Tree::Replace {
 
@@ -78,7 +80,7 @@ class Qwiratry::Tree::Replace {
 			return self!merge-into-container($root, $new);
 		}
 
-		my $parent = find-parent-in-tree($old, $root);
+		my $parent = tree-navigation.find-parent-in-tree($old, $root);
 		$parent.defined or return False;
 		self!replace-in-parent($parent, $old, $new);
 	}

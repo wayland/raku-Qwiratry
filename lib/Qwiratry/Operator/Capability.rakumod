@@ -49,7 +49,7 @@ role ChainedOperator is export {
 
 =begin pod
 
-Marks an operator that has a lazy evaluator registered in C<Qwiratry::Query::Match>.
+Marks an operator that has a lazy evaluator registered in C<Qwiratry::Query::Runtime>.
 
 =end pod
 role LazyEvaluatedOperator is export {
@@ -80,8 +80,8 @@ role PipelineStep is export {
 	=end pod
 	method evaluate(Mu :$origin, :&execute) {
 		my $root = pipeline-root(self, $origin, :&execute);
-		require Qwiratry::Query::Match;
-		seq-to-pipeline-value(Qwiratry::Query::Match::select(self, $root))
+		require Qwiratry::Query::Runtime;
+		seq-to-pipeline-value(Qwiratry::Query::Runtime.instance.select(self, $root))
 	}
 }
 

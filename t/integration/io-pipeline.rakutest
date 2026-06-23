@@ -7,7 +7,8 @@ use Qwiratry::Format;
 use Qwiratry::Format::JSONdemo;
 use Qwiratry::Operator::Capability;
 use Qwiratry::Query::Slang;
-use Qwiratry::Query::Match;
+use Qwiratry::Query::Runtime;
+my constant query-runtime = Qwiratry::Query::Runtime.instance;
 
 plan 2;
 

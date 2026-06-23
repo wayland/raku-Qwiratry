@@ -10,7 +10,9 @@ and update traversal state in a uniform way.
 use Qwiratry::Context;
 use Qwiratry::QueryMatch;
 use Qwiratry::Strategy::ControlSignal;
-use Qwiratry::Query::Match;
+use Qwiratry::Query::Runtime;
+
+my constant query-runtime = Qwiratry::Query::Runtime.instance;
 
 =begin pod
 
@@ -105,7 +107,7 @@ class Qwiratry::Strategy::Traversal is export {
 	=end pod
 	method run-on-match(Mu $element, Mu $query, Mu $origin, Context $ctx, Qwiratry::Strategy::TraversalState $state --> Mu) {
 		$ctx.strategy.defined or return Nil;
-		node-matches($query, $element, :$origin) or return Nil;
+		query-runtime.node-matches($query, $element, :$origin) or return Nil;
 
 		my $match = QueryMatch.new(:element($element), :query($query), :origin($origin));
 		my $result = $ctx.strategy.on-match($element, $match, $ctx);

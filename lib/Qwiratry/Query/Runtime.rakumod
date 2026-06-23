@@ -16,6 +16,8 @@ use Qwiratry::Operator::Set;
 use Qwiratry::Operator::MapReduce;
 use Qwiratry::Operator::IO;
 use Qwiratry::Query::Relational;
+use Qwiratry::Query::Topic;
+use Qwiratry::Query::TreeNavigation;
 use Qwiratry::Query::Evaluator::Lazy;
 use Qwiratry::Query::Evaluator::Union;
 use Qwiratry::Query::Evaluator::Set;
@@ -25,12 +27,17 @@ use Qwiratry::Query::Evaluator::Filter;
 use Qwiratry::Query::Evaluator::Navigation;
 use Qwiratry::Query::Evaluator::Relational;
 use Qwiratry::Query::Evaluator::MapReduce;
-use Qwiratry::Table;
-use Qwiratry::Table::Schema;
 
+also does TreeNavigation;
+
+	my $instance;
 	has %!evaluators;
 	has $.relational = Qwiratry::Query::Relational.instance;
 	has $.lazy-evaluator = BasicLazyEvaluator.new;
+
+	method instance(--> Qwiratry::Query::Runtime) {
+		$instance //= self.new
+	}
 
 	method evaluators() {
 		unless %!evaluators {
@@ -153,17 +160,13 @@ use Qwiratry::Table::Schema;
 			when SelectionOperator {
 				my $evaluator = self.evaluators{$query.evaluator-key}
 					// die "No evaluator registered for {$query.^name}";
-				my &selection-relation-source = -> Mu $query, Mu $origin {
-					self.selection-relation-source($query, $origin)
-				};
-				my &selection-predicate-matches = -> &pred, Mu $base {
-					self.selection-predicate-matches(&pred, $base)
+				my &select-seq = -> Mu $query, Mu $origin {
+					self.select-seq($query, $origin)
 				};
 				return $evaluator.select-seq(
 					$query,
 					$origin,
-					:&selection-relation-source,
-					:&selection-predicate-matches,
+					:&select-seq,
 				);
 			}
 			when LazyEvaluatedOperator {
@@ -224,26 +227,6 @@ use Qwiratry::Table::Schema;
 		$fallback
 	}
 
-	method tree-children(Mu $node --> List) {
-		$node ~~ Positional and return $node.list;
-		if $node ~~ Associative {
-			if $node<children> ~~ Positional {
-				return $node<children>.list;
-			}
-		}
-		();
-	}
-
-	method find-parent-in-tree(Mu $node, Mu $current --> Mu) {
-		$current.defined or return Nil;
-		for self.tree-children($current) -> $child {
-			$child === $node and return $current;
-			my $found = self.find-parent-in-tree($node, $child);
-			$found.defined and return $found;
-		}
-		Nil
-	}
-
 	method is-union-query-list(Mu $query --> Bool) {
 		$query.WHAT === Array || $query.WHAT === List or return False;
 		$query.elems > 0 && $query[0] ~~ NavigationOperator;
@@ -258,51 +241,6 @@ use Qwiratry::Table::Schema;
 		@unique
 	}
 
-	method selection-predicate-matches(&pred, Mu $base --> Bool) {
-		my $result = try {
-			if &pred.arity == 1 {
-				pred($base).Bool;
-			}
-			else {
-				(with $base { pred() }).Bool;
-			}
-		};
-		return $result // False;
-	}
-
-	method relation-row-snapshot(Mu $source) {
-		$source ~~ Positional and return Array.new($source.list);
-		$source
-	}
-
-	method selection-relation-source(Mu $query, Mu $origin) {
-		if $query.subject ~~ NavigationOperator | RootOperator {
-			return self.select-seq($query.subject, $origin);
-		}
-		if $query.subject ~~ AdaptorOperator {
-			return $origin ~~ Positional ?? $origin !! ($origin,);
-		}
-		if $query.subject ~~ Qwiratry::Table::Catalog {
-			return $query.subject.active-rows;
-		}
-		if $query.subject ~~ Iterator {
-			return $query.subject;
-		}
-		if $query.subject ~~ Positional {
-			return self.relation-row-snapshot($query.subject);
-		}
-		if $query.subject.defined {
-			return ($query.subject,);
-		}
-		if $origin ~~ Qwiratry::Table::Catalog {
-			return $origin.active-rows;
-		}
-		if $origin ~~ Positional {
-			return self.relation-row-snapshot($origin);
-		}
-		($origin,);
-	}
-
 	method select-relation(Mu $operand, Mu $origin --> List) {
 		if $operand ~~ Positional {
 			$operand ~~ NavigationOperator or return $operand.list;
@@ -311,5 +249,5 @@ use Qwiratry::Table::Schema;
 	}
 
 	method is-topic(Mu $query --> Bool) {
-		$query.defined && $query.^name eq 'Qwiratry::Query::Match::NavQueryTopic'
+		$query ~~ NavQueryTopic
 	}

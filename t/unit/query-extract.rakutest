@@ -3,7 +3,9 @@ use Test;
 use lib 'lib';
 
 use Qwiratry::Query::Extract;
-use Qwiratry::Query::Match;
+use Qwiratry::Query::Runtime;
+use Qwiratry::Query::Topic;
+my constant query-runtime = Qwiratry::Query::Runtime.instance;
 use Qwiratry::Query::Slang;
 use Qwiratry::Operator::Navigation;
 use Qwiratry::Operator::Set;
@@ -39,9 +41,9 @@ subtest 'when-query-matches topic-rooted queries by selector' => {
 	my $item = %(name => 'item', value => 1);
 	my $other = %(name => 'footer');
 
-	ok when-query-matches($query, $item), 'item node matches topic query';
-	nok when-query-matches($query, $other), 'non-item node does not match';
-	ok when-query-matches($query, 'item'), 'string node name matches';
+	ok query-runtime.when-query-matches($query, $item), 'item node matches topic query';
+	nok query-runtime.when-query-matches($query, $other), 'non-item node does not match';
+	ok query-runtime.when-query-matches($query, 'item'), 'string node name matches';
 }
 
 subtest 'when-query-matches uses full select for explicit subjects' => {
@@ -55,8 +57,8 @@ subtest 'when-query-matches uses full select for explicit subjects' => {
 	my $query = $tree ⪪⪪ <item>;
 	my $item = $tree[0]<children>[0];
 
-	ok when-query-matches($query, $item, :origin($tree)), 'explicit-subject query matches';
-	nok when-query-matches($query, $tree[0], :origin($tree)), 'parent node not in descendant results';
+	ok query-runtime.when-query-matches($query, $item, :origin($tree)), 'explicit-subject query matches';
+	nok query-runtime.when-query-matches($query, $tree[0], :origin($tree)), 'parent node not in descendant results';
 }
 
 subtest 'when-query-matches chained topic child operators' => {
@@ -72,9 +74,9 @@ subtest 'when-query-matches chained topic child operators' => {
 	my $item = $tree[0]<children>[0];
 	my $section = $tree[0];
 
-	ok when-query-matches($query, $item, :origin($tree)), 'item under section matches chain';
-	nok when-query-matches($query, $section, :origin($tree)), 'section alone does not match item chain';
-	nok when-query-matches($query, $item), 'chain requires transform root for parent lookup';
+	ok query-runtime.when-query-matches($query, $item, :origin($tree)), 'item under section matches chain';
+	nok query-runtime.when-query-matches($query, $section, :origin($tree)), 'section alone does not match item chain';
+	nok query-runtime.when-query-matches($query, $item), 'chain requires transform root for parent lookup';
 }
 
 subtest 'from-when-block captures set-composed query' => {
@@ -90,7 +92,7 @@ subtest 'from-when-block captures set-composed query' => {
 			%(name => 'item', value => 1),
 		]),
 	];
-	ok when-query-matches($query, $tree[0]<children>[0], :origin($tree)),
+	ok query-runtime.when-query-matches($query, $tree[0]<children>[0], :origin($tree)),
 		'intersection query matches common result';
 }
 

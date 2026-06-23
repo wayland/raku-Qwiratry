@@ -18,8 +18,10 @@ participating in Qwiratry's traversal and output protocol.
 unit module Qwiratry::Mold;
 
 use X::Qwiratry;  # For X::Qwiratry::TypeCheck
-use Qwiratry::Query::Match;
+use Qwiratry::Query::Runtime;
 use Qwiratry::Tree::Replace;
+
+my constant query-runtime = Qwiratry::Query::Runtime.instance;
 
 =begin pod
 
@@ -290,12 +292,12 @@ class Mold is export {
 		my $origin = $*TRANSFORM-ROOT // $node;
 
 		if $.combine-when-query && $!when-query.defined {
-			when-query-matches($!when-query, $node, :$origin) or return False;
+			query-runtime.when-query-matches($!when-query, $node, :$origin) or return False;
 			return $!when-block.defined ?? self!evaluate-when-block($node) !! True;
 		}
 
 		if $!when-query.defined && !$!when-block.defined {
-			return when-query-matches($!when-query, $node, :$origin);
+			return query-runtime.when-query-matches($!when-query, $node, :$origin);
 		}
 
 		if !$!when-block.defined {

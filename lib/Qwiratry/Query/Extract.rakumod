@@ -3,7 +3,7 @@
 Extract navigation Query AST values from mold C<when> blocks.
 
 When blocks such as C<when { $_ ⪪⪪ <item> }> build navigation operators at
-runtime with C<$_> as the subject. A sentinel L<NavQueryTopic|Qwiratry::Query::Match::NavQueryTopic>
+runtime with C<$_> as the subject. A sentinel L<NavQueryTopic|Qwiratry::Query::Topic::NavQueryTopic>
 stands in for C<$_> during extraction so the query can be stored on the mold
 for specificity scoring and matching.
 
@@ -12,7 +12,7 @@ use v6.e.PREVIEW;
 
 use Qwiratry::Operator::Navigation;
 use Qwiratry::Operator::Capability;
-use Qwiratry::Query::Match;
+use Qwiratry::Query::Topic;
 
 class Qwiratry::Query::Extract {
 

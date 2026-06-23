@@ -17,7 +17,7 @@ and results are pulled one at a time.
 When a strategy is attached, the strategy-aware iterator performs an explicit
 depth-first traversal so it can call C<before>, C<on-match>, C<should-follow>,
 C<after>, and C<finish> at the right points. Without a strategy, the iterator
-delegates directly to L<Qwiratry::Query::Match.select>.
+delegates directly to L<Qwiratry::Query::Runtime.select>.
 
 =end pod
 
@@ -29,12 +29,15 @@ use Qwiratry::Operator::Navigation;
 use Qwiratry::Operator::Capability;
 use Qwiratry::Operator::Set;
 use Qwiratry::Operator::MapReduce;
-use Qwiratry::Query::Match;
+use Qwiratry::Query::Runtime;
+use Qwiratry::Query::TreeNavigation;
 use Qwiratry::Strategy::Traversal;
 use Qwiratry::Strategy::ControlSignal;
 use X::Qwiratry;
 
 my constant traversal = Qwiratry::Strategy::Traversal.instance;
+my constant query-runtime = Qwiratry::Query::Runtime.instance;
+my constant tree-navigation = BasicTreeNavigation.new;
 
 class Qwiratry::Walker::Implementation::Tree does Qwiratry::Walker is export {
 	my class TreeContext does Context {
@@ -48,7 +51,7 @@ class Qwiratry::Walker::Implementation::Tree does Qwiratry::Walker is export {
 		has Iterator $!matches;
 
 		submethod TWEAK {
-			$!matches = select($!query-ast, $!root).iterator;
+			$!matches = query-runtime.select($!query-ast, $!root).iterator;
 		}
 
 		method pull-one(--> Mu) {
@@ -99,7 +102,7 @@ class Qwiratry::Walker::Implementation::Tree does Qwiratry::Walker is export {
 				return $yield ?? $element !! Nil;
 			}
 
-			if node-matches($!query-ast, $element, :origin($!root)) {
+			if query-runtime.node-matches($!query-ast, $element, :origin($!root)) {
 				@!yield-queue.push($element);
 				$.context.defined and $.context.nodes-visited++;
 			}
@@ -111,7 +114,7 @@ class Qwiratry::Walker::Implementation::Tree does Qwiratry::Walker is export {
 			}
 
 			unless $!state.should-skip-expand {
-				for tree-children($element) -> $child {
+				for tree-navigation.tree-children($element) -> $child {
 					next unless traversal.should-follow($element, 'child', $child, $.context);
 					@!stack.push($child);
 				}
@@ -326,34 +329,3 @@ class Qwiratry::Walker::Implementation::Tree does Qwiratry::Walker is export {
 	}
 }
 
-=begin pod
-
-=head1 Helper
-
-=head2 C<tree-children(Mu $node)>
-
-=begin code
-sub tree-children(Mu $node --> List)
-=end code
-
-=head3 Parameters
-
-=item C<$node>
-
- The current node or element being matched, transformed, copied, or replaced.
-
-
- Returns the immediate children used by the strategy-aware traversal loop.
- Positional values expose their list; associative values expose a C<children>
- field when it is positional.
-
-=end pod
-sub tree-children(Mu $node --> List) {
-	$node ~~ Positional and return $node.list;
-	if $node ~~ Associative {
-		if $node<children> ~~ Positional {
-			return $node<children>.list;
-		}
-	}
-	();
-}

@@ -6,7 +6,7 @@ Set-theory and relational-algebra query operators as immutable AST nodes.
 
 The query slang lowers union, intersection, difference, joins, projection, and
 rename forms into these small RakuAST node classes. The nodes carry operands and
-metadata only; L<Qwiratry::Query::Match>, query evaluators, and table helpers
+metadata only; L<Qwiratry::Query::Runtime>, query evaluators, and table helpers
 decide how to evaluate them for the current data domain.
 
 =head1 Operator Families
