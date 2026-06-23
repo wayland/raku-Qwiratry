@@ -13,10 +13,23 @@ use Qwiratry::Query::Evaluator::Union;
 
 my constant union-evaluator = UnionEvaluator.new;
 
-class NaturalJoinIterator does Iterator does LazyEvaluator is export {
+role JoinIteratorBase does LazyEvaluator {
 	has Mu $.left is required;
 	has Mu $.right is required;
 	has &.condition;
+
+	method rows-match(Mu $left, Mu $right --> Bool) {
+		&!condition.defined
+			?? &!condition($left, $right)
+			!! self.relation-common.join-on-common-keys($left, $right)
+	}
+
+	method merge-rows(Associative $left, Associative $right --> Hash) {
+		self.relation-common.merge-rows($left, $right)
+	}
+}
+
+class NaturalJoinIterator does Iterator does JoinIteratorBase is export {
 	has Iterator $!left-iter;
 	has Mu $!current-left;
 	has Iterator $!right-iter;
@@ -37,18 +50,13 @@ class NaturalJoinIterator does Iterator does LazyEvaluator is export {
 				next;
 			}
 			next unless $rrow ~~ Associative;
-			my $matches = &!condition.defined
-				?? &!condition($!current-left, $rrow)
-				!! self.relation-common.join-on-common-keys($!current-left, $rrow);
-			$matches and return self.relation-common.merge-rows($!current-left, $rrow);
+			self.rows-match($!current-left, $rrow)
+				and return self.merge-rows($!current-left, $rrow);
 		}
 	}
 }
 
-class LeftOuterJoinIterator does Iterator does LazyEvaluator is export {
-	has Mu $.left is required;
-	has Mu $.right is required;
-	has &.condition;
+class LeftOuterJoinIterator does Iterator does JoinIteratorBase is export {
 	has Iterator $!left-iter;
 	has Mu $!current-left;
 	has Iterator $!right-iter;
@@ -66,10 +74,8 @@ class LeftOuterJoinIterator does Iterator does LazyEvaluator is export {
 			loop {
 				my $rrow = self.pull-next($!right-iter);
 				last if $rrow ~~ IterationEnd;
-				my $ok = &!condition.defined
-					?? &!condition($!current-left, $rrow)
-					!! self.relation-common.join-on-common-keys($!current-left, $rrow);
-				$ok and @matches.push(self.relation-common.merge-rows($!current-left, $rrow));
+				self.rows-match($!current-left, $rrow)
+					and @matches.push(self.merge-rows($!current-left, $rrow));
 			}
 			if @matches {
 				@!pending = @matches;
@@ -80,10 +86,7 @@ class LeftOuterJoinIterator does Iterator does LazyEvaluator is export {
 	}
 }
 
-class RightOuterJoinIterator does Iterator does LazyEvaluator is export {
-	has Mu $.left is required;
-	has Mu $.right is required;
-	has &.condition;
+class RightOuterJoinIterator does Iterator does JoinIteratorBase is export {
 	has Iterator $!right-iter;
 	has Mu $!current-right;
 	has Iterator $!left-iter;
@@ -101,10 +104,8 @@ class RightOuterJoinIterator does Iterator does LazyEvaluator is export {
 			loop {
 				my $lrow = self.pull-next($!left-iter);
 				last if $lrow ~~ IterationEnd;
-				my $ok = &!condition.defined
-					?? &!condition($lrow, $!current-right)
-					!! self.relation-common.join-on-common-keys($lrow, $!current-right);
-				$ok and @matches.push(self.relation-common.merge-rows($lrow, $!current-right));
+				self.rows-match($lrow, $!current-right)
+					and @matches.push(self.merge-rows($lrow, $!current-right));
 			}
 			if @matches {
 				@!pending = @matches;
@@ -115,10 +116,7 @@ class RightOuterJoinIterator does Iterator does LazyEvaluator is export {
 	}
 }
 
-class LeftSemijoinIterator does Iterator does LazyEvaluator is export {
-	has Mu $.left is required;
-	has Mu $.right is required;
-	has &.condition;
+class LeftSemijoinIterator does Iterator does JoinIteratorBase is export {
 	has Iterator $!left-iter;
 
 	method pull-one {
@@ -130,19 +128,13 @@ class LeftSemijoinIterator does Iterator does LazyEvaluator is export {
 			loop {
 				my $rrow = self.pull-next($right-iter);
 				last if $rrow ~~ IterationEnd;
-				my $ok = &!condition.defined
-					?? &!condition($lrow, $rrow)
-					!! self.relation-common.join-on-common-keys($lrow, $rrow);
-				$ok and return %($lrow);
+				self.rows-match($lrow, $rrow) and return %($lrow);
 			}
 		}
 	}
 }
 
-class LeftAntijoinIterator does Iterator does LazyEvaluator is export {
-	has Mu $.left is required;
-	has Mu $.right is required;
-	has &.condition;
+class LeftAntijoinIterator does Iterator does JoinIteratorBase is export {
 	has Iterator $!left-iter;
 
 	method pull-one {
@@ -155,10 +147,7 @@ class LeftAntijoinIterator does Iterator does LazyEvaluator is export {
 			loop {
 				my $rrow = self.pull-next($right-iter);
 				last if $rrow ~~ IterationEnd;
-				my $ok = &!condition.defined
-					?? &!condition($lrow, $rrow)
-					!! self.relation-common.join-on-common-keys($lrow, $rrow);
-				if $ok {
+				if self.rows-match($lrow, $rrow) {
 					$matched = True;
 					last;
 				}
@@ -168,9 +157,7 @@ class LeftAntijoinIterator does Iterator does LazyEvaluator is export {
 	}
 }
 
-class CrossJoinIterator does Iterator does LazyEvaluator is export {
-	has Mu $.left is required;
-	has Mu $.right is required;
+class CrossJoinIterator does Iterator does JoinIteratorBase is export {
 	has Iterator $!left-iter;
 	has Mu $!current-left;
 	has Iterator $!right-iter;
@@ -189,7 +176,7 @@ class CrossJoinIterator does Iterator does LazyEvaluator is export {
 				$!right-iter = Nil;
 				next;
 			}
-			return self.relation-common.merge-rows($!current-left, $rrow);
+			return self.merge-rows($!current-left, $rrow);
 		}
 	}
 }
