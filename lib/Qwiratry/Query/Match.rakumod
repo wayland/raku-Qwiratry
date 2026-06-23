@@ -22,12 +22,33 @@ use Qwiratry::Operator::MapReduce;
 use Qwiratry::Operator::IO;
 use Qwiratry::Query::Relational;
 use Qwiratry::Query::Lazy;
+use Qwiratry::Query::Evaluator::Union;
+use Qwiratry::Query::Evaluator::Set;
+use Qwiratry::Query::Evaluator::Join;
+use Qwiratry::Query::Evaluator::Row;
+use Qwiratry::Query::Evaluator::Filter;
 use Qwiratry::Table;
 use Qwiratry::Table::Schema;
 use Qwiratry::Query::Selector;
 
 my sub relational() { Qwiratry::Query::Relational.instance }
 my constant selector = Qwiratry::Query::Selector.instance;
+my constant union-evaluator = UnionEvaluator.new;
+my constant intersection-evaluator = IntersectionEvaluator.new;
+my constant set-difference-evaluator = SetDifferenceEvaluator.new;
+my constant symmetric-difference-evaluator = SymmetricDifferenceEvaluator.new;
+my constant inner-join-evaluator = InnerJoinEvaluator.new;
+my constant left-outer-join-evaluator = LeftOuterJoinEvaluator.new;
+my constant right-outer-join-evaluator = RightOuterJoinEvaluator.new;
+my constant full-outer-join-evaluator = FullOuterJoinEvaluator.new;
+my constant left-semijoin-evaluator = LeftSemijoinEvaluator.new;
+my constant right-semijoin-evaluator = RightSemijoinEvaluator.new;
+my constant left-antijoin-evaluator = LeftAntijoinEvaluator.new;
+my constant right-antijoin-evaluator = RightAntijoinEvaluator.new;
+my constant cross-join-evaluator = CrossJoinEvaluator.new;
+my constant projection-evaluator = ProjectionEvaluator.new;
+my constant rename-evaluator = RenameEvaluator.new;
+my constant selection-evaluator = SelectionEvaluator.new;
 
 =begin pod
 
@@ -149,117 +170,57 @@ sub select-seq(Mu $query, Mu $origin --> Seq) {
 
 	given $query {
 		when UnionOperator {
-			return lazy-union(
-				relation-source($query.left, $origin),
-				relation-source($query.right, $origin),
-			);
+			return union-evaluator.select-seq($query, $origin, :&relation-source);
 		}
 		when IntersectionOperator {
-			return lazy-intersection(
-				relation-source($query.left, $origin),
-				relation-source($query.right, $origin),
-			);
+			return intersection-evaluator.select-seq($query, $origin, :&relation-source);
 		}
 		when SetDifferenceOperator {
-			return lazy-set-difference(
-				relation-source($query.left, $origin),
-				relation-source($query.right, $origin),
-			);
+			return set-difference-evaluator.select-seq($query, $origin, :&relation-source);
 		}
 		when SymmetricDifferenceOperator {
-			return lazy-symmetric-difference(
-				relation-source($query.left, $origin),
-				relation-source($query.right, $origin),
-			);
+			return symmetric-difference-evaluator.select-seq($query, $origin, :&relation-source);
 		}
 		when InnerJoinOperator {
-			my &cond = $query.condition.defined ?? $query.condition !! Nil;
-			return lazy-natural-join(
-				relation-source($query.left, $origin),
-				relation-source($query.right, $origin),
-				&cond,
-			);
+			return inner-join-evaluator.select-seq($query, $origin, :&relation-source);
 		}
 		when LeftOuterJoinOperator {
-			my &cond = $query.condition.defined ?? $query.condition !! Nil;
-			return lazy-left-outer-join(
-				relation-source($query.left, $origin),
-				relation-source($query.right, $origin),
-				&cond,
-			);
+			return left-outer-join-evaluator.select-seq($query, $origin, :&relation-source);
 		}
 		when RightOuterJoinOperator {
-			my &cond = $query.condition.defined ?? $query.condition !! Nil;
-			return lazy-right-outer-join(
-				relation-source($query.left, $origin),
-				relation-source($query.right, $origin),
-				&cond,
-			);
+			return right-outer-join-evaluator.select-seq($query, $origin, :&relation-source);
 		}
 		when FullOuterJoinOperator {
-			my &cond = $query.condition.defined ?? $query.condition !! Nil;
-			my $left = relation-source($query.left, $origin);
-			my $right = relation-source($query.right, $origin);
-			return lazy-union(
-				lazy-natural-join($left, $right, &cond),
-				lazy-left-antijoin($left, $right, &cond),
-				lazy-left-antijoin($right, $left, &cond),
-			);
+			return full-outer-join-evaluator.select-seq($query, $origin, :&relation-source);
 		}
 		when LeftSemijoinOperator {
-			my &cond = $query.condition.defined ?? $query.condition !! Nil;
-			return lazy-left-semijoin(
-				relation-source($query.left, $origin),
-				relation-source($query.right, $origin),
-				&cond,
-			);
+			return left-semijoin-evaluator.select-seq($query, $origin, :&relation-source);
 		}
 		when RightSemijoinOperator {
-			my &cond = $query.condition.defined ?? $query.condition !! Nil;
-			return lazy-left-semijoin(
-				relation-source($query.right, $origin),
-				relation-source($query.left, $origin),
-				&cond,
-			);
+			return right-semijoin-evaluator.select-seq($query, $origin, :&relation-source);
 		}
 		when LeftAntijoinOperator {
-			my &cond = $query.condition.defined ?? $query.condition !! Nil;
-			return lazy-left-antijoin(
-				relation-source($query.left, $origin),
-				relation-source($query.right, $origin),
-				&cond,
-			);
+			return left-antijoin-evaluator.select-seq($query, $origin, :&relation-source);
 		}
 		when RightAntijoinOperator {
-			my &cond = $query.condition.defined ?? $query.condition !! Nil;
-			return lazy-left-antijoin(
-				relation-source($query.right, $origin),
-				relation-source($query.left, $origin),
-				&cond,
-			);
+			return right-antijoin-evaluator.select-seq($query, $origin, :&relation-source);
 		}
 		when CrossJoinOperator {
-			return lazy-cross-join(
-				relation-source($query.left, $origin),
-				relation-source($query.right, $origin),
-			);
+			return cross-join-evaluator.select-seq($query, $origin, :&relation-source);
 		}
 		when ProjectionOperator {
-			return lazy-projection(
-				relation-source($query.relation, $origin),
-				$query.columns,
-			);
+			return projection-evaluator.select-seq($query, $origin, :&relation-source);
 		}
 		when RenameOperator {
-			return lazy-rename(
-				relation-source($query.relation, $origin),
-				$query.renames,
-			);
+			return rename-evaluator.select-seq($query, $origin, :&relation-source);
 		}
 		when SelectionOperator {
-			my $source = selection-relation-source($query, $origin);
-			my &pred = $query.predicate;
-			return lazy-filter($source, -> $base { selection-predicate-matches(&pred, $base) });
+			return selection-evaluator.select-seq(
+				$query,
+				$origin,
+				:&selection-relation-source,
+				:&selection-predicate-matches,
+			);
 		}
 		default {
 			my @items = select-list-eager($query, $origin);
