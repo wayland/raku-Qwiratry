@@ -42,23 +42,30 @@ Either way, you'll need to set RAKUDO_RAKUAST=1 to run it
 ## Quick Start
 
 ```raku
-use Qwiratry;
+#!/usr/bin/env raku
 
-# Declare a transformer with molds
+use	lib 'lib';
+
+use     Qwiratry::Mold::Slang;
+use	Qwiratry;
+
+my %data-structure = type => 'element', value => 42;
+
+# Declare a transformer with molds.
 transformer MyTransform {
-    mold TOP do {
-        # Transform the root node
-        return $*NODE.deepcopy;
-    }
-    
-    mold /type eq 'element'/ do {
-        # Match and transform specific elements
-        return $*NODE.clone;
-    }
+	# Match and transform specific elements
+	mold when { .<type> eq 'element' } do {
+		%( |$_, transformed => True )
+	}
+
+	# Pass through by default
+	mold do {
+		$_
+	}
 }
 
-# Use the transformer
-my $result = MyTransform.transform($data-structure);
+# Apply the transformer to the tree
+say MyTransform(%data-structure);
 ```
 
 ## Architecture
@@ -75,7 +82,6 @@ Qwiratry's architecture enables:
 
 - [Specification.md](Specification.md) - Complete architecture specification
 - [Operators.md](Operators.md) - Query operator reference
-- `kitty-specs/` - Detailed feature specifications and design documents
 - `t/examples/` - Example code and usage patterns
 
 ## Requirements
@@ -83,18 +89,11 @@ Qwiratry's architecture enables:
 - Raku 6.e or later
 - `Slangify` module
 - `Implementation::Loader` v0.0.7 or later
-
-## Testing
-
-Run the test suite.  zef seems to be broken with RAKUDO_RAKUAST=1 so you'll need to do:
-
-```bash
-./project test
-```
+- Set `RAKUDO_RAKUAST=1` in your environment
 
 ## License
 
-See the repository for license information.
+Licensed under the same terms as Raku itself.  
 
 ## Author
 

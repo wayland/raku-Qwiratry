@@ -25,6 +25,8 @@ transformer MyTransform {
 
 =end pod
 
+no precompilation;
+
 use Qwiratry::Mold::Slang;
 use Qwiratry::Mold;
 use Qwiratry::Transformer;
