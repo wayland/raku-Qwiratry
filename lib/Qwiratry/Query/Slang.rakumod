@@ -84,7 +84,7 @@ sub nav-new(
 Child axis (C<⪪>): direct children matching C<$right>.
 
 =end pod
-multi sub infix:<⪪>(Mu $left, Mu $right) is export {
+multi sub infix:<⪪>(Mu $left, Mu $right) is equiv(&infix:<x>) is export {
 	my $query = nav-new(ChildOperator, $left, $right);
 	build-query($left, $right) ?? $query !! evaluate-query($query, $left)
 }
@@ -94,7 +94,7 @@ multi sub infix:<⪪>(Mu $left, Mu $right) is export {
 Parent axis (C<⪫>): parent or referencing rows; C<:reference> for incoming FKs.
 
 =end pod
-multi sub infix:<⪫>(Mu $left, Mu $right, *%adverbs) is export {
+multi sub infix:<⪫>(Mu $left, Mu $right, *%adverbs) is equiv(&infix:<x>) is export {
 	my $query = nav-new(ParentOperator, $left, $right, |(%adverbs ?? :adverbs(%adverbs) !! |()));
 	build-query($left, $right) ?? $query !! evaluate-query($query, $left)
 }
@@ -104,7 +104,7 @@ multi sub infix:<⪫>(Mu $left, Mu $right, *%adverbs) is export {
 Descendant axis (C<⪪⪪>): nested children; C<:recursive> for table FK walks.
 
 =end pod
-multi sub infix:<⪪⪪>(Mu $left, Mu $right, *%adverbs) is export {
+multi sub infix:<⪪⪪>(Mu $left, Mu $right, *%adverbs) is equiv(&infix:<x>) is export {
 	my $query = nav-new(DescendantOperator, $left, $right, |(%adverbs ?? :adverbs(%adverbs) !! |()));
 	build-query($left, $right) ?? $query !! evaluate-query($query, $left)
 }
@@ -114,7 +114,7 @@ multi sub infix:<⪪⪪>(Mu $left, Mu $right, *%adverbs) is export {
 Ancestor axis (C<⪫⪫>): ancestor nodes matching C<$right>.
 
 =end pod
-multi sub infix:<⪫⪫>(Mu $left, Mu $right) is export {
+multi sub infix:<⪫⪫>(Mu $left, Mu $right) is equiv(&infix:<x>) is export {
 	my $query = nav-new(AncestorOperator, $left, $right);
 	build-query($left, $right) ?? $query !! evaluate-query($query, $left)
 }
@@ -124,7 +124,7 @@ multi sub infix:<⪫⪫>(Mu $left, Mu $right) is export {
 Following-sibling axis (C<⪨>): next sibling in document/table order.
 
 =end pod
-multi sub infix:<⪨>(Mu $left, Mu $right) is export {
+multi sub infix:<⪨>(Mu $left, Mu $right) is equiv(&infix:<x>) is export {
 	my $query = nav-new(FollowingSiblingOperator, $left, $right);
 	build-query($left, $right) ?? $query !! evaluate-query($query, $left)
 }
@@ -134,7 +134,7 @@ multi sub infix:<⪨>(Mu $left, Mu $right) is export {
 Preceding-sibling axis (C<⪩>): previous sibling in document/table order.
 
 =end pod
-multi sub infix:<⪩>(Mu $left, Mu $right) is export {
+multi sub infix:<⪩>(Mu $left, Mu $right) is equiv(&infix:<x>) is export {
 	my $query = nav-new(PrecedingSiblingOperator, $left, $right);
 	build-query($left, $right) ?? $query !! evaluate-query($query, $left)
 }
@@ -144,7 +144,7 @@ multi sub infix:<⪩>(Mu $left, Mu $right) is export {
 Following axis (C<⪨⪨>): all following nodes in order.
 
 =end pod
-multi sub infix:<⪨⪨>(Mu $left, Mu $right) is export {
+multi sub infix:<⪨⪨>(Mu $left, Mu $right) is equiv(&infix:<x>) is export {
 	my $query = nav-new(FollowingOperator, $left, $right);
 	build-query($left, $right) ?? $query !! evaluate-query($query, $left)
 }
@@ -154,7 +154,7 @@ multi sub infix:<⪨⪨>(Mu $left, Mu $right) is export {
 Preceding axis (C<⪩⪩>): all preceding nodes in order.
 
 =end pod
-multi sub infix:<⪩⪩>(Mu $left, Mu $right) is export {
+multi sub infix:<⪩⪩>(Mu $left, Mu $right) is equiv(&infix:<x>) is export {
 	my $query = nav-new(PrecedingOperator, $left, $right);
 	build-query($left, $right) ?? $query !! evaluate-query($query, $left)
 }
@@ -164,7 +164,7 @@ multi sub infix:<⪩⪩>(Mu $left, Mu $right) is export {
 Attribute axis (C<⥷>): read attribute or column C<$right> from C<$left>.
 
 =end pod
-multi sub infix:<⥷>(Mu $left, Mu $right) is export {
+multi sub infix:<⥷>(Mu $left, Mu $right) is equiv(&infix:<x>) is export {
 	my $query = AttributeOperator.new(:subject($left), :key($right));
 	build-query($left, $right) ?? $query !! evaluate-query($query, $left)
 }
@@ -235,11 +235,11 @@ multi sub infix:<∖>(Mu $left, OperatorBase $right) is export {
 Selection / filter (C<σ>): keep rows matching C<&predicate>.
 
 =end pod
-multi sub infix:<σ>(OperatorBase $left, &predicate) is export {
+multi sub infix:<σ>(OperatorBase $left, &predicate) is equiv(&infix:<x>) is export {
 	SelectionOperator.new(:subject($left), :predicate(&predicate))
 }
 
-multi sub infix:<σ>(Mu $left, &predicate) is export {
+multi sub infix:<σ>(Mu $left, &predicate) is equiv(&infix:<x>) is export {
 	my $query = SelectionOperator.new(:subject($left), :predicate(&predicate));
 	build-query($left) ?? $query !! evaluate-query($query, $left)
 }
@@ -254,7 +254,7 @@ multi sub prefix:<σ>(&predicate, Mu $subject) is export {
 Sort (C<⇅>) by key function.
 
 =end pod
-multi sub infix:<⇅>(Mu $left, &key) is export {
+multi sub infix:<⇅>(Mu $left, &key) is equiv(&infix:<x>) is export {
 	SortOperator.new(:subject($left), :key-function(&key))
 }
 
@@ -263,7 +263,7 @@ multi sub infix:<⇅>(Mu $left, &key) is export {
 Reduce (C<⌿>) with combining operation.
 
 =end pod
-multi sub infix:<⌿>(Mu $left, &operation) is export {
+multi sub infix:<⌿>(Mu $left, &operation) is equiv(&infix:<x>) is export {
 	ReduceOperator.new(:subject($left), :operation(&operation))
 }
 
@@ -272,11 +272,11 @@ multi sub infix:<⌿>(Mu $left, &operation) is export {
 Map (C<».>) transform over query results.
 
 =end pod
-multi sub infix:<».>(OperatorBase $left, &transform) is export {
+multi sub infix:<».>(OperatorBase $left, &transform) is equiv(&infix:<x>) is export {
 	MapOperator.new(:subject($left), :transform(&transform))
 }
 
-multi sub infix:<».>(Mu $left, &transform) is export {
+multi sub infix:<».>(Mu $left, &transform) is equiv(&infix:<x>) is export {
 	MapOperator.new(:subject($left), :transform(&transform))
 }
 
@@ -343,7 +343,7 @@ multi sub infix:<≡>(Mu $left, Mu $right) is export {
 Inner join (C<⨝>).
 
 =end pod
-multi sub infix:<⨝>(Mu $left, Mu $right, &condition?) is export {
+multi sub infix:<⨝>(Mu $left, Mu $right, &condition?) is equiv(&infix:<~>) is export {
 	InnerJoinOperator.new(:left($left), :right($right), :condition(&condition))
 }
 
@@ -352,7 +352,7 @@ multi sub infix:<⨝>(Mu $left, Mu $right, &condition?) is export {
 Left outer join (C<⟕>).
 
 =end pod
-multi sub infix:<⟕>(Mu $left, Mu $right, &condition?) is export {
+multi sub infix:<⟕>(Mu $left, Mu $right, &condition?) is equiv(&infix:<~>) is export {
 	LeftOuterJoinOperator.new(:left($left), :right($right), :condition(&condition))
 }
 
@@ -361,7 +361,7 @@ multi sub infix:<⟕>(Mu $left, Mu $right, &condition?) is export {
 Right outer join (C<⟖>).
 
 =end pod
-multi sub infix:<⟖>(Mu $left, Mu $right, &condition?) is export {
+multi sub infix:<⟖>(Mu $left, Mu $right, &condition?) is equiv(&infix:<~>) is export {
 	RightOuterJoinOperator.new(:left($left), :right($right), :condition(&condition))
 }
 
@@ -370,7 +370,7 @@ multi sub infix:<⟖>(Mu $left, Mu $right, &condition?) is export {
 Full outer join (C<⟗>).
 
 =end pod
-multi sub infix:<⟗>(Mu $left, Mu $right, &condition?) is export {
+multi sub infix:<⟗>(Mu $left, Mu $right, &condition?) is equiv(&infix:<~>) is export {
 	FullOuterJoinOperator.new(:left($left), :right($right), :condition(&condition))
 }
 
@@ -379,7 +379,7 @@ multi sub infix:<⟗>(Mu $left, Mu $right, &condition?) is export {
 Left semijoin (C<⋉>).
 
 =end pod
-multi sub infix:<⋉>(Mu $left, Mu $right, &condition?) is export {
+multi sub infix:<⋉>(Mu $left, Mu $right, &condition?) is equiv(&infix:<~>) is export {
 	LeftSemijoinOperator.new(:left($left), :right($right), :condition(&condition))
 }
 
@@ -388,7 +388,7 @@ multi sub infix:<⋉>(Mu $left, Mu $right, &condition?) is export {
 Right semijoin (C<⋊>).
 
 =end pod
-multi sub infix:<⋊>(Mu $left, Mu $right, &condition?) is export {
+multi sub infix:<⋊>(Mu $left, Mu $right, &condition?) is equiv(&infix:<~>) is export {
 	RightSemijoinOperator.new(:left($left), :right($right), :condition(&condition))
 }
 
@@ -397,7 +397,7 @@ multi sub infix:<⋊>(Mu $left, Mu $right, &condition?) is export {
 Left antijoin (C<▷>).
 
 =end pod
-multi sub infix:<▷>(Mu $left, Mu $right, &condition?) is export {
+multi sub infix:<▷>(Mu $left, Mu $right, &condition?) is equiv(&infix:<~>) is export {
 	LeftAntijoinOperator.new(:left($left), :right($right), :condition(&condition))
 }
 
@@ -406,7 +406,7 @@ multi sub infix:<▷>(Mu $left, Mu $right, &condition?) is export {
 Right antijoin (C<◁>).
 
 =end pod
-multi sub infix:<◁>(Mu $left, Mu $right, &condition?) is export {
+multi sub infix:<◁>(Mu $left, Mu $right, &condition?) is equiv(&infix:<~>) is export {
 	RightAntijoinOperator.new(:left($left), :right($right), :condition(&condition))
 }
 
@@ -468,7 +468,7 @@ multi sub prefix:<⮳>(Mu $location) is export {
 Parse infix (C<↱>): parse subject data with format C<$right>.
 
 =end pod
-multi sub infix:<↱>(Mu $left, Mu $right) is export {
+multi sub infix:<↱>(Mu $left, Mu $right) is equiv(&infix:<x>) is export {
 	ParseOperator.new(:subject($left), :format(~$right))
 }
 
@@ -477,7 +477,7 @@ multi sub infix:<↱>(Mu $left, Mu $right) is export {
 Render infix (C<↴>): render subject data to format C<$right>.
 
 =end pod
-multi sub infix:<↴>(Mu $left, Mu $right, *%adverbs) is export {
+multi sub infix:<↴>(Mu $left, Mu $right, *%adverbs) is equiv(&infix:<x>) is export {
 	RenderOperator.new(:subject($left), :format(~$right), :options(%adverbs))
 }
 
@@ -486,6 +486,6 @@ multi sub infix:<↴>(Mu $left, Mu $right, *%adverbs) is export {
 Destination infix (C<⮷>): write pipeline output to location C<$right>.
 
 =end pod
-multi sub infix:<⮷>(Mu $left, Mu $right) is export {
+multi sub infix:<⮷>(Mu $left, Mu $right) is equiv(&infix:<x>) is export {
 	DestinationOperator.new(:subject($left), :location(~$right))
 }

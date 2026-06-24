@@ -5,31 +5,80 @@ use lib 'lib';
 use Qwiratry::Operator::Navigation;
 use Qwiratry::Operator::Set;
 use Qwiratry::Operator::MapReduce;
+use Qwiratry::Operator::IO;
 use Qwiratry::Query::Slang;
 
-plan 4;
+plan 8;
 
 my $root = %(name => 'root');
 my @rows = [%(a => 1), %(a => 2)];
 
-subtest 'Postfix root binds to subject before replication operators' => {
-	plan 2;
-
-	my $query = query-ast({ ($root ⪪ <item>)⇤ });
-	ok $query ~~ RootOperator, 'postfix root applies to navigation expression';
-	ok $query.subject ~~ ChildOperator, 'root subject is child navigation node';
-}
-
-subtest 'Selection binds to navigation expression as subject' => {
+subtest 'Symbolic unary postfix root binds before replication operators' => {
 	plan 3;
 
-	my $query = query-ast({ $root ⪪⪪ <item> σ -> $_ { True } });
-	ok $query ~~ SelectionOperator, 'selection follows navigation';
-	ok $query.subject ~~ DescendantOperator, 'selection subject is descendant operator';
-	is $query.subject.selector, 'item', 'nested selector preserved under selection';
+	my $query = query-ast({ $root⇤ ⪪ <item> });
+	ok $query ~~ ChildOperator, 'navigation remains outer expression';
+	ok $query.subject ~~ RootOperator, 'postfix root binds to left operand before navigation';
+	is $query.subject.subject, $root, 'root subject is the original value';
 }
 
-subtest 'Set operators compose with union binding tighter than intersection' => {
+subtest 'Symbolic unary prefixes bind before additive operators' => {
+	plan 3;
+
+	try { my $value = Π 1 + 2; Nil };
+	like $!.message, /ProjectionOperator/, 'projection binds to its operand before additive';
+
+	try { my $value = ρ 1 + 2; Nil };
+	like $!.message, /RenameOperator/, 'rename binds to its operand before additive';
+
+	try { my $value = ⮳ 1 + 2; Nil };
+	like $!.message, /'Invalid I/O location: 1'/, 'source binds to its operand before additive';
+}
+
+subtest 'Replication-level operators sit below additive and above concatenation' => {
+	plan 7;
+
+	my $additive = query-ast({ $root ⪪ 1 + 2 });
+	ok $additive ~~ ChildOperator, 'navigation is outer expression around additive selector';
+	is $additive.selector, 3, 'additive expression binds before replication-level navigation';
+
+	my $selection = query-ast({ @rows σ -> $_ { $_<a> + 1 > 1 } });
+	ok $selection ~~ SelectionOperator, 'selection remains outer expression around additive predicate';
+	ok $selection.predicate.(@rows[0]), 'additive expression binds inside replication-level selection';
+
+	my $concatenated = query-ast({ $root ⪪ <item> ~ '-suffix' });
+	ok $concatenated ~~ Str, 'standard concatenation is outer expression after navigation';
+	like $concatenated, /ChildOperator/, 'concatenation received the navigation node on its left';
+
+	my $attribute = query-ast({ $root ⪪⪪ <item> ⥷ <name> });
+	ok $attribute.subject ~~ DescendantOperator, 'left-associative replication operators chain through subjects';
+}
+
+subtest 'Source prefix chains into replication-level I/O adaptors' => {
+	plan 4;
+
+	my $query = query-ast({ ⮳ <input.json> ↱ 'JSONdemo' ↴ 'JSONdemo' });
+	ok $query ~~ RenderOperator, 'render is outer adaptor in source-parse-render pipeline';
+	ok $query.subject ~~ ParseOperator, 'render subject is parse operator';
+	ok $query.subject.subject ~~ SourceOperator, 'parse subject is source operator';
+	is $query.subject.subject.location, 'input.json', 'source location survives pipeline parsing';
+}
+
+subtest 'Concatenation-level joins sit below replication and above junctive and' => {
+	plan 5;
+
+	my $after-replication = query-ast({ $root ⪪ <*> ⨝ @rows });
+	ok $after-replication ~~ InnerJoinOperator, 'join is outer expression after navigation';
+	ok $after-replication.left ~~ ChildOperator, 'replication-level navigation binds before join';
+
+	my $filter = SelectionOperator.new(:subject(@rows), :predicate(-> $_ { True }));
+	my $before-junctive-and = @rows ⨝ @rows ∩ $filter;
+	ok $before-junctive-and ~~ IntersectionOperator, 'junctive-and intersection is outer expression';
+	ok $before-junctive-and.left ~~ InnerJoinOperator, 'concatenation-level join binds before intersection';
+	is $before-junctive-and.left.right, @rows, 'join right operand is preserved before intersection';
+}
+
+subtest 'Junctive and binds tighter than junctive or' => {
 	plan 3;
 
 	my $left = SelectionOperator.new(:subject(@rows), :predicate(-> $_ { True }));
@@ -40,15 +89,28 @@ subtest 'Set operators compose with union binding tighter than intersection' => 
 	ok $query.right ~~ IntersectionOperator, 'right branch is intersection expression';
 }
 
-subtest 'Join and map-reduce nest with explicit subjects' => {
+subtest 'Junctive or sits above chaining' => {
 	plan 3;
 
-	my $join = @rows ⨝ @rows;
-	ok $join ~~ InnerJoinOperator, 'join operator constructs InnerJoinOperator';
+	my $left = query-ast({ $root ⪪ <a> });
+	my $right = query-ast({ $root ⪪ <b> });
+	my $query = $left ∪ $right;
 
-	my $sorted = query-ast({ (@rows σ -> $_ { True }) ⇅ -> $_ { $_<a> } });
-	ok $sorted ~~ SortOperator, 'sort follows selection in chain';
-	ok $sorted.subject ~~ SelectionOperator, 'sort subject is selection operator';
+	ok $query ~~ UnionOperator, 'sanity check union expression builds a query node';
+
+	my $chained = $left ∪ $right ∈ [$query];
+	ok $chained ~~ Bool, 'chaining-level membership is outer expression after union';
+	nok $chained, 'membership compares against the completed union expression';
+}
+
+subtest 'Chaining sits below structural and above tight-and' => {
+	plan 2;
+
+	my $structural = 1..2 ∈ [1..2];
+	ok $structural ~~ Bool, 'structural range binds before chaining membership';
+
+	my $tight-and = 'item' ∈ ['item'] && 'after';
+	is $tight-and, 'after', 'chaining membership binds before tight-and';
 }
 
 done-testing;

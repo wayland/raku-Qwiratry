@@ -38,16 +38,16 @@ The precedence levels mentioned here follow Raku's [Operator Precedence](https:/
 
 Precedence levels in bold are standard Raku levels.  Those not in bold are levels we've added.  
 
-| Precedence Level   | Associativity | Operators | Comments |
-|--------------------|---------------|-----------|----------|
-| **Symbolic Unary** | non  | ⇤ | Unary postfix |
-| **Replication**    | left | σ Π ρ ⪪ ⪫ ⪪⪪ ⪫⪫ ⪨ ⪩ ⪨⪨ ⪩⪩ ⥷  ↱ ⮣ ↴ ⮧ ⮳ ⮷ | |
-| **Concatenation**  | list | ⋉ ⋊ ▷ ◁ ⨝ ⟕ ⟖ ⟗ ÷ ▵ × | |
-| Junctive Exponentiation | right | 𝒫 | Tighter than Junctive unary |
-| Junctive unary     | left | ⧩ | Tighter than Junctive and |
-| **Junctive and**   | list | ∩ ⩃ | |
-| **Junctive or**    | list | ∪ ⩂ ⊖ ∖ | |
-| **Chaining**       | chain | ∈ ∊ (elem) ∉ ∋ ∍ (cont) ∌ ⊂ (<) ⊄ ⊃ (>) ⊅ ⊆ (<=) ⊈ ⊇ (>=) ⊉ ≡ (==) ≢ | |
+| Precedence Level            | Associativity | Operators | Comments |
+|-----------------------------|---------------|-----------|----------|
+| **Symbolic Unary**          | non           | ⇤ Π ρ ⮳   |          |
+| **Replication**             | left          | σ ⪪ ⪫ ⪪⪪ ⪫⪫ ⪨ ⪩ ⪨⪨ ⪩⪩ ⥷  ↱ ⮣ ↴ ⮧ ⮷ | |
+| **Concatenation**           | list          | ⋉ ⋊ ▷ ◁ ⨝ ⟕ ⟖ ⟗ ÷ ▵ × | |
+| **Junctive Exponentiation** | right         | 𝒫         | Tighter than Junctive unary |
+| **Junctive unary**          | left          | ⧩         | Tighter than Junctive and |
+| **Junctive and**            | list          | ∩ ⩃       |          |
+| **Junctive or**             | list          | ∪ ⩂ ⊖ ∖   |          |
+| **Chaining**                | chain         | ∈ ∊ (elem) ∉ ∋ ∍ (cont) ∌ ⊂ (<) ⊄ ⊃ (>) ⊅ ⊆ (<=) ⊈ ⊇ (>=) ⊉ ≡ (==) ≢ | |
 
 ## 3. I/O and Transformation Operators
 
