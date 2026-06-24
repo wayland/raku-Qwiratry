@@ -11,17 +11,39 @@
 .roo/
 .amazonq/
 .github/copilot/
-/.worktrees
-.precomp
-__pycache__
+
+# Spec Kitty
+.worktrees
 .kittify/.dashboard
 .kittify/active-mission
 .kittify/templates/
-.fez
-t/tmp/
 
+# Raku/fez
+.precomp
+.fez
+sdist
+
+# Python for some reason
+__pycache__
+
+# Temp stuff
+t/tmp/
+.tmp-doc-tests
+
+# Things I hope to remove someday
 specification-traceability-map/
 .kittify/
 kitty-specs/
 *.code-workspace
 docs/tickets/
+
+# Others
+old/
+
+# Things I don't really want in .gitignore
+CodingStandards.md
+Ideas.txt
+doc-example.raku
+raku-cs
+reformat-tables
+test-command
