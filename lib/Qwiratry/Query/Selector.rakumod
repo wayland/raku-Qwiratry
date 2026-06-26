@@ -216,6 +216,9 @@ class Qwiratry::Query::Selector {
 			my $name = self.node-name($node);
 			return $name.defined && $name eq self.normalize-name($selector);
 		}
+		if $selector ~~ Callable {
+			return ?$selector($node);
+		}
 		False
 	}
 

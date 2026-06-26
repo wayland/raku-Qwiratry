@@ -7,7 +7,7 @@ use Qwiratry::Operator::MapReduce;
 use Qwiratry::Operator::Set;
 use Qwiratry::Query::Slang;
 
-plan 7;
+plan 8;
 
 subtest 'Nested selectors compose immutably' => {
 	plan 3;
@@ -90,4 +90,21 @@ subtest 'Set operators compose with navigation branches' => {
 	ok $query ~~ UnionOperator, 'union combines navigation queries';
 	ok $query.left ~~ DescendantOperator, 'left branch is descendant query';
 	is $query.right.selector, 'meta', 'right branch retains selector';
+}
+
+subtest 'Query slang traverses RakuAST nodes with callable selectors' => {
+	plan 3;
+
+	my $ast = 'say 1 * 3;'.AST;
+	my @matches = ($ast ⪪⪪ {
+		$_ ~~ RakuAST::ApplyInfix
+			&& .left ~~ RakuAST::IntLiteral
+			&& .right ~~ RakuAST::IntLiteral
+			&& .left.value == 1
+			&& .right.value == 3
+	}).list;
+
+	is @matches.elems, 1, 'one matching infix application found';
+	ok @matches[0] ~~ RakuAST::ApplyInfix, 'match is an ApplyInfix node';
+	is @matches[0].infix.operator, '*', 'matched multiplication operator';
 }

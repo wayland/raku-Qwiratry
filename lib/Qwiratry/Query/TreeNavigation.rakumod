@@ -35,6 +35,9 @@ role TreeNavigation is export {
 
 	=end pod
 	method tree-children(Mu $node --> List) {
+		if $node ~~ RakuAST::Node && $node.can('visit-children') {
+			return (gather $node.visit-children(-> $child { take $child })).list;
+		}
 		$node ~~ Positional and return $node.list;
 		if $node ~~ Associative {
 			if $node<children> ~~ Positional {
