@@ -1,0 +1,96 @@
+=begin rakudoc
+
+=TITLE Changelog
+
+=SUBTITLE User-visible changes by release
+
+=head1 Overview
+
+This changelog follows the shape of Keep a Changelog, adapted to Rakudoc.
+Versions use the C<META6.json> version number and release tags use the
+C<release-x.y.z> convention.
+
+=head1 0.0.3 - 2026-06-29
+
+=head2 Added
+
+=item RakuAST tree navigation support through C<Qwiratry::Tree::Navigator::RakuAST>.
+
+=item A dedicated tree navigator namespace, registry, and base role under
+C<Qwiratry::Tree::Navigator>.
+
+=item Documentation for adding tree navigators and for the release process.
+
+=head2 Changed
+
+=item Moved tree navigator discovery and registration out of C<Qwiratry::Format>.
+Formats now stay focused on parse and render implementations.
+
+=item RakuAST navigation no longer appears as a navigator-only format. It now
+lives under C<Qwiratry::Tree::Navigator::RakuAST>.
+
+=item Transformer default traversal now treats navigator-backed roots, including
+RakuAST roots, as trees instead of inline scalar values.
+
+=head2 Fixed
+
+=item Calling a transformer on a RakuAST root now walks descendant RakuAST nodes
+without requiring an explicit descendant query iterator.
+
+=head1 0.0.2 - 2026-06-24
+
+=head2 Changed
+
+=item Aligned operator precedence documentation with the implemented query
+operators.
+
+=head2 Fixed
+
+=item Fixed local package installation behavior.
+
+=head1 0.0.1 - 2026-06-24
+
+=head2 Added
+
+=item Initial public release of Qwiratry.
+
+=item RakuAST-backed query operators and query slang for navigation, set,
+map-reduce, relational, and IO-style query expressions.
+
+=item Tree and table walker infrastructure with lazy C<QueryIterator> execution,
+walker planning, strategy hooks, and traversal context support.
+
+=item Transformer and mold infrastructure, including mold matching, C<make>,
+C<NextMold>, wrapper hooks, ordering, traits, and tree rewrite support.
+
+=item Table navigation support, schema discovery, ordered-row navigation, and
+foreign-key style relationship traversal.
+
+=item Format, location, and IO implementation factories and demo parse/render
+formats.
+
+=item Rakudoc documentation for the architecture, operators, extension points,
+and required Raku support.
+
+=head2 Changed
+
+=item Renamed the original template terminology to molds across the transformer
+system.
+
+=item Reorganized modules into the current C<Qwiratry::Format>,
+C<Qwiratry::Walker>, C<Qwiratry::Strategy>, C<Qwiratry::Transformer>, and
+C<Qwiratry::Query> namespaces.
+
+=item Converted service-style modules to singleton facade classes where
+appropriate.
+
+=head2 Fixed
+
+=item Stabilized zef testing and test layout under C<t/>.
+
+=item Fixed lazy set operators, relation row equality, topic binding, wrapper
+collection, and iterator exhaustion behavior.
+
+=item Improved mold diagnostics, exception placement, and package metadata.
+
+=end rakudoc

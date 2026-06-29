@@ -1,0 +1,146 @@
+=begin rakudoc
+
+=TITLE Release Process
+
+=SUBTITLE Publishing Qwiratry to fez and GitHub
+
+=head1 Overview
+
+Qwiratry releases are published in two places:
+
+=item C<fez>: the Raku module ecosystem release.
+
+=item GitHub: the source archive, tag, and release notes.
+
+Do the shared prep once, then publish to fez and GitHub from the same clean
+commit and version tag.
+
+=head1 Prep Steps
+
+=item 1. Confirm the working tree is clean.
+
+=begin code :lang<shell>
+git status
+=end code
+
+Release prep should happen from a committed working tree. If C<git status> is
+not clean, finish or intentionally discard those changes before continuing.
+
+=item 2. Choose the release version and update C<META6.json>.
+
+The C<version> field is the version fez will publish. Use a normal semver-style
+version and make sure it has not already been published.
+
+=item 3. Run the test suite.
+
+=begin code :lang<shell>
+zef test .
+=end code
+
+=item 4. Review changes since the previous release.
+
+=begin code :lang<shell>
+git log release-x.y.z..HEAD
+git diff --stat release-x.y.z..HEAD
+=end code
+
+Use the log as the main release summary source. Use the diff against the
+previous release tag when you need to inspect implementation details.
+
+=item 5. Check the package metadata.
+
+Confirm C<META6.json> has the right C<name>, C<auth>, C<version>,
+C<description>, C<depends>, and C<provides> entries.
+
+=item 6. Review the fez package.
+
+=begin code :lang<shell>
+fez review
+=end code
+
+Check the files that will be uploaded and fix any metadata or packaging issues
+before tagging.
+
+=item 7. Confirm prep changes are committed.
+
+=begin code :lang<shell>
+git status
+git diff
+=end code
+
+If testing, metadata checks, or C<fez review> led to changes, commit them before
+starting the release steps.
+
+=head1 Fez Release Steps
+
+=item 1. Confirm fez is installed and authenticated.
+
+=begin code :lang<shell>
+fez --version
+fez login
+=end code
+
+Skip C<fez login> when the local machine is already authenticated.
+
+=item 2. Upload the release from the repository root.
+
+=begin code :lang<shell>
+fez upload
+=end code
+
+=item 3. Verify fez can see the new release.
+
+=begin code :lang<shell>
+fez list Qwiratry
+=end code
+
+If C<fez list> is unavailable or does not show the expected result, check the
+module page or install from fez in a clean environment.
+
+=head1 GitHub Release Steps
+
+=item 1. Tag the release commit.
+
+=begin code :lang<shell>
+git tag release-VERSION
+=end code
+
+=item 2. Push the release commit and tag.
+
+=begin code :lang<shell>
+git push origin CURRENT-BRANCH
+git push origin release-VERSION
+=end code
+
+=item 3. Extract release notes from the changelog.
+
+=begin code :lang<shell>
+raku docs/rakudoc/Developing/changelog-release-notes.raku VERSION \
+  > /tmp/qwiratry-release-notes.md
+=end code
+
+=item 4. Create the GitHub release from the tag.
+
+=begin code :lang<shell>
+gh release create release-VERSION \
+  --title "Qwiratry VERSION" \
+  --notes-file /tmp/qwiratry-release-notes.md
+=end code
+
+=item 5. Verify the release.
+
+=begin code :lang<shell>
+gh release view release-VERSION
+=end code
+
+Confirm the tag, title, notes, source archives, and published commit are correct.
+
+=head1 After Release
+
+=item Announce or document the release wherever project users expect updates.
+
+=item Start the next development cycle by bumping or planning the next
+C<META6.json> version only when the project chooses to track unreleased
+development versions.
+
+=end rakudoc

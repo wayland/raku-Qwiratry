@@ -63,11 +63,10 @@ The architecture enables:
 
 =head1 Testing
 
-Run the test suite through the project wrapper. C<zef> appears to have problems
-with C<RAKUDO_RAKUAST=1> for this repository, so use:
+Run the test suite with C<zef> from the repository root:
 
 =begin code :lang<shell>
-./project test
+zef test .
 =end code
 
 =head1 Developer Documentation
@@ -83,5 +82,9 @@ with C<RAKUDO_RAKUAST=1> for this repository, so use:
 =item L<Extending Qwiratry|../Extending/index>: extension guides for formats, locations, walkers, strategies, transformers, and other extension points.
 
 =item L<Required Raku Modifications|Required-Raku-Modifications>: possible Raku language and runtime changes that would better support data-oriented programming.
+
+=item L<Changelog|Changelog>: user-visible changes by release.
+
+=item L<Release Process|Release-Process>: prep, fez publishing, and GitHub release steps.
 
 =end rakudoc
