@@ -3,13 +3,25 @@ use v6.e.PREVIEW;
 use Test;
 use lib 'lib';
 
+use Qwiratry;
 use Qwiratry::Format;
+use Qwiratry::Mold::Slang;
 use Qwiratry::Tree::Navigator;
 use Qwiratry::Tree::Navigator::Base;
 use Qwiratry::Tree::Navigator::RakuAST;
 use Qwiratry::Query::Slang;
 
-plan 3;
+plan 4;
+
+transformer AppendSayArgument is Transformer {
+	mold when {
+		$_ ~~ RakuAST::Call::Name::WithoutParentheses
+			&& .name.canonicalize eq 'say'
+	} do {
+		.args.push: RakuAST::StrLiteral.new: 'suffix';
+		$_
+	}
+}
 
 subtest 'RakuAST tree navigator is discovered outside formats' => {
 	plan 5;
@@ -50,4 +62,19 @@ subtest 'Query navigation uses selected RakuAST navigator' => {
 
 	is @matches.elems, 1, 'descendant navigation finds RakuAST infix node';
 	is @matches[0].infix.operator, '*', 'matched the expected infix operator';
+}
+
+subtest 'Transformer default traversal treats RakuAST roots as trees' => {
+	plan 2;
+
+	my $ast = 'say "some text";'.AST;
+	my @calls = ($ast ⪪⪪ {
+		$_ ~~ RakuAST::Call::Name::WithoutParentheses
+			&& .name.canonicalize eq 'say'
+	}).list;
+
+	my $result = AppendSayArgument($ast);
+
+	is @calls.elems, 1, 'test fixture has one say call';
+	ok $result[0] === @calls[0], 'default transform traversal reaches RakuAST descendants';
 }

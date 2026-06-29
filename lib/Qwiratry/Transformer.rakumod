@@ -28,6 +28,7 @@ use Qwiratry::Transformer::Copy;
 
 my constant copy-service = Qwiratry::Transformer::Copy.instance;
 use Qwiratry::Tree::Replace;
+use Qwiratry::Tree::Navigator;
 # Note: Mold slang activation requires `use Qwiratry::Mold::Slang` in the caller compunit.
 
 =begin pod
@@ -567,16 +568,22 @@ class Transformer does Callable is export {
 
 	Builds the query used for default traversal.
 
-	Collection-like inputs are traversed with a descendant wildcard query; scalar
-	inputs are wrapped in a root query. The selected walker then decides how that
-	query maps to concrete nodes.
+	Collection-like and navigator-backed tree inputs are traversed with a
+	descendant wildcard query; other scalar inputs are wrapped in a root query.
+	The selected walker then decides how that query maps to concrete nodes.
 
 	=end pod
 	method !default-traversal-query(Mu $data --> Mu) {
-		if $data ~~ Positional || $data ~~ Associative {
+		if $data ~~ Positional || $data ~~ Associative || self!has-tree-navigator($data) {
 			return DescendantOperator.new(:subject($data), :selector('*'));
 		}
 		return RootOperator.new(:subject($data));
+	}
+
+	# True when the tree navigator registry knows how to expand this input.
+	method !has-tree-navigator(Mu $data --> Bool) {
+		$data.defined or return False;
+		Qwiratry::Tree::Navigator.tree-navigator-for($data).supports($data)
 	}
 
 	# Builds and drains the walker's default traversal iterator with pass hooks.
@@ -1045,6 +1052,7 @@ class Transformer does Callable is export {
 		$input ~~ Iterator and return False;
 		$input ~~ Positional and return False;
 		$input ~~ Associative and return !($input<children> ~~ Positional);
+		self!has-tree-navigator($input) and return False;
 		return True;
 	}
 }
