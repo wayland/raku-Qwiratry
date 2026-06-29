@@ -10,6 +10,41 @@ This changelog follows the shape of Keep a Changelog, adapted to Rakudoc.
 Versions use the C<META6.json> version number and release tags use the
 C<release-x.y.z> convention.
 
+=head1 0.0.4 - 2026-06-29
+
+=head2 Added
+
+=item C<givenroot $root { ... }> syntax for temporarily binding the active
+query data root while evaluating navigation expressions.
+
+=item A sigil-less C<root> term for query code that needs to refer to the
+currently bound data root.
+
+=item Type-object selectors for query navigation, allowing expressions such as
+C<RakuAST::IntLiteral> and C<RakuAST::Call> to match nodes directly by type.
+
+=item Focused tests for data-root binding, type-object selectors, table
+foreign-key navigation with a bound data root, and RakuAST ancestor lookup.
+
+=head2 Changed
+
+=item Renamed the dynamic query origin concept to data root in the query slang
+runtime API and documentation.
+
+=item Updated table navigation examples to use C<givenroot> instead of the older
+query-origin helper style.
+
+=item Expanded the release process documentation with install verification,
+clearer release step grouping, and explicit fez/GitHub verification steps.
+
+=head2 Fixed
+
+=item RakuAST ancestor navigation now falls back to origin-based parent lookup
+when a node exposes a C<parent> method that returns C<Nil>.
+
+=item Descendant navigation now treats type objects as explicit selectors
+instead of ignoring them as non-path values.
+
 =head1 0.0.3 - 2026-06-29
 
 =head2 Added

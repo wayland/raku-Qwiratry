@@ -37,7 +37,11 @@ version and make sure it has not already been published.
 zef test .
 =end code
 
-=item 4. Review changes since the previous release.
+=item 4. Ensure there's a Changelog entry
+
+...so that people know what happened.  
+
+=item 5. Review changes since the previous release.
 
 =begin code :lang<shell>
 git log release-x.y.z..HEAD
@@ -47,12 +51,12 @@ git diff --stat release-x.y.z..HEAD
 Use the log as the main release summary source. Use the diff against the
 previous release tag when you need to inspect implementation details.
 
-=item 5. Check the package metadata.
+=item 6. Check the package metadata.
 
 Confirm C<META6.json> has the right C<name>, C<auth>, C<version>,
 C<description>, C<depends>, and C<provides> entries.
 
-=item 6. Review the fez package.
+=item 7. Review the fez package.
 
 =begin code :lang<shell>
 fez review
@@ -61,7 +65,7 @@ fez review
 Check the files that will be uploaded and fix any metadata or packaging issues
 before tagging.
 
-=item 7. Test installation
+=item 8. Test installation
 
 =begin code :lang<shell>
 zef install .
@@ -69,7 +73,7 @@ zef install .
 
 If it doesn't go, that also needs fixing
 
-=item 8. Confirm prep changes are committed.
+=item 9. Confirm prep changes are committed.
 
 =begin code :lang<shell>
 git status
