@@ -17,7 +17,6 @@ use Qwiratry::Operator::MapReduce;
 use Qwiratry::Operator::IO;
 use Qwiratry::Query::RelationCommon;
 use Qwiratry::Query::Topic;
-use Qwiratry::Query::TreeNavigation;
 use Qwiratry::Query::Evaluator::Lazy;
 use Qwiratry::Query::Evaluator::Union;
 use Qwiratry::Query::Evaluator::Set;
@@ -27,8 +26,6 @@ use Qwiratry::Query::Evaluator::Filter;
 use Qwiratry::Query::Evaluator::Navigation;
 use Qwiratry::Query::Evaluator::Relational;
 use Qwiratry::Query::Evaluator::MapReduce;
-
-also does TreeNavigation;
 
 	my $instance;
 	has %!evaluators;

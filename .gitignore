@@ -39,6 +39,7 @@ docs/tickets/
 
 # Others
 old/
+experimental/
 
 # Things I don't really want in .gitignore
 CodingStandards.md

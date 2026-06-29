@@ -1,0 +1,123 @@
+#!/usr/bin/env raku
+use v6.e.PREVIEW;
+use Test;
+use lib 'lib';
+
+use Qwiratry::Format;
+use Qwiratry::Format::Base;
+use Qwiratry::Walker::Providing;
+
+plan 5;
+
+subtest 'Default tree navigator handles ordinary Raku containers' => {
+	plan 5;
+
+	my $navigator = Qwiratry::Format::Base::DefaultTreeNavigator.new;
+	my %tree = children => [{ name => 'a' }, { name => 'b' }];
+
+	ok $navigator ~~ Qwiratry::Format::Base::TreeNavigator, 'default navigator does TreeNavigator';
+	ok Positional (elem) $navigator.supported-types, 'default navigator supports Positional';
+	is $navigator.tree-children(%tree).elems, 2, 'associative children are exposed';
+	is $navigator.tree-children([1, 2, 3]).elems, 3, 'positional children are exposed';
+	ok $navigator.tree-parent(%tree<children>[0], :origin(%tree)) === %tree,
+		'parent fallback walks from origin';
+}
+
+my class CallerSuppliedNavigator does Qwiratry::Format::Base::TreeNavigator {
+	method supported-types(--> List) {
+		()
+	}
+
+	method tree-children(Mu $node --> List) {
+		('caller-supplied',)
+	}
+}
+
+subtest 'Caller-supplied navigator overrides registry selection' => {
+	plan 2;
+
+	my $factory = Qwiratry::Format.new;
+	my $navigator = CallerSuppliedNavigator.new;
+	my %node = children => ['default child'];
+	my $selected = $factory.tree-navigator-for(%node, :$navigator);
+
+	ok $selected === $navigator, 'caller-supplied navigator is returned directly';
+	is $selected.tree-children(%node)[0], 'caller-supplied', 'caller navigator behavior is used';
+}
+
+my class ExplicitNode { }
+
+my class ExplicitNavigator does Qwiratry::Format::Base::TreeNavigator {
+	method supported-types(--> List) {
+		(ExplicitNode,)
+	}
+
+	method tree-children(Mu $node --> List) {
+		('explicit',)
+	}
+}
+
+subtest 'Explicit navigator registration selects by supported type' => {
+	plan 2;
+
+	my $factory = Qwiratry::Format.new;
+	my $navigator = ExplicitNavigator.new;
+	my $node = ExplicitNode.new;
+	$factory.register-tree-navigator($navigator);
+	my $selected = $factory.tree-navigator-for($node);
+
+	ok $selected === $navigator, 'registered navigator is selected';
+	is $selected.tree-children($node)[0], 'explicit', 'registered navigator behavior is used';
+}
+
+my class ExactNode { }
+
+my class ExactNavigator does Qwiratry::Format::Base::TreeNavigator {
+	method supported-types(--> List) {
+		()
+	}
+
+	method tree-children(Mu $node --> List) {
+		('exact-type',)
+	}
+}
+
+subtest 'Exact type registration selects registered navigator' => {
+	plan 2;
+
+	my $factory = Qwiratry::Format.new;
+	my $navigator = ExactNavigator.new;
+	my $node = ExactNode.new;
+	$factory.register-tree-navigator-for-type(ExactNode, $navigator);
+	my $selected = $factory.tree-navigator-for($node);
+
+	ok $selected === $navigator, 'exact type registration is selected';
+	is $selected.tree-children($node)[0], 'exact-type', 'exact type navigator behavior is used';
+}
+
+my class DomainNode { }
+
+my class DomainNavigator does Qwiratry::Format::Base::TreeNavigator {
+	method supported-types(--> List) {
+		(DomainNode,)
+	}
+
+	method tree-children(Mu $node --> List) {
+		('domain',)
+	}
+}
+
+subtest 'Domain navigator registration uses origin metadata' => {
+	plan 2;
+
+	my $factory = Qwiratry::Format.new;
+	my $navigator = DomainNavigator.new;
+	my $node = DomainNode.new;
+	my %origin = children => [$node];
+	Qwiratry::Walker::Providing.instance.bind-domains(%origin, ['custom-tree']);
+	$factory.register-tree-navigator-for-domain('custom-tree', $navigator);
+	my $selected = $factory.tree-navigator-for($node, :origin(%origin));
+
+	ok $selected === $navigator, 'domain navigator is selected from origin metadata';
+	is $selected.tree-children($node)[0], 'domain', 'domain navigator behavior is used';
+}

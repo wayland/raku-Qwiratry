@@ -1,0 +1,52 @@
+#!/usr/bin/env raku
+use v6.e.PREVIEW;
+use Test;
+use lib 'lib';
+
+use Qwiratry::Format;
+use Qwiratry::Format::Base;
+use Qwiratry::Format::RakuAST;
+use Qwiratry::Query::Slang;
+
+plan 3;
+
+subtest 'RakuAST tree navigator is navigator-only format support' => {
+	plan 5;
+
+	my @navigators = Qwiratry::Format.formats(:type<TreeNavigator>);
+	ok 'RakuAST' (elem) @navigators, 'RakuAST has a TreeNavigator format implementation';
+	nok 'RakuAST' (elem) Qwiratry::Format.formats(:type<Parse>), 'RakuAST has no Parse implementation';
+	nok 'RakuAST' (elem) Qwiratry::Format.formats(:type<Render>), 'RakuAST has no Render implementation';
+
+	my $navigator = Qwiratry::Format.make(:type<TreeNavigator>, :format<RakuAST>);
+	ok $navigator ~~ Qwiratry::Format::Base::TreeNavigator, 'RakuAST navigator does TreeNavigator';
+	ok RakuAST::Node (elem) $navigator.supported-types, 'RakuAST navigator supports RakuAST::Node';
+}
+
+subtest 'Navigator registry selects RakuAST navigator' => {
+	plan 3;
+
+	my $ast = 'say 1 * 3;'.AST;
+	my $navigator = Qwiratry::Format.tree-navigator-for($ast);
+	my @children = $navigator.tree-children($ast);
+
+	ok $navigator ~~ Qwiratry::Format::RakuAST::TreeNavigator, 'registry selects RakuAST navigator';
+	ok @children.elems > 0, 'RakuAST navigator exposes children';
+	ok @children.grep(RakuAST::Node).elems > 0, 'children include RakuAST nodes';
+}
+
+subtest 'Query navigation uses selected RakuAST navigator' => {
+	plan 2;
+
+	my $ast = 'say 1 * 3;'.AST;
+	my @matches = ($ast ⪪⪪ {
+		$_ ~~ RakuAST::ApplyInfix
+			&& .left ~~ RakuAST::IntLiteral
+			&& .right ~~ RakuAST::IntLiteral
+			&& .left.value == 1
+			&& .right.value == 3
+	}).list;
+
+	is @matches.elems, 1, 'descendant navigation finds RakuAST infix node';
+	is @matches[0].infix.operator, '*', 'matched the expected infix operator';
+}

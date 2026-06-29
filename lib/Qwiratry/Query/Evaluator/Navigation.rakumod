@@ -9,8 +9,8 @@ unit module Qwiratry::Query::Evaluator::Navigation;
 
 use Qwiratry::Operator::Navigation;
 use Qwiratry::Operator::Capability;
+use Qwiratry::Format;
 use Qwiratry::Query::Evaluator::Eager;
-use Qwiratry::Query::TreeNavigation;
 use Qwiratry::Query::Selector;
 use Qwiratry::Table::Schema;
 
@@ -18,14 +18,10 @@ use Qwiratry::Table::Schema;
 
 =head2 C<role NavigationEagerEvaluator>
 
-=begin code :lang<raku>
-role NavigationEagerEvaluator does EagerEvaluator does TreeNavigation
-=end code
-
-Defines C<NavigationEagerEvaluator>.
+Shared behavior for navigation eager evaluators.
 
 =end pod
-role NavigationEagerEvaluator does EagerEvaluator does TreeNavigation {
+role NavigationEagerEvaluator does EagerEvaluator {
 	has &.select-list is required;
 
 	=begin pod
@@ -120,6 +116,10 @@ role NavigationEagerEvaluator does EagerEvaluator does TreeNavigation {
 		Qwiratry::Table::Schema.instance.discover($origin)
 	}
 
+	method tree-children(Mu $node, Mu :$origin --> List) {
+		Qwiratry::Format.tree-navigator-for($node, :$origin).tree-children($node)
+	}
+
 	=begin pod
 
 	=head2 C<method tree-descendants>
@@ -135,11 +135,11 @@ role NavigationEagerEvaluator does EagerEvaluator does TreeNavigation {
 	The C<$node> parameter.
 
 	=end pod
-	method tree-descendants(Mu $node --> Seq) {
+	method tree-descendants(Mu $node, Mu :$origin --> Seq) {
 		gather {
-			for self.tree-children($node) -> $child {
+			for self.tree-children($node, :$origin) -> $child {
 				take $child;
-				take $_ for self.tree-descendants($child);
+				take $_ for self.tree-descendants($child, :$origin);
 			}
 		}
 	}
@@ -164,9 +164,8 @@ role NavigationEagerEvaluator does EagerEvaluator does TreeNavigation {
 
 	=end pod
 	method tree-parent(Mu $node, Mu :$origin --> Mu) {
-		$node.can('parent') and return $node.parent;
-		$origin.defined and return self.find-parent-in-tree($node, $origin);
-		Nil
+		my $navigator = Qwiratry::Format.tree-navigator-for($node, :$origin);
+		$navigator.tree-parent($node, :$origin)
 	}
 
 	=begin pod
@@ -219,7 +218,7 @@ role NavigationEagerEvaluator does EagerEvaluator does TreeNavigation {
 	=end pod
 	method sibling-context(Mu $node, Mu :$origin --> Associative) {
 		my $parent = self.tree-parent($node, :$origin);
-		$parent.defined and return %(all => self.tree-children($parent));
+		$parent.defined and return %(all => self.tree-children($parent, :$origin));
 		%(all => ())
 	}
 
@@ -456,7 +455,7 @@ class ChildEvaluator does NavigationEagerEvaluator is export {
 				@results.append($catalog.child-results($base, $query));
 			}
 			else {
-				for self.tree-children($base) -> $child {
+				for self.tree-children($base, :$origin) -> $child {
 					self.selector.matches($query.selector, $child) and @results.push($child);
 				}
 			}
@@ -539,7 +538,7 @@ class DescendantEvaluator does NavigationEagerEvaluator is export {
 				@results.append($catalog.descendant-results($base, $query));
 			}
 			else {
-				for self.tree-descendants($base) -> $desc {
+				for self.tree-descendants($base, :$origin) -> $desc {
 					self.selector.matches($query.selector, $desc) and @results.push($desc);
 				}
 			}

@@ -16,6 +16,7 @@ traversal and transformation.
 =begin table
 Guide | Use this when
 L<Adding Formats|Adding-Formats> | You are adding parse/render support for a data representation such as JSON, CSV, YAML, TOML, or a binary/text encoding. The data source itself is not changing.
+L<Adding Tree Navigators|Adding-Tree-Navigators> | The existing tree walker should work, but Qwiratry needs to learn the children, parent, or attributes of a custom tree node model.
 L<Adding Sources/Destinations|Adding-Sources-Destinations> | You are connecting pipelines to a place data comes from or goes to, such as local files, databases, HTTP APIs, object stores, queues, or search indexes.
 L<Adding Walkers|Adding-Walkers> | You are adding traversal support for a new data model or execution domain, such as a graph, table-like source, logic database, document store, or other structure with its own query rules.
 L<Adjusting Strategies|Adjusting-Strategies> | The existing walker can traverse the data, but you need custom behavior before elements, after elements, on matches, or when deciding what to follow.
@@ -26,6 +27,9 @@ L<Other Extensions|Other-Extensions> | Your work does not fit the focused guides
 =head1 Rule Of Thumb
 
 =item If it is a representation, extend C<Qwiratry::Format>.
+
+=item If it is a tree-shaped node model with ordinary tree traversal semantics,
+add a C<TreeNavigator>.
 
 =item If it is a place or connection, extend C<Qwiratry::Location>.
 

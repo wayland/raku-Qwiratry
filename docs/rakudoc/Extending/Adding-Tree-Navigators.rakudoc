@@ -1,0 +1,223 @@
+=begin rakudoc
+
+=TITLE Adding Tree Navigators
+
+=SUBTITLE Teaching the generic tree walker about new tree-shaped data
+
+=head1 Overview
+
+Tree navigators adapt concrete tree-shaped values to Qwiratry's generic tree
+operations.
+
+Use this extension point when the existing tree walker semantics are right, but
+Qwiratry needs to learn how to inspect a new node model. A navigator answers
+questions such as:
+
+=item Which types or roles it supports.
+
+=item Which direct children a node has.
+
+=item Which parent a node has, either from the node model or by walking from an
+origin.
+
+=item Which attribute-like values a node exposes.
+
+Do not add a new walker just because a tree uses custom node objects. Add a
+walker when traversal or query execution semantics change.
+
+=head1 When To Add A Navigator
+
+Add a C<TreeNavigator> when:
+
+=item A format parses into custom node objects rather than ordinary hashes and
+arrays.
+
+=item An external object model, such as C<RakuAST::Node>, already owns parsing
+and rendering but still needs Qwiratry traversal.
+
+=item The default container navigator cannot identify children or parents for
+the data.
+
+Do not add one when the data is already ordinary C<Positional> or C<Associative>
+values that expose child values in the default shape.
+
+=head1 Contract
+
+A tree navigator does C<Qwiratry::Format::Base::TreeNavigator>.
+
+=begin code :lang<raku>
+use Qwiratry::Format::Base;
+
+class Qwiratry::Format::Example::TreeNavigator
+		does Qwiratry::Format::Base::TreeNavigator {
+	method supported-types(--> List) {
+		(Example::Node,)
+	}
+
+	method tree-children(Mu $node --> List) {
+		$node.children.list
+	}
+}
+=end code
+
+=head2 C<supported-types>
+
+=begin code :lang<raku>
+method supported-types(--> List)
+=end code
+
+Returns the types or roles this navigator supports. C<Qwiratry::Format> uses
+these to choose a navigator for a node.
+
+=head2 C<tree-children>
+
+=begin code :lang<raku>
+method tree-children(Mu $node --> List)
+=end code
+
+Returns direct children of C<$node>. This is required.
+
+=head2 C<tree-parent>
+
+=begin code :lang<raku>
+method tree-parent(Mu $node, Mu :$origin --> Mu)
+=end code
+
+Returns the direct parent of C<$node> when known.
+
+The base role first asks the node model for C<parent>, if available. If
+C<origin> is supplied, it then falls back to walking from C<origin> using the
+navigator's C<tree-children> method. Custom navigators only need to override
+this when the node model has a better parent lookup.
+
+=head2 C<tree-attributes>
+
+=begin code :lang<raku>
+method tree-attributes(Mu $node --> Associative)
+=end code
+
+Returns attribute-like values when the node model has them. The default returns
+the node itself for associative values and an empty hash otherwise.
+
+=head1 Discovery
+
+Navigator discovery is aligned with formats. A navigator class lives under a
+format namespace:
+
+=begin code :lang<raku>
+Qwiratry::Format::<FORMAT>::TreeNavigator
+=end code
+
+Add the format module to C<META6.json> C<provides> so discovery can load it:
+
+=begin code :lang<raku>
+"Qwiratry::Format::Example": "lib/Qwiratry/Format/Example.rakumod"
+=end code
+
+Then callers can inspect or create the navigator:
+
+=begin code :lang<raku>
+my @navigator-formats = Qwiratry::Format.formats(:type<TreeNavigator>);
+my $navigator = Qwiratry::Format.make(:type<TreeNavigator>, :format<Example>);
+=end code
+
+=head2 Selection Order
+
+C<Qwiratry::Format.tree-navigator-for($node)> selects navigators in this order:
+
+=item A caller-supplied navigator passed as C<:navigator>.
+
+=item Format-supplied navigators discovered under
+C<Qwiratry::Format::<FORMAT>::TreeNavigator>.
+
+=item Domain-supplied navigators registered for metadata attached through
+C<Qwiratry::Walker::Providing>.
+
+=item Explicitly registered navigators selected by their C<supported-types>.
+
+=item The built-in default navigator for ordinary C<Positional> and
+C<Associative> values.
+
+Pass C<:origin> when domain metadata or parent fallback should be resolved from
+the traversal root:
+
+=begin code :lang<raku>
+my $navigator = Qwiratry::Format.tree-navigator-for($node, :origin($root));
+=end code
+
+=head2 Explicit Registration
+
+Register a navigator directly when it is not supplied by a format module:
+
+=begin code :lang<raku>
+Qwiratry::Format.register-tree-navigator($navigator);
+=end code
+
+The navigator is selected for nodes matching one of its C<supported-types>.
+
+Register a navigator for one exact type or role when the registration site
+should own the mapping:
+
+=begin code :lang<raku>
+Qwiratry::Format.register-tree-navigator-for-type(Example::Node, $navigator);
+=end code
+
+=head2 Domain Registration
+
+Register a navigator for roots or nodes carrying a domain label:
+
+=begin code :lang<raku>
+Qwiratry::Format.register-tree-navigator-for-domain('xml', $navigator);
+=end code
+
+Domain labels come from C<Qwiratry::Walker::Providing>. This keeps navigator
+domain metadata aligned with existing walker and schema metadata.
+
+=head1 Navigator-Only Formats
+
+Some representations do not need Qwiratry parse or render classes. C<RakuAST> is
+the built-in example: the compiler owns parsing and rendering, but Qwiratry can
+still provide C<Qwiratry::Format::RakuAST::TreeNavigator>.
+
+A navigator-only format should provide C<::TreeNavigator> without C<::Parse> or
+C<::Render>.
+
+=head1 Testing
+
+Add tests that prove:
+
+=item C<Qwiratry::Format.formats(:type<TreeNavigator>)> discovers the navigator.
+
+=item C<Qwiratry::Format.make(:type<TreeNavigator>, :format<FORMAT>)> returns a
+navigator that does C<Qwiratry::Format::Base::TreeNavigator>.
+
+=item C<supported-types> includes the intended node type or role.
+
+=item C<Qwiratry::Format.tree-navigator-for($node)> selects the navigator.
+
+=item Caller-supplied, domain-registered, and explicitly type-registered
+navigators are selected in the documented order.
+
+=item C<tree-children> exposes direct children.
+
+=item C<tree-parent($node, :origin($root))> works when parent lookup is required.
+
+=head1 Reference Material
+
+=head2 Main Types
+
+=item C<Qwiratry::Format::Base::TreeNavigator>
+
+Role implemented by tree navigators.
+
+=item C<Qwiratry::Format::Base::DefaultTreeNavigator>
+
+Built-in navigator for ordinary C<Positional> and C<Associative> tree-shaped
+values.
+
+=item C<Qwiratry::Format>
+
+Discovery service and registry for parse, render, and tree navigator
+implementations.
+
+=end rakudoc

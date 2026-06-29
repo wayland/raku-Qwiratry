@@ -30,14 +30,13 @@ use Qwiratry::Operator::Capability;
 use Qwiratry::Operator::Set;
 use Qwiratry::Operator::MapReduce;
 use Qwiratry::Query::Runtime;
-use Qwiratry::Query::TreeNavigation;
+use Qwiratry::Format;
 use Qwiratry::Strategy::Traversal;
 use Qwiratry::Strategy::ControlSignal;
 use X::Qwiratry;
 
 my constant traversal = Qwiratry::Strategy::Traversal.instance;
 my constant query-runtime = Qwiratry::Query::Runtime.instance;
-my constant tree-navigation = BasicTreeNavigation.new;
 
 class Qwiratry::Walker::Implementation::Tree does Qwiratry::Walker is export {
 	my class TreeContext does Context {
@@ -114,7 +113,7 @@ class Qwiratry::Walker::Implementation::Tree does Qwiratry::Walker is export {
 			}
 
 			unless $!state.should-skip-expand {
-				for tree-navigation.tree-children($element) -> $child {
+				for Qwiratry::Format.tree-navigator-for($element, :origin($!root)).tree-children($element) -> $child {
 					next unless traversal.should-follow($element, 'child', $child, $.context);
 					@!stack.push($child);
 				}
