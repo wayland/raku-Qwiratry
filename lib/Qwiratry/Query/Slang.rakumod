@@ -20,7 +20,7 @@ my $cartesian = @left × @right;
 =end code
 
 =end pod
-unit module Qwiratry::Query::Slang;
+use v6.e.PREVIEW;
 
 use Qwiratry::Operator::Navigation;
 use Qwiratry::Operator::Set;
@@ -30,15 +30,19 @@ use Qwiratry::Operator::Capability;
 use Qwiratry::Query::Topic;
 
 our $*QWIRATRY-BUILD-QUERY is export = False;
-our $*QWIRATRY-QUERY-ORIGIN is export = Nil;
+our $*QWIRATRY-DATA-ROOT is export = Nil;
 
 sub query-ast(&block) is export {
 	my $*QWIRATRY-BUILD-QUERY = True;
 	block()
 }
 
-sub with-query-origin(Mu $origin, &block) is export {
-	my $*QWIRATRY-QUERY-ORIGIN = $origin;
+sub term:<root>() is export {
+	$*QWIRATRY-DATA-ROOT
+}
+
+sub given-root(Mu $root, &block) is export {
+	my $*QWIRATRY-DATA-ROOT = $root;
 	block()
 }
 
@@ -48,7 +52,7 @@ sub build-query(*@values --> Bool) {
 }
 
 sub query-origin(Mu $fallback --> Mu) {
-	$*QWIRATRY-QUERY-ORIGIN // $fallback
+	$*QWIRATRY-DATA-ROOT // $fallback
 }
 
 sub evaluate-query(Mu $query, Mu $fallback --> Seq) {

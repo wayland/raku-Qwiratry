@@ -79,7 +79,10 @@ role Qwiratry::Tree::Navigator::Base {
 
 	=end pod
 	method tree-parent(Mu $node, Mu :$origin --> Mu) {
-		$node.can('parent') and return $node.parent;
+		if $node.can('parent') {
+			my $parent = $node.parent;
+			return $parent if $parent.defined;
+		}
 		$origin.defined and return self.find-parent-in-tree($node, $origin);
 		Nil
 	}

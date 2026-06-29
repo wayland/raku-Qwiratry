@@ -2,7 +2,7 @@
 
 Mold slang for transformer bodies: registry, grammar, and Slangify activation.
 
-Load this module in any compunit that uses C<mold> or C<wrapper> syntax
+Load this module in any compunit that uses C<mold>, C<wrapper>, or C<givenroot> syntax
 (the Slangify/Piersing pattern). Also load L<Qwiratry::Query::Slang> in the same
 compunit when mold C<when> blocks use navigation operators (C<⪪>, C<⪪⪪>, etc.).
 
@@ -219,6 +219,20 @@ our role MoldGrammar {
 
 	=begin pod
 
+	Bind C<root> for a block using C<givenroot $data { ... }> syntax.
+
+	=end pod
+	token statement-control:sym<givenroot> {
+		'givenroot'
+		<.end-keyword>
+		<.ws>
+		$<root>=<variable>
+		<.ws>
+		$<block>=<block>
+	}
+
+	=begin pod
+
 	Allowed wrapper type names.
 
 	=end pod
@@ -335,6 +349,23 @@ our role MoldActions {
 			die "Wrapper $type: block could not be compiled.";
 		}
 		register-wrapper($type, $block);
+	}
+
+	=begin pod
+
+	Lower C<givenroot $data { ... }> to the query root binding helper.
+
+	=end pod
+	method statement-control:sym<givenroot>(Mu $/) {
+		self.attach: $/, RakuAST::Statement::Expression.new(
+			expression => RakuAST::Call::Name.new(
+				name => RakuAST::Name.from-identifier('given-root'),
+				args => RakuAST::ArgList.new(
+					$<root>.ast,
+					$<block>.ast,
+				),
+			),
+		);
 	}
 }
 

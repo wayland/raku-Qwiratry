@@ -5,6 +5,7 @@ use lib 'lib';
 
 use Qwiratry::Table;
 use Qwiratry::Query::Slang;
+use Qwiratry::Mold::Slang;
 use Qwiratry::Query::Runtime;
 my constant query-runtime = Qwiratry::Query::Runtime.instance;
 use Qwiratry::Operator::MapReduce;
@@ -45,11 +46,14 @@ subtest 'Child follows foreign key from row to related rows' => {
 	is @related[0]<name>, 'Alice', 'matched customer name';
 }
 
-subtest 'Child operator evaluates directly with query origin' => {
+subtest 'Child operator evaluates directly with data root' => {
 	plan 3;
 
 	my $order = @orders[0];
-	my $result = with-query-origin($catalog, { $order ⪪ <customer_id> });
+	my $result;
+	givenroot $catalog {
+		$result = $order ⪪ <customer_id>;
+	}
 	ok $result ~~ Seq, 'direct navigation returns a lazy Seq';
 	my @related = $result.List;
 	is @related.elems, 1, 'direct FK navigation returns one customer row';

@@ -731,11 +731,18 @@ Table-domain navigation requires a `Qwiratry::Table::Catalog` that names tables,
 foreign keys, and optionally designates an **active table** for row scans. Build catalogs
 explicitly or let `discover-catalog` infer them from your data root.
 
+Use `givenroot $root { ... }` when a query expression starts from a row or
+node but must resolve navigation against a larger data root. The `root` term
+returns the active data root inside that dynamic scope. Load
+`Qwiratry::Mold::Slang` after `Qwiratry::Query::Slang` for this statement
+syntax. The statement form currently accepts a variable root.
+
 #### 5.3.1 Explicit catalog with `make-catalog`
 
 ```raku
 use Qwiratry::Table;
 use Qwiratry::Query::Slang;
+use Qwiratry::Mold::Slang;
 
 my @orders = [
     %(order_id => 1, customer_id => 10),
@@ -758,7 +765,10 @@ my $catalog = make-catalog(
 );
 
 my $order = @orders[0];
-my @customer = with-query-origin($catalog, { $order ⪪ <customer_id> }).List;
+my @customer;
+givenroot $catalog {
+    @customer = ($order ⪪ <customer_id>).List;
+}
 # → one row: %(customer_id => 10, name => 'Alice')
 ```
 
@@ -770,9 +780,13 @@ builds a catalog and `infer-foreign-keys` guesses links from `orders.customer_id
 
 ```raku
 use Qwiratry::Table::Schema;
+use Qwiratry::Mold::Slang;
 
 my %database = %(orders => @orders, customers => @customers);
-my @related = with-query-origin(%database, { $order ⪪ <customer_id> }).List;
+my @related;
+givenroot %database {
+    @related = ($order ⪪ <customer_id>).List;
+}
 ```
 
 #### 5.3.3 Attached schema via `providing` metadata
@@ -781,13 +795,17 @@ Attach schema to a single table container when the root is not a multi-table map
 
 ```raku
 use Qwiratry::Table::Schema;
+use Qwiratry::Mold::Slang;
 
 attach-schema(@orders, %(
     table-name => 'orders',
     tables => %(orders => @orders, customers => @customers),
 ));
 
-my @related = with-query-origin(@orders, { @orders[0] ⪪ <customer_id> }).List;
+my @related;
+givenroot @orders {
+    @related = (@orders[0] ⪪ <customer_id>).List;
+}
 ```
 
 #### 5.3.4 Table-row navigation semantics (current implementation)
@@ -806,7 +824,10 @@ my @related = with-query-origin(@orders, { @orders[0] ⪪ <customer_id> }).List;
 
 ```raku
 my $customer = @customers[0];
-my @orders-for-customer = with-query-origin($catalog, { $customer ⪫ <*> :reference }).List;
+my @orders-for-customer;
+givenroot $catalog {
+    @orders-for-customer = ($customer ⪫ <*> :reference).List;
+}
 # → both orders with customer_id == 10
 ```
 

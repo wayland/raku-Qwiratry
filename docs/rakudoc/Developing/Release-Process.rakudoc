@@ -61,7 +61,15 @@ fez review
 Check the files that will be uploaded and fix any metadata or packaging issues
 before tagging.
 
-=item 7. Confirm prep changes are committed.
+=item 7. Test installation
+
+=begin code :lang<shell>
+zef install .
+=end code
+
+If it doesn't go, that also needs fixing
+
+=item 8. Confirm prep changes are committed.
 
 =begin code :lang<shell>
 git status
@@ -71,24 +79,56 @@ git diff
 If testing, metadata checks, or C<fez review> led to changes, commit them before
 starting the release steps.
 
-=head1 Fez Release Steps
+=head1 Release Steps
 
-=item 1. Confirm fez is installed and authenticated.
+=head2 Fez Release Steps
+
+=item 1. Upload the release from the repository root.
+
+=begin code :lang<shell>
+fez upload
+=end code
+
+If this fails, try the following for more info:
 
 =begin code :lang<shell>
 fez --version
 fez login
 =end code
 
-Skip C<fez login> when the local machine is already authenticated.
+=head2 GitHub Release Steps
 
-=item 2. Upload the release from the repository root.
+=item 1. Tag the release commit.
 
 =begin code :lang<shell>
-fez upload
+git tag release-x.y.z
 =end code
 
-=item 3. Verify fez can see the new release.
+=item 2. Push the release commit and tag.
+
+=begin code :lang<shell>
+git push origin CURRENT-BRANCH
+git push origin release-x.y.z
+=end code
+
+=item 3. Extract release notes from the changelog.
+
+=begin code :lang<shell>
+raku docs/rakudoc/Developing/changelog-release-notes.raku x.y.z \
+  > /tmp/qwiratry-release-notes.md
+=end code
+
+=item 4. Create the GitHub release from the tag.
+
+=begin code :lang<shell>
+gh release create release-x.y.z \
+  --title "Qwiratry x.y.z" \
+  --notes-file /tmp/qwiratry-release-notes.md
+=end code
+
+=head1 Release Verification
+
+=item 1. Verify fez can see the new release.
 
 =begin code :lang<shell>
 fez list Qwiratry
@@ -97,40 +137,10 @@ fez list Qwiratry
 If C<fez list> is unavailable or does not show the expected result, check the
 module page or install from fez in a clean environment.
 
-=head1 GitHub Release Steps
-
-=item 1. Tag the release commit.
+=item 2. Verify the Github release.
 
 =begin code :lang<shell>
-git tag release-VERSION
-=end code
-
-=item 2. Push the release commit and tag.
-
-=begin code :lang<shell>
-git push origin CURRENT-BRANCH
-git push origin release-VERSION
-=end code
-
-=item 3. Extract release notes from the changelog.
-
-=begin code :lang<shell>
-raku docs/rakudoc/Developing/changelog-release-notes.raku VERSION \
-  > /tmp/qwiratry-release-notes.md
-=end code
-
-=item 4. Create the GitHub release from the tag.
-
-=begin code :lang<shell>
-gh release create release-VERSION \
-  --title "Qwiratry VERSION" \
-  --notes-file /tmp/qwiratry-release-notes.md
-=end code
-
-=item 5. Verify the release.
-
-=begin code :lang<shell>
-gh release view release-VERSION
+gh release view release-x.y.z
 =end code
 
 Confirm the tag, title, notes, source archives, and published commit are correct.

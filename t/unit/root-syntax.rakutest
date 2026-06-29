@@ -1,0 +1,32 @@
+use Test;
+use lib 'lib';
+
+use Qwiratry::Query::Slang;
+use Qwiratry::Mold::Slang;
+
+plan 2;
+
+my $data = [1, 2, 3];
+
+is givenroot-value($data), 3, 'givenroot statement syntax binds root term';
+
+my $outer = ['outer'];
+my $inner = ['inner', 'value'];
+is nested-givenroot-value($outer, $inner), 'value',
+	'nested givenroot blocks restore dynamic root';
+
+sub givenroot-value($data) {
+	givenroot $data {
+		root.elems
+	}
+}
+
+sub nested-givenroot-value($outer, $inner) {
+	my $value;
+	givenroot $outer {
+		givenroot $inner {
+			$value = root[1];
+		}
+	}
+	$value
+}

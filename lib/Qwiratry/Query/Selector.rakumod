@@ -70,11 +70,6 @@ class Qwiratry::Query::Selector {
 
 	=begin pod
 
-	Return True for non-wildcard string or Callable selectors.
-
-	=end pod
-	=begin pod
-
 	=head2 C<method is-explicit-path>
 
 	=begin code :lang<raku>
@@ -89,11 +84,21 @@ class Qwiratry::Query::Selector {
 
 	=end pod
 	method is-explicit-path(Mu $selector --> Bool) {
+		self.is-type-object($selector) and return True;
 		$selector.defined or return False;
 		self.is-wildcard($selector) and return False;
 		$selector ~~ Str && $selector.chars > 0 and return True;
 		$selector ~~ Callable and return True;
 		False
+	}
+
+	=begin pod
+
+	Return True when C<$selector> is a type object usable as a type selector.
+
+	=end pod
+	method is-type-object(Mu $selector --> Bool) {
+		$selector ~~ Mu:U && $selector.^name ne 'Nil'
 	}
 
 	=begin pod
@@ -208,6 +213,9 @@ class Qwiratry::Query::Selector {
 	=end pod
 	method matches(Mu $selector, Mu $node --> Bool) {
 		self.is-wildcard($selector) and return True;
+		if self.is-type-object($selector) {
+			return $node ~~ $selector;
+		}
 		if $selector ~~ List {
 			$selector.grep({ self.matches($_, $node) }).so and return True;
 			return False;

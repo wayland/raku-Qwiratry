@@ -1,0 +1,40 @@
+use Test;
+use lib 'lib';
+
+use experimental :rakuast;
+use Qwiratry::Query::Selector;
+use Qwiratry::Query::Slang;
+
+my constant selector = Qwiratry::Query::Selector.instance;
+
+plan 3;
+
+subtest 'type objects match by smartmatch' => {
+	plan 6;
+
+	ok selector.matches(Int, 42), 'Int selector matches Int value';
+	nok selector.matches(Int, '42'), 'Int selector rejects Str value';
+	ok selector.matches(List, (1, 2)), 'List type object is treated as a type selector';
+	ok selector.matches(Callable, { 1 }), 'Callable type object is treated as a type selector';
+	ok selector.matches(RakuAST::IntLiteral, (q[42].AST ⪪⪪ RakuAST::IntLiteral)[0]), 'RakuAST type selector works directly';
+	nok selector.matches(RakuAST::IntLiteral, q["x"].AST), 'RakuAST type selector rejects other nodes';
+}
+
+subtest 'type objects are explicit selectors' => {
+	plan 3;
+
+	ok selector.is-explicit-path(Int), 'Int is explicit';
+	ok selector.is-explicit-path(RakuAST::IntLiteral), 'RakuAST::IntLiteral is explicit';
+	nok selector.is-explicit-path(Nil), 'Nil is not a type selector';
+}
+
+subtest 'descendant navigation accepts type objects' => {
+	plan 2;
+
+	my $ast = q[say 1 * 3].AST;
+	my @ints = ($ast ⪪⪪ RakuAST::IntLiteral).List;
+	my @calls = ($ast ⪪⪪ RakuAST::Call).List;
+
+	is @ints.elems, 2, 'descendant operator selects IntLiteral nodes by type';
+	is @calls.elems, 1, 'descendant operator selects Call nodes by type';
+}

@@ -11,7 +11,7 @@ use Qwiratry::Tree::Navigator::Base;
 use Qwiratry::Tree::Navigator::RakuAST;
 use Qwiratry::Query::Slang;
 
-plan 4;
+plan 5;
 
 transformer AppendSayArgument is Transformer {
 	mold when {
@@ -62,6 +62,20 @@ subtest 'Query navigation uses selected RakuAST navigator' => {
 
 	is @matches.elems, 1, 'descendant navigation finds RakuAST infix node';
 	is @matches[0].infix.operator, '*', 'matched the expected infix operator';
+}
+
+subtest 'Ancestor navigation falls back to origin parent lookup' => {
+	plan 2;
+
+	my $ast = 'for ^10 { if $_ %% 2 { say $_ * 3 } }'.AST;
+	my @infixes = ($ast ⪪⪪ RakuAST::Infix).list;
+	my @ancestors;
+	givenroot $ast {
+		@ancestors = (@infixes[0] ⪫⪫ RakuAST::Statement::If).list;
+	}
+
+	is @infixes.elems, 2, 'test fixture has two infix nodes';
+	is @ancestors.elems, 1, 'ancestor navigation finds enclosing if statement';
 }
 
 subtest 'Transformer default traversal treats RakuAST roots as trees' => {
