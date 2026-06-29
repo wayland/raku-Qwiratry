@@ -2,16 +2,15 @@
 
 =head1 Overview
 
-Navigator-only format namespace for RakuAST.
+RakuAST tree navigator.
 
-RakuAST does not provide C<Parse> or C<Render> implementations here because the
-Raku compiler owns parsing and rendering of Raku source. This module only adapts
+RakuAST nodes are parsed and rendered by the Raku compiler. This module adapts
 RakuAST nodes to Qwiratry's tree navigation protocol.
 
 =end pod
-use Qwiratry::Format::Base;
+use Qwiratry::Tree::Navigator::Base;
 
-class Qwiratry::Format::RakuAST::TreeNavigator does Qwiratry::Format::Base::TreeNavigator {
+class Qwiratry::Tree::Navigator::RakuAST does Qwiratry::Tree::Navigator::Base {
 	=begin pod
 
 	=head2 C<supported-types()>

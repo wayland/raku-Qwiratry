@@ -18,7 +18,6 @@ C<Qwiratry::Format::JSONdemo::Render>.
 use Implementation::Loader;
 use X::Qwiratry;
 use Qwiratry::Format::Base;
-use Qwiratry::Walker::Providing;
 
 class Qwiratry::Format does Implementation::Loader {
 
@@ -29,14 +28,6 @@ class Qwiratry::Format does Implementation::Loader {
 	has %!implementation-cache;
 	# Cached discovered format names keyed by operation type.
 	has %!format-list-cache;
-	# Cached TreeNavigator instances discovered from format modules.
-	has @!format-tree-navigators;
-	# Explicitly registered TreeNavigator instances selected by supported-types.
-	has @!registered-tree-navigators;
-	# Explicit type/role to TreeNavigator registrations.
-	has @!registered-tree-navigator-types;
-	# Domain label to TreeNavigator registrations.
-	has %!domain-tree-navigators;
 
 	my $instance;
 
@@ -214,115 +205,5 @@ class Qwiratry::Format does Implementation::Loader {
 	=end pod
 	method make(Str :$type!, Str :$format!) {
 		self.instance!implementation($type, $format)
-	}
-
-	=begin pod
-
-	Register a navigator that should be selected by its C<supported-types>.
-
-	=end pod
-	method register-tree-navigator(Qwiratry::Format::Base::TreeNavigator $navigator --> Mu) {
-		self.DEFINITE or return self.instance.register-tree-navigator($navigator);
-		@!registered-tree-navigators.push($navigator);
-		$navigator
-	}
-
-	=begin pod
-
-	Register a navigator for a specific type or role.
-
-	=end pod
-	method register-tree-navigator-for-type(Mu $type, Qwiratry::Format::Base::TreeNavigator $navigator --> Mu) {
-		self.DEFINITE or return self.instance.register-tree-navigator-for-type($type, $navigator);
-		@!registered-tree-navigator-types.push(%(
-			type => $type,
-			navigator => $navigator,
-		));
-		$navigator
-	}
-
-	=begin pod
-
-	Register a navigator for roots or nodes that provide C<$domain>.
-
-	=end pod
-	method register-tree-navigator-for-domain(Str $domain, Qwiratry::Format::Base::TreeNavigator $navigator --> Mu) {
-		self.DEFINITE or return self.instance.register-tree-navigator-for-domain($domain, $navigator);
-		%!domain-tree-navigators{$domain} //= [];
-		%!domain-tree-navigators{$domain}.push($navigator);
-		$navigator
-	}
-
-	# Return discovered format-supplied tree navigator instances.
-	method !format-tree-navigators(--> List) {
-		unless @!format-tree-navigators {
-			my @navigators;
-			for self.formats(:type<TreeNavigator>) -> $format {
-				@navigators.push(self!implementation('TreeNavigator', $format));
-			}
-			@!format-tree-navigators = @navigators;
-		}
-		@!format-tree-navigators.list
-	}
-
-	# Return registered domain navigators matching metadata on the origin or node.
-	method !domain-tree-navigators(Mu $node, Mu :$origin --> List) {
-		my @domains;
-		my $providing = Qwiratry::Walker::Providing.instance;
-		if $origin.defined {
-			@domains.append($providing.cached-domains($origin) // $providing.domains($origin) // ());
-		}
-		if !$origin.defined || !($node === $origin) {
-			@domains.append($providing.cached-domains($node) // $providing.domains($node) // ());
-		}
-
-		my @navigators;
-		for @domains.unique -> $domain {
-			%!domain-tree-navigators{$domain}:exists or next;
-			@navigators.append(|%!domain-tree-navigators{$domain});
-		}
-		@navigators.list
-	}
-
-	=begin pod
-
-	Return registered and discovered tree navigator instances.
-
-	=end pod
-	method tree-navigators(--> List) {
-		self.DEFINITE or return self.instance.tree-navigators;
-		(
-			|self!format-tree-navigators,
-			|%!domain-tree-navigators.values.flat,
-			|@!registered-tree-navigator-types.map(*<navigator>),
-			|@!registered-tree-navigators,
-			Qwiratry::Format::Base::DefaultTreeNavigator.new,
-		).list
-	}
-
-	=begin pod
-
-	Select a tree navigator for C<$node>.
-
-	=end pod
-	method tree-navigator-for(Mu $node, Mu :$navigator, Mu :$origin) {
-		self.DEFINITE or return self.instance.tree-navigator-for($node, :$navigator, :$origin);
-		if $navigator.defined {
-			$navigator ~~ Qwiratry::Format::Base::TreeNavigator and return $navigator;
-			die "tree navigator override must do Qwiratry::Format::Base::TreeNavigator";
-		}
-		for self!format-tree-navigators -> $navigator {
-			$navigator.supports($node) and return $navigator;
-		}
-		for self!domain-tree-navigators($node, :$origin) -> $navigator {
-			$navigator.supports($node) and return $navigator;
-		}
-		for @!registered-tree-navigator-types -> %registration {
-			$node ~~ %registration<type> and return %registration<navigator>;
-		}
-		for @!registered-tree-navigators -> $navigator {
-			$navigator.supports($node) and return $navigator;
-		}
-		Qwiratry::Format::Base::DefaultTreeNavigator.new
 	}
 }

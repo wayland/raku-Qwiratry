@@ -9,7 +9,7 @@ unit module Qwiratry::Query::Evaluator::Navigation;
 
 use Qwiratry::Operator::Navigation;
 use Qwiratry::Operator::Capability;
-use Qwiratry::Format;
+use Qwiratry::Tree::Navigator;
 use Qwiratry::Query::Evaluator::Eager;
 use Qwiratry::Query::Selector;
 use Qwiratry::Table::Schema;
@@ -117,7 +117,7 @@ role NavigationEagerEvaluator does EagerEvaluator {
 	}
 
 	method tree-children(Mu $node, Mu :$origin --> List) {
-		Qwiratry::Format.tree-navigator-for($node, :$origin).tree-children($node)
+		Qwiratry::Tree::Navigator.tree-navigator-for($node, :$origin).tree-children($node)
 	}
 
 	=begin pod
@@ -164,7 +164,7 @@ role NavigationEagerEvaluator does EagerEvaluator {
 
 	=end pod
 	method tree-parent(Mu $node, Mu :$origin --> Mu) {
-		my $navigator = Qwiratry::Format.tree-navigator-for($node, :$origin);
+		my $navigator = Qwiratry::Tree::Navigator.tree-navigator-for($node, :$origin);
 		$navigator.tree-parent($node, :$origin)
 	}
 

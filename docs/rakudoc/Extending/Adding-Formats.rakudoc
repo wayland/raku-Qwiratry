@@ -7,8 +7,8 @@
 =head1 Overview
 
 Formats convert between external data representations and Qwiratry-visible data.
-They may also provide tree navigators when a representation uses custom parsed
-node objects.
+When a format produces custom tree nodes, add a tree navigator as a separate
+extension point.
 
 Use this extension point when the new thing is a representation such as JSON,
 CSV, XML, YAML, TOML, binary encodings, or another parse/render representation. Do not use it for
@@ -23,8 +23,8 @@ To add support for a new format:
 
 =item 3. B<Renderer>: implement a renderer if Qwiratry should output that representation.
 
-=item 4. B<Navigator>: optionally implement a tree navigator if the parsed data
-outputs custom tree nodes.
+=item 4. B<Navigator>: optionally add a tree navigator if the parsed data outputs
+custom tree nodes.
 
 =item 5. B<Testing>: test discovery, parsing, rendering, navigation, and
 missing-format errors.
@@ -57,7 +57,6 @@ It defines one or more operation classes:
 =begin code :lang<raku>
 Qwiratry::Format::<FORMAT>::Parse
 Qwiratry::Format::<FORMAT>::Render
-Qwiratry::Format::<FORMAT>::TreeNavigator
 =end code
 
 For example, the built-in demonstration formats use C<*demo> names to make it
@@ -68,8 +67,8 @@ Qwiratry::Format::JSONdemo::Parse
 Qwiratry::Format::JSONdemo::Render
 =end code
 
-C<TreeNavigator> is optional. Formats that parse into ordinary Raku data
-(eg. Positional/Associative) usually do not need one.
+Formats that parse into ordinary Raku data (eg. Positional/Associative) usually
+do not need a tree navigator.
 
 =head2 Update META6
 
@@ -120,17 +119,17 @@ class Qwiratry::Format::Example::Render is Qwiratry::Format::Base::Render {
 
 =head1 Tree Navigator
 
-A format may provide C<Qwiratry::Format::<FORMAT>::TreeNavigator> when its parser
-emits a custom tree-shaped object model.
+A format may need a C<Qwiratry::Tree::Navigator::<NAVIGATOR>> module when its
+parser emits a custom tree-shaped object model.
 
 Navigators are documented in L<Adding Tree Navigators|Adding-Tree-Navigators>.
 Use a navigator when the generic tree walker is still the right traversal engine,
 but Qwiratry needs format-specific child, parent, or attribute access.
 
-A format does not need C<Parse> or C<Render> just to provide a navigator. For
-example, C<RakuAST> is represented as C<Qwiratry::Format::RakuAST> for discovery,
-but the Raku compiler owns parsing and rendering. Qwiratry provides only
-C<Qwiratry::Format::RakuAST::TreeNavigator>.
+A tree navigator does not need a matching C<Parse> or C<Render> class. For
+example, C<RakuAST> is represented only as
+C<Qwiratry::Tree::Navigator::RakuAST> because the Raku compiler owns parsing and
+rendering.
 
 =head1 Testing
 
@@ -144,8 +143,8 @@ Add tests that prove:
 
 =item C<Qwiratry::Format.make(:type<Render>, :format<FORMAT>)> returns a renderer.
 
-=item C<Qwiratry::Format.formats(:type<TreeNavigator>)> discovers the navigator,
-when the format provides one.
+=item C<Qwiratry::Tree::Navigator.navigators> discovers any navigator needed for
+custom tree nodes.
 
 =item Parse operators accept the new format.
 
@@ -171,7 +170,7 @@ C<parse(Str $input-string --> Mu)>.
 Base class for renderers. A custom renderer inherits from this and implements
 C<render(Mu $data, Associative :%options --> Str)>.
 
-=item C<Qwiratry::Format::Base::TreeNavigator>
+=item C<Qwiratry::Tree::Navigator::Base>
 
 Role for tree navigators. A custom navigator does this and implements the
 required tree access methods.
@@ -188,7 +187,6 @@ whether the requested operation class inherits from the matching base class.
 =begin code :lang<raku>
 my @parse-formats = Qwiratry::Format.formats(:type<Parse>);
 my @render-formats = Qwiratry::Format.formats(:type<Render>);
-my @navigator-formats = Qwiratry::Format.formats(:type<TreeNavigator>);
 
 my $parser = Qwiratry::Format.make(:type<Parse>, :format<JSONdemo>);
 my $renderer = Qwiratry::Format.make(:type<Render>, :format<JSONdemo>);

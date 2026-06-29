@@ -86,7 +86,7 @@ C<Tree::Walker::DFS>, C<Table::Walker::IndexScan>, C<Logic::Walker::Backward>, e
 
 Tree navigators adapt concrete node models to the generic tree walker.
 
-C<Qwiratry::Format::Base::TreeNavigator> is responsible for tree shape
+C<Qwiratry::Tree::Navigator::Base> is responsible for tree shape
 operations such as supported node types, direct children, parent lookup, and
 attribute-like fields. The generic tree walker remains responsible for traversal
 order, strategy hook invocation, query execution, and iterator behavior.
@@ -97,11 +97,11 @@ This separation lets Qwiratry support custom tree models without hard-coding
 every model into the walker and without requiring every tree-shaped value to be
 wrapped in a Qwiratry-owned node type.
 
-Formats may provide navigator classes under
-C<Qwiratry::Format::<FORMAT>::TreeNavigator>. Some namespaces may be
-navigator-only. For example, C<RakuAST> does not need Qwiratry parse or render
+Tree-shaped models may provide navigator classes under
+C<Qwiratry::Tree::Navigator::*>. Some navigators are independent of any
+Qwiratry format. For example, C<RakuAST> does not need Qwiratry parse or render
 classes because the compiler owns that object model, but it can still provide
-C<Qwiratry::Format::RakuAST::TreeNavigator>.
+C<Qwiratry::Tree::Navigator::RakuAST>.
 
 =head3 2.1.3. Strategy Group
 

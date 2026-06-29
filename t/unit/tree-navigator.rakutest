@@ -3,8 +3,8 @@ use v6.e.PREVIEW;
 use Test;
 use lib 'lib';
 
-use Qwiratry::Format;
-use Qwiratry::Format::Base;
+use Qwiratry::Tree::Navigator;
+use Qwiratry::Tree::Navigator::Base;
 use Qwiratry::Walker::Providing;
 
 plan 5;
@@ -12,10 +12,10 @@ plan 5;
 subtest 'Default tree navigator handles ordinary Raku containers' => {
 	plan 5;
 
-	my $navigator = Qwiratry::Format::Base::DefaultTreeNavigator.new;
+	my $navigator = Qwiratry::Tree::Navigator::Base.new;
 	my %tree = children => [{ name => 'a' }, { name => 'b' }];
 
-	ok $navigator ~~ Qwiratry::Format::Base::TreeNavigator, 'default navigator does TreeNavigator';
+	ok $navigator ~~ Qwiratry::Tree::Navigator::Base, 'base navigator does Base';
 	ok Positional (elem) $navigator.supported-types, 'default navigator supports Positional';
 	is $navigator.tree-children(%tree).elems, 2, 'associative children are exposed';
 	is $navigator.tree-children([1, 2, 3]).elems, 3, 'positional children are exposed';
@@ -23,7 +23,7 @@ subtest 'Default tree navigator handles ordinary Raku containers' => {
 		'parent fallback walks from origin';
 }
 
-my class CallerSuppliedNavigator does Qwiratry::Format::Base::TreeNavigator {
+my class CallerSuppliedNavigator does Qwiratry::Tree::Navigator::Base {
 	method supported-types(--> List) {
 		()
 	}
@@ -36,7 +36,7 @@ my class CallerSuppliedNavigator does Qwiratry::Format::Base::TreeNavigator {
 subtest 'Caller-supplied navigator overrides registry selection' => {
 	plan 2;
 
-	my $factory = Qwiratry::Format.new;
+	my $factory = Qwiratry::Tree::Navigator.new;
 	my $navigator = CallerSuppliedNavigator.new;
 	my %node = children => ['default child'];
 	my $selected = $factory.tree-navigator-for(%node, :$navigator);
@@ -47,7 +47,7 @@ subtest 'Caller-supplied navigator overrides registry selection' => {
 
 my class ExplicitNode { }
 
-my class ExplicitNavigator does Qwiratry::Format::Base::TreeNavigator {
+my class ExplicitNavigator does Qwiratry::Tree::Navigator::Base {
 	method supported-types(--> List) {
 		(ExplicitNode,)
 	}
@@ -60,7 +60,7 @@ my class ExplicitNavigator does Qwiratry::Format::Base::TreeNavigator {
 subtest 'Explicit navigator registration selects by supported type' => {
 	plan 2;
 
-	my $factory = Qwiratry::Format.new;
+	my $factory = Qwiratry::Tree::Navigator.new;
 	my $navigator = ExplicitNavigator.new;
 	my $node = ExplicitNode.new;
 	$factory.register-tree-navigator($navigator);
@@ -72,7 +72,7 @@ subtest 'Explicit navigator registration selects by supported type' => {
 
 my class ExactNode { }
 
-my class ExactNavigator does Qwiratry::Format::Base::TreeNavigator {
+my class ExactNavigator does Qwiratry::Tree::Navigator::Base {
 	method supported-types(--> List) {
 		()
 	}
@@ -85,7 +85,7 @@ my class ExactNavigator does Qwiratry::Format::Base::TreeNavigator {
 subtest 'Exact type registration selects registered navigator' => {
 	plan 2;
 
-	my $factory = Qwiratry::Format.new;
+	my $factory = Qwiratry::Tree::Navigator.new;
 	my $navigator = ExactNavigator.new;
 	my $node = ExactNode.new;
 	$factory.register-tree-navigator-for-type(ExactNode, $navigator);
@@ -97,7 +97,7 @@ subtest 'Exact type registration selects registered navigator' => {
 
 my class DomainNode { }
 
-my class DomainNavigator does Qwiratry::Format::Base::TreeNavigator {
+my class DomainNavigator does Qwiratry::Tree::Navigator::Base {
 	method supported-types(--> List) {
 		(DomainNode,)
 	}
@@ -110,7 +110,7 @@ my class DomainNavigator does Qwiratry::Format::Base::TreeNavigator {
 subtest 'Domain navigator registration uses origin metadata' => {
 	plan 2;
 
-	my $factory = Qwiratry::Format.new;
+	my $factory = Qwiratry::Tree::Navigator.new;
 	my $navigator = DomainNavigator.new;
 	my $node = DomainNode.new;
 	my %origin = children => [$node];

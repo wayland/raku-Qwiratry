@@ -18,7 +18,7 @@ the root itself is being replaced, compatible containers are mutated in place so
 external references to the root remain valid.
 
 =end pod
-use Qwiratry::Format;
+use Qwiratry::Tree::Navigator;
 
 class Qwiratry::Tree::Replace {
 
@@ -78,7 +78,8 @@ class Qwiratry::Tree::Replace {
 			return self!merge-into-container($root, $new);
 		}
 
-		my $parent = Qwiratry::Format.tree-navigator-for($old, :origin($root)).tree-parent($old, :origin($root));
+		my $parent = Qwiratry::Tree::Navigator.tree-navigator-for($old, :origin($root))
+			.tree-parent($old, :origin($root));
 		$parent.defined or return False;
 		self!replace-in-parent($parent, $old, $new);
 	}

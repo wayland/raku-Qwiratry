@@ -38,7 +38,7 @@ interpret. Define the capability metadata that tells Qwiratry and extenders what
 the walker can do.
 
 Before adding a walker for a tree-shaped model, check whether a
-C<Qwiratry::Format::Base::TreeNavigator> is enough. Custom XML nodes, compiler
+C<Qwiratry::Tree::Navigator::Base> is enough. Custom XML nodes, compiler
 AST nodes, or other document-like objects usually need a navigator unless they
 also need non-standard traversal or query planning.
 

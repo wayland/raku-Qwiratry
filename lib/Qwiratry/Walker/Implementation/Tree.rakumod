@@ -30,7 +30,7 @@ use Qwiratry::Operator::Capability;
 use Qwiratry::Operator::Set;
 use Qwiratry::Operator::MapReduce;
 use Qwiratry::Query::Runtime;
-use Qwiratry::Format;
+use Qwiratry::Tree::Navigator;
 use Qwiratry::Strategy::Traversal;
 use Qwiratry::Strategy::ControlSignal;
 use X::Qwiratry;
@@ -113,7 +113,8 @@ class Qwiratry::Walker::Implementation::Tree does Qwiratry::Walker is export {
 			}
 
 			unless $!state.should-skip-expand {
-				for Qwiratry::Format.tree-navigator-for($element, :origin($!root)).tree-children($element) -> $child {
+				for Qwiratry::Tree::Navigator.tree-navigator-for($element, :origin($!root))
+						.tree-children($element) -> $child {
 					next unless traversal.should-follow($element, 'child', $child, $.context);
 					@!stack.push($child);
 				}

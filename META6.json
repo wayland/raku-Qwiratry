@@ -12,7 +12,6 @@
     "Qwiratry::Format::Base": "lib/Qwiratry/Format/Base.rakumod",
     "Qwiratry::Format::CSVdemo": "lib/Qwiratry/Format/CSVdemo.rakumod",
     "Qwiratry::Format::JSONdemo": "lib/Qwiratry/Format/JSONdemo.rakumod",
-    "Qwiratry::Format::RakuAST": "lib/Qwiratry/Format/RakuAST.rakumod",
     "Qwiratry::Format": "lib/Qwiratry/Format.rakumod",
     "Qwiratry::Location::Base": "lib/Qwiratry/Location/Base.rakumod",
     "Qwiratry::Location::File": "lib/Qwiratry/Location/File.rakumod",
@@ -55,6 +54,9 @@
     "Qwiratry::Transformer::Copy": "lib/Qwiratry/Transformer/Copy.rakumod",
     "Qwiratry::Transformer::TreeRewrite": "lib/Qwiratry/Transformer/TreeRewrite.rakumod",
     "Qwiratry::Transformer": "lib/Qwiratry/Transformer.rakumod",
+    "Qwiratry::Tree::Navigator::Base": "lib/Qwiratry/Tree/Navigator/Base.rakumod",
+    "Qwiratry::Tree::Navigator::RakuAST": "lib/Qwiratry/Tree/Navigator/RakuAST.rakumod",
+    "Qwiratry::Tree::Navigator": "lib/Qwiratry/Tree/Navigator.rakumod",
     "Qwiratry::Tree::Replace": "lib/Qwiratry/Tree/Replace.rakumod",
     "Qwiratry::Walker::Capabilities": "lib/Qwiratry/Walker/Capabilities.rakumod",
     "Qwiratry::Walker::Factory": "lib/Qwiratry/Walker/Factory.rakumod",
@@ -68,5 +70,5 @@
   },
   "resources": [],
   "test-depends": [],
-  "version": "0.0.2"
+  "version": "0.0.3"
 }
