@@ -31,7 +31,7 @@ subtest 'type objects are explicit selectors' => {
 subtest 'descendant navigation accepts type objects' => {
 	plan 2;
 
-	my $ast = q[say 1 * 3].AST;
+	my $ast = q[my $a = 1; say $a * 3].AST;
 	my @ints = ($ast ⪪⪪ RakuAST::IntLiteral).List;
 	my @calls = ($ast ⪪⪪ RakuAST::Call).List;
 

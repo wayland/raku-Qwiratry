@@ -66,10 +66,13 @@ class Qwiratry::Mold::Compiler {
 	C<Nil> when the capture is absent or cannot yield an AST.
 
 	=end pod
-	method compile-blockoid(Mu $cap) {
+	method compile-blockoid(Mu $cap, Bool :$topic-signature = False) {
 		$cap.defined or return Nil;
 		my $body = try $cap.ast;
 		$body.defined or return Nil;
+		if $topic-signature {
+			return self!compile-routine-body($body, self.implicit-mold-signature);
+		}
 		self!compile-block-body($body);
 	}
 
@@ -313,6 +316,23 @@ class Qwiratry::Mold::Compiler {
 		try {
 			$block.to-begin-time($*R, $*CU.context);
 			my $code = $block.meta-object;
+			$code.defined and return $code;
+		}
+		Nil
+	}
+
+	method !compile-routine-body(Mu $body, Mu $signature) {
+		my $blockoid = $body.WHAT.^name eq 'RakuAST::Blockoid'
+			?? $body
+			!! RakuAST::Blockoid.new($body);
+		my $routine := RakuAST::Sub.new(
+			:scope<my>,
+			:$signature,
+			body => $blockoid,
+		);
+		try {
+			$routine.to-begin-time($*R, $*CU.context);
+			my $code = $routine.meta-object;
 			$code.defined and return $code;
 		}
 		Nil

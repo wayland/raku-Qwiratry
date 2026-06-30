@@ -95,12 +95,12 @@ subtest 'Set operators compose with navigation branches' => {
 subtest 'Query slang traverses RakuAST nodes with callable selectors' => {
 	plan 3;
 
-	my $ast = 'say 1 * 3;'.AST;
+	my $ast = 'my $a = 1; say $a * 3;'.AST;
 	my @matches = ($ast ⪪⪪ {
 		$_ ~~ RakuAST::ApplyInfix
-			&& .left ~~ RakuAST::IntLiteral
+			&& .left ~~ RakuAST::Var::Lexical
 			&& .right ~~ RakuAST::IntLiteral
-			&& .left.value == 1
+			&& .left.name eq '$a'
 			&& .right.value == 3
 	}).list;
 

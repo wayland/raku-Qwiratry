@@ -142,6 +142,38 @@ class Qwiratry::Query::Extract {
 		self!split-when-navigation-ast($body);
 	}
 
+	method predicate-from-expr(Mu $expr --> Mu) {
+		my $core = self!unwrap-expression($expr);
+		$core.defined or return Nil;
+
+		my $postfix = do given $core.WHAT.^name {
+			when 'RakuAST::Term::TopicCall' {
+				try $core.call
+			}
+			when 'RakuAST::ApplyPostfix' {
+				my $operand = try $core.operand;
+				($operand.defined && $operand.WHAT.^name eq 'RakuAST::Var::Lexical'
+					&& try $operand.name eq '$_')
+					?? (try $core.postfix)
+					!! Nil
+			}
+			default {
+				Nil
+			}
+		};
+		$postfix.defined && $postfix.WHAT.^name eq 'RakuAST::Postcircumfix::LiteralHashIndex'
+			or return Nil;
+
+		my $index = try $postfix.index;
+		my @segments = $index.?can('segments') ?? $index.segments !! ();
+		@segments == 1 && @segments[0].?can('value') or return Nil;
+		my $key = @segments[0].value;
+
+		-> $node {
+			$node ~~ Associative && $node{$key}:exists
+		}
+	}
+
 	# method !selectors-equivalent(Mu $a, Mu $b --> Bool)
 	#
 	# Documents the private C<method !selectors-equivalent> helper.

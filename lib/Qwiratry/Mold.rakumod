@@ -19,6 +19,7 @@ unit module Qwiratry::Mold;
 
 use X::Qwiratry;  # For X::Qwiratry::TypeCheck
 use Qwiratry::Query::Runtime;
+use Qwiratry::Query::Slang;
 use Qwiratry::Tree::Replace;
 
 my constant query-runtime = Qwiratry::Query::Runtime.instance;
@@ -293,7 +294,7 @@ class Mold is export {
 
 		if $.combine-when-query && $!when-query.defined {
 			query-runtime.when-query-matches($!when-query, $node, :$origin) or return False;
-			return $!when-block.defined ?? self!evaluate-when-block($node) !! True;
+			return $!when-block.defined ?? self!evaluate-when-block($node, :build-query) !! True;
 		}
 
 		if $!when-query.defined && !$!when-block.defined {
@@ -308,8 +309,9 @@ class Mold is export {
 	}
 
 	# Runs the when predicate with mold dynamic variables and turns failures into a non-match.
-	method !evaluate-when-block($node --> Bool) {
+	method !evaluate-when-block($node, Bool :$build-query = False --> Bool) {
 		my $*MAKE-OUTPUT := Nil;
+		my $*QWIRATRY-BUILD-QUERY = $build-query;
 		try {
 			return self!run-with-magic-variables(
 				$node,

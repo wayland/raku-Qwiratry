@@ -39,7 +39,7 @@ subtest 'RakuAST tree navigator is discovered outside formats' => {
 subtest 'Navigator registry selects RakuAST navigator' => {
 	plan 3;
 
-	my $ast = 'say 1 * 3;'.AST;
+	my $ast = 'my $a = 1; say $a * 3;'.AST;
 	my $navigator = Qwiratry::Tree::Navigator.tree-navigator-for($ast);
 	my @children = $navigator.tree-children($ast);
 
@@ -51,12 +51,12 @@ subtest 'Navigator registry selects RakuAST navigator' => {
 subtest 'Query navigation uses selected RakuAST navigator' => {
 	plan 2;
 
-	my $ast = 'say 1 * 3;'.AST;
+	my $ast = 'my $a = 1; say $a * 3;'.AST;
 	my @matches = ($ast ⪪⪪ {
 		$_ ~~ RakuAST::ApplyInfix
-			&& .left ~~ RakuAST::IntLiteral
+			&& .left ~~ RakuAST::Var::Lexical
 			&& .right ~~ RakuAST::IntLiteral
-			&& .left.value == 1
+			&& .left.name eq '$a'
 			&& .right.value == 3
 	}).list;
 

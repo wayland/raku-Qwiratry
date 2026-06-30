@@ -295,12 +295,13 @@ our role MoldActions {
 				my $query-block = compiler.compile-block-expr(%parts<query>);
 				$query-block.defined and $when-query = extract.from-when-block($query-block);
 				$when-block = %parts<predicate>:exists
-					?? compiler.compile-block-expr(%parts<predicate>)
+					?? extract.predicate-from-expr(%parts<predicate>)
+						// compiler.compile-blockoid($<when-block>, :topic-signature)
 					!! Nil;
 				$combine-when-query = %parts<predicate>:exists;
 			}
 			else {
-				$when-block = compiler.compile-blockoid($<when-block>);
+				$when-block = compiler.compile-blockoid($<when-block>, :topic-signature);
 				$when-block.defined and $when-query = extract.from-when-block($when-block);
 				if $when-query.defined && extract.is-pure-query-when($when-block) {
 					$when-block = Nil;
