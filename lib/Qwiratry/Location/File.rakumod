@@ -14,7 +14,10 @@ directories before writing.
 
 =end pod
 use X::Qwiratry;
+use Qwiratry::Location;
 use Qwiratry::Location::Base;
+
+Qwiratry::Location.register-schemes(:backend<File>, :schemes<file>);
 
 class Qwiratry::Location::File::Source is Qwiratry::Location::Base::Source {
 

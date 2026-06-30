@@ -60,10 +60,14 @@ C<description>, C<depends>, and C<provides> entries.
 
 =begin code :lang<shell>
 fez review
+raku tools/check-provides-in-package.raku
 =end code
 
 Check the files that will be uploaded and fix any metadata or packaging issues
-before tagging.
+before tagging. The package checker compares C<META6.json>'s C<provides>
+entries with Fez's dry-run bundle manifest, which catches ignored files before
+they become broken release archives. To check an already-created archive, pass
+C<--archive=sdist/name.tar.gz>.
 
 =item 8. Test installation
 
@@ -111,8 +115,8 @@ git tag release-x.y.z
 =item 2. Push the release commit and tag.
 
 =begin code :lang<shell>
-git push origin CURRENT-BRANCH
-git push origin release-x.y.z
+git push
+git push --tags
 =end code
 
 =item 3. Extract release notes from the changelog.

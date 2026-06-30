@@ -38,7 +38,7 @@ kitty-specs/
 docs/tickets/
 
 # Others
-old/
+_old/
 experimental/
 
 # Things I don't really want in .gitignore

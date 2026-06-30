@@ -61,7 +61,7 @@ subtest 'DestinationOperator chains with subject' => {
 }
 
 subtest 'Format and location discovery finds loaded modules' => {
-	plan 4;
+	plan 8;
 
 	my @parse = Qwiratry::Format.formats(:type<Parse>);
 	ok 'JSONdemo' (elem) @parse, 'Qwiratry::Format.formats(:type<Parse>) includes JSONdemo';
@@ -74,6 +74,15 @@ subtest 'Format and location discovery finds loaded modules' => {
 
 	my @destination = Qwiratry::Location.backends(:type<Destination>);
 	ok 'File' (elem) @destination, 'Qwiratry::Location.backends(:type<Destination>) includes File';
+
+	is Qwiratry::Location.backend-name-for-scheme('FILE'), 'File',
+		'registered URI scheme lookup is case-insensitive';
+	is Qwiratry::Location.backend-name-from-location('file:///tmp/data.json'), 'File',
+		'file URI resolves through the registered scheme';
+	is Qwiratry::Location.canonical-backend-name('file'), 'File',
+		'case-insensitive fallback resolves the discovered File module';
+	is Qwiratry::Location.backend-module-name('file'), 'Qwiratry::Location::File',
+		'backend module lookup preserves discovered module casing';
 }
 
 subtest 'Adaptor operators are immutable and declare capabilities' => {

@@ -26,6 +26,8 @@ class Qwiratry::Location does Implementation::Loader {
 
 	has %!implementation-cache;
 	has %!backend-list-cache;
+	has %!scheme-registry;
+	has $!scheme-registry-discovered = False;
 
 	my $instance;
 
@@ -62,12 +64,43 @@ class Qwiratry::Location does Implementation::Loader {
 
 	=begin pod
 
+	Register URI C<@schemes> as handled by location backend C<$backend>.
+
+	=end pod
+	method register-schemes(Str :$backend!, :$schemes! --> Nil) {
+		unless self.DEFINITE {
+			self.instance.register-schemes(:$backend, :$schemes);
+			return Nil;
+		}
+		my $backend-name = self!backend-name-label($backend);
+		my @scheme-list = $schemes ~~ Positional ?? $schemes.list !! ($schemes,);
+		for @scheme-list -> $scheme {
+			%!scheme-registry{self!normalize-scheme($scheme)} = $backend-name;
+		}
+		Nil
+	}
+
+	=begin pod
+
+	Return the registered backend for URI C<$scheme>, if one is known.
+
+	=end pod
+	method backend-name-for-scheme(Str $scheme --> Any) {
+		self.DEFINITE or return self.instance.backend-name-for-scheme($scheme);
+		self!discover-scheme-registry;
+		%!scheme-registry{self!normalize-scheme($scheme)}
+	}
+
+	=begin pod
+
 	Return the backend label implied by a location string.
 
 	=end pod
 	method backend-name-from-location(Str $location --> Str) {
 		if $location ~~ /^ (<[A..Za..z]> <[\w+.\-]>* ) '://' / {
-			return self.normalize-backend-name(~$0);
+			my $scheme = self!normalize-scheme(~$0);
+			return self.backend-name-for-scheme($scheme)
+				// self.canonical-backend-name(self.normalize-backend-name($scheme));
 		}
 		self!looks-like-local-path($location) and return 'File';
 		self!invalid-location($location);
@@ -79,7 +112,7 @@ class Qwiratry::Location does Implementation::Loader {
 
 	=end pod
 	method backend-module-name(Str $backend --> Str) {
-		'Qwiratry::Location::' ~ self.normalize-backend-name($backend)
+		'Qwiratry::Location::' ~ self.canonical-backend-name($backend)
 	}
 
 	=begin pod
@@ -96,10 +129,58 @@ class Qwiratry::Location does Implementation::Loader {
 		'Qwiratry::Location::Base::' ~ self.normalize-type-name($type)
 	}
 
+	# Normalize URI schemes for registry lookup.
+	method !normalize-scheme(Str $scheme --> Str) {
+		$scheme.lc
+	}
+
+	# Derive a backend label while preserving explicit acronym casing.
+	method !backend-name-label(Str $backend --> Str) {
+		my $name = $backend.subst(/\.rakumod$/, '');
+		$name.contains('::') and $name = $name.split('::').[*-1];
+		$name
+	}
+
+	# Load discoverable location modules once so they can register URI schemes.
+	method !discover-scheme-registry(--> Nil) {
+		return if $!scheme-registry-discovered;
+		$!scheme-registry-discovered = True;
+
+		for self.find-module-pattern(:globs([BACKEND-GLOB]), :paths(@LIB-PATHS)) -> $module {
+			my $backend = self!backend-name-from-module($module);
+			next unless $backend.defined;
+			next if $backend eq 'Base';
+			try {
+				self.load-library(:module-name($module), :return-type(True));
+				CATCH { default { } }
+			}
+		}
+		Nil
+	}
+
+	=begin pod
+
+	Return the backend module label, preserving discovered module casing.
+
+	=end pod
+	method canonical-backend-name(Str $backend --> Str) {
+		self.DEFINITE or return self.instance.canonical-backend-name($backend);
+		my $requested = self!backend-name-label($backend);
+		my $normalized = self.normalize-backend-name($requested);
+
+		for self.find-module-pattern(:globs([BACKEND-GLOB]), :paths(@LIB-PATHS)) -> $module {
+			my $candidate = self!backend-name-from-module($module);
+			next unless $candidate.defined;
+			return $candidate if $candidate.lc eq $requested.lc || $candidate.lc eq $normalized.lc;
+		}
+
+		$normalized
+	}
+
 	# Derive a backend label from a discovered backend module FQCN.
 	method !backend-name-from-module(Str $module --> Str) {
 		$module.split('::').elems == 3 or return Nil;
-		my $backend = self.normalize-backend-name($module.split('::')[2]);
+		my $backend = $module.split('::')[2];
 		$backend eq 'Base' and return Nil;
 		$backend
 	}
@@ -123,7 +204,7 @@ class Qwiratry::Location does Implementation::Loader {
 
 	# Normalize the operation and backend pair used by factory dispatch.
 	method !type-and-backend-names(Str $type, Str $backend --> List) {
-		(self.normalize-type-name($type), self.normalize-backend-name($backend))
+		(self.normalize-type-name($type), self.canonical-backend-name($backend))
 	}
 
 	# Load a backend module, resolve its operation class, and verify inheritance.
