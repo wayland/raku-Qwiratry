@@ -50,9 +50,7 @@ subtest 'IO pipeline with filter and render' => {
 	my $output = $tmpdir.child("e2e-out-{$*PID}.json");
 	$input.spurt(Qwiratry::Format.make(:type<Render>, :format<JSONdemo>).render(@rows));
 
-	my $pipeline = (⮳ $input.Str ↱ 'JSONdemo' σ -> $_ { $_<dept> eq 'eng' } ⇅ -> $_ { $_<score> } ↴ 'JSONdemo' ⮷ $output.Str);
-
-	execute($pipeline);
+	(⮳ $input.Str ↱ 'JSONdemo' σ -> $_ { $_<dept> eq 'eng' } ⇅ -> $_ { $_<score> } ↴ 'JSONdemo' ⮷ $output.Str);
 	my @out = Qwiratry::Format.make(:type<Parse>, :format<JSONdemo>).parse($output.slurp).list;
 	is @out.elems, 2, 'pipeline writes filtered engineering rows';
 	is @out[0]<name>, 'alpha', 'sorted output starts with lowest score';

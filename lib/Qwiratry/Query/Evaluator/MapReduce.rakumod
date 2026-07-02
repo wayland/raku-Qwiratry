@@ -79,6 +79,12 @@ role MapReduceEagerEvaluator does EagerEvaluator {
 			if $query.subject ~~ AdaptorOperator {
 				return $origin ~~ Positional ?? $origin.list !! ($origin,);
 			}
+			if $query.subject ~~ Seq {
+				return $query.subject.list;
+			}
+			if $query.subject ~~ Iterator {
+				return Seq.new($query.subject).list;
+			}
 			if $query.subject ~~ Positional {
 				return $query.subject.list;
 			}

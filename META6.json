@@ -3,9 +3,9 @@
   "build-depends": [],
   "depends": [
     "Slangify",
-    "Implementation::Loader:ver<0.0.7+>"
+    "Implementation::Loader:ver<0.0.9+>"
   ],
-  "description": "A brand new and very nice module",
+  "description": "Declarative query and data-walking architecture for Raku, with transformers, molds, walkers, and I/O pipelines.",
   "name": "Qwiratry",
   "provides": {
     "Qwiratry::Context": "lib/Qwiratry/Context.rakumod",
@@ -70,5 +70,5 @@
   },
   "resources": [],
   "test-depends": [],
-  "version": "0.0.5"
+  "version": "0.0.6"
 }

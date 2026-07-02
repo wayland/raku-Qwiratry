@@ -5,12 +5,10 @@ use lib 'lib';
 
 use Qwiratry::Format;
 use Qwiratry::Format::JSONdemo;
-use Qwiratry::Operator::Capability;
+use Qwiratry::Operator::IO;
 use Qwiratry::Query::Slang;
-use Qwiratry::Query::Runtime;
-my constant query-runtime = Qwiratry::Query::Runtime.instance;
 
-plan 2;
+plan 3;
 
 my $tmpdir = 't/tmp'.IO;
 $tmpdir.mkdir unless $tmpdir.d;
@@ -22,11 +20,9 @@ subtest 'source parse render destination round-trip with temp files' => {
 	my $output = $tmpdir.child("io-out-{$*PID}.json");
 	$input.spurt('[{"name":"alpha","status":"active"},{"name":"beta","status":"inactive"}]');
 
-	my $pipeline = (⮳ $input.Str ↱ 'JSONdemo' σ -> $_ { $_<status> eq 'active' } ↴ 'JSONdemo' ⮷ $output.Str);
-
-	my $result = execute($pipeline);
+	my $result = (⮳ $input.Str ↱ 'JSONdemo' σ -> $_ { $_<status> eq 'active' } ↴ 'JSONdemo' ⮷ $output.Str);
 	ok $output.e, 'destination file was written';
-	ok $result.defined, 'execute returns rendered content';
+	ok $result.defined, 'I/O slang returns rendered content directly';
 
 	my $parsed = Qwiratry::Format.make(:type<Parse>, :format<JSONdemo>).parse($output.slurp);
 	my @rows = $parsed ~~ Positional ?? $parsed.list !! ($parsed,);
@@ -42,17 +38,26 @@ subtest 'parse and query without destination returns filtered data' => {
 	my $input = $tmpdir.child("io-query-{$*PID}.json");
 	$input.spurt('[{"score":1},{"score":5},{"score":3}]');
 
-	my $query = (⮳ $input.Str ↱ 'JSONdemo') σ -> $_ { $_<score> >= 3 };
-	my $result = execute($query);
-	my @rows = $result ~~ Positional ?? $result.list !! ($result,);
+	my $result = (⮳ $input.Str ↱ 'JSONdemo') σ -> $_ { $_<score> >= 3 };
+	my @rows = $result ~~ Seq | List | Array ?? $result.list !! ($result,);
 	my @scores = @rows.map(*<score>);
 
 	is @scores.sort, (3, 5), 'parsed selection returns matching scores';
 
-	my $rendered = execute((⮳ $input.Str ↱ 'JSONdemo') ↴ 'JSONdemo');
+	my $rendered = (⮳ $input.Str ↱ 'JSONdemo') ↴ 'JSONdemo';
 	ok $rendered.starts-with('['), 'parse then render produces JSONdemo text';
 
 	$input.unlink if $input.e;
+}
+
+subtest 'query-ast preserves raw I/O operator trees' => {
+	plan 3;
+
+	my $query = query-ast({ ⮳ 'input.json' ↱ 'JSONdemo' ↴ 'JSONdemo' });
+
+	ok $query ~~ RenderOperator, 'query-ast returns the render operator node';
+	ok $query.subject ~~ ParseOperator, 'query-ast preserves parse operator subject';
+	ok $query.subject.subject ~~ SourceOperator, 'query-ast preserves source operator subject';
 }
 
 done-testing;

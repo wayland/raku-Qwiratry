@@ -10,6 +10,60 @@ This changelog follows the shape of Keep a Changelog, adapted to Rakudoc.
 Versions use the C<META6.json> version number and release tags use the
 C<release-x.y.z> convention.
 
+=head1 0.0.6 - 2026-07-02
+
+=head2 Added
+
+=item C<query-ast { ... }> in query slang for building raw operator AST when planners,
+molds, or explicit runtime calls need unevaluated query trees.
+
+=item Integration tests that query operators evaluate directly in normal use instead of
+returning C<OperatorBase> AST nodes.
+
+=head2 Changed
+
+=item Query slang set, map-reduce, relational, and I/O operators now evaluate
+immediately and return C<Seq> results or adaptor outcomes. Wrap expressions in
+C<query-ast { ... }> to preserve AST construction.
+
+=item Bumped C<Implementation::Loader> dependency to C<0.0.9+> so location backend
+discovery uses distribution C<provides> keys.
+
+=item Updated C<META6.json> module description.
+
+=head2 Fixed
+
+=item Map-reduce evaluation treats C<Seq> and C<Iterator> subjects as collections,
+fixing I/O pipelines where upstream operators return lazy sequences.
+
+=item Row rename evaluation uses C<DELETE-KEY> instead of the non-existent
+C<Hash.delete> method.
+
+=head1 0.0.5 - 2026-06-30
+
+=head2 Added
+
+Add a release-time provides/package checker that compares META6.json's provides 
+entries with the Fez bundle manifest or an existing archive. This catches cases 
+where Fez's gitignore handling excludes files that still exist in the source 
+tree, and updates the release process to run the check before publishing.
+
+=head2 Changed
+
+=item Add explicit URI scheme registration for location backends so file:// 
+locations resolve to the discovered File backend rather than a lower-cased 
+module name. This keeps backend lookup consistent whether callers provide a 
+backend name directly or arrive through a URI scheme.
+
+=head2 Fixed
+
+=item Updated RakuAST tests to avoid say 1 * 3, which current Rakudo folds to 
+say 3, so there is no infix node to find.
+
+=item Fixed mixed mold when handling by recognizing topic hash-key predicates 
+like .<value>:exists after query/predicate splitting, and preserving reliable 
+topic invocation for manual Mold.new predicates.
+
 =head1 0.0.4 - 2026-06-29
 
 =head2 Added

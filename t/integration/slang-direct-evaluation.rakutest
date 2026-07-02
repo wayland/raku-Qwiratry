@@ -1,0 +1,254 @@
+#!/usr/bin/env raku
+use Test;
+use lib 'lib';
+
+use Qwiratry::Format::JSONdemo;
+use Qwiratry::Operator::Capability;
+use Qwiratry::Operator::IO;
+use Qwiratry::Query::Slang;
+use Qwiratry::Table;
+
+plan 4;
+
+sub not-ast(Mu $value, Str:D $message) {
+	nok $value ~~ OperatorBase, $message;
+}
+
+subtest 'navigation operators evaluate directly' => {
+	plan 20;
+
+	my @orders = [
+		%(order_id => 1, customer_id => 10, total => 100),
+		%(order_id => 2, customer_id => 20, total => 50),
+		%(order_id => 3, customer_id => 10, total => 75),
+		%(order_id => 4, customer_id => Nil, total => 25),
+	];
+	my @customers = [
+		%(customer_id => 10, name => 'Alice'),
+		%(customer_id => 20, name => 'Bob'),
+		%(customer_id => 30, name => 'Carol'),
+	];
+	my $catalog = make-catalog(:orders(@orders), :active-table('orders'));
+	$catalog = make-catalog(
+		:orders(@orders), :customers(@customers),
+		:foreign-keys(
+			ForeignKey.new(
+				:from-table('orders'), :from-column('customer_id'),
+				:to-table('customers'), :to-column('customer_id'),
+			),
+		),
+		:active-table('orders'),
+	);
+
+	my $child = given-root($catalog, { @orders[0] ⪪ <customer_id> });
+	not-ast($child, 'child operator returns results directly');
+	is $child.list[0]<name>, 'Alice', 'child operator follows foreign key directly';
+
+	my $desc = given-root($catalog, { @orders[0] ⪪⪪ <customer_id> :recursive });
+	not-ast($desc, 'descendant operator returns results directly');
+	is $desc.list[0]<name>, 'Alice', 'descendant operator follows recursive foreign key directly';
+
+	my $attr = given-root($catalog, { @orders[0] ⥷ <customer_id> });
+	not-ast($attr, 'attribute operator returns values directly');
+	is-deeply $attr.list, (10,), 'attribute operator returns projected values';
+
+	my $root = @orders[0]⇤;
+	not-ast($root, 'root operator returns results directly');
+	is $root.list[0]<order_id>, 1, 'root operator returns original subject';
+
+	my $parent = given-root($catalog, { @orders[0] ⪫ <*> });
+	not-ast($parent, 'parent operator returns results directly');
+	ok $parent.list[0] === @orders, 'parent operator returns table container';
+
+	my $ancestor = given-root($catalog, { @orders[0] ⪫⪫ <*> });
+	not-ast($ancestor, 'ancestor operator returns results directly');
+	ok $ancestor.list.elems >= 1, 'ancestor operator returns at least one ancestor';
+
+	my $following-sibling = given-root($catalog, { @orders[0] ⪨ <*> });
+	not-ast($following-sibling, 'following-sibling operator returns results directly');
+	is $following-sibling.list[0]<order_id>, 2, 'following-sibling returns next row';
+
+	my $preceding-sibling = given-root($catalog, { @orders[2] ⪩ <*> });
+	not-ast($preceding-sibling, 'preceding-sibling operator returns results directly');
+	is $preceding-sibling.list[0]<order_id>, 2, 'preceding-sibling returns previous row';
+
+	my $following = given-root($catalog, { @orders[1] ⪨⪨ <*> });
+	not-ast($following, 'following operator returns results directly');
+	is-deeply $following.list.map(*<order_id>), (3, 4), 'following returns later rows';
+
+	my $preceding = given-root($catalog, { @orders[2] ⪩⪩ <*> });
+	not-ast($preceding, 'preceding operator returns results directly');
+	is-deeply $preceding.list.map(*<order_id>), (1, 2), 'preceding returns earlier rows';
+};
+
+subtest 'set, map-reduce, and relational operators evaluate directly' => {
+	plan 50;
+
+	my @rows = [
+		%(id => 1, status => 'active', score => 10),
+		%(id => 2, status => 'inactive', score => 20),
+		%(id => 3, status => 'active', score => 30),
+	];
+	my @orders = [
+		%(order_id => 1, customer_id => 10, total => 100),
+		%(order_id => 2, customer_id => 20, total => 50),
+		%(order_id => 3, customer_id => 10, total => 75),
+		%(order_id => 4, customer_id => 99, total => 30),
+	];
+	my @customers = [
+		%(customer_id => 10, name => 'Alice'),
+		%(customer_id => 20, name => 'Bob'),
+		%(customer_id => 30, name => 'Carol'),
+	];
+	my @suppliers = [
+		%(supplier_id => 1, part => 'A', city => 'Paris'),
+		%(supplier_id => 1, part => 'B', city => 'Paris'),
+		%(supplier_id => 2, part => 'A', city => 'London'),
+	];
+	my @parts = [
+		%(part => 'A'),
+		%(part => 'B'),
+	];
+
+	my $selection = @rows σ -> $_ { $_<status> eq 'active' };
+	not-ast($selection, 'selection returns results directly');
+	is $selection.list.elems, 2, 'selection filters rows';
+
+	my $sort = @rows ⇅ -> $_ { -$_<score> };
+	not-ast($sort, 'sort returns results directly');
+	is $sort.list[0]<id>, 3, 'sort orders rows by key';
+
+	my $map = @rows ». -> $_ { $_<id> };
+	not-ast($map, 'map returns results directly');
+	is-deeply $map.list, (1, 2, 3), 'map transforms rows';
+
+	my $reduce = (1, 2, 3) ⌿ -> $a, $b { $a + $b };
+	not-ast($reduce, 'reduce returns scalar result directly');
+	is $reduce, 6, 'reduce aggregates values';
+
+	my $union = ((@rows σ -> $_ { $_<status> eq 'active' }) ∪ (@rows σ -> $_ { $_<score> > 25 }));
+	not-ast($union, 'union returns results directly');
+	is $union.list.elems, 2, 'union merges result sets';
+
+	my $intersection = ((@rows σ -> $_ { $_<status> eq 'active' }) ∩ (@rows σ -> $_ { $_<score> > 25 }));
+	not-ast($intersection, 'intersection returns results directly');
+	is $intersection.list.elems, 1, 'intersection keeps shared rows';
+
+	my $difference = ((@rows σ -> $_ { $_<status> eq 'active' }) ∖ (@rows σ -> $_ { $_<score> > 25 }));
+	not-ast($difference, 'difference returns results directly');
+	is-deeply $difference.keys.map(*<id>).sort, (1,), 'difference removes right-branch rows';
+
+	my $symdiff = ((@rows σ -> $_ { $_<status> eq 'active' }) ⊖ (@rows σ -> $_ { $_<score> > 25 }));
+	not-ast($symdiff, 'symmetric difference returns results directly');
+	is $symdiff.list.elems, 1, 'symmetric difference keeps non-shared rows';
+
+	my $elem-of = 1 ∈ [1, 2];
+	not-ast($elem-of, 'element-of returns Bool directly');
+	ok $elem-of, 'element-of reports membership';
+
+	my $contains = [1, 2] ∋ 1;
+	not-ast($contains, 'contains returns Bool directly');
+	ok $contains, 'contains reports membership';
+
+	my $subset = [1] ⊂ [1, 2];
+	not-ast($subset, 'subset returns Bool directly');
+	ok $subset, 'subset reports proper inclusion';
+
+	my $subseteq = [1] ⊆ [1, 2];
+	not-ast($subseteq, 'subset-or-equal returns Bool directly');
+	ok $subseteq, 'subset-or-equal reports inclusion';
+
+	my $identity = [1] ≡ [1];
+	not-ast($identity, 'identity returns Bool directly');
+	ok $identity, 'identity compares values directly';
+
+	my $inner = @orders ⨝ @customers;
+	not-ast($inner, 'inner join returns results directly');
+	is $inner.list.elems, 3, 'inner join returns matching rows';
+
+	my $left-outer = @customers ⟕ @orders;
+	not-ast($left-outer, 'left outer join returns results directly');
+	is $left-outer.list.elems, 4, 'left outer join preserves unmatched left rows';
+
+	my $right-outer = @customers ⟖ @orders;
+	not-ast($right-outer, 'right outer join returns results directly');
+	is $right-outer.list.elems, 4, 'right outer join preserves unmatched right rows';
+
+	my $full-outer = @customers ⟗ @orders;
+	not-ast($full-outer, 'full outer join returns results directly');
+	is $full-outer.list.elems, 5, 'full outer join preserves unmatched rows on both sides';
+
+	my $left-semi = @orders ⋉ @customers;
+	not-ast($left-semi, 'left semijoin returns results directly');
+	is $left-semi.list.elems, 3, 'left semijoin keeps matching left rows';
+
+	my $right-semi = @customers ⋊ @orders;
+	not-ast($right-semi, 'right semijoin returns results directly');
+	is $right-semi.list.elems, 3, 'right semijoin keeps matching right rows';
+
+	my $left-anti = @orders ▷ @customers;
+	not-ast($left-anti, 'left antijoin returns results directly');
+	is $left-anti.list.elems, 1, 'left antijoin keeps non-matching left rows';
+
+	my $right-anti = @customers ◁ @orders;
+	not-ast($right-anti, 'right antijoin returns results directly');
+	is $right-anti.list.elems, 1, 'right antijoin keeps non-matching right rows';
+
+	my $division = @suppliers ÷ @parts;
+	not-ast($division, 'division returns results directly');
+	ok $division.list.elems > 0, 'division returns quotient rows';
+
+	my $cross = @orders × @customers;
+	not-ast($cross, 'cross join returns results directly');
+	is $cross.list.elems, @orders.elems * @customers.elems, 'cross join returns cartesian product';
+
+	my $projection = prefix:<Π>(@orders, <order_id total>);
+	not-ast($projection, 'projection returns results directly');
+	is-deeply $projection.list[0].keys.sort, <order_id total>, 'projection trims columns';
+
+	my $rename = prefix:<ρ>(@orders, total => 'amount');
+	not-ast($rename, 'rename returns results directly');
+	ok $rename.list[0]<amount>:exists, 'rename changes selected column name';
+};
+
+subtest 'I/O operators evaluate directly' => {
+	plan 8;
+
+	my $tmpdir = 't/tmp'.IO;
+	$tmpdir.mkdir unless $tmpdir.d;
+
+	my $input = $tmpdir.child("slang-direct-in-{$*PID}.json");
+	my $output = $tmpdir.child("slang-direct-out-{$*PID}.json");
+	$input.spurt('[{"name":"alpha","status":"active"},{"name":"beta","status":"inactive"}]');
+
+	my $source = ⮳ $input.Str;
+	not-ast($source, 'source returns content directly');
+	ok $source.starts-with('['), 'source reads file content';
+
+	my $parsed = $source ↱ 'JSONdemo';
+	not-ast($parsed, 'parse returns parsed data directly');
+	is $parsed.list.elems, 2, 'parse returns parsed rows';
+
+	my $rendered = $parsed ↴ 'JSONdemo';
+	not-ast($rendered, 'render returns text directly');
+	ok $rendered.starts-with('['), 'render serializes rows';
+
+	my $written = $rendered ⮷ $output.Str;
+	not-ast($written, 'destination returns content directly');
+	ok $output.e, 'destination writes output file';
+
+	$input.unlink if $input.e;
+	$output.unlink if $output.e;
+};
+
+subtest 'query-ast preserves raw operator trees explicitly' => {
+	plan 3;
+
+	my $query = query-ast({ ⮳ 'input.json' ↱ 'JSONdemo' ↴ 'JSONdemo' });
+
+	ok $query ~~ RenderOperator, 'query-ast returns an explicit render operator AST';
+	ok $query.subject ~~ ParseOperator, 'query-ast preserves parse operator AST';
+	ok $query.subject.subject ~~ SourceOperator, 'query-ast preserves source operator AST';
+};
+
+done-testing;

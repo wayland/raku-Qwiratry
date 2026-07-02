@@ -11,7 +11,7 @@ use Qwiratry::Format::CSVdemo;
 use Qwiratry::Location;
 use Qwiratry::Location::File;
 
-plan 5;
+plan 6;
 
 subtest 'SourceOperator validates locations at construction' => {
 	plan 5;
@@ -26,14 +26,39 @@ subtest 'SourceOperator validates locations at construction' => {
 	my $abs = SourceOperator.new(:location('/tmp/data.json'));
 	is $abs.location, '/tmp/data.json', 'absolute path stored';
 
+	my $http-installed = $*REPO.repo-chain.grep(*.^can('installed'))
+		.map(*.installed).flat
+		.grep({ ?($_.meta<provides><Qwiratry::Location::HTTP>) }).so;
+	my $https-accepted = False;
 	my $https-rejected = False;
 	try {
 		SourceOperator.new(:location('https://example.com/data.json'));
+		$https-accepted = True;
 		CATCH {
 			when X::Qwiratry::IO::LocationError { $https-rejected = True }
 		}
 	}
-	ok $https-rejected, 'https source requires a location plugin';
+	if $http-installed {
+		ok $https-accepted, 'https source is accepted when an HTTP backend is installed';
+	}
+	else {
+		ok $https-rejected, 'https source requires a location plugin';
+	}
+}
+
+subtest 'installed location backends are discovered from provides metadata' => {
+	my $http-installed = $*REPO.repo-chain.grep(*.^can('installed'))
+		.map(*.installed).flat
+		.grep({ ?($_.meta<provides><Qwiratry::Location::HTTP>) }).so;
+	unless $http-installed {
+		plan skip-all => 'Qwiratry::Location::HTTP is not installed';
+	}
+	plan 2;
+
+	is Qwiratry::Location.backend-name-for-scheme('https'), 'HTTP',
+		'installed https backend registers without explicit use';
+	ok 'HTTP' (elem) Qwiratry::Location.backends(:type<Source>),
+		'installed HTTP backend appears in source backend list';
 }
 
 subtest 'ParseOperator and RenderOperator require loaded format modules' => {

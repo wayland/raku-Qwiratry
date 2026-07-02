@@ -73,7 +73,8 @@ role RowShapingEvaluator does LazyEvaluator {
 		my %result = %($row);
 		for %renames.pairs -> $p {
 			if %result{$p.key}:exists {
-				%result{$p.value} = %result.delete($p.key);
+				%result{$p.value} = %result{$p.key};
+				%result.DELETE-KEY($p.key);
 			}
 		}
 		%result

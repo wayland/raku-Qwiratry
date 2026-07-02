@@ -45,16 +45,16 @@ subtest 'Table walker executes selection, sort, map, and reduce' => {
 	my @active = rows-from-iter($walker.start($select-query, @rows));
 	is @active.elems, 2, 'selection filters active rows';
 
-	my $sort-query = @rows ⇅ -> $_ { $_<score> };
+	my $sort-query = query-ast({ @rows ⇅ -> $_ { $_<score> } });
 	my @sorted = rows-from-iter($walker.start($sort-query, @rows));
 	is @sorted[*-1]<name>, 'gamma', 'sort orders by score ascending';
 
-	my $map-query = @rows ». -> $_ { %(name => $_.<name>.uc, score => $_.<score> * 2) };
+	my $map-query = query-ast({ @rows ». -> $_ { %(name => $_.<name>.uc, score => $_.<score> * 2) } });
 	my @mapped = rows-from-iter($walker.start($map-query, @rows));
 	is @mapped[0]<name>, 'ALPHA', 'map transforms row values';
 
 	my @scores = @rows.map(*<score>);
-	my $reduce-query = @scores ⌿ { $^a + $^b };
+	my $reduce-query = query-ast({ @scores ⌿ { $^a + $^b } });
 	is query-runtime.select($reduce-query, @scores)[0], 35, 'reduce aggregates scores';
 }
 
@@ -66,7 +66,7 @@ subtest 'Tree walker executes selection and sort on descendant query' => {
 	ok $walker.supports(SortOperator.new(:subject($base), :key-function(-> $_ { $_<value> }))),
 		'Tree walker supports SortOperator';
 
-	my $filtered = $base σ -> $_ { $_<value> >= 15 };
+	my $filtered = query-ast({ $base σ -> $_ { $_<value> >= 15 } });
 	my @values = gather {
 		my $iter = $walker.start($filtered, $tree);
 		while (my $n = $iter.pull-one) !~~ IterationEnd {
@@ -75,7 +75,7 @@ subtest 'Tree walker executes selection and sort on descendant query' => {
 	};
 	is @values.sort, (20, 30), 'selection filters descendant items by value';
 
-	my $sorted = $base ⇅ -> $_ { $_<value> };
+	my $sorted = query-ast({ $base ⇅ -> $_ { $_<value> } });
 	@values = gather {
 		my $iter = $walker.start($sorted, $tree);
 		while (my $n = $iter.pull-one) !~~ IterationEnd {

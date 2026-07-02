@@ -60,6 +60,14 @@ sub evaluate-query(Mu $query, Mu $fallback --> Seq) {
 	::('Qwiratry::Query::Runtime').instance.select($query, query-origin($fallback))
 }
 
+sub auto-query(Mu $query, Mu $fallback, *@values --> Mu) {
+	build-query(|@values) ?? $query !! evaluate-query($query, $fallback)
+}
+
+sub auto-adaptor(Mu $query, Mu $fallback, *@values --> Mu) {
+	build-query(|@values) ?? $query !! execute($query, :origin(query-origin($fallback)))
+}
+
 =begin pod
 
 Construct a binary set operator AST node.
@@ -200,6 +208,11 @@ multi sub infix:<∪>(Mu $left, OperatorBase $right) is export {
 	UnionOperator.new(:left($left), :right($right))
 }
 
+multi sub infix:<∪>(Mu $left, Mu $right) is export {
+	my $query = UnionOperator.new(:left($left), :right($right));
+	auto-query($query, $left, $left, $right)
+}
+
 =begin pod
 
 Set intersection (C<∩>).
@@ -217,6 +230,11 @@ multi sub infix:<∩>(Mu $left, OperatorBase $right) is export {
 	IntersectionOperator.new(:left($left), :right($right))
 }
 
+multi sub infix:<∩>(Mu $left, Mu $right) is export {
+	my $query = IntersectionOperator.new(:left($left), :right($right));
+	auto-query($query, $left, $left, $right)
+}
+
 =begin pod
 
 Set difference (C<∖>).
@@ -232,6 +250,11 @@ multi sub infix:<∖>(OperatorBase $left, Mu $right) is export {
 
 multi sub infix:<∖>(Mu $left, OperatorBase $right) is export {
 	SetDifferenceOperator.new(:left($left), :right($right))
+}
+
+multi sub infix:<∖>(Mu $left, Mu $right) is export {
+	my $query = SetDifferenceOperator.new(:left($left), :right($right));
+	auto-query($query, $left, $left, $right)
 }
 
 =begin pod
@@ -259,7 +282,8 @@ Sort (C<⇅>) by key function.
 
 =end pod
 multi sub infix:<⇅>(Mu $left, &key) is equiv(&infix:<x>) is export {
-	SortOperator.new(:subject($left), :key-function(&key))
+	my $query = SortOperator.new(:subject($left), :key-function(&key));
+	auto-query($query, $left, $left)
 }
 
 =begin pod
@@ -268,7 +292,8 @@ Reduce (C<⌿>) with combining operation.
 
 =end pod
 multi sub infix:<⌿>(Mu $left, &operation) is equiv(&infix:<x>) is export {
-	ReduceOperator.new(:subject($left), :operation(&operation))
+	my $query = ReduceOperator.new(:subject($left), :operation(&operation));
+	auto-query($query, $left, $left)
 }
 
 =begin pod
@@ -281,7 +306,8 @@ multi sub infix:<».>(OperatorBase $left, &transform) is equiv(&infix:<x>) is ex
 }
 
 multi sub infix:<».>(Mu $left, &transform) is equiv(&infix:<x>) is export {
-	MapOperator.new(:subject($left), :transform(&transform))
+	my $query = MapOperator.new(:subject($left), :transform(&transform));
+	auto-query($query, $left, $left)
 }
 
 =begin pod
@@ -294,7 +320,8 @@ multi sub infix:<⊖>(OperatorBase $left, OperatorBase $right) is export {
 }
 
 multi sub infix:<⊖>(Mu $left, Mu $right) is export {
-	SymmetricDifferenceOperator.new(:left($left), :right($right))
+	my $query = SymmetricDifferenceOperator.new(:left($left), :right($right));
+	auto-query($query, $left, $left, $right)
 }
 
 =begin pod
@@ -303,7 +330,8 @@ Element-of membership (C<∈>).
 
 =end pod
 multi sub infix:<∈>(Mu $element, Mu $collection) is export {
-	ElementOfOperator.new(:element($element), :collection($collection))
+	my $query = ElementOfOperator.new(:element($element), :collection($collection));
+	auto-query($query, $collection, $element, $collection)
 }
 
 =begin pod
@@ -312,7 +340,8 @@ Contains (C<∋>) — collection contains element.
 
 =end pod
 multi sub infix:<∋>(Mu $collection, Mu $element) is export {
-	ContainsOperator.new(:collection($collection), :element($element))
+	my $query = ContainsOperator.new(:collection($collection), :element($element));
+	auto-query($query, $collection, $collection, $element)
 }
 
 =begin pod
@@ -321,7 +350,8 @@ Proper subset (C<⊂>).
 
 =end pod
 multi sub infix:<⊂>(Mu $left, Mu $right) is export {
-	SubsetOperator.new(:left($left), :right($right))
+	my $query = SubsetOperator.new(:left($left), :right($right));
+	auto-query($query, $left, $left, $right)
 }
 
 =begin pod
@@ -330,7 +360,8 @@ Subset or equal (C<⊆>).
 
 =end pod
 multi sub infix:<⊆>(Mu $left, Mu $right) is export {
-	SubsetOrEqualOperator.new(:left($left), :right($right))
+	my $query = SubsetOrEqualOperator.new(:left($left), :right($right));
+	auto-query($query, $left, $left, $right)
 }
 
 =begin pod
@@ -339,7 +370,8 @@ Identity comparison (C<≡>).
 
 =end pod
 multi sub infix:<≡>(Mu $left, Mu $right) is export {
-	IdentityOperator.new(:left($left), :right($right))
+	my $query = IdentityOperator.new(:left($left), :right($right));
+	auto-query($query, $left, $left, $right)
 }
 
 =begin pod
@@ -348,7 +380,8 @@ Inner join (C<⨝>).
 
 =end pod
 multi sub infix:<⨝>(Mu $left, Mu $right, &condition?) is equiv(&infix:<~>) is export {
-	InnerJoinOperator.new(:left($left), :right($right), :condition(&condition))
+	my $query = InnerJoinOperator.new(:left($left), :right($right), :condition(&condition));
+	auto-query($query, $left, $left, $right)
 }
 
 =begin pod
@@ -357,7 +390,8 @@ Left outer join (C<⟕>).
 
 =end pod
 multi sub infix:<⟕>(Mu $left, Mu $right, &condition?) is equiv(&infix:<~>) is export {
-	LeftOuterJoinOperator.new(:left($left), :right($right), :condition(&condition))
+	my $query = LeftOuterJoinOperator.new(:left($left), :right($right), :condition(&condition));
+	auto-query($query, $left, $left, $right)
 }
 
 =begin pod
@@ -366,7 +400,8 @@ Right outer join (C<⟖>).
 
 =end pod
 multi sub infix:<⟖>(Mu $left, Mu $right, &condition?) is equiv(&infix:<~>) is export {
-	RightOuterJoinOperator.new(:left($left), :right($right), :condition(&condition))
+	my $query = RightOuterJoinOperator.new(:left($left), :right($right), :condition(&condition));
+	auto-query($query, $left, $left, $right)
 }
 
 =begin pod
@@ -375,7 +410,8 @@ Full outer join (C<⟗>).
 
 =end pod
 multi sub infix:<⟗>(Mu $left, Mu $right, &condition?) is equiv(&infix:<~>) is export {
-	FullOuterJoinOperator.new(:left($left), :right($right), :condition(&condition))
+	my $query = FullOuterJoinOperator.new(:left($left), :right($right), :condition(&condition));
+	auto-query($query, $left, $left, $right)
 }
 
 =begin pod
@@ -384,7 +420,8 @@ Left semijoin (C<⋉>).
 
 =end pod
 multi sub infix:<⋉>(Mu $left, Mu $right, &condition?) is equiv(&infix:<~>) is export {
-	LeftSemijoinOperator.new(:left($left), :right($right), :condition(&condition))
+	my $query = LeftSemijoinOperator.new(:left($left), :right($right), :condition(&condition));
+	auto-query($query, $left, $left, $right)
 }
 
 =begin pod
@@ -393,7 +430,8 @@ Right semijoin (C<⋊>).
 
 =end pod
 multi sub infix:<⋊>(Mu $left, Mu $right, &condition?) is equiv(&infix:<~>) is export {
-	RightSemijoinOperator.new(:left($left), :right($right), :condition(&condition))
+	my $query = RightSemijoinOperator.new(:left($left), :right($right), :condition(&condition));
+	auto-query($query, $left, $left, $right)
 }
 
 =begin pod
@@ -402,7 +440,8 @@ Left antijoin (C<▷>).
 
 =end pod
 multi sub infix:<▷>(Mu $left, Mu $right, &condition?) is equiv(&infix:<~>) is export {
-	LeftAntijoinOperator.new(:left($left), :right($right), :condition(&condition))
+	my $query = LeftAntijoinOperator.new(:left($left), :right($right), :condition(&condition));
+	auto-query($query, $left, $left, $right)
 }
 
 =begin pod
@@ -411,7 +450,8 @@ Right antijoin (C<◁>).
 
 =end pod
 multi sub infix:<◁>(Mu $left, Mu $right, &condition?) is equiv(&infix:<~>) is export {
-	RightAntijoinOperator.new(:left($left), :right($right), :condition(&condition))
+	my $query = RightAntijoinOperator.new(:left($left), :right($right), :condition(&condition));
+	auto-query($query, $left, $left, $right)
 }
 
 =begin pod
@@ -420,7 +460,8 @@ Relational division (C<÷>).
 
 =end pod
 multi sub infix:<÷>(Mu $left, Mu $right) is export {
-	DivisionOperator.new(:left($left), :right($right))
+	my $query = DivisionOperator.new(:left($left), :right($right));
+	auto-query($query, $left, $left, $right)
 }
 
 =begin pod
@@ -429,7 +470,8 @@ Cross join (C<×>): cartesian product (typed multis exclude numeric multiply).
 
 =end pod
 multi sub infix:<×>(Positional $left, Positional $right) is export {
-	CrossJoinOperator.new(:left($left), :right($right))
+	my $query = CrossJoinOperator.new(:left($left), :right($right));
+	auto-query($query, $left, $left, $right)
 }
 
 multi sub infix:<×>(OperatorBase $left, Mu $right) is export {
@@ -446,7 +488,8 @@ Projection (C<Π>): select columns from a relation.
 
 =end pod
 multi sub prefix:<Π>(Mu $relation, *@columns) is export {
-	ProjectionOperator.new(:relation($relation), :columns(@columns))
+	my $query = ProjectionOperator.new(:relation($relation), :columns(@columns));
+	auto-query($query, $relation, $relation)
 }
 
 =begin pod
@@ -455,7 +498,8 @@ Rename (C<ρ>): rename columns in a relation.
 
 =end pod
 multi sub prefix:<ρ>(Mu $relation, *%renames) is export {
-	RenameOperator.new(:relation($relation), :renames(%renames))
+	my $query = RenameOperator.new(:relation($relation), :renames(%renames));
+	auto-query($query, $relation, $relation)
 }
 
 =begin pod
@@ -464,7 +508,8 @@ Source prefix (C<⮳>): read from a location string.
 
 =end pod
 multi sub prefix:<⮳>(Mu $location) is export {
-	SourceOperator.new(location => ~$location)
+	my $query = SourceOperator.new(location => ~$location);
+	auto-adaptor($query, $location, $location)
 }
 
 =begin pod
@@ -473,7 +518,8 @@ Parse infix (C<↱>): parse subject data with format C<$right>.
 
 =end pod
 multi sub infix:<↱>(Mu $left, Mu $right) is equiv(&infix:<x>) is export {
-	ParseOperator.new(:subject($left), :format(~$right))
+	my $query = ParseOperator.new(:subject($left), :format(~$right));
+	auto-adaptor($query, $left, $left, $right)
 }
 
 =begin pod
@@ -482,7 +528,8 @@ Render infix (C<↴>): render subject data to format C<$right>.
 
 =end pod
 multi sub infix:<↴>(Mu $left, Mu $right, *%adverbs) is equiv(&infix:<x>) is export {
-	RenderOperator.new(:subject($left), :format(~$right), :options(%adverbs))
+	my $query = RenderOperator.new(:subject($left), :format(~$right), :options(%adverbs));
+	auto-adaptor($query, $left, $left, $right)
 }
 
 =begin pod
@@ -491,5 +538,6 @@ Destination infix (C<⮷>): write pipeline output to location C<$right>.
 
 =end pod
 multi sub infix:<⮷>(Mu $left, Mu $right) is equiv(&infix:<x>) is export {
-	DestinationOperator.new(:subject($left), :location(~$right))
+	my $query = DestinationOperator.new(:subject($left), :location(~$right));
+	auto-adaptor($query, $left, $left, $right)
 }
