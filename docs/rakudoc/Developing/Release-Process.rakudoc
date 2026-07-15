@@ -115,23 +115,19 @@ git tag release-x.y.z
 =item 2. Push the release commit and tag.
 
 =begin code :lang<shell>
-git push
-git push --tags
+git push && git push --tags
 =end code
 
 =item 3. Extract release notes from the changelog.
 
 =begin code :lang<shell>
-raku docs/rakudoc/Developing/changelog-release-notes.raku x.y.z \
-  > /tmp/qwiratry-release-notes.md
+raku docs/rakudoc/Developing/changelog-release-notes.raku x.y.z > /tmp/qwiratry-release-notes.md
 =end code
 
 =item 4. Create the GitHub release from the tag.
 
 =begin code :lang<shell>
-gh release create release-x.y.z \
-  --title "Qwiratry x.y.z" \
-  --notes-file /tmp/qwiratry-release-notes.md
+gh release create release-x.y.z --title "Qwiratry x.y.z" --notes-file /tmp/qwiratry-release-notes.md
 =end code
 
 =head1 Release Verification

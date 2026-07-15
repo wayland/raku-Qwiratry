@@ -8,7 +8,7 @@
 
 Qwiratry can be developed as a module on today's Raku. If Qwiratry, or the
 data-oriented programming ideas behind it, were ever merged into Raku itself,
-the changes below would make that integration much easier.
+the changes below, though not required, would make that integration much easier.
 
 =head1 Dispatch Changes
 
@@ -24,7 +24,14 @@ ordering, while Mold objects could use a custom ordering designed for
 data-oriented transformation rules.
 
 This would let molds remain dispatch-like and composable without forcing them
-through the same precedence rules used for ordinary methods.
+through the same precedence rules used for ordinary methods.  
+
+If we did this right, we could also have a dispatch that would work like 
+gather/take; subsequent calls to the function would continue from where it left 
+off, and return the next item taken.  Also, when a dispatch matches, it may 
+return its own value, but then continue on with the next item in the queue; 
+might need a special return for this.  Would probably need a way to use 
+proceed/succeed with these as well.  
 
 =head2 Orthogonal Redispatch
 
@@ -62,7 +69,10 @@ used for rendering as well as parsing.
 
 This would let a data-oriented program describe a representation once and use
 that description both to read data into a structure and to render a structure
-back out.
+back out.  
+
+I'm thinking in particular that it should be possible to provide a Match tree 
+and have the grammar render it as a string.  
 
 =head2 Chaining Replacing Actions
 

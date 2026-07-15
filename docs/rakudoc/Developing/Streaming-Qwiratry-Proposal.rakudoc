@@ -1,0 +1,480 @@
+=begin rakudoc
+
+=TITLE Streaming Qwiratry Proposal
+
+=SUBTITLE Proposed interfaces for streaming-capable parsers, renderers, sources, and destinations
+
+=head1 Overview
+
+This document proposes a streaming extension to Qwiratry's existing format and
+location interfaces.
+
+The goal is to let parsers, renderers, sources, and destinations operate
+incrementally when that is useful, while preserving the current extension model
+and keeping existing implementations working unchanged.
+
+The proposal is intentionally conservative:
+
+=item It keeps C<Qwiratry::Format> and C<Qwiratry::Location> as the discovery and
+dispatch points.
+
+=item It keeps C<Parse>, C<Render>, C<Source>, and C<Destination> as the primary
+implementation concepts.
+
+=item It treats streaming as an optional capability, not a replacement for the
+current whole-value interfaces.
+
+=item It follows Qwiratry's existing pull-based style, using C<Iterator> rather
+than callback-driven or push-driven APIs.
+
+=head1 Status
+
+This is a design proposal. It does not describe implemented behavior unless
+explicitly stated otherwise.
+
+It's tentative, and may change as goals change.  
+
+=head1 Motivation
+
+Qwiratry already has a strong incremental execution model in its query layer.
+Results are naturally exposed through pull-based iteration, especially via
+C<QueryIterator>.
+
+However, the current format and location boundaries are whole-value oriented:
+
+=item Parsers accept a complete C<Str>.
+
+=item Renderers produce a complete C<Str>.
+
+=item Sources return a complete C<Str>.
+
+=item Destinations consume a complete value and return it for pass-through.
+
+This is simple and useful, but it forces materialization at I/O boundaries even
+when the external representation or transport could be handled incrementally.
+
+Streaming support would make Qwiratry a better fit for:
+
+=item Large files that should not be loaded fully into memory.
+
+=item Network responses whose bodies can be consumed incrementally.
+
+=item Row- or record-oriented formats such as CSV, NDJSON, and event streams.
+
+=item Pipelines where query evaluation, rendering, and output should begin before
+the whole input has been consumed.
+
+=head1 Design Goals
+
+=item Preserve the current discovery model and naming conventions.
+
+=item Preserve backward compatibility for existing format and location modules.
+
+=item Match Qwiratry's pull-based execution style.
+
+=item Avoid introducing a second parallel hierarchy of streaming-only factories or
+operator classes unless later experience shows that this is necessary.
+
+=item Allow partial adoption, so a backend can be streaming-capable on only one
+side of the pipeline.
+
+=head1 Non-Goals
+
+=item This proposal does not require all queries to become stream-safe.
+
+=item This proposal does not try to solve every whole-document format with a
+single streaming strategy.
+
+=item This proposal does not require C<QueryIterator> itself to become the
+transport abstraction for raw bytes or text chunks.
+
+=item This proposal does not standardize binary streaming in the first step.
+The initial surface is text-oriented, matching the current C<Str>-based
+interfaces.
+
+=head1 Current Surface
+
+Today the format and location contracts are:
+
+=begin code :lang<raku>
+class Qwiratry::Format::Base::Parse {
+    method parse(Str $input-string --> Mu) { ... }
+}
+
+class Qwiratry::Format::Base::Render {
+    method render(Mu $data, Associative :%options --> Str) { ... }
+}
+
+class Qwiratry::Location::Base::Source {
+    method read(Str $location --> Str) { ... }
+}
+
+class Qwiratry::Location::Base::Destination {
+    method write(Str $location, Mu $content --> Mu) { ... }
+}
+=end code
+
+The query layer is already pull-based, but adaptor operators currently
+materialize values at key points. In particular, rendering currently normalizes
+lazy sequences to a list before handing them to a renderer.
+
+This means a streaming-capable renderer cannot be useful without a matching
+execution path through the operators.
+
+=head1 Recommended Interface Shape
+
+The recommended design is to add I<optional streaming capabilities> on top of the
+existing classes.
+
+=head2 Streaming Format Capabilities
+
+=begin code :lang<raku>
+role Qwiratry::Format::Base::StreamingParse {
+    method parse-chunks(Iterator:D $chunks, *%options --> Mu) { ... }
+}
+
+role Qwiratry::Format::Base::StreamingRender {
+    method render-chunks(
+        Mu $data,
+        Associative :%options
+        --> Iterator:D
+    ) { ... }
+}
+=end code
+
+C<parse-chunks> accepts a pull-based stream of text chunks and returns either:
+
+=item A single parsed value.
+
+=item A lazy C<Seq> or C<Iterator> of parsed top-level values.
+
+C<render-chunks> accepts normal Qwiratry data and returns a pull-based stream of
+text chunks.
+
+=head2 Streaming Location Capabilities
+
+=begin code :lang<raku>
+role Qwiratry::Location::Base::StreamingSource {
+    method read-chunks(Str:D $location --> Iterator:D) { ... }
+}
+
+role Qwiratry::Location::Base::StreamingDestination {
+    method open-sink(Str:D $location --> Mu) { ... }
+}
+=end code
+
+C<read-chunks> returns a pull-based stream of C<Str> chunks from the given
+location.
+
+C<open-sink> returns an object representing an incremental destination. The sink
+should support operations such as:
+
+=begin code :lang<raku>
+class ExampleSink {
+    method write-chunk(Str:D $chunk --> Nil) { ... }
+    method close(--> Nil) { ... }
+}
+=end code
+
+This sink-based shape is preferred over a single C<write-chunks> method because
+it fits pass-through pipelines better and gives explicit control over resource
+lifecycle.
+
+=head1 Why This Shape Fits Qwiratry
+
+=head2 Reuses Existing Discovery
+
+Qwiratry already resolves implementations through:
+
+=begin code :lang<raku>
+Qwiratry::Format.make(:type<Parse>, :format<JSONdemo>)
+Qwiratry::Format.make(:type<Render>, :format<JSONdemo>)
+
+Qwiratry::Location.make(:type<Source>, :location<input.csv>)
+Qwiratry::Location.make(:type<Destination>, :location<output.csv>)
+=end code
+
+The proposed design does not change that. A format or location implementation is
+still discovered in the same way. Streaming is simply detected as an additional
+capability on the returned implementation object.
+
+=head2 Matches Pull-Based Execution
+
+Qwiratry's natural incremental abstraction is a pull iterator. That makes
+C<Iterator> the best fit for streaming transport:
+
+=item It is consistent with C<QueryIterator>.
+
+=item It allows lazy composition.
+
+=item It keeps backpressure simple: the consumer pulls when ready.
+
+=item It avoids introducing callback or reactive machinery where the rest of
+Qwiratry does not currently use it.
+
+=head2 Preserves Backward Compatibility
+
+Existing formats and backends can continue to implement only:
+
+=begin code :lang<raku>
+method parse(Str $input-string --> Mu)
+method render(Mu $data, Associative :%options --> Str)
+method read(Str $location --> Str)
+method write(Str $location, Mu $content --> Mu)
+=end code
+
+Nothing in this proposal requires those implementations to change.
+
+=head1 Operator Behavior
+
+The streaming interfaces are only useful if the adaptor operators preserve
+streaming when possible.
+
+=head2 Source Operator
+
+When a source implementation does C<StreamingSource>, and the downstream
+consumer can use streamed input, C<SourceOperator> should use C<read-chunks>.
+Otherwise it should fall back to C<read>.
+
+=head2 Parse Operator
+
+When its format implementation does C<StreamingParse> and its input is chunked,
+C<ParseOperator> should call C<parse-chunks>. Otherwise it should call C<parse>.
+
+=head2 Render Operator
+
+When its format implementation does C<StreamingRender>, C<RenderOperator> should
+avoid forcing upstream lazy data into a list. Instead it should pass the
+upstream value through in its existing lazy form when safe to do so.
+
+This is the most important operator change in the proposal. Without it, the
+renderer would remain a materialization boundary even if it supports streaming.
+
+=head2 Destination Operator
+
+When its location implementation does C<StreamingDestination>, and the upstream
+value is a text chunk iterator, C<DestinationOperator> should stream those
+chunks through a sink object rather than first assembling them into one C<Str>.
+
+=head1 Capability Detection and Fallback
+
+Streaming should be optional and discovered dynamically.
+
+At a high level:
+
+=begin code :lang<raku>
+my $source = Qwiratry::Location.make(:type<Source>, :location($loc));
+
+if $source ~~ Qwiratry::Location::Base::StreamingSource {
+    my $chunks = $source.read-chunks($loc);
+    ...
+}
+else {
+    my $text = $source.read($loc);
+    ...
+}
+=end code
+
+Equivalent capability checks should be used for parsers, renderers, and
+destinations.
+
+Fallback rules should be simple:
+
+=item If both sides of a boundary support streaming, use the streaming path.
+
+=item If either side does not support streaming, adapt through the existing
+whole-value method.
+
+=item If an implementation exposes both whole-value and streaming methods, both
+must be semantically consistent for equivalent inputs.
+
+=head1 Expected Return Shapes
+
+The following table summarizes the intended shapes:
+
+=begin table
+Component | Existing method | Streaming method | Intended payload shape
+Source | C<read> | C<read-chunks> | C<Iterator> of C<Str> chunks
+Parser | C<parse> | C<parse-chunks> | one value, or lazy stream of parsed values
+Renderer | C<render> | C<render-chunks> | C<Iterator> of C<Str> chunks
+Destination | C<write> | C<open-sink> | sink object receiving C<Str> chunks
+=end table
+
+=head1 Example End-to-End Flow
+
+For a row-oriented format, a streaming-capable pipeline could behave like this:
+
+=begin code :lang<raku>
+my $chunks   = $source.read-chunks('input.ndjson');
+my $records  = $parser.parse-chunks($chunks);
+my $filtered = execute($query, :origin($records));
+my $output   = $renderer.render-chunks($filtered, :%options);
+my $sink     = $destination.open-sink('output.ndjson');
+
+for $output -> $chunk {
+    $sink.write-chunk($chunk);
+}
+$sink.close;
+=end code
+
+This is intentionally schematic. The actual operator pipeline should hide most
+of these details from ordinary users.
+
+=head1 Relationship to C<QueryIterator>
+
+C<QueryIterator> is the right abstraction for incremental query results, but it
+should not be forced to represent transport-layer chunk streams.
+
+Reasons:
+
+=item Chunk streams do not need traversal C<Context>.
+
+=item Text transport and query semantics are different layers.
+
+=item Plain C<Iterator> is simpler for sources, renderers, and sinks.
+
+The proposal therefore uses ordinary pull iterators for chunk transport and
+keeps C<QueryIterator> for query result production.
+
+=head1 Destination Pass-Through Semantics
+
+Current destinations return the content that was written, which makes
+destination operators observable at the end of a pipeline.
+
+This becomes trickier with one-shot iterators:
+
+=item If the destination fully consumes an iterator, the original iterator may no
+longer be reusable.
+
+=item Returning the same iterator after consumption may be misleading.
+
+The recommended behavior is:
+
+=item Prefer sink-driven streaming inside the operator implementation.
+
+=item Preserve the current pass-through idea where practical.
+
+=item If necessary, document that streamed destination pass-through is
+single-consumer unless explicitly buffered or teed.
+
+This is an area where implementation experience may refine the exact contract.
+
+=head1 Scope Limits
+
+This proposal is best suited to formats whose top-level structure can be handled
+incrementally, such as:
+
+=item CSV rows
+
+=item NDJSON records
+
+=item line-oriented logs
+
+=item chunked text protocols
+
+It is less straightforward for formats or queries that require whole-document
+knowledge before any meaningful query can run, for example:
+
+=item cases where parent or sibling relationships are only knowable after full
+materialization
+
+=item formats whose grammar forces arbitrary lookahead before producing any
+top-level result
+
+=item queries that depend on whole-document ordering or root-level aggregation
+
+In such cases, implementations should be free to support only the current
+whole-value interface or to expose a streaming parser that still buffers
+internally before producing a final value.
+
+=head1 Migration Strategy
+
+A staged rollout is recommended:
+
+=item 1. Add the new streaming roles or capability methods to the base
+documentation and developer guidance.
+
+=item 2. Teach adaptor operators to preserve streamed values when both upstream
+and downstream support them.
+
+=item 3. Add one or two reference implementations, such as a file source that
+reads chunks and a line-oriented demonstration format.
+
+=item 4. Add tests covering streaming and fallback composition.
+
+=item 5. Consider binary-oriented extensions only after the text-oriented version
+has settled.
+
+=head1 Testing Recommendations
+
+Tests for streaming support should prove:
+
+=item Discovery and loading still work through C<Qwiratry::Format> and
+C<Qwiratry::Location>.
+
+=item Whole-value implementations continue to behave exactly as before.
+
+=item A streaming source composes with a non-streaming parser through fallback.
+
+=item A non-streaming source composes with a streaming parser through fallback.
+
+=item A streaming renderer does not force a lazy upstream sequence into an eager
+list when the pipeline stays on the streaming path.
+
+=item Streamed destinations write the complete output in correct order.
+
+=item Error behavior remains attributable to the correct operator type and
+location or format.
+
+=head1 Alternatives Considered
+
+=head2 Separate Streaming Factory Types
+
+One possible design would introduce separate types such as:
+
+=begin code :lang<raku>
+Qwiratry::Format.make(:type<ParseStream>, ...)
+Qwiratry::Format.make(:type<RenderStream>, ...)
+=end code
+
+This was rejected as the primary proposal because it creates a parallel
+discovery vocabulary, duplicates concepts that already exist, and makes the
+extension model harder to learn.
+
+=head2 Callback-Based APIs
+
+Another option would be to use callbacks rather than pull iterators.
+
+This was rejected because it does not match Qwiratry's existing incremental
+style as well as ordinary C<Iterator> does.
+
+=head1 Recommendation
+
+Qwiratry should adopt optional pull-based streaming capabilities on top of the
+existing format and location classes.
+
+The recommended public surface is:
+
+=begin code :lang<raku>
+role Qwiratry::Format::Base::StreamingParse {
+    method parse-chunks(Iterator:D $chunks, *%options --> Mu) { ... }
+}
+
+role Qwiratry::Format::Base::StreamingRender {
+    method render-chunks(Mu $data, Associative :%options --> Iterator:D) { ... }
+}
+
+role Qwiratry::Location::Base::StreamingSource {
+    method read-chunks(Str:D $location --> Iterator:D) { ... }
+}
+
+role Qwiratry::Location::Base::StreamingDestination {
+    method open-sink(Str:D $location --> Mu) { ... }
+}
+=end code
+
+This design is small, consistent with the existing architecture, compatible with
+current extensions, and strong enough to support genuinely incremental I/O where
+the surrounding query semantics allow it.
+
+=end rakudoc

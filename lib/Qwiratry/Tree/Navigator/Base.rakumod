@@ -54,13 +54,15 @@ role Qwiratry::Tree::Navigator::Base {
 	Returns direct children for ordinary Raku tree-shaped values.
 
 	=end pod
-	method tree-children(Mu $node --> List) {
-		$node ~~ Positional and return $node.list;
-		if $node ~~ Associative {
-			if $node<children> ~~ Positional {
-				return $node<children>.list;
-			}
+	method tree-children(Positional $node --> List) {
+		return $node.list;
+	}
+	method tree-children(Associative $node --> List) {
+		if $node<children> ~~ Positional {
+			return $node<children>.list;
 		}
+	}
+	method tree-children(Mu $node --> List) {
 		()
 	}
 
@@ -119,8 +121,10 @@ role Qwiratry::Tree::Navigator::Base {
 	Returns attribute-like values when the node naturally exposes them.
 
 	=end pod
+	method tree-attributes(Associative $node --> Associative) {
+		return $node;
+	}
 	method tree-attributes(Mu $node --> Associative) {
-		$node ~~ Associative and return $node;
 		%()
 	}
 }

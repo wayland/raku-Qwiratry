@@ -1,10 +1,16 @@
 {
+  "source-url": "https://github.com/wayland/raku-Qwiratry",
   "auth": "zef:wayland",
+  "authors": [ "Tim Nelson" ],
+  "tags": [
+    "tree", "table", "data-oriented", "walker", "transformer"
+  ],
   "build-depends": [],
   "depends": [
     "Slangify",
     "Implementation::Loader:ver<0.0.9+>"
   ],
+  "raku": "6.e",
   "description": "Declarative query and data-walking architecture for Raku, with transformers, molds, walkers, and I/O pipelines.",
   "name": "Qwiratry",
   "provides": {

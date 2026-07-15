@@ -83,6 +83,8 @@ zef test .
 
 =item L<Required Raku Modifications|Required-Raku-Modifications>: possible Raku language and runtime changes that would better support data-oriented programming.
 
+=item L<Streaming Qwiratry Proposal|Streaming-Qwiratry-Proposal>: proposed interfaces for streaming-capable parsers, renderers, sources, and destinations.
+
 =item L<Changelog|Changelog>: user-visible changes by release.
 
 =item L<Release Process|Release-Process>: prep, fez publishing, and GitHub release steps.

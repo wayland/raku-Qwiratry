@@ -22,13 +22,13 @@ class Qwiratry::Tree::Navigator::RakuAST does Qwiratry::Tree::Navigator::Base {
 
 	=begin pod
 
-	=head2 C<tree-children(Mu $node)>
+	=head2 C<tree-children(RakuAST::Node $node $node)>
 
 	Uses C<visit-children> to expose direct RakuAST children.
 
 	=end pod
-	method tree-children(Mu $node --> List) {
-		if $node ~~ RakuAST::Node && $node.can('visit-children') {
+	method tree-children(RakuAST::Node $node --> List) {
+		if $node.can('visit-children') {
 			return (gather $node.visit-children(-> $child { take $child })).list;
 		}
 		()

@@ -43,7 +43,6 @@ experimental/
 
 # Things I don't really want in .gitignore
 CodingStandards.md
-Ideas.txt
 doc-example.raku
 raku-cs
 reformat-tables
