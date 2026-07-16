@@ -1,0 +1,111 @@
+#!/usr/bin/env raku
+use Test;
+use lib 'lib';
+
+use Qwiratry::Tree::Navigator::Base;
+use Qwiratry::Query::Slang;
+use Qwiratry::Query::Runtime;
+
+my constant query-runtime = Qwiratry::Query::Runtime.instance;
+
+plan 5;
+
+subtest 'Associative tree-children keep demo children arrays and JSON values' => {
+	plan 3;
+
+	my $navigator = Qwiratry::Tree::Navigator::Base.new;
+	my %demo = name => 'section', children => [{ name => 'item' }, { name => 'meta' }];
+	my %json = owner => %(login => 'microsoft'), full_name => 'microsoft/vscode';
+
+	is $navigator.tree-children(%demo).elems, 2,
+		'demo-shaped hashes still expose the children array';
+	is $navigator.tree-children(%json).elems, 1,
+		'JSON-like hashes expose nested containers, not scalar fields';
+	is $navigator.tree-attributes(%json)<full_name>, 'microsoft/vscode',
+		'tree-attributes returns the associative node itself';
+}
+
+subtest 'tree-child-results follows JSON keys and demo name labels' => {
+	plan 5;
+
+	my $navigator = Qwiratry::Tree::Navigator::Base.new;
+	my %json = owner => %(login => 'microsoft'), name => 'vscode';
+	my @demo = (
+		%(name => 'section', children => [
+			%(name => 'item', value => 1),
+			%(name => 'item', value => 2),
+		]),
+		%(name => 'footer'),
+	);
+
+	my @owner = $navigator.tree-child-results(%json, '<owner>');
+	is @owner.elems, 1, 'JSON key lookup finds owner';
+	is @owner[0]<login>, 'microsoft', 'JSON key lookup returns nested hash';
+
+	is $navigator.tree-child-results(@demo, '<section>').elems, 1,
+		'demo arrays still match children by name label';
+
+	my $section = @demo[0];
+	is $navigator.tree-child-results($section, '<item>').elems, 2,
+		'demo children arrays still match nested name labels';
+	is $navigator.tree-child-results($section, '<item>', :limit(1)).elems, 1,
+		'limit caps child results';
+}
+
+subtest 'tree-descendant-results finds nested JSON keys' => {
+	plan 3;
+
+	my $navigator = Qwiratry::Tree::Navigator::Base.new;
+	my %json = owner => %(login => 'microsoft', type => 'Organization');
+	my @demo = (
+		%(name => 'section', children => [
+			%(name => 'item', value => 1),
+			%(name => 'item', value => 2),
+		]),
+	);
+
+	my @logins = $navigator.tree-descendant-results(%json, '<login>');
+	is @logins.elems, 1, 'descendant key follow finds nested login';
+	is @logins[0], 'microsoft', 'descendant key follow returns nested value';
+	is $navigator.tree-descendant-results(@demo, '<item>').elems, 2,
+		'demo descendant name matching still works';
+}
+
+subtest 'Query evaluators route hash navigation through the navigator' => {
+	plan 4;
+
+	my %repo = (
+		name => 'vscode',
+		owner => %(login => 'microsoft', type => 'Organization'),
+	);
+
+	my @owner = (%repo ⪪ <owner>).List;
+	is @owner.elems, 1, 'child operator follows JSON hash keys';
+	is @owner[0]<login>, 'microsoft', 'child operator returns nested owner hash';
+
+	is (%repo ⥷ <name>).List[0], 'vscode',
+		'attribute operator reads JSON keys through tree-attribute-value';
+	is (%repo ⪪⪪ <login>).List[0], 'microsoft',
+		'descendant operator follows nested JSON keys';
+}
+
+subtest 'JSON documents with string arrays are not hijacked as table catalogs' => {
+	plan 3;
+
+	use Qwiratry::Table::Schema;
+
+	# Shape inspired by GitHub repo payloads: nested objects plus a string array.
+	my %repo = (
+		name => 'vscode',
+		owner => %(login => 'microsoft'),
+		organization => %(login => 'microsoft'),
+		topics => ['editor', 'typescript'],
+	);
+
+	nok Qwiratry::Table::Schema.instance.discover(%repo).defined,
+		'mixed JSON object is not discovered as a multi-table catalog';
+	is (%repo ⪪ <owner>).List[0]<login>, 'microsoft',
+		'child still follows owner after topics-like array is present';
+	is (%repo ⪪ <organization>).List[0]<login>, 'microsoft',
+		'child still follows organization';
+}

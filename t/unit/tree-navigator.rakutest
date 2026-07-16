@@ -28,7 +28,11 @@ my class CallerSuppliedNavigator does Qwiratry::Tree::Navigator::Base {
 		()
 	}
 
-	method tree-children(Mu $node --> List) {
+	# Typed Base candidates remain in the multi set; override Associative too.
+	multi method tree-children(Associative $node --> List) {
+		('caller-supplied',)
+	}
+	multi method tree-children(Mu $node --> List) {
 		('caller-supplied',)
 	}
 }
@@ -52,7 +56,7 @@ my class ExplicitNavigator does Qwiratry::Tree::Navigator::Base {
 		(ExplicitNode,)
 	}
 
-	method tree-children(Mu $node --> List) {
+	multi method tree-children(Mu $node --> List) {
 		('explicit',)
 	}
 }
@@ -77,7 +81,7 @@ my class ExactNavigator does Qwiratry::Tree::Navigator::Base {
 		()
 	}
 
-	method tree-children(Mu $node --> List) {
+	multi method tree-children(Mu $node --> List) {
 		('exact-type',)
 	}
 }
@@ -102,7 +106,7 @@ my class DomainNavigator does Qwiratry::Tree::Navigator::Base {
 		(DomainNode,)
 	}
 
-	method tree-children(Mu $node --> List) {
+	multi method tree-children(Mu $node --> List) {
 		('domain',)
 	}
 }

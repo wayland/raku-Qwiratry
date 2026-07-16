@@ -116,8 +116,122 @@ role NavigationEagerEvaluator does EagerEvaluator {
 		Qwiratry::Table::Schema.instance.discover($origin)
 	}
 
+	=begin pod
+
+	=head2 C<method tree-children>
+
+	=begin code :lang<raku>
+	method tree-children(Mu $node, Mu :$origin --> List)
+	=end code
+
+	Return direct children of C<$node> through the active tree navigator.
+
+	=item C<$node>
+
+	The node whose children are requested.
+
+	=item C<$origin>
+
+	Optional traversal root used for navigator selection and parent fallback.
+
+	=end pod
 	method tree-children(Mu $node, Mu :$origin --> List) {
 		Qwiratry::Tree::Navigator.tree-navigator-for($node, :$origin).tree-children($node)
+	}
+
+	=begin pod
+
+	=head2 C<method tree-child-results>
+
+	=begin code :lang<raku>
+	method tree-child-results(Mu $node, Mu $selector, Mu :$origin, Int :$limit --> List)
+	=end code
+
+	Return children of C<$node> matching C<$selector>, optionally capped by
+	C<$limit>, through the active tree navigator.
+
+	=item C<$node>
+
+	The node whose matching children are requested.
+
+	=item C<$selector>
+
+	Child selector passed to the navigator.
+
+	=item C<$origin>
+
+	Optional traversal root used for navigator selection.
+
+	=item C<$limit>
+
+	Optional maximum number of results.
+
+	=end pod
+	method tree-child-results(Mu $node, Mu $selector, Mu :$origin, Int :$limit --> List) {
+		Qwiratry::Tree::Navigator.tree-navigator-for($node, :$origin)
+			.tree-child-results($node, $selector, |%(:$limit if $limit.defined))
+	}
+
+	=begin pod
+
+	=head2 C<method tree-descendant-results>
+
+	=begin code :lang<raku>
+	method tree-descendant-results(Mu $node, Mu $selector, Mu :$origin, Int :$limit --> List)
+	=end code
+
+	Return matching descendants of C<$node>, optionally capped by C<$limit>,
+	through the active tree navigator.
+
+	=item C<$node>
+
+	The node whose matching descendants are requested.
+
+	=item C<$selector>
+
+	Descendant selector passed to the navigator.
+
+	=item C<$origin>
+
+	Optional traversal root used for navigator selection.
+
+	=item C<$limit>
+
+	Optional maximum number of results.
+
+	=end pod
+	method tree-descendant-results(Mu $node, Mu $selector, Mu :$origin, Int :$limit --> List) {
+		Qwiratry::Tree::Navigator.tree-navigator-for($node, :$origin)
+			.tree-descendant-results($node, $selector, |%(:$limit if $limit.defined))
+	}
+
+	=begin pod
+
+	=head2 C<method tree-attribute-value>
+
+	=begin code :lang<raku>
+	method tree-attribute-value(Mu $node, Mu $key, Mu :$origin --> Mu)
+	=end code
+
+	Return one attribute or key value from C<$node> through the active tree
+	navigator.
+
+	=item C<$node>
+
+	The node to read from.
+
+	=item C<$key>
+
+	Attribute or key selector.
+
+	=item C<$origin>
+
+	Optional traversal root used for navigator selection.
+
+	=end pod
+	method tree-attribute-value(Mu $node, Mu $key, Mu :$origin --> Mu) {
+		Qwiratry::Tree::Navigator.tree-navigator-for($node, :$origin)
+			.tree-attribute-value($node, $key)
 	}
 
 	=begin pod
@@ -125,7 +239,7 @@ role NavigationEagerEvaluator does EagerEvaluator {
 	=head2 C<method tree-descendants>
 
 	=begin code :lang<raku>
-	method tree-descendants(Mu $node --> Seq)
+	method tree-descendants(Mu $node, Mu :$origin --> Seq)
 	=end code
 
 	Documents C<method tree-descendants>.
@@ -133,6 +247,10 @@ role NavigationEagerEvaluator does EagerEvaluator {
 	=item C<$node>
 
 	The C<$node> parameter.
+
+	=item C<$origin>
+
+	Optional traversal root used for navigator selection.
 
 	=end pod
 	method tree-descendants(Mu $node, Mu :$origin --> Seq) {
@@ -296,29 +414,27 @@ role NavigationEagerEvaluator does EagerEvaluator {
 	=head2 C<method attribute-value>
 
 	=begin code :lang<raku>
-	method attribute-value(Mu $node, Mu $key --> Mu)
+	method attribute-value(Mu $node, Mu $key, Mu :$origin --> Mu)
 	=end code
 
-	Documents C<method attribute-value>.
+	Return one attribute or key value from C<$node> through the active tree
+	navigator.
 
 	=item C<$node>
 
-	The C<$node> parameter.
+	The node to read from.
 
 	=item C<$key>
 
-	The C<$key> parameter.
+	Attribute or key selector.
+
+	=item C<$origin>
+
+	Optional traversal root used for navigator selection.
 
 	=end pod
-	method attribute-value(Mu $node, Mu $key --> Mu) {
-		my $name = self.selector.normalize-key($key);
-		if $node ~~ Associative && $node{$name}:exists {
-			return $node{$name};
-		}
-		if $node.can($name) {
-			return $node.$name;
-		}
-		Nil
+	method attribute-value(Mu $node, Mu $key, Mu :$origin --> Mu) {
+		self.tree-attribute-value($node, $key, :$origin)
 	}
 
 	=begin pod
@@ -450,14 +566,18 @@ class ChildEvaluator does NavigationEagerEvaluator is export {
 		my @bases = self.resolve-bases($query, $origin);
 		my $catalog = self.catalog($origin);
 		my @results;
+		my $limit = ($query.adverbs // %())<limit>;
 		for @bases -> $base {
 			if $catalog.defined {
 				@results.append($catalog.child-results($base, $query));
 			}
 			else {
-				for self.tree-children($base, :$origin) -> $child {
-					self.selector.matches($query.selector, $child) and @results.push($child);
-				}
+				@results.append(self.tree-child-results(
+					$base,
+					$query.selector,
+					:$origin,
+					|%(:limit($limit) if $limit.defined),
+				));
 			}
 		}
 		@results
@@ -533,14 +653,18 @@ class DescendantEvaluator does NavigationEagerEvaluator is export {
 		my @bases = self.resolve-bases($query, $origin);
 		my $catalog = self.catalog($origin);
 		my @results;
+		my $limit = ($query.adverbs // %())<limit>;
 		for @bases -> $base {
 			if $catalog.defined {
 				@results.append($catalog.descendant-results($base, $query));
 			}
 			else {
-				for self.tree-descendants($base, :$origin) -> $desc {
-					self.selector.matches($query.selector, $desc) and @results.push($desc);
-				}
+				@results.append(self.tree-descendant-results(
+					$base,
+					$query.selector,
+					:$origin,
+					|%(:limit($limit) if $limit.defined),
+				));
 			}
 		}
 		@results
@@ -614,7 +738,7 @@ class AttributeEvaluator does NavigationEagerEvaluator is export {
 		my @bases = self.resolve-bases($query, $origin);
 		my @results;
 		for @bases -> $base {
-			my $value = self.attribute-value($base, $query.key);
+			my $value = self.attribute-value($base, $query.key, :$origin);
 			$value.defined and @results.push($value);
 		}
 		@results

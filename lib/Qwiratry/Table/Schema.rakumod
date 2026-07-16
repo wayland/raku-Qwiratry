@@ -198,15 +198,53 @@ class Qwiratry::Table::Schema {
 
 	=begin pod
 
-	Return True when C<$root> maps names to positional row lists (multi-table root).
+	=head2 C<!is-table-value>
+
+	=begin code
+	method !is-table-value(Mu $value --> Bool)
+	=end code
+
+	Return True when C<$value> looks like a table: a positional collection of
+	associative rows, or an empty positional. String arrays and nested hashes
+	do not qualify.
+
+	=end pod
+	method !is-table-value(Mu $value --> Bool) {
+		$value ~~ Positional && !($value ~~ Associative) or return False;
+		return True unless $value.elems;
+		$value[0] ~~ Associative
+	}
+
+	=begin pod
+
+	=head2 C<!is-multi-table-root>
+
+	=begin code
+	method !is-multi-table-root(Associative $root --> Bool)
+	=end code
+
+	Return True when C<$root> is a pure multi-table map: every value is a
+	positional row collection (list of associative rows, or empty).
+
+	Ordinary JSON documents must not match. A single string-array field such as
+	GitHub's C<topics> is not enough to treat the whole object as a catalog.
 
 	=end pod
 	method !is-multi-table-root(Associative $root --> Bool) {
 		$root.keys or return False;
-		$root.pairs.grep({ $_.value ~~ Positional && !($_.value ~~ Associative) }).so
+		for $root.values -> $value {
+			self!is-table-value($value) or return False;
+		}
+		True
 	}
 
 	=begin pod
+
+	=head2 C<!table-entries>
+
+	=begin code
+	method !table-entries(Associative $root --> Associative)
+	=end code
 
 	Collect positional table values from a multi-table associative root.
 
@@ -214,7 +252,7 @@ class Qwiratry::Table::Schema {
 	method !table-entries(Associative $root --> Associative) {
 		my %tables;
 		for $root.pairs -> $pair {
-			next unless $pair.value ~~ Positional && !($pair.value ~~ Associative);
+			next unless self!is-table-value($pair.value);
 			%tables{$pair.key} = $pair.value;
 		}
 		%tables

@@ -45,6 +45,13 @@ values that expose child values in the default shape.
 
 A tree navigator does C<Qwiratry::Tree::Navigator::Base>.
 
+Prefer typed multi candidates so multiple dispatch selects the relevant
+implementation. Broad C<Mu> candidates should only be empty fallbacks.
+
+When overriding C<tree-children> in a custom navigator, also override the
+C<Positional> and/or C<Associative> candidates you care about. A C<Mu>-only
+override does not hide the base typed candidates from the multi dispatch set.
+
 =begin code :lang<raku>
 use Qwiratry::Tree::Navigator::Base;
 
@@ -54,8 +61,13 @@ class Qwiratry::Tree::Navigator::Example
 		(Example::Node,)
 	}
 
-	method tree-children(Mu $node --> List) {
+	multi method tree-children(Example::Node $node --> List) {
 		$node.children.list
+	}
+
+	multi method tree-child-results(Example::Node $node, Mu $selector, Int :$limit --> List) {
+		# Prefer constrained lookup over fetching every child first.
+		self.tree-children($node).grep({ ... }).head($limit // Inf).list
 	}
 }
 =end code
@@ -72,10 +84,40 @@ uses these to choose a navigator for a node.
 =head2 C<tree-children>
 
 =begin code :lang<raku>
-method tree-children(Mu $node --> List)
+multi method tree-children(Positional $node --> List)
+multi method tree-children(Associative $node --> List)
+multi method tree-children(Mu $node --> List)
 =end code
 
-Returns direct children of C<$node>. This is required.
+Returns direct children of C<$node>.
+
+The default associative behavior keeps demo trees that store a positional
+C<children> key. Other associative maps expose nested containers only, so scalar
+JSON fields are not treated as structural children. Use C<tree-child-results> or
+C<tree-attribute-value> to follow or read those keys.
+
+=head2 C<tree-child-results>
+
+=begin code :lang<raku>
+multi method tree-child-results(Positional $node, Mu $selector, Int :$limit --> List)
+multi method tree-child-results(Associative $node, Mu $selector, Int :$limit --> List)
+multi method tree-child-results(Mu $node, Mu $selector, Int :$limit --> List)
+=end code
+
+Returns children matching C<$selector>, optionally capped by C<$limit>.
+
+Evaluators call this instead of fetching all children and filtering locally.
+For ordinary associative maps, a string selector first tries hash-key lookup so
+C<⪪ <owner>> follows JSON keys. XML/HTML navigators should override this to use
+element-child semantics instead.
+
+=head2 C<tree-descendant-results>
+
+=begin code :lang<raku>
+method tree-descendant-results(Mu $node, Mu $selector, Int :$limit --> List)
+=end code
+
+Returns matching descendants, optionally capped by C<$limit>.
 
 =head2 C<tree-parent>
 
@@ -93,11 +135,23 @@ this when the node model has a better parent lookup.
 =head2 C<tree-attributes>
 
 =begin code :lang<raku>
-method tree-attributes(Mu $node --> Associative)
+multi method tree-attributes(Associative $node --> Associative)
+multi method tree-attributes(Mu $node --> Associative)
 =end code
 
 Returns attribute-like values when the node model has them. The default returns
 the node itself for associative values and an empty hash otherwise.
+
+=head2 C<tree-attribute-value>
+
+=begin code :lang<raku>
+multi method tree-attribute-value(Associative $node, Mu $key --> Mu)
+multi method tree-attribute-value(Mu $node, Mu $key --> Mu)
+=end code
+
+Return one attribute or key value from C<$node>. Attribute access goes through
+the navigator so XML attributes and JSON keys can differ from child navigation.
+C<⥷> uses C<tree-attribute-value>.
 
 =head1 Discovery
 

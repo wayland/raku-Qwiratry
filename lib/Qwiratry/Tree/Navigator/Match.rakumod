@@ -17,6 +17,10 @@ class Qwiratry::Tree::Navigator::Match does Qwiratry::Tree::Navigator::Base {
 
 	=head2 C<supported-types()>
 
+	=begin code
+	method supported-types(--> List)
+	=end code
+
 	=end pod
 	method supported-types(--> List) {
 		(Match,)
@@ -24,12 +28,17 @@ class Qwiratry::Tree::Navigator::Match does Qwiratry::Tree::Navigator::Base {
 
 	=begin pod
 
-	=head2 C<tree-children(Match $node)>
+	=head2 C<tree-children>
 
-	Uses C<visit-children> to expose direct RakuAST children.
+	=begin code
+	multi method tree-children(Match $node --> List)
+	=end code
+
+	Expose direct Match children from hash or list captures.
 
 	=end pod
-	method tree-children(Match $node --> List) {
+	multi method tree-children(Match $node --> List) {
+
 		given $node {
 			when .has('hash') {
 				return (gather .<hash>(-> $child { take $child })).list;

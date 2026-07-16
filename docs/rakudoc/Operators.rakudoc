@@ -783,9 +783,11 @@ givenroot $catalog {
 
 =head3 5.3.2 Inferred foreign keys from multi-table roots
 
-When the origin is an C<Associative> whose values are row collections, C<discover-catalog>
+When the origin is an C<Associative> whose B<every> value is a row collection
+(positional list of associative rows, or empty), C<discover-catalog>
 builds a catalog and C<infer-foreign-keys> guesses links from C<orders.customer_id> →
-C<customers.customer_id> style naming:
+C<customers.customer_id> style naming. Ordinary JSON documents with mixed scalars,
+objects, and string arrays are not treated as multi-table roots.
 
 =begin code :lang<raku>
 use Qwiratry::Table::Schema;
@@ -1147,11 +1149,12 @@ Different Walkers may interpret the same operator differently:
 
 The default tree walker (when no specific walker is specified) treats data structures as follows:
 =item Objects that C<do Positional> as having children
-=item Objects that C<do Associative> as having attributes
+=item Objects that C<do Associative> with a positional C<children> key as nested demo trees
+=item Other associative maps as JSON-like: C<⪪> follows keys, C<⥷> reads key values, and unconstrained walks expose nested containers (not scalar fields)
 =item Objects with C<.parent> method for up-navigation (error if not available)
 
-This produces a flexible, "duck-typed DOM" suitable for Raku's heterogeneous data structures. However, B<different walkers may implement different data models>. For example:
-=item A JSON walker may treat JSON objects differently than the default
+This produces a flexible, "duck-typed DOM" suitable for Raku's heterogeneous data structures. Navigation is constrained through the active tree navigator, which can apply limits and prefer key lookup over fetching every child. However, B<different walkers may implement different data models>. For example:
+=item An XML/HTML navigator may treat element children separately from attributes
 =item A database walker may map operators to SQL queries
 =item A custom walker may define its own traversal semantics
 
