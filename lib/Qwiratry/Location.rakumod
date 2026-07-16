@@ -15,9 +15,12 @@ operation classes such as C<Qwiratry::Location::File::Source> and
 C<Qwiratry::Location::File::Destination>.
 
 =end pod
+
 use Implementation::Loader;
 use X::Qwiratry;
 use Qwiratry::Location::Base;
+
+no precompilation;
 
 class Qwiratry::Location does Implementation::Loader {
 

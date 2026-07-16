@@ -44,13 +44,7 @@ RAKUDO_RAKUAST=1 prove6 -Ilib -It/lib t/spec
 
 | Area | Target files |
 |------|----------------|
-| Operators §2 precedence | `Operators/02-precedence.rakutest` |
-| Operators §3 I/O | `Operators/03-io.rakutest` |
-| Operators §4 map-reduce | `Operators/04-mapreduce.rakutest` |
-| Operators §5 tree navigation | `Operators/05-navigation-tree.rakutest` |
-| Operators §5.3 catalog / discovery | `Operators/05.3-table-catalog.rakutest` |
-| Operators §6 set / join | `Operators/06.1-set-relational.rakutest`, `06.2-set-column.rakutest` |
-| Operators §7 composition | `Operators/07-composition.rakutest` |
+| Operators §2–§7 | **Done** — see `t/spec/Operators/` |
 | Specification §3.2 Walker / handover | `Specification/3.2-walker.rakutest`, `3.2.1-handover.rakutest` |
 | Specification §3.2.5 Strategy | `Specification/3.2.5-strategy.rakutest` |
 | Specification §3.3 Transformer | `Specification/3.3-transformer.rakutest` |

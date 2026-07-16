@@ -174,3 +174,22 @@ class RightAntijoinOperator is RakuAST::Node does JoinOperatorNode is export { }
 class DivisionOperator is RakuAST::Node does BinarySetOperatorNode does EagerEvaluatedOperator is export { }
 
 class CrossJoinOperator is RakuAST::Node does BinarySetOperatorNode does LazyEvaluatedOperator is export { }
+
+class PowerSetOperator is RakuAST::Node does UnarySetOperatorNode does EagerEvaluatedOperator is export {
+	has Mu $.collection is required;
+
+	=begin pod
+
+	=head2 C<PowerSetOperator.describe()>
+
+	=begin code
+	method describe(--> Str)
+	=end code
+
+	Returns a debug label for the power-set operator and its collection operand.
+
+	=end pod
+	method describe(--> Str) {
+		"PowerSetOperator(collection: {$!collection.gist})"
+	}
+}

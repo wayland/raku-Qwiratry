@@ -1,0 +1,125 @@
+#!/usr/bin/env raku
+#| Operators.md §6.1 / §6.2 — set, relational, and join operators
+use Test;
+use lib 'lib';
+
+use Qwiratry::Operator::Set;
+use Qwiratry::Query::Slang;
+use Qwiratry::Query::Runtime;
+
+my constant query-runtime = Qwiratry::Query::Runtime.instance;
+
+plan 8;
+
+my @orders = [
+	%(order_id => 1, customer_id => 10, total => 100),
+	%(order_id => 2, customer_id => 20, total => 50),
+	%(order_id => 3, customer_id => 10, total => 75),
+	%(order_id => 4, customer_id => 99, total => 30),
+];
+
+my @customers = [
+	%(customer_id => 10, name => 'Alice'),
+	%(customer_id => 20, name => 'Bob'),
+	%(customer_id => 30, name => 'Carol'),
+];
+
+subtest '§6.1 membership and subset operators return Bool' => {
+	plan 4;
+
+	ok @orders[0] ∈ @orders, 'membership finds tuple in relation';
+	ok @orders ∋ @orders[0], 'contains is inverse of membership';
+	ok @orders[0,2] ⊆ @orders, 'subset-or-equal succeeds for included rows';
+	nok @customers ⊂ @customers, 'strict subset fails for equal collections';
+}
+
+subtest '§6.1 basic set operators combine query results' => {
+	plan 3;
+
+	my $left = query-ast({ @orders σ -> $_ { $_<customer_id> == 10 } });
+	my $right = query-ast({ @orders σ -> $_ { $_<total> > 90 } });
+
+	is query-runtime.select($left ∪ $right, @orders).elems, 2, 'union combines either branch';
+	is query-runtime.select($left ∩ $right, @orders).elems, 1, 'intersection keeps shared rows';
+	is query-runtime.select($left ∖ $right, @orders).elems, 1, 'difference keeps only left-exclusive rows';
+}
+
+subtest '§6.1 power set returns all subsets of a small collection' => {
+	plan 1;
+
+	my @subsets = (℘ [1, 2]).List;
+	is @subsets.elems, 4, 'power set of two items has four subsets';
+}
+
+subtest '§6.2 projection and rename operate on relations' => {
+	plan 2;
+
+	my $projected = ProjectionOperator.new(
+		:relation(@orders[0,1]),
+		:columns(<order_id total>),
+	);
+	my $renamed = RenameOperator.new(
+		:relation(@customers[0,1]),
+		:renames(customer_id => 'id'),
+	);
+
+	ok $projected ~~ ProjectionOperator, 'projection operator can be constructed from relation and columns';
+	ok $renamed ~~ RenameOperator, 'rename operator can be constructed from relation and renames';
+}
+
+subtest '§6.2 inner and outer joins combine relations' => {
+	plan 4;
+
+	# Slang join operators auto-evaluate to Seq results (Operators.md §6.2).
+	my @joined = (@customers ⨝ @orders).List;
+	is @joined.elems, 3, 'inner join yields one row per matching order';
+
+	my @left = (@customers ⟕ @orders).List;
+	ok @left.grep({ .<name> eq 'Carol' && !.<order_id>:exists }),
+		'left outer join keeps unmatched left rows';
+
+	my @right = (@customers ⟖ @orders).List;
+	ok @right.grep({ .<order_id> == 4 && !.<name>:exists }),
+		'right outer join keeps unmatched right rows';
+
+	my @full = (@customers ⟗ @orders).List;
+	ok @full.grep({ .<name> eq 'Carol' })
+		&& @full.grep({ .<order_id>:exists && .<order_id> == 4 }),
+		'full outer join keeps unmatched rows from both sides';
+}
+
+subtest '§6.2 semijoin and antijoin return matching / non-matching rows' => {
+	plan 2;
+
+	my @semi = (@orders ⋉ @customers).List;
+	is @semi.elems, 3, 'left semijoin keeps matched left rows only';
+
+	my @anti = (@orders ▷ @customers).List;
+	is @anti[0]<order_id>, 4, 'left antijoin returns unmatched left row';
+}
+
+subtest '§6.2 cross join produces cartesian product' => {
+	plan 1;
+
+	my @rows = (@orders × @customers).List;
+	is @rows.elems, @orders.elems * @customers.elems, 'cross join row count is product';
+}
+
+subtest '§6.2 division returns suppliers matching all required parts' => {
+	plan 1;
+
+	my @suppliers = [
+		%(supplier_id => 1, part => 'A', city => 'Paris'),
+		%(supplier_id => 1, part => 'B', city => 'Paris'),
+		%(supplier_id => 2, part => 'A', city => 'London'),
+	];
+	my @parts = [
+		%(part => 'A'),
+		%(part => 'B'),
+	];
+
+	ok (@suppliers ÷ @parts).List.elems > 0,
+		'division operator returns at least one matching row';
+}
+
+done-testing;

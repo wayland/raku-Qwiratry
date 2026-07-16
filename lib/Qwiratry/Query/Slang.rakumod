@@ -22,6 +22,8 @@ my $cartesian = @left × @right;
 =end pod
 use v6.e.PREVIEW;
 
+no precompilation;
+
 use Qwiratry::Operator::Navigation;
 use Qwiratry::Operator::Set;
 use Qwiratry::Operator::MapReduce;
@@ -500,6 +502,21 @@ Rename (C<ρ>): rename columns in a relation.
 multi sub prefix:<ρ>(Mu $relation, *%renames) is export {
 	my $query = RenameOperator.new(:relation($relation), :renames(%renames));
 	auto-query($query, $relation, $relation)
+}
+
+=begin pod
+
+Power set (C<℘> / C<𝒫>): all subsets of a collection (Operators.md §6.1.3).
+
+=end pod
+multi sub prefix:<℘>(Mu $collection) is export {
+	my $query = PowerSetOperator.new(:collection($collection));
+	auto-query($query, $collection, $collection)
+}
+
+multi sub prefix:<𝒫>(Mu $collection) is export {
+	my $query = PowerSetOperator.new(:collection($collection));
+	auto-query($query, $collection, $collection)
 }
 
 =begin pod

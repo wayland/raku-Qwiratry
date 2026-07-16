@@ -207,6 +207,11 @@ class SelectionEvaluator does LazyEvaluator is export {
 		if $query.subject ~~ Qwiratry::Table::Catalog {
 			return $query.subject.active-rows;
 		}
+		# Seq does Iterator; pass it through so iterator-for can pull lazily
+		# once. Do not snapshot here — that would force full materialisation.
+		if $query.subject ~~ Seq {
+			return $query.subject;
+		}
 		if $query.subject ~~ Iterator {
 			return $query.subject;
 		}

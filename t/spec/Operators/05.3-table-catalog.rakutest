@@ -1,0 +1,100 @@
+#!/usr/bin/env raku
+#| Operators.md §5.3 — table catalog, schema discovery, and foreign keys
+use Test;
+use lib 'lib';
+use lib 't/lib';
+
+use Qwiratry::Spec::TableFixtures;
+use Qwiratry::Table;
+use Qwiratry::Table::Schema;
+use Qwiratry::Query::Slang;
+use Qwiratry::Mold::Slang;
+use Qwiratry::Query::Runtime;
+
+my constant query-runtime = Qwiratry::Query::Runtime.instance;
+
+plan 4;
+
+subtest '§5.3.1 explicit catalog with make-catalog and givenroot resolves foreign key' => {
+	plan 2;
+
+	my %setup = orders-customers-setup();
+	my @orders := %setup<orders>;
+	my $catalog = %setup<catalog>;
+	my @customer;
+
+	givenroot $catalog {
+		@customer = (@orders[0] ⪪ <customer_id>).List;
+	}
+
+	is @customer.elems, 1, 'explicit catalog returns one related row';
+	is @customer[0]<name>, 'Alice', 'explicit catalog resolves customer row';
+}
+
+subtest '§5.3.2 multi-table roots infer foreign keys' => {
+	plan 2;
+
+	my @orders = [
+		%(order_id => 1, customer_id => 10, total => 100),
+		%(order_id => 2, customer_id => 20, total => 50),
+	];
+	my @customers = [
+		%(customer_id => 10, name => 'Alice'),
+		%(customer_id => 20, name => 'Bob'),
+	];
+
+	my %database = %(orders => @orders, customers => @customers);
+	my @related;
+	givenroot %database {
+		@related = (@orders[0] ⪪ <customer_id>).List;
+	}
+
+	is @related.elems, 1, 'inferred foreign key navigation returns one customer';
+	is @related[0]<name>, 'Alice', 'inferred foreign key resolves correct row';
+}
+
+subtest '§5.3.3 attached schema metadata enables FK navigation' => {
+	plan 2;
+
+	my @orders = [
+		%(order_id => 1, customer_id => 10, total => 100),
+		%(order_id => 2, customer_id => 20, total => 50),
+	];
+	my @customers = [
+		%(customer_id => 10, name => 'Alice'),
+		%(customer_id => 20, name => 'Bob'),
+	];
+
+	Qwiratry::Table::Schema.instance.attach(@orders, %(
+		table-name => 'orders',
+		tables => %(orders => @orders, customers => @customers),
+	));
+
+	my @related;
+	givenroot @orders {
+		@related = (@orders[0] ⪪ <customer_id>).List;
+	}
+
+	is @related.elems, 1, 'attached schema enables FK follow';
+	is @related[0]<name>, 'Alice', 'customer resolved via attached schema';
+}
+
+subtest '§5.3 discovered catalog supports reverse lookup with :reference' => {
+	plan 1;
+
+	my @orders = [
+		%(order_id => 1, customer_id => 10, total => 100),
+		%(order_id => 2, customer_id => 20, total => 50),
+	];
+	my @customers = [
+		%(customer_id => 10, name => 'Alice'),
+		%(customer_id => 20, name => 'Bob'),
+	];
+
+	my %database = %(orders => @orders, customers => @customers);
+	my @referencing = query-runtime.select(query-ast({ @customers[0] ⪫ <*> :reference }), %database).List;
+	is @referencing.elems, 1, 'reverse FK lookup works via inferred schema';
+}
+
+done-testing;
+

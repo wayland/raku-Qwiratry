@@ -1,0 +1,67 @@
+#!/usr/bin/env raku
+#| Operators.md §7 — operator composition and usage
+use Test;
+use lib 'lib';
+
+use Qwiratry::Operator::Navigation;
+use Qwiratry::Operator::MapReduce;
+use Qwiratry::Operator::Set;
+use Qwiratry::Query::Slang;
+
+plan 5;
+
+subtest '§7.1.1 chaining forms path expressions' => {
+	plan 3;
+
+	my $root = %(name => 'root');
+	my $query = query-ast({ $root ⪪ <*> ⪪ <item> });
+	ok $query ~~ ChildOperator, 'chained child operators produce a child operator';
+	ok $query.subject ~~ ChildOperator, 'outer child wraps inner child';
+	is $query.selector, 'item', 'outer selector is preserved';
+}
+
+subtest '§7.1.2 set operations combine navigation results' => {
+	plan 3;
+
+	my $tree = %(name => 'root');
+	my $left = query-ast({ $tree ⪪⪪ <item> });
+	my $right = query-ast({ $tree ⪪⪪ <meta> });
+	my $query = $left ∪ $right;
+
+	ok $query ~~ UnionOperator, 'union combines navigation branches';
+	ok $query.left ~~ DescendantOperator, 'left branch remains descendant query';
+	is $query.right.selector, 'meta', 'right branch retains selector';
+}
+
+subtest '§7.1.3 predicates compose with navigation' => {
+	plan 3;
+
+	my $root = %(name => 'root');
+	my $nav = query-ast({ $root ⪪⪪ <item> });
+	my $query = $nav σ -> $_ { True };
+	ok $query ~~ SelectionOperator, 'selection wraps navigation query';
+	ok $query.subject ~~ DescendantOperator, 'selection subject is descendant operator';
+	is $query.subject.selector, 'item', 'selector survives under predicate wrapper';
+}
+
+subtest '§7 walkers receive composed operator trees' => {
+	plan 3;
+
+	my $root = %(name => 'root');
+	my $query = query-ast({ ($root ⪪ <a>) ∪ (($root ⪪ <b>) σ -> $_ { True }) });
+	ok $query ~~ UnionOperator, 'top-level composition is a union';
+	ok $query.left ~~ ChildOperator, 'left branch is navigation';
+	ok $query.right ~~ SelectionOperator, 'right branch is filtered navigation';
+}
+
+subtest '§7 navigation composes with sort' => {
+	plan 2;
+
+	my $root = %(name => 'root');
+	my $sorted = query-ast({ $root ⪪ <section> ⇅ -> $_ { $_<name> } });
+	ok $sorted ~~ SortOperator, 'sort follows navigation operator';
+	ok $sorted.subject ~~ ChildOperator, 'sort subject is child navigation';
+}
+
+done-testing;
+

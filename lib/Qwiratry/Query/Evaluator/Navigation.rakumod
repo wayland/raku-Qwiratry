@@ -526,8 +526,18 @@ class RootEvaluator does NavigationEagerEvaluator is export {
 
 	=end pod
 	method eager(RootOperator $query, Mu $origin --> List) {
-		my $base = $query.subject.defined ?? $query.subject !! $origin;
-		($base,)
+		# Operators.md §5.2.7: walk up from the current node to the data root.
+		my $node = $query.subject.defined ?? $query.subject !! $origin;
+		$node.defined or return ($origin,);
+
+		my $search-root = $origin.defined ?? $origin !! $node;
+		my $current = $node;
+		my $parent = self.tree-parent($current, :origin($search-root));
+		while $parent.defined {
+			$current = $parent;
+			$parent = self.tree-parent($current, :origin($search-root));
+		}
+		($current,)
 	}
 }
 

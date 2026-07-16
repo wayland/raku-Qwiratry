@@ -100,6 +100,7 @@ use Qwiratry::Query::Evaluator::MapReduce;
 				SubsetOrEqualOperator => SubsetOrEqualEvaluator.new(:&select-list, :&select-relation),
 				IdentityOperator => IdentityEvaluator.new(:&select-list, :&select-relation),
 				DivisionOperator => DivisionEvaluator.new(:&select-list, :&select-relation),
+				PowerSetOperator => PowerSetEvaluator.new(:&select-list, :&select-relation),
 				SortOperator => SortEvaluator.new(:&select-list),
 				MapOperator => MapEvaluator.new(:&select-list),
 				ReduceOperator => ReduceEvaluator.new(:&select-list),

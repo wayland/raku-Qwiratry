@@ -1,0 +1,61 @@
+#!/usr/bin/env raku
+#| Operators.md §3 — I/O and transformation operators (⮳ ↱ ↴ ⮷)
+use Test;
+use lib 'lib';
+
+use Qwiratry::Format;
+use Qwiratry::Format::JSONdemo;
+use Qwiratry::Query::Slang;
+
+plan 3;
+
+my $tmpdir = 't/tmp'.IO;
+$tmpdir.mkdir unless $tmpdir.d;
+
+subtest '§3 pipeline: source → parse → select → render → destination' => {
+	plan 3;
+
+	my $input = $tmpdir.child("spec-io-in-{$*PID}.json");
+	my $output = $tmpdir.child("spec-io-out-{$*PID}.json");
+	$input.spurt('[{"name":"alpha","status":"active"},{"name":"beta","status":"inactive"}]');
+
+	my $result = (⮳ $input.Str ↱ 'JSONdemo' σ -> $_ { $_<status> eq 'active' } ↴ 'JSONdemo' ⮷ $output.Str);
+	ok $output.e, 'destination file was written';
+	ok $result.defined, 'pipeline returns rendered content';
+
+	my $parsed = Qwiratry::Format.make(:type<Parse>, :format<JSONdemo>).parse($output.slurp);
+	my @rows = $parsed ~~ Positional ?? $parsed.list !! ($parsed,);
+	is @rows.elems, 1, 'pipeline filtered to active rows only';
+
+	$input.unlink if $input.e;
+	$output.unlink if $output.e;
+}
+
+subtest '§3 parse + query without destination returns filtered data' => {
+	plan 1;
+
+	my $input = $tmpdir.child("spec-io-query-{$*PID}.json");
+	$input.spurt('[{"score":1},{"score":5},{"score":3}]');
+
+	my $result = (⮳ $input.Str ↱ 'JSONdemo') σ -> $_ { $_<score> >= 3 };
+	my @rows = $result ~~ Seq | List | Array ?? $result.list !! ($result,);
+	is @rows.map(*<score>).sort, (3, 5), 'parsed selection returns matching rows';
+
+	$input.unlink if $input.e;
+}
+
+subtest '§3 query-ast preserves raw I/O operator pipeline nodes' => {
+	plan 3;
+
+	use Qwiratry::Operator::IO;
+	use Qwiratry::Query::Slang;
+
+	my $query = query-ast({ ⮳ 'input.json' ↱ 'JSONdemo' ↴ 'JSONdemo' });
+
+	ok $query ~~ RenderOperator, 'query-ast returns the render operator node';
+	ok $query.subject ~~ ParseOperator, 'render subject is parse operator';
+	ok $query.subject.subject ~~ SourceOperator, 'parse subject is source operator';
+}
+
+done-testing;
+

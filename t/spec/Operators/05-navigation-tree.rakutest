@@ -1,0 +1,100 @@
+#!/usr/bin/env raku
+#| Operators.md §5.1 / §5.1.1 — tree navigation semantics and composition
+use Test;
+use lib 'lib';
+
+use Qwiratry::Tree::Navigator::Base;
+use Qwiratry::Query::Slang;
+use Qwiratry::Mold::Slang;
+use Qwiratry::Query::Runtime;
+
+my constant query-runtime = Qwiratry::Query::Runtime.instance;
+
+plan 5;
+
+subtest '§5 child/attribute semantics work for JSON-like associative trees' => {
+	plan 4;
+
+	my %repo = (
+		name => 'vscode',
+		owner => %(login => 'microsoft', type => 'Organization'),
+	);
+
+	my @owner = (%repo ⪪ <owner>).List;
+	is @owner.elems, 1, 'child operator follows JSON hash keys';
+	is @owner[0]<login>, 'microsoft', 'child operator returns nested owner hash';
+
+	is (%repo ⥷ <name>).List[0], 'vscode',
+		'attribute operator reads JSON keys';
+	is (%repo ⪪⪪ <login>).List[0], 'microsoft',
+		'descendant operator follows nested JSON keys';
+}
+
+subtest '§5 child and descendant examples work for demo trees' => {
+	plan 3;
+
+	my $tree = [
+		%(name => 'section', children => [
+			%(name => 'item', value => 1),
+			%(name => 'item', value => 2),
+			%(name => 'meta', value => 99),
+		]),
+	];
+
+	is ($tree ⪪ <section>).List.elems, 1, 'child selects direct children by label';
+	is ($tree ⪪⪪ <item>).List.elems, 2, 'descendant selects nested items';
+	is (($tree ⪪ <section> ⪪ <item>).List.elems), 2, 'children of children chain as path expression';
+}
+
+subtest '§5 combine navigation with predicates' => {
+	plan 2;
+
+	my $tree = [
+		%(name => 'section', children => [
+			%(name => 'item', value => 5),
+			%(name => 'item', value => 20),
+			%(name => 'item', value => 30),
+		]),
+	];
+
+	my @filtered = ($tree ⪪⪪ <item> σ -> $_ { $_<value> > 10 }).List;
+	is @filtered.elems, 2, 'predicate filters navigation results';
+	is @filtered.map(*<value>).sort, (20, 30), 'filtered items preserve matching values';
+}
+
+subtest '§5 root postfix returns the data root' => {
+	plan 2;
+
+	my $tree = [
+		%(name => 'section', children => [
+			%(name => 'item', value => 1),
+		]),
+	];
+	my $item = $tree[0]<children>[0];
+
+	my $rooted;
+	givenroot $tree {
+		$rooted = ($item⇤).List[0];
+	}
+	ok $rooted === $tree, 'root postfix walks back to the enclosing data root';
+
+	ok query-runtime.select(query-ast({ $item⇤ }), $tree).List[0] === $tree,
+		'root query evaluates to the original tree root';
+}
+
+subtest '§5 navigator examples expose children and descendants' => {
+	plan 3;
+
+	my $navigator = Qwiratry::Tree::Navigator::Base.new;
+	my %json = owner => %(login => 'microsoft'), name => 'vscode';
+
+	is $navigator.tree-child-results(%json, '<owner>').elems, 1,
+		'navigator child lookup finds owner key';
+	is $navigator.tree-descendant-results(%json, '<login>').elems, 1,
+		'navigator descendant lookup finds nested login';
+	is $navigator.tree-attributes(%json)<name>, 'vscode',
+		'navigator attributes expose associative keys';
+}
+
+done-testing;
+

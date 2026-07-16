@@ -108,10 +108,14 @@ role LazyEvaluator is export {
 
 	=end pod
 	method iterator-for(Mu $source --> Iterator) {
-		$source ~~ Iterator and return $source;
+		# Seq does Iterator, but must be consumed via .iterator —
+		# treating the Seq object itself as the Iterator yields an empty stream.
+		# Prefer .iterator (one-shot, still lazy) over .cache so streaming
+		# pipelines are not forced to materialise.
 		if $source ~~ Seq {
 			return $source.iterator;
 		}
+		$source ~~ Iterator and return $source;
 		$source.list.iterator;
 	}
 

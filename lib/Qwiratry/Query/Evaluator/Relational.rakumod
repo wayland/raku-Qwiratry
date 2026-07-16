@@ -352,3 +352,36 @@ class DivisionEvaluator does RelationalEagerEvaluator is export {
 		self.relational-division(@left, @right).List
 	}
 }
+
+=begin pod
+
+=head2 C<class PowerSetEvaluator>
+
+=begin code :lang<raku>
+class PowerSetEvaluator does RelationalEagerEvaluator is export
+=end code
+
+Defines C<PowerSetEvaluator>.
+
+=end pod
+class PowerSetEvaluator does RelationalEagerEvaluator is export {
+	=begin pod
+
+	=head2 C<method eager>
+
+	=begin code :lang<raku>
+	method eager(PowerSetOperator $query, Mu $origin --> List)
+	=end code
+
+	Returns every subset of the operator's collection (Operators.md §6.1.3).
+
+	=end pod
+	method eager(PowerSetOperator $query, Mu $origin --> List) {
+		my @items = self.select-relation-for($query.collection, $origin);
+		my @subsets = ([],);
+		for @items -> $item {
+			@subsets.append(@subsets.map(-> @subset { [|@subset, $item] }));
+		}
+		@subsets.List
+	}
+}
