@@ -11,7 +11,7 @@ use Qwiratry::Mold::Slang;
 use Qwiratry::Transformer;
 use Qwiratry::Mold;
 
-plan 12;
+plan 10;
 
 # =============================================================================
 # Test: MoldSlang activation (behavioral)
@@ -180,53 +180,8 @@ subtest "Mold transformation - when/do as where/body" => {
 	ok $section.matches(Any), "When-block matches when when-block is true";
 }
 
-# =============================================================================
-# Test: Anonymous molds from Specification.md
-# =============================================================================
-
-subtest "Anonymous mold syntax" => {
-	plan 7;
-
-	clear-collected-molds();
-	transformer AnonymousMoldTest is Transformer {
-		mold when { .<type> eq 'element' } do { "matched-{.<value>}" }
-		mold do { "fallback" }
-	}
-
-	my $t = AnonymousMoldTest.new;
-	is $t.molds.elems, 2, "Anonymous when/do and do-only molds compile";
-
-	my $matching = $t.molds.first({ .when-block.defined });
-	my $fallback = $t.molds.first({ !.when-block.defined });
-
-	ok $matching.defined, "Anonymous when/do mold was collected";
-	ok !$matching.name.defined, "Anonymous when/do mold has no name";
-	like $matching.source-location, /'line ' \d+ ', column ' \d+/,
-		"Anonymous mold stores source location";
-	is $matching.execute(%(type => 'element', value => 42)), "matched-42",
-		"Anonymous when/do mold executes";
-
-	ok $fallback.defined, "Anonymous do-only mold was collected";
-	is $fallback.execute(%()), "fallback", "Anonymous do-only mold executes";
-}
-
-# =============================================================================
-# Test: Named mold with empty signature (Specification.md example)
-# =============================================================================
-
-subtest "Named mold signature compilation" => {
-	plan 2;
-
-	clear-collected-molds();
-	transformer SigTest is Transformer {
-		mold section() when { True } do { "ok" }
-	}
-
-	my $mold = SigTest.new.molds.first({ $_.name eq 'section' });
-	ok !$mold.signature.defined || $mold.signature ~~ Signature,
-		"Empty () signature compiles or defaults cleanly";
-	is $mold.execute(Any), "ok", "Mold do-block executes";
-}
+# Specification.md §3.3.3 mold examples live in
+# t/spec/Specification/3.3.3-molds.rakutest
 
 # =============================================================================
 # Test: API compatibility (feature 008 WP06)

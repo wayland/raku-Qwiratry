@@ -1,0 +1,68 @@
+#!/usr/bin/env raku
+#| Operators.md §5.2.8–5.2.11 — following/preceding sibling and document-order row navigation
+use Test;
+use lib 'lib';
+use lib 't/lib';
+
+use Qwiratry::Spec::TableFixtures;
+use Qwiratry::Query::Slang;
+use Qwiratry::Query::Runtime;
+
+my constant query-runtime = Qwiratry::Query::Runtime.instance;
+
+my %setup = orders-only-setup();
+my @orders := %setup<orders>;
+my $catalog = %setup<catalog>;
+
+plan 6;
+
+subtest '§5.2.8 Following sibling returns next row' => {
+	plan 2;
+
+	my $order = @orders[0];
+	my @next = query-runtime.select(query-ast({ $order ⪨ <*> }), $catalog).List;
+	is @next.elems, 1, 'one following sibling';
+	is @next[0]<order_id>, 2, 'next row in table order';
+}
+
+subtest '§5.2.9 Preceding sibling returns previous row' => {
+	plan 2;
+
+	my $order = @orders[2];
+	my @prev = query-runtime.select(query-ast({ $order ⪩ <*> }), $catalog).List;
+	is @prev.elems, 1, 'one preceding sibling';
+	is @prev[0]<order_id>, 2, 'previous row in table order';
+}
+
+subtest '§5.2.10 Following returns all later rows' => {
+	plan 1;
+
+	my $order = @orders[1];
+	my @later = query-runtime.select(query-ast({ $order ⪨⪨ <*> }), $catalog).List;
+	is [@later.map(*<order_id>)], (3, 4), 'all rows after current position';
+}
+
+subtest '§5.2.11 Preceding returns all earlier rows' => {
+	plan 1;
+
+	my $order = @orders[2];
+	my @earlier = query-runtime.select(query-ast({ $order ⪩⪩ <*> }), $catalog).List;
+	is [@earlier.map(*<order_id>)], (1, 2), 'all rows before current position';
+}
+
+subtest '§5.2.8 Last row has no following sibling' => {
+	plan 1;
+
+	my $order = @orders[3];
+	is query-runtime.select(query-ast({ $order ⪨ <*> }), $catalog).elems, 0,
+		'no following sibling on last row';
+}
+
+subtest '§5.2.8 Table base returns empty for sibling operators' => {
+	plan 1;
+
+	is query-runtime.select(query-ast({ $catalog ⪨ <*> }), $catalog).elems, 0,
+		'sibling operator on table returns empty';
+}
+
+done-testing;

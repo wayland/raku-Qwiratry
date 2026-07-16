@@ -5,15 +5,12 @@
 ### Core System
 
 Prefatory work:
-* Start out by getting it to write a plan for rebuilding TOP on Qwiratry,
+* DONE Start out by getting it to write a plan for rebuilding TOP on Qwiratry,
   so that I can start work on that when I run out of credits
-* Sort out what we currently have and do a commit
+* DONE Fix the current problem, sort out what we currently have and do a commit
 
 Rejigging:
-* See if we can rejig things so that we only need one “use” statement; can the 
-  Slangs be merged into the main Qwiratry module (and then load other modules on 
-  demand)?   
-* Would it make sense to combine Walkers and Navigators?  Would there be 
+* DONE Would it make sense to combine Walkers and Navigators?  Would there be 
   efficiency gains by doing that?  
 
 Testing:
@@ -21,8 +18,11 @@ Testing:
 * Make test suites for testing formats/locations that can be run against any new 
   format/Location 
 * Ensure it combines well with feed operators
+* Have it look for test duplication, especially `t/operators` vs. 
+  `t/spec/Operators/`
 
 New features:
+* Have it do at least a little testing to figure out why it's so slow
 * As a fallback, if there's no Format/Location, can we look up recommended 
   packages in zef, so that if a format is missing, it recommends to people that 
   they can install it
@@ -51,11 +51,6 @@ Making things Streamable; cf. both:
 * Streaming-Qwiratry-Proposal.rakudoc (in this directory)
 * https://wayland.github.io/table-oriented-programming/Metanoias/Walkable-vs-Streamable.xml
 
-## Benchmarking
-
-* Do some benchmarking, and do a comparison of a basic pipeline compared with
-  normal code, and see if we can't do something to speed it along
-
 ## Table-Oriented Programming (this may be multiple versions)
 
 * Rewrite my existing TOP code to use Qwiratry; include Human and Half-Human formats
@@ -64,6 +59,11 @@ Making things Streamable; cf. both:
 * Break out some of the parts into modules; SQL encoding should probably remain
   in core though
 * Could probably do ods files at this point
+
+## Benchmarking
+
+* Do some benchmarking, and do a comparison of a basic pipeline compared with
+  normal code, and see if we can't do something to speed it along
 
 ## Stylesheets
 
@@ -178,3 +178,11 @@ Possible directions:
 These ideas are deliberately deferred. They are probably too heavy for the current
 tree navigation and format navigator work, but worth keeping in mind for future
 semantic rewriting features.
+
+# Postponed until Raku integration
+
+* POSTPONED See if we can rejig things so that we only need one “use” statement; 
+  can the Slangs be merged into the main Qwiratry module (and then load other 
+  modules on demand)?  This would be trickyish -- might be best to wait until we 
+  merge them into the language.  
+

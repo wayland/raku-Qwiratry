@@ -82,6 +82,7 @@ Qwiratry's architecture enables:
 
 - [Specification.md](Specification.md) - Complete architecture specification
 - [Operators.md](Operators.md) - Query operator reference
+- [`t/spec/`](t/spec/README.md) - Functional tests keyed to those specs
 - `t/examples/` - Example code and usage patterns
 
 ## Requirements

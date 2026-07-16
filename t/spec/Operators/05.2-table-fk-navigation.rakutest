@@ -1,0 +1,143 @@
+#!/usr/bin/env raku
+#| Operators.md §5.2.1–5.2.5 — table child / attribute / descendant / parent FK navigation
+use Test;
+use lib 'lib';
+use lib 't/lib';
+
+use Qwiratry::Spec::TableFixtures;
+use Qwiratry::Query::Slang;
+use Qwiratry::Mold::Slang;
+use Qwiratry::Query::Runtime;
+use Qwiratry::Operator::MapReduce;
+use Qwiratry::Walker::Implementation::Table;
+
+my constant query-runtime = Qwiratry::Query::Runtime.instance;
+
+my %setup = orders-customers-setup();
+my @orders := %setup<orders>;
+my @customers := %setup<customers>;
+my $catalog = %setup<catalog>;
+
+plan 12;
+
+subtest '§5.2.1 Child follows foreign key from row to related rows' => {
+	plan 2;
+
+	my $order = @orders[0];
+	my @related = query-runtime.select(query-ast({ $order ⪪ <customer_id> }), $catalog).List;
+	is @related.elems, 1, 'FK navigation returns one customer row';
+	is @related[0]<name>, 'Alice', 'matched customer name';
+}
+
+subtest '§5.2.1 Child operator evaluates directly with data root' => {
+	plan 3;
+
+	my $order = @orders[0];
+	my $result;
+	givenroot $catalog {
+		$result = $order ⪪ <customer_id>;
+	}
+	ok $result ~~ Seq, 'direct navigation returns a lazy Seq';
+	my @related = $result.List;
+	is @related.elems, 1, 'direct FK navigation returns one customer row';
+	is @related[0]<name>, 'Alice', 'direct navigation matched customer name';
+}
+
+subtest '§5.2.1 Child on non-FK column returns empty' => {
+	plan 1;
+
+	my $order = @orders[0];
+	my @related = query-runtime.select(query-ast({ $order ⪪ <total> }), $catalog).List;
+	is @related.elems, 0, 'non-FK column yields no related rows';
+}
+
+subtest '§5.2.1 Null foreign key returns empty' => {
+	plan 1;
+
+	my $order = @orders[3];
+	my @related = query-runtime.select(query-ast({ $order ⪪ <customer_id> }), $catalog).List;
+	is @related.elems, 0, 'null FK value yields empty result';
+}
+
+subtest '§5.2.3 Attribute returns column value without following FK' => {
+	plan 2;
+
+	my $order = @orders[0];
+	my @values = query-runtime.select(query-ast({ $order ⥷ <customer_id> }), $catalog).List;
+	is @values.elems, 1, 'attribute returns one value';
+	is @values[0], 10, 'attribute value is the FK column value';
+}
+
+subtest '§5.2.5 Parent with :reference returns referencing rows' => {
+	plan 2;
+
+	my $customer = @customers[0];
+	my @referencing = query-runtime.select(query-ast({ $customer ⪫ <*> :reference }), $catalog).List;
+	is @referencing.elems, 2, 'customer referenced by two orders';
+	ok @referencing.grep({ .<order_id> == any(1, 3) }), 'orders reference the customer';
+}
+
+subtest '§5.2.5 Parent without :reference returns containing table' => {
+	plan 2;
+
+	my $order = @orders[0];
+	my @parents = query-runtime.select(query-ast({ $order ⪫ <*> }), $catalog).List;
+	is @parents.elems, 1, 'parent returns one container';
+	ok @parents[0] === @orders, 'container is the orders table';
+}
+
+subtest '§5.2.4 Descendant on row throws without :recursive' => {
+	plan 1;
+
+	my $order = @orders[0];
+	my $threw = False;
+	try {
+		query-runtime.select(query-ast({ $order ⪪⪪ <customer_id> }), $catalog).List;
+		CATCH {
+			default { $threw = True }
+		}
+	}
+	ok $threw, 'table-row descendant navigation throws by default';
+}
+
+subtest '§5.2.4 Descendant on table matches child wildcard' => {
+	plan 1;
+
+	my @rows = query-runtime.select(query-ast({ $catalog ⪪⪪ <*> }), $catalog).List;
+	is @rows.elems, @orders.elems, 'table descendant wildcard returns all rows';
+}
+
+subtest '§5.2.4 Descendant on row with :recursive follows foreign key' => {
+	plan 2;
+
+	my $order = @orders[0];
+	my @related = query-runtime.select(query-ast({ $order ⪪⪪ <customer_id> :recursive }), $catalog).List;
+	is @related.elems, 1, ':recursive follows FK once from order row';
+	is @related[0]<name>, 'Alice', ':recursive resolves customer row';
+}
+
+subtest '§5.2.1 Child on table with wildcard returns all rows' => {
+	plan 1;
+
+	my @rows = query-runtime.select(query-ast({ $catalog ⪪ <*> }), $catalog).List;
+	is @rows.elems, @orders.elems, 'table child wildcard returns all rows';
+}
+
+subtest 'Table walker scans catalog active table' => {
+	plan 1;
+
+	my $walker = Qwiratry::Walker::Implementation::Table.new;
+	my $query = SelectionOperator.new(
+		:subject($catalog),
+		:predicate(-> $_ { $_.<customer_id>.defined && $_<customer_id> == 10 }),
+	);
+	my @ids = gather {
+		my $iter = $walker.start($query, $catalog);
+		while (my $row = $iter.pull-one) !~~ IterationEnd {
+			take $row<order_id>;
+		}
+	}.sort;
+	is @ids, (1, 3), 'walker selects from catalog active table';
+}
+
+done-testing;

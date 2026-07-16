@@ -1,0 +1,77 @@
+#!/usr/bin/env raku
+#| Specification.md §3.3.3 — mold structure and return-value behaviour
+use Test;
+use lib 'lib';
+
+use Qwiratry::Mold::Slang;
+use Qwiratry::Query::Slang;
+use Qwiratry::Transformer;
+use Qwiratry::Mold;
+
+plan 4;
+
+subtest 'Anonymous mold when/do and do-only (Specification.md examples)' => {
+	plan 5;
+
+	clear-collected-molds();
+	transformer AnonymousMoldSpec is Transformer {
+		mold when { .<type> eq 'element' } do { "matched-{.<value>}" }
+		mold do { "fallback" }
+	}
+
+	my $t = AnonymousMoldSpec.new;
+	is $t.molds.elems, 2, 'anonymous when/do and do-only molds compile';
+
+	my $matching = $t.molds.first({ .when-block.defined });
+	my $fallback = $t.molds.first({ !.when-block.defined });
+
+	ok $matching.defined, 'anonymous when/do mold was collected';
+	ok !$matching.name.defined, 'anonymous when/do mold has no name';
+	is $matching.execute(%(type => 'element', value => 42)), 'matched-42',
+		'do-block return value is used as output';
+	is $fallback.execute(%()), 'fallback', 'do-only mold return value is used as output';
+}
+
+subtest 'Named mold with empty signature (Specification.md example)' => {
+	plan 2;
+
+	clear-collected-molds();
+	transformer NamedMoldSpec is Transformer {
+		mold section() when { True } do { 'ok' }
+	}
+
+	my $mold = NamedMoldSpec.new.molds.first({ .name eq 'section' });
+	ok $mold.defined, 'named mold section() was collected';
+	is $mold.execute(Any), 'ok', 'named mold do-block executes';
+}
+
+subtest 'when clause may use axis operators (Specification.md §3.3.3)' => {
+	plan 2;
+
+	clear-collected-molds();
+	transformer AxisWhenSpec is Transformer {
+		mold section() when { $_ ⪪ <div> } do { 'div-action' }
+		mold do { 'other' }
+	}
+
+	my $t = AxisWhenSpec.new;
+	my $named = $t.molds.first({ .name eq 'section' });
+	ok $named.defined, 'mold with axis when-clause compiles';
+	# Pure query when-blocks are extracted to when-query (see mold-when-query.rakutest)
+	ok $named.when-query.defined, 'axis when-clause extracted as when-query';
+}
+
+subtest 'Unmatched node produces no mold output via APPLY' => {
+	plan 1;
+
+	clear-collected-molds();
+	transformer MatchOnlySpec is Transformer {
+		mold when { .<type> eq 'element' } do { 'hit' }
+	}
+
+	my $out = MatchOnlySpec.new.APPLY(%(type => 'other'));
+	# Spec: if no molds match a node, it does nothing
+	ok !$out.defined, 'no matching mold yields undefined APPLY result';
+}
+
+done-testing;
