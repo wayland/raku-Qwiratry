@@ -1,0 +1,62 @@
+#!/usr/bin/env raku
+#| Specification.md §7.2 — Table Walker scan-style query execution
+use Test;
+use lib 'lib';
+
+use Qwiratry::Walker::Implementation::Table;
+use Qwiratry::Walker::Factory;
+use Qwiratry::Query::Slang;
+use Qwiratry::Operator::MapReduce;
+use Qwiratry::Operator::Set;
+use Qwiratry::QueryIterator;
+
+plan 3;
+
+my @rows = [
+	%(name => 'alpha', status => 'active', score => 10),
+	%(name => 'beta', status => 'inactive', score => 5),
+	%(name => 'gamma', status => 'active', score => 20),
+];
+
+sub pull-all($iter) {
+	gather {
+		while (my $item = $iter.pull-one) !~~ IterationEnd {
+			take $item;
+		}
+	}
+}
+
+subtest '§7.2 factory selects Table walker for flat row data' => {
+	plan 1;
+
+	my $walker = Qwiratry::Walker::Factory.instance.get-walker(@rows);
+	ok $walker ~~ Qwiratry::Walker::Implementation::Table,
+		'flat Associative rows use Table walker';
+}
+
+subtest '§7.2 table walker scans rows matching selection' => {
+	plan 2;
+
+	my $walker = Qwiratry::Walker::Implementation::Table.new;
+	my $query = query-ast({ @rows σ -> $_ { $_<status> eq 'active' } });
+	is pull-all($walker.start($query, @rows)).map(*<name>).sort, <alpha gamma>,
+		'selection filters active rows';
+
+	my $high = query-ast({ @rows σ -> $_ { $_<score> >= 10 } });
+	is pull-all($walker.start($high, @rows)).map(*<name>).sort, <alpha gamma>,
+		'selection filters by numeric predicate';
+}
+
+subtest '§7.2 table walker supports union of row selectors' => {
+	plan 1;
+
+	my $walker = Qwiratry::Walker::Implementation::Table.new;
+	my $query = UnionOperator.new(
+		:left(SelectionOperator.new(:subject(@rows), :predicate(-> $_ { $_<name> eq 'alpha' }))),
+		:right(SelectionOperator.new(:subject(@rows), :predicate(-> $_ { $_<score> > 15 }))),
+	);
+	is pull-all($walker.start($query, @rows)).map(*<name>).sort, <alpha gamma>,
+		'union combines filtered row sets';
+}
+
+done-testing;

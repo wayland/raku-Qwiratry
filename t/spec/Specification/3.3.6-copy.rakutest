@@ -1,0 +1,67 @@
+#!/usr/bin/env raku
+#| Specification.md §3.3.6 — Copy service shallow / deep copy behaviour
+use Test;
+use lib 'lib';
+
+use Qwiratry::Transformer::Copy;
+use Qwiratry::Transformer;
+
+my constant copy-service = Qwiratry::Transformer::Copy.instance;
+
+plan 5;
+
+subtest '§3.3.6 shallow copy shares children, not the container' => {
+	plan 4;
+
+	my @arr = [1, 2, 3];
+	my $copy = copy-service.copy(@arr);
+	ok $copy ~~ Positional, 'copy(Positional) returns Positional';
+	ok @arr !=== $copy, 'copy creates a new container';
+	is $copy[0], @arr[0], 'shallow copy shares child values';
+
+	my %hash = a => 1, b => 2;
+	my $hcopy = copy-service.copy(%hash);
+	ok %hash !=== $hcopy, 'copy(Associative) creates a new hash';
+}
+
+subtest '§3.3.6 deepcopy recursively clones nested structures' => {
+	plan 3;
+
+	my @arr = [1, [2, 3], 4];
+	my $deep = copy-service.deepcopy(@arr);
+	ok @arr !=== $deep, 'deepcopy creates a new outer container';
+	ok @arr[1] !=== $deep[1], 'deepcopy clones nested children';
+	is $deep[1], [2, 3], 'deepcopy preserves nested content';
+}
+
+subtest '§3.3.6 immutable leaves are returned as-is' => {
+	plan 2;
+
+	is copy-service.copy('x'), 'x', 'copy identity for Str';
+	is copy-service.deepcopy(42), 42, 'deepcopy identity for Numeric';
+}
+
+subtest '§3.3.6 custom .copy() is preferred for shallow copy' => {
+	plan 2;
+
+	class CustomCopy {
+		has $.value;
+		method copy() { CustomCopy.new(value => $!value * 2) }
+	}
+
+	my $obj = CustomCopy.new(value => 5);
+	my $copy = copy-service.copy($obj);
+	ok $copy ~~ CustomCopy, 'custom .copy() is used';
+	is $copy.value, 10, 'custom .copy() result is returned';
+}
+
+subtest '§3.3.6 Transformer exposes copy and deepcopy' => {
+	plan 2;
+
+	my $t = Transformer.new;
+	my @arr = [1, [2], 3];
+	ok $t.copy(@arr) !=== @arr, 'Transformer.copy is shallow-distinct';
+	ok $t.deepcopy(@arr)[1] !=== @arr[1], 'Transformer.deepcopy is deep-distinct';
+}
+
+done-testing;

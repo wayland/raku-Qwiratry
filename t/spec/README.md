@@ -22,7 +22,14 @@ Filenames start with the section number so coverage is greppable:
 |------|-------------|
 | `Operators/05.2-table-fk-navigation.rakutest` | Operators.md §5.2.1–5.2.5 |
 | `Operators/05.2.8-ordered-row-navigation.rakutest` | Operators.md §5.2.8–5.2.11 |
+| `Specification/3.2-walker.rakutest` | Specification.md §3.2.1 |
+| `Specification/3.2.1-handover.rakutest` | Specification.md §3.2.1.6 |
+| `Specification/3.2.5-strategy.rakutest` | Specification.md §3.2.5–3.2.6 |
+| `Specification/3.3-transformer.rakutest` | Specification.md §3.3.2 |
 | `Specification/3.3.3-molds.rakutest` | Specification.md §3.3.3 |
+| `Specification/3.3.6-copy.rakutest` | Specification.md §3.3.6 |
+| `Specification/7.1-tree-walker.rakutest` | Specification.md §7.1 |
+| `Specification/7.2-table-walker.rakutest` | Specification.md §7.2 |
 
 ## Conventions
 
@@ -45,8 +52,4 @@ RAKUDO_RAKUAST=1 prove6 -Ilib -It/lib t/spec
 | Area | Target files |
 |------|----------------|
 | Operators §2–§7 | **Done** — see `t/spec/Operators/` |
-| Specification §3.2 Walker / handover | `Specification/3.2-walker.rakutest`, `3.2.1-handover.rakutest` |
-| Specification §3.2.5 Strategy | `Specification/3.2.5-strategy.rakutest` |
-| Specification §3.3 Transformer | `Specification/3.3-transformer.rakutest` |
-| Specification §3.3.6 Copy | `Specification/3.3.6-copy.rakutest` |
-| Specification §7 walkers | `Specification/7.1-tree-walker.rakutest`, `7.2-table-walker.rakutest` |
+| Specification §3.2 / §3.3 / §7 | **Done** — see `t/spec/Specification/` |

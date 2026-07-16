@@ -1,0 +1,56 @@
+#!/usr/bin/env raku
+#| Specification.md §7.1 — Tree Walker DFS-style query execution
+use Test;
+use lib 'lib';
+
+use Qwiratry::Walker::Implementation::Tree;
+use Qwiratry::Walker::Factory;
+use Qwiratry::Query::Slang;
+use Qwiratry::QueryIterator;
+
+plan 3;
+
+my $tree = [
+	%(name => 'section', children => [
+		%(name => 'item', value => 1),
+		%(name => 'item', value => 2),
+		%(name => 'meta', value => 99),
+	]),
+];
+
+sub pull-all($iter) {
+	gather {
+		while (my $item = $iter.pull-one) !~~ IterationEnd {
+			take $item;
+		}
+	}
+}
+
+subtest '§7.1 factory selects Tree walker for nested tree data' => {
+	plan 1;
+
+	my $walker = Qwiratry::Walker::Factory.instance.get-walker($tree);
+	ok $walker ~~ Qwiratry::Walker::Implementation::Tree,
+		'nested children-shaped data uses Tree walker';
+}
+
+subtest '§7.1 tree walker yields descendant query matches' => {
+	plan 2;
+
+	my $walker = Qwiratry::Walker::Implementation::Tree.new;
+	my $query = query-ast({ $tree ⪪⪪ <item> });
+	my @values = pull-all($walker.start($query, $tree)).map(*<value>).sort;
+	is @values.elems, 2, 'two item nodes matched';
+	is @values, (1, 2), 'matched item values';
+}
+
+subtest '§7.1 tree walker filters with selection on navigation' => {
+	plan 1;
+
+	my $walker = Qwiratry::Walker::Implementation::Tree.new;
+	my $query = query-ast({ $tree ⪪⪪ <item> σ -> $_ { $_<value> > 1 } });
+	my @values = pull-all($walker.start($query, $tree)).map(*<value>);
+	is @values, (2,), 'selection filters tree matches';
+}
+
+done-testing;

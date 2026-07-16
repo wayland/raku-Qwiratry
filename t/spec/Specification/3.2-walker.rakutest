@@ -1,0 +1,89 @@
+#!/usr/bin/env raku
+#| Specification.md §3.2.1 — Walker plan / iterator / start contract
+use Test;
+use lib 'lib';
+
+use Qwiratry::Walker::Implementation::Tree;
+use Qwiratry::Walker::Implementation::Table;
+use Qwiratry::Query::Slang;
+use Qwiratry::QueryIterator;
+use X::Qwiratry;
+
+plan 4;
+
+my $tree = [
+	%(name => 'section', children => [
+		%(name => 'item', value => 1),
+		%(name => 'item', value => 2),
+	]),
+];
+
+my @rows = [
+	%(name => 'alpha', score => 10),
+	%(name => 'beta', score => 5),
+];
+
+sub pull-all($iter) {
+	gather {
+		while (my $item = $iter.pull-one) !~~ IterationEnd {
+			take $item;
+		}
+	}
+}
+
+subtest '§3.2.1 plan returns a reusable Walker::Plan' => {
+	plan 3;
+
+	my $walker = Qwiratry::Walker::Implementation::Tree.new;
+	my $query = query-ast({ $tree ⪪⪪ <item> });
+	my $plan = $walker.plan($query, $tree);
+
+	ok $plan ~~ Qwiratry::Walker::Plan, 'plan() returns a Walker::Plan';
+	ok $plan.^can('iterator'), 'plan provides iterator()';
+	ok $plan.^can('query') || $plan.^can('describe'), 'plan is introspectable';
+}
+
+subtest '§3.2.1 multiple iterators from one plan do not share mutable state' => {
+	plan 2;
+
+	my $walker = Qwiratry::Walker::Implementation::Tree.new;
+	my $query = query-ast({ $tree ⪪⪪ <item> });
+	my $plan = $walker.plan($query, $tree);
+
+	my @a = pull-all($plan.iterator).map(*<value>).sort;
+	my @b = pull-all($plan.iterator).map(*<value>).sort;
+	is @a, (1, 2), 'first iterator yields all matches';
+	is @b, (1, 2), 'second iterator independently yields all matches';
+}
+
+subtest '§3.2.1 start is plan + iterator convenience' => {
+	plan 2;
+
+	my $walker = Qwiratry::Walker::Implementation::Table.new;
+	my $query = query-ast({ @rows σ -> $_ { $_<score> >= 10 } });
+	my $iter = $walker.start($query, @rows);
+	ok $iter ~~ QueryIterator, 'start() returns a QueryIterator';
+	is pull-all($iter).map(*<name>).List, ('alpha',), 'start() yields matching rows';
+}
+
+subtest '§3.2.1.3 unknown query elements raise UnknownQueryElement' => {
+	plan 1;
+
+	my $walker = Qwiratry::Walker::Implementation::Table.new;
+	my $bogus = class :: is RakuAST::Node {
+		method describe() { 'BogusOperator' }
+	}.new;
+
+	my $threw = False;
+	try {
+		$walker.start($bogus, @rows);
+		CATCH {
+			when X::Qwiratry::UnknownQueryElement {
+				$threw = True;
+			}
+		}
+	}
+	ok $threw, 'unsupported query throws UnknownQueryElementException';
+}
+
+done-testing;

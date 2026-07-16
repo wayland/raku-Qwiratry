@@ -1,0 +1,131 @@
+#!/usr/bin/env raku
+#| Specification.md §3.2.1.6 — walker handover detection and composite plans
+use Test;
+use lib 'lib';
+
+use Qwiratry::Walker::Master;
+use Qwiratry::Walker;
+use Qwiratry::QueryIterator;
+use Qwiratry::Context;
+use X::Qwiratry;
+
+plan 4;
+
+my class TestContext does Context { }
+
+my class TestIterator does QueryIterator {
+	has @.items;
+	has Int $!index = 0;
+
+	method pull-one(--> Mu) {
+		return IterationEnd if $!index >= @!items.elems;
+		@!items[$!index++]
+	}
+}
+
+my class TestPlan does Qwiratry::Walker::Plan {
+	has $.query-ast;
+	has @.data;
+
+	method iterator(--> QueryIterator) {
+		TestIterator.new(context => TestContext.new, items => @!data)
+	}
+	method query(--> Mu) { $!query-ast }
+	method describe(--> Str) { 'TestPlan' }
+}
+
+my class SupportingWalker does Qwiratry::Walker {
+	has @.data = <a b>;
+	method plan($query, $root --> Qwiratry::Walker::Plan) {
+		TestPlan.new(query-ast => $query, data => @!data)
+	}
+	method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) { $plan.iterator }
+	method supports($query --> Bool) { True }
+}
+
+my class RejectingWalker does Qwiratry::Walker {
+	method plan($query, $root --> Qwiratry::Walker::Plan) { die 'unused' }
+	method iterator(Qwiratry::Walker::Plan $plan --> QueryIterator) { die 'unused' }
+	method supports($query --> Bool) { False }
+}
+
+sub pull-all($iter) {
+	gather {
+		while (my $item = $iter.pull-one) !~~ IterationEnd {
+			take $item;
+		}
+	}
+}
+
+subtest '§3.2.1.6 composite plan orchestrates subplans' => {
+	plan 2;
+
+	my $query = class { method ^name { 'MockQuery' } };
+	my $left = TestPlan.new(query-ast => $query, data => <one two>);
+	my $right = TestPlan.new(query-ast => $query, data => <three>);
+	my $plan = Qwiratry::Walker::Master::Plan.new(
+		query-ast => $query,
+		subplans => [$left, $right],
+	);
+
+	is pull-all($plan.iterator).List, <one two three>,
+		'composite iterator concatenates subplan results in plan order';
+
+	my $reordered = Qwiratry::Walker::Master::Plan.new(
+		query-ast => $query,
+		subplans => [$left, $right],
+		execution-order => [1, 0],
+	);
+	is pull-all($reordered.iterator).List, <three one two>,
+		'execution-order controls subplan orchestration';
+}
+
+subtest '§3.2.1.6 capability check can accept a walker' => {
+	plan 2;
+
+	my $walker = SupportingWalker.new;
+	# Walkers do Iterable; keep the instance itemized so Array construction
+	# does not call the 0-arg Iterable.iterator entry point.
+	my @candidates = $walker,;
+	my $master = Qwiratry::Walker::Master.new(:candidate-walkers(@candidates));
+	my $query = class { method ^name { 'MockQuery' } };
+	my $plan = $master.plan($query, 'root');
+
+	ok $plan ~~ Qwiratry::Walker::Master::Plan, 'master plan() returns Master::Plan';
+	is pull-all($plan.iterator).List, <a b>, 'accepted walker executes via composite plan';
+}
+
+subtest '§3.2.1.6 no suitable walker fails with diagnostic' => {
+	plan 2;
+
+	my $rejecting = RejectingWalker.new;
+	my @candidates = $rejecting,;
+	my $master = Qwiratry::Walker::Master.new(:candidate-walkers(@candidates));
+	my $query = class { method ^name { 'MockQuery' } };
+
+	my $caught = False;
+	my $message = '';
+	try {
+		$master.detect-handover($query, 'plain');
+		CATCH {
+			when X::Qwiratry::UnknownQueryElement {
+				$caught = True;
+				$message = .message;
+			}
+		}
+	}
+	ok $caught, 'planning fails when no walker supports the query';
+	ok $message.contains('No suitable walker') || $message.contains('Tried walkers'),
+		'failure includes diagnostic detail';
+}
+
+subtest '§3.2.1.6 handover detection API is available on Master' => {
+	plan 2;
+
+	my $master = Qwiratry::Walker::Master.new;
+	ok $master.^can('detect-handover'), 'Master provides detect-handover';
+	ok $master.^can('check-domain-metadata') || $master.^can('plan'),
+		'Master exposes domain/planning entry points';
+}
+
+done-testing;

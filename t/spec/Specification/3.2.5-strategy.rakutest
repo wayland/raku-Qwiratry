@@ -1,0 +1,67 @@
+#!/usr/bin/env raku
+#| Specification.md §3.2.5 / §3.2.6 — Strategy hooks and ControlSignal
+use Test;
+use lib 'lib';
+
+use Qwiratry::Strategy;
+use Qwiratry::Strategy::ControlSignal;
+use Qwiratry::Strategy::FinishResult;
+use Qwiratry::Context;
+
+plan 3;
+
+subtest '§3.2.6 ControlSignal enum values exist and are distinct' => {
+	plan 7;
+
+	ok NO_REWRITE.defined, 'NO_REWRITE';
+	ok REWRITE_IMMEDIATE.defined, 'REWRITE_IMMEDIATE';
+	ok REWRITE_DEFERRED.defined, 'REWRITE_DEFERRED';
+	ok SKIP_ELEMENT.defined, 'SKIP_ELEMENT';
+	ok STOP_TRAVERSAL.defined, 'STOP_TRAVERSAL';
+	ok FINAL_RESULT.defined, 'FINAL_RESULT';
+	isnt SKIP_ELEMENT, STOP_TRAVERSAL, 'SKIP_ELEMENT ≠ STOP_TRAVERSAL';
+}
+
+my class TrackingContext does Context {
+	has @.signals;
+}
+
+my class SignalStrategy does Strategy {
+	has ControlSignal $.before-signal = NO_REWRITE;
+	has ControlSignal $.after-signal = NO_REWRITE;
+
+	method before($element, $ctx --> ControlSignal) {
+		$ctx.signals.push('before');
+		$!before-signal
+	}
+	method after($element, $ctx --> ControlSignal) {
+		$ctx.signals.push('after');
+		$!after-signal
+	}
+	method finish($root, $ctx) {
+		$ctx.signals.push('finish');
+		FinishResult.new(:type('final-result'), :value(Nil))
+	}
+}
+
+subtest '§3.2.5 Strategy before/after hooks return ControlSignal' => {
+	plan 3;
+
+	my $ctx = TrackingContext.new;
+	my $strategy = SignalStrategy.new(:before-signal(SKIP_ELEMENT));
+	is $strategy.before('node', $ctx), SKIP_ELEMENT, 'before can signal SKIP_ELEMENT';
+	is $strategy.after('node', $ctx), NO_REWRITE, 'after defaults to NO_REWRITE';
+	is $ctx.signals, <before after>, 'hooks are invoked in order';
+}
+
+subtest '§3.2.5 finish hook can signal FINAL_RESULT' => {
+	plan 2;
+
+	my $ctx = TrackingContext.new;
+	my $strategy = SignalStrategy.new;
+	my $result = $strategy.finish('root', $ctx);
+	ok $result ~~ FinishResult, 'finish returns FinishResult';
+	is $result.type, 'final-result', 'finish returns a final-result FinishResult';
+}
+
+done-testing;

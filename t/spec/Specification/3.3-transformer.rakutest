@@ -1,0 +1,80 @@
+#!/usr/bin/env raku
+#| Specification.md §3.3 — Transformer TRANSFORM / APPLY / ORDER-MOLDS
+use Test;
+use lib 'lib';
+
+use Qwiratry::Mold::Slang;
+use Qwiratry::Query::Slang;
+use Qwiratry::Transformer;
+use Qwiratry::Mold;
+
+plan 4;
+
+my $tree = [
+	%(name => 'section', children => [
+		%(name => 'item', value => 1),
+		%(name => 'item', value => 2),
+	]),
+];
+
+subtest '§3.3.2.4 ORDER-MOLDS sorts by priority (highest first)' => {
+	plan 2;
+
+	my $t = Transformer.new;
+	$t.add-mold(Mold.new(when-block => { True }, do-block => { 'low' }, priority => 0));
+	$t.add-mold(Mold.new(when-block => { True }, do-block => { 'high' }, priority => 10));
+	my @ordered = $t.ORDER-MOLDS;
+	is @ordered[0].priority, 10, 'highest priority mold is first';
+	is @ordered[*-1].priority, 0, 'lowest priority mold is last';
+}
+
+subtest '§3.3.2.4 APPLY returns first matching mold output only' => {
+	plan 2;
+
+	# Distinct priorities avoid MoldOrderingConflict (Specification.md ORDER-MOLDS).
+	my $t = Transformer.new;
+	$t.add-mold(Mold.new(
+		when-block => { .<name> eq 'item' },
+		do-block => { "item-{.<value>}" },
+		priority => 10,
+	));
+	$t.add-mold(Mold.new(
+		when-block => { True },
+		do-block => { 'fallback' },
+		priority => 0,
+	));
+
+	my $item = $tree[0]<children>[0];
+	is $t.APPLY($item), 'item-1', 'higher-priority matching mold wins';
+	is $t.APPLY(%(name => 'other')), 'fallback', 'fallback mold matches non-item nodes';
+}
+
+subtest '§3.3.2.4 TRANSFORM walks input and applies molds' => {
+	plan 2;
+
+	clear-collected-molds();
+	transformer TransformWalkSpec is Transformer {
+		mold when { .<name> eq 'item' } do { "v{.<value>}" }
+	}
+
+	my $result = TransformWalkSpec.new.TRANSFORM($tree);
+	my @out = $result ~~ Positional ?? $result.list !! ($result,);
+	@out = @out.grep(*.defined);
+	is @out.elems, 2, 'TRANSFORM visits matching item nodes';
+	is @out.sort, <v1 v2>, 'TRANSFORM collects mold outputs';
+}
+
+subtest '§3.3.2.2 calling a transformer name invokes TRANSFORM' => {
+	plan 1;
+
+	clear-collected-molds();
+	transformer CallByNameSpec is Transformer {
+		mold when { .<name> eq 'item' } do { 'hit' }
+	}
+
+	my $out = CallByNameSpec($tree);
+	my @hits = ($out ~~ Positional ?? $out.list !! ($out,)).grep(* eq 'hit');
+	ok @hits.elems >= 1, 'transformer Name($data) runs TRANSFORM';
+}
+
+done-testing;
