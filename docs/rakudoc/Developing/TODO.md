@@ -43,15 +43,6 @@ New features:
 	*	TOML
 	*	XKB in conjunction with writing an article about it (cf. articles)
 
-## Table-Oriented Programming (this may be multiple versions)
-
-* Rewrite my existing TOP code to use Qwiratry; include Human and Half-Human formats
-  as part of core; will likely need CSV to implement Human format, so maybe only
-  include Half-Human as part of core?  
-* Break out some of the parts into modules; SQL encoding should probably remain
-  in core though
-* Could probably do ods files at this point
-
 ## Streamable Trees
 
 ### Core System
@@ -64,6 +55,15 @@ Making things Streamable; cf. both:
 
 * Do some benchmarking, and do a comparison of a basic pipeline compared with
   normal code, and see if we can't do something to speed it along
+
+## Table-Oriented Programming (this may be multiple versions)
+
+* Rewrite my existing TOP code to use Qwiratry; include Human and Half-Human formats
+  as part of core; will likely need CSV to implement Human format, so maybe only
+  include Half-Human as part of core?  
+* Break out some of the parts into modules; SQL encoding should probably remain
+  in core though
+* Could probably do ods files at this point
 
 ## Stylesheets
 

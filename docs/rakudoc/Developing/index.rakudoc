@@ -85,6 +85,10 @@ zef test .
 
 =item L<Streaming Qwiratry Proposal|Streaming-Qwiratry-Proposal>: proposed interfaces for streaming-capable parsers, renderers, sources, and destinations.
 
+=item L<Qwiratry TOP Plan|Qwiratry-TOP-Plan>: design note for rebuilding Raku TOP on Qwiratry.
+
+=item L<Qwiratry TOP Prerequisites|Qwiratry-TOP-Prerequisites>: normative spec for streaming-shaped Location I/O (Source/Destination on tables), Relation, and anonymous Tables (plan §4.1–4.2).
+
 =item L<Changelog|Changelog>: user-visible changes by release.
 
 =item L<Release Process|Release-Process>: prep, fez publishing, and GitHub release steps.
