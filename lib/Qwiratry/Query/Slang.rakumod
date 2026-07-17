@@ -22,8 +22,6 @@ my $cartesian = @left × @right;
 =end pod
 use v6.e.PREVIEW;
 
-no precompilation;
-
 use Qwiratry::Operator::Navigation;
 use Qwiratry::Operator::Set;
 use Qwiratry::Operator::MapReduce;

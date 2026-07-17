@@ -14,7 +14,7 @@ Rejigging:
   efficiency gains by doing that?  
 
 Testing:
-* Ask it if we have (functional) test based on the Specification
+* DONE Ask it if we have (functional) tests based on the Specification
 * Make test suites for testing formats/locations that can be run against any new 
   format/Location 
 * Ensure it combines well with feed operators

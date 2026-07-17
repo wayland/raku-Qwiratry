@@ -20,8 +20,6 @@ use Implementation::Loader;
 use X::Qwiratry;
 use Qwiratry::Location::Base;
 
-no precompilation;
-
 class Qwiratry::Location does Implementation::Loader {
 
 	constant @LIB-PATHS = 'lib';
