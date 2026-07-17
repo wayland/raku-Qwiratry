@@ -7,6 +7,10 @@ use Qwiratry::Format;
 use X::Qwiratry;
 use Qwiratry::Operator::Capability;
 
+# Keep this test hermetic and fast: don't let missing-format/backend paths reach
+# out to the zef ecosystem for install suggestions.
+%*ENV<QWIRATRY_SKIP_INSTALL_SUGGESTIONS> = 1;
+
 plan 2;
 
 subtest 'ParseOperator throws FormatNotFound for unknown format' => {

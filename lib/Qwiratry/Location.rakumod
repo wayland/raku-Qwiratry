@@ -18,6 +18,7 @@ C<Qwiratry::Location::File::Destination>.
 
 use Implementation::Loader;
 use X::Qwiratry;
+use Qwiratry::Suggest;
 use Qwiratry::Location::Base;
 
 class Qwiratry::Location does Implementation::Loader {
@@ -259,12 +260,14 @@ class Qwiratry::Location does Implementation::Loader {
 		my $backend-name = self.backend-name-from-location($location);
 		my $class = self.backend-class-name($type-name, $backend-name);
 		unless $backend-name (elem) self.backends(:type($type-name)) {
-			X::Qwiratry::IO::LocationError.new(
+			my $error = X::Qwiratry::IO::LocationError.new(
 				:message("$type-name location implementation not found for $location"),
 				:location($location),
 				:reason("Location backend not found: $backend-name"),
 				:operator-type("{$type-name}Operator"),
-			).throw;
+			);
+			report-and-suggest($error, self.backend-module-name($backend-name));
+			$error.throw;
 		}
 		$class
 	}

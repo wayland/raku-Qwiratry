@@ -15,18 +15,19 @@ Rejigging:
 
 Testing:
 * DONE Ask it if we have (functional) tests based on the Specification
-* Make test suites for testing formats/locations that can be run against any new 
+* DONE Make test suites for testing formats/locations that can be run against any new 
   format/Location 
-* Ensure it combines well with feed operators
-* Have it look for test duplication, especially `t/operators` vs. 
-  `t/spec/Operators/`
+* DONE Ensure it combines well with feed operators
 
 New features:
-* Have it do at least a little testing to figure out why it's so slow
+* DONE Have it do at least a little testing to figure out why it's so slow
 * As a fallback, if there's no Format/Location, can we look up recommended 
   packages in zef, so that if a format is missing, it recommends to people that 
   they can install it
 * Use Matches as the tree as well as RakuAST
+* Maybe a qwiratry-setup script that asks which formats/locations you'd like to 
+  install (after querying zef/ecosystem to find what's available); lets you 
+  tick the ones you want, and then it'll install them
 
 ### Modules
 
@@ -42,6 +43,9 @@ New features:
 	*	INI
 	*	TOML
 	*	XKB in conjunction with writing an article about it (cf. articles)
+
+
+* Ensure that everything (including raku-Qwiratry-Test) is pushed to fez/github
 
 ## Streamable Trees
 

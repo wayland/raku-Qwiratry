@@ -35,6 +35,11 @@ class X::Qwiratry::Operator is X::Qwiratry::Walker {
 	has $.query-ast;
 	has Str $.operator-type = 'Unknown';
 
+	# Set once an install suggestion has already been emitted to $*ERR, so that
+	# the default (uncaught) handler does not print the message a second time.
+	# The full message remains available to programmatic handlers via .message.
+	has Bool $.reported is rw = False;
+
 	method gist(--> Str) {
 		my $ast-info = $.query-ast.defined ?? $.query-ast.^name !! 'undefined';
 		"X::Qwiratry::Operator: $.message (operator-type: $.operator-type, query-ast: $ast-info)"
@@ -51,6 +56,7 @@ class X::Qwiratry::Format::NotFound is X::Qwiratry::Operator {
 	has Str $.parse-or-render is required;
 
 	method gist(--> Str) {
+		return '' if self.reported;
 		my $module-name = 'Qwiratry::Format::' ~ $!format;
 		my $class-name = $module-name ~ '::' ~ $!parse-or-render.tc;
 		"X::Qwiratry::Format::NotFound: Format implementation $class-name not found (format: $!format, operation: $!parse-or-render)"
@@ -67,6 +73,7 @@ class X::Qwiratry::IO::LocationError is X::Qwiratry::Operator {
 	has Str $.reason is required;
 
 	method gist(--> Str) {
+		return '' if self.reported;
 		"X::Qwiratry::IO::LocationError: Location error for '$!location' (reason: $!reason)"
 	}
 }

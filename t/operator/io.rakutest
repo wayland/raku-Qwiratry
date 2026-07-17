@@ -11,6 +11,10 @@ use Qwiratry::Format::CSVdemo;
 use Qwiratry::Location;
 use Qwiratry::Location::File;
 
+# Keep this test hermetic and fast: don't let missing-backend paths reach out to
+# the zef ecosystem for install suggestions.
+%*ENV<QWIRATRY_SKIP_INSTALL_SUGGESTIONS> = 1;
+
 plan 6;
 
 subtest 'SourceOperator validates locations at construction' => {
