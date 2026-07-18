@@ -177,11 +177,17 @@ role NavigationEagerEvaluator does EagerEvaluator {
 	=head2 C<method tree-descendant-results>
 
 	=begin code :lang<raku>
-	method tree-descendant-results(Mu $node, Mu $selector, Mu :$origin, Int :$limit --> List)
+	multi method tree-descendant-results(Mu $node, List $selector, Mu :$origin, Int :$limit --> List)
+	multi method tree-descendant-results(Mu $node, Mu $selector, Mu :$origin, Int :$limit --> List)
 	=end code
 
-	Return matching descendants of C<$node>, optionally capped by C<$limit>,
-	through the active tree navigator.
+	Return matching descendants of C<$node>, optionally capped by C<$limit>.
+
+	Traversal belongs here (not on the tree navigator): a pre-order depth-first
+	walk expands each node via the navigator's one-step C<tree-children> /
+	C<tree-child-results>. That keeps model-specific shape ops (JSON keys, Match
+	named captures) on the navigator while the evaluator owns the walk. List
+	selectors fan out (slang C<< <name> >> is often a one-element List).
 
 	=item C<$node>
 
@@ -189,7 +195,7 @@ role NavigationEagerEvaluator does EagerEvaluator {
 
 	=item C<$selector>
 
-	Descendant selector passed to the navigator.
+	Descendant selector.
 
 	=item C<$origin>
 
@@ -200,9 +206,53 @@ role NavigationEagerEvaluator does EagerEvaluator {
 	Optional maximum number of results.
 
 	=end pod
-	method tree-descendant-results(Mu $node, Mu $selector, Mu :$origin, Int :$limit --> List) {
-		Qwiratry::Tree::Navigator.tree-navigator-for($node, :$origin)
-			.tree-descendant-results($node, $selector, |%(:$limit if $limit.defined))
+	multi method tree-descendant-results(Mu $node, List $selector, Mu :$origin, Int :$limit --> List) {
+		my @out;
+		for $selector.list -> $one {
+			@out.append(self.tree-descendant-results(
+				$node, $one, :$origin, |%(:$limit if $limit.defined),
+			));
+			last if $limit.defined && @out.elems >= $limit;
+		}
+		$limit.defined ?? @out.head($limit).list !! @out.list
+	}
+
+	multi method tree-descendant-results(Mu $node, Mu $selector, Mu :$origin, Int :$limit --> List) {
+		my $sel = self.selector;
+		# One-step hits at this node (JSON key / Match named capture / name filter).
+		my @hits = self.tree-child-results(
+			$node, $selector, :$origin, |%(:$limit if $limit.defined),
+		).list;
+		my @children = self.tree-children($node, :$origin);
+		my @out;
+
+		for @children -> $child {
+			my $is-hit = $sel.is-wildcard($selector)
+				|| @hits.first({ $_ === $child }).defined
+				|| $sel.matches($selector, $child);
+			if $is-hit {
+				@out.push($child);
+				return @out.list if $limit.defined && @out.elems >= $limit;
+			}
+			my $remaining = $limit.defined ?? $limit - @out.elems !! Int;
+			@out.append(self.tree-descendant-results(
+				$child, $selector, :$origin,
+				|%(:limit($remaining) if $remaining.defined),
+			));
+			return @out.list if $limit.defined && @out.elems >= $limit;
+		}
+
+		# Scalar / non-structural hits from one-step lookup (e.g. JSON C<login>
+		# values) are not in C<tree-children>; emit them after the structural walk.
+		# Wildcards stay structural-only, matching the previous Base behaviour.
+		unless $sel.is-wildcard($selector) {
+			for @hits -> $hit {
+				next if @children.first({ $_ === $hit }).defined;
+				@out.push($hit);
+				return @out.list if $limit.defined && @out.elems >= $limit;
+			}
+		}
+		$limit.defined ?? @out.head($limit).list !! @out.list
 	}
 
 	=begin pod

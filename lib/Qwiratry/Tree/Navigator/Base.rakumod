@@ -9,7 +9,10 @@ navigation protocol. Custom navigators do C<Qwiratry::Tree::Navigator::Base>.
 
 Prefer typed multi candidates so multiple dispatch selects the relevant
 implementation. Broad C<Mu> candidates are only fallbacks that return empty
-results.
+results. Selector-shaped dispatch follows the same rule: C<List> and non-wildcard
+C<Str> are typed candidates; wildcards and other selector forms fall through to
+C<Mu> (with a C<where> constraint for wildcards, since C<*> / C<**> are still
+C<Str>). Descendant walks live on the query evaluator, not here.
 
 Associative nodes with a positional C<children> key keep the existing nested
 tree-demo shape. Other associative nodes are treated as JSON-like maps whose
@@ -85,6 +88,30 @@ role Qwiratry::Tree::Navigator::Base {
 		$limit.defined ?? @items.head($limit).list !! @items.list
 	}
 
+	# Fan a List selector out across C<tree-child-results>, honouring C<$limit>.
+	method !fan-out-child-results(Mu $node, List $selector, Int :$limit --> List) {
+		my @out;
+		for $selector.list -> $one {
+			@out.append(self.tree-child-results(
+				$node, $one, |%(:$limit if $limit.defined),
+			));
+			last if $limit.defined && @out.elems >= $limit;
+		}
+		self!apply-limit(@out, $limit)
+	}
+
+	# Filter C<tree-children> of C<$node> with the shared selector matcher.
+	method !filter-child-results(Mu $node, Mu $selector, Int :$limit --> List) {
+		my $sel = self!selector;
+		my @out;
+		for self.tree-children($node) -> $child {
+			next unless $sel.matches($selector, $child);
+			@out.push($child);
+			last if $limit.defined && @out.elems >= $limit;
+		}
+		@out.list
+	}
+
 	=begin pod
 
 	=head2 C<tree-children>
@@ -122,6 +149,8 @@ role Qwiratry::Tree::Navigator::Base {
 
 	=begin code
 	multi method tree-child-results(Positional $node, Mu $selector, Int :$limit --> List)
+	multi method tree-child-results(Associative $node, List $selector, Int :$limit --> List)
+	multi method tree-child-results(Associative $node, Str $selector, Int :$limit --> List)
 	multi method tree-child-results(Associative $node, Mu $selector, Int :$limit --> List)
 	multi method tree-child-results(Mu $node, Mu $selector, Int :$limit --> List)
 	=end code
@@ -129,12 +158,16 @@ role Qwiratry::Tree::Navigator::Base {
 	Return children of C<$node> that match C<$selector>, optionally capped by
 	C<$limit>.
 
-	For associative maps, a string selector first tries hash-key lookup so
-	C<⪪ <owner>> follows JSON keys. If that key is absent, structural children
-	are filtered with the shared selector matcher so nested demo trees that use
-	a C<children> array and C<name>/C<tag>/C<type> labels still work.
+	For associative maps, a non-wildcard string selector first tries hash-key
+	lookup so C<⪪ <owner>> follows JSON keys. If that key is absent, structural
+	children are filtered with the shared selector matcher so nested demo trees
+	that use a C<children> array and C<name>/C<tag>/C<type> labels still work.
+	List selectors fan out; wildcards expose every value (or the C<children>
+	array for demo trees).
 
 	=end pod
+	# Positional: filter elements via the shared matcher (List selectors OR via
+	# Selector.matches; wildcards match every element).
 	multi method tree-child-results(Positional $node, Mu $selector, Int :$limit --> List) {
 		my $sel = self!selector;
 		my @out;
@@ -145,83 +178,46 @@ role Qwiratry::Tree::Navigator::Base {
 		}
 		@out.list
 	}
-	multi method tree-child-results(Associative $node, Mu $selector, Int :$limit --> List) {
-		my $sel = self!selector;
-		if $sel.is-wildcard($selector) {
-			# Wildcard exposes every value for JSON-like maps; demo trees keep
-			# the children array. Structural tree-children stay container-only.
-			my @kids = $node<children> ~~ Positional
-				?? $node<children>.list
-				!! $node.values.list;
-			return self!apply-limit(@kids, $limit);
-		}
-		if $selector ~~ List {
-			my @out;
-			for $selector.list -> $one {
-				@out.append(self.tree-child-results($node, $one, |%(:$limit if $limit.defined)));
-				last if $limit.defined && @out.elems >= $limit;
-			}
-			return self!apply-limit(@out, $limit);
-		}
-		if $selector ~~ Str {
-			my $key = $sel.normalize-name($selector);
-			if $node{$key}:exists {
-				return self!apply-limit(($node{$key},), $limit);
-			}
-		}
-		my @out;
-		for self.tree-children($node) -> $child {
-			next unless $sel.matches($selector, $child);
-			@out.push($child);
-			last if $limit.defined && @out.elems >= $limit;
-		}
-		@out.list
+
+	# Associative + List: fan each element out and concatenate.
+	multi method tree-child-results(Associative $node, List $selector, Int :$limit --> List) {
+		self!fan-out-child-results($node, $selector, |%(:$limit if $limit.defined))
 	}
+
+	# Associative + non-wildcard Str: prefer hash-key lookup, else name-match children.
+	# The where clause keeps "*" / "**" out of this candidate (they are still Str).
+	multi method tree-child-results(
+		Associative $node,
+		Str $selector where { !Qwiratry::Query::Selector.instance.is-wildcard($_) },
+		Int :$limit --> List
+	) {
+		my $sel = self!selector;
+		my $key = $sel.normalize-name($selector);
+		if $node{$key}:exists {
+			return self!apply-limit(($node{$key},), $limit);
+		}
+		self!filter-child-results($node, $selector, |%(:$limit if $limit.defined))
+	}
+
+	# Associative + wildcard: every value (JSON maps) or the children array (demo trees).
+	multi method tree-child-results(
+		Associative $node,
+		Mu $selector where { Qwiratry::Query::Selector.instance.is-wildcard($_) },
+		Int :$limit --> List
+	) {
+		my @kids = $node<children> ~~ Positional
+			?? $node<children>.list
+			!! $node.values.list;
+		self!apply-limit(@kids, $limit)
+	}
+
+	# Associative + Callable / type object / other: filter structural children.
+	multi method tree-child-results(Associative $node, Mu $selector, Int :$limit --> List) {
+		self!filter-child-results($node, $selector, |%(:$limit if $limit.defined))
+	}
+
 	multi method tree-child-results(Mu $node, Mu $selector, Int :$limit --> List) {
 		()
-	}
-
-	=begin pod
-
-	=head2 C<tree-descendant-results>
-
-	=begin code
-	method tree-descendant-results(Mu $node, Mu $selector, Int :$limit --> List)
-	=end code
-
-	Return matching descendants of C<$node>, optionally capped by C<$limit>.
-
-	Walks unconstrained children. For nested associative maps, a string selector
-	also follows matching keys so JSON paths like C<owner → login> work with
-	C<⪪⪪ <login>> without double-counting name-matched demo-tree nodes.
-
-	=end pod
-	method tree-descendant-results(Mu $node, Mu $selector, Int :$limit --> List) {
-		my $sel = self!selector;
-		my @out;
-		for self.tree-children($node) -> $child {
-			if $sel.matches($selector, $child) {
-				@out.push($child);
-				return @out.list if $limit.defined && @out.elems >= $limit;
-			}
-			if $child ~~ Associative
-					&& $selector ~~ Str
-					&& !$sel.is-wildcard($selector) {
-				my $key = $sel.normalize-name($selector);
-				if $child{$key}:exists {
-					@out.push($child{$key});
-					return @out.list if $limit.defined && @out.elems >= $limit;
-				}
-			}
-			my $remaining = $limit.defined ?? $limit - @out.elems !! Nil;
-			@out.append(self.tree-descendant-results(
-				$child,
-				$selector,
-				|%(:limit($remaining) if $remaining.defined),
-			));
-			return @out.list if $limit.defined && @out.elems >= $limit;
-		}
-		self!apply-limit(@out, $limit)
 	}
 
 	=begin pod

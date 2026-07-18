@@ -111,13 +111,9 @@ For ordinary associative maps, a string selector first tries hash-key lookup so
 C<⪪ <owner>> follows JSON keys. XML/HTML navigators should override this to use
 element-child semantics instead.
 
-=head2 C<tree-descendant-results>
-
-=begin code :lang<raku>
-method tree-descendant-results(Mu $node, Mu $selector, Int :$limit --> List)
-=end code
-
-Returns matching descendants, optionally capped by C<$limit>.
+Descendant walks (C<< ⪪⪪ >>) are owned by the query evaluator
+(C<DescendantEvaluator>), which composes this one-step lookup with
+C<tree-children>. Navigators should not implement recursive descendant walks.
 
 =head2 C<tree-parent>
 

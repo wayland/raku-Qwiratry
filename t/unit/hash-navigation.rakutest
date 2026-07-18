@@ -52,10 +52,9 @@ subtest 'tree-child-results follows JSON keys and demo name labels' => {
 		'limit caps child results';
 }
 
-subtest 'tree-descendant-results finds nested JSON keys' => {
+subtest 'descendant navigation finds nested JSON keys via the evaluator' => {
 	plan 3;
 
-	my $navigator = Qwiratry::Tree::Navigator::Base.new;
 	my %json = owner => %(login => 'microsoft', type => 'Organization');
 	my @demo = (
 		%(name => 'section', children => [
@@ -64,10 +63,9 @@ subtest 'tree-descendant-results finds nested JSON keys' => {
 		]),
 	);
 
-	my @logins = $navigator.tree-descendant-results(%json, '<login>');
-	is @logins.elems, 1, 'descendant key follow finds nested login';
-	is @logins[0], 'microsoft', 'descendant key follow returns nested value';
-	is $navigator.tree-descendant-results(@demo, '<item>').elems, 2,
+	is (%json ⪪⪪ <login>).List.elems, 1, 'descendant key follow finds nested login';
+	is (%json ⪪⪪ <login>).List[0], 'microsoft', 'descendant key follow returns nested value';
+	is (@demo ⪪⪪ <item>).List.elems, 2,
 		'demo descendant name matching still works';
 }
 

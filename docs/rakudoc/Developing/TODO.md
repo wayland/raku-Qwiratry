@@ -21,7 +21,7 @@ Testing:
 
 New features:
 * DONE Have it do at least a little testing to figure out why it's so slow
-* As a fallback, if there's no Format/Location, can we look up recommended 
+* DONE As a fallback, if there's no Format/Location, can we look up recommended 
   packages in zef, so that if a format is missing, it recommends to people that 
   they can install it
 * Use Matches as the tree as well as RakuAST

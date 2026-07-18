@@ -82,7 +82,7 @@ subtest '§5 root postfix returns the data root' => {
 		'root query evaluates to the original tree root';
 }
 
-subtest '§5 navigator examples expose children and descendants' => {
+subtest '§5 navigator examples expose children; descendants via evaluator' => {
 	plan 3;
 
 	my $navigator = Qwiratry::Tree::Navigator::Base.new;
@@ -90,8 +90,8 @@ subtest '§5 navigator examples expose children and descendants' => {
 
 	is $navigator.tree-child-results(%json, '<owner>').elems, 1,
 		'navigator child lookup finds owner key';
-	is $navigator.tree-descendant-results(%json, '<login>').elems, 1,
-		'navigator descendant lookup finds nested login';
+	is (%json ⪪⪪ <login>).List.elems, 1,
+		'descendant evaluator finds nested login';
 	is $navigator.tree-attributes(%json)<name>, 'vscode',
 		'navigator attributes expose associative keys';
 }

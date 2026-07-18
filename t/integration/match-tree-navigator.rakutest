@@ -1,0 +1,124 @@
+#!/usr/bin/env raku
+use v6.e.PREVIEW;
+use Test;
+use lib 'lib';
+
+use Qwiratry;
+use Qwiratry::Format;
+use Qwiratry::Mold::Slang;
+use Qwiratry::Tree::Navigator;
+use Qwiratry::Tree::Navigator::Base;
+use Qwiratry::Tree::Navigator::Match;
+use Qwiratry::Query::Slang;
+
+plan 7;
+
+# A grammar with three named captures, one of them optional.
+grammar Greeting {
+	token TOP     { <greeting> \s+ <name> <punct>? }
+	token greeting { \w+ }
+	token name     { \w+ }
+	token punct    { <[!?.]> }
+}
+
+# A grammar with a quantified capture (an array of sub-matches).
+grammar Words {
+	token TOP  { <word>+ %% \s+ }
+	token word { \w+ }
+}
+
+# A recursive grammar producing a nested match tree.
+grammar Nested {
+	token TOP  { <node> }
+	token node { <name> [ '(' <node>+ %% ',' ')' ]? }
+	token name { \w+ }
+}
+
+subtest 'Match tree navigator is discovered outside formats' => {
+	plan 5;
+
+	my @navigators = Qwiratry::Tree::Navigator.navigators;
+	ok 'Match' (elem) @navigators, 'Match has a tree navigator implementation';
+	nok 'Match' (elem) Qwiratry::Format.formats(:type<Parse>), 'Match has no Parse implementation';
+	nok 'Match' (elem) Qwiratry::Format.formats(:type<Render>), 'Match has no Render implementation';
+
+	my $navigator = Qwiratry::Tree::Navigator.make(:navigator<Match>);
+	ok $navigator ~~ Qwiratry::Tree::Navigator::Base, 'Match navigator does Base';
+	ok Match (elem) $navigator.supported-types, 'Match navigator supports Match';
+}
+
+subtest 'Registry selects the Match navigator for grammar results' => {
+	plan 3;
+
+	my $m = Greeting.parse('hello world!');
+	my $navigator = Qwiratry::Tree::Navigator.tree-navigator-for($m);
+	my @children = $navigator.tree-children($m);
+
+	ok $navigator ~~ Qwiratry::Tree::Navigator::Match, 'registry selects Match navigator';
+	is @children.elems, 3, 'exposes greeting, name and punct captures as children';
+	is @children.grep(Match).elems, 3, 'every child is a Match';
+}
+
+subtest 'Child navigation follows named captures' => {
+	plan 4;
+
+	my $m = Greeting.parse('hello world!');
+
+	my @greeting = ($m ⪪ <greeting>).List;
+	is @greeting.elems, 1, 'child selects the named greeting capture';
+	is @greeting[0].Str, 'hello', 'greeting capture holds the matched text';
+
+	is ($m ⪪ <name>).List[0].Str, 'world', 'child selects the named "name" capture';
+	is ($m ⪪ <*>).List.elems, 3, 'wildcard child selects every capture';
+}
+
+subtest 'Quantified captures flatten into individual children' => {
+	plan 2;
+
+	my $m = Words.parse('a bb ccc');
+	my @words = ($m ⪪ <word>).List;
+
+	is @words.elems, 3, 'the quantified word capture yields three children';
+	is-deeply @words.map(*.Str).sort.List, <a bb ccc>.sort.List,
+		'each word sub-match is an individual child';
+}
+
+subtest 'Descendant navigation reaches nested captures' => {
+	plan 3;
+
+	my $t = Nested.parse('a(b,c(d))');
+
+	my @names = ($t ⪪⪪ <name>).List;
+	is @names.elems, 4, 'descendant navigation finds every nested name capture';
+	is-deeply @names.map(*.Str).sort.List, <a b c d>.sort.List,
+		'nested names are a, b, c and d';
+
+	# A block predicate sees both the node and name captures whose text is "d".
+	is ($t ⪪⪪ -> $x { $x ~~ Match && $x.Str eq 'd' }).List.elems, 2,
+		'block descendant selector matches Match nodes by content';
+}
+
+subtest 'Selection filters match children by predicate' => {
+	plan 1;
+
+	my $t = Nested.parse('a(b,c(d))');
+	my @c = ($t ⪪⪪ <name> σ -> $x { $x.Str eq 'c' }).List;
+
+	is @c.elems, 1, 'σ narrows descendant name captures to the one matching "c"';
+}
+
+subtest 'Navigator exposes captures as attributes and parents' => {
+	plan 3;
+
+	my $m = Greeting.parse('hello world!');
+	my $navigator = Qwiratry::Tree::Navigator.tree-navigator-for($m);
+
+	is $navigator.tree-attribute-value($m, 'greeting').Str, 'hello',
+		'named captures are reachable as attributes';
+	ok $navigator.tree-attributes($m)<name>:exists,
+		'tree-attributes exposes the named-capture map';
+
+	my $child = $navigator.tree-children($m)[0];
+	ok $navigator.tree-parent($child, :origin($m)) === $m,
+		'parent lookup walks from the origin match';
+}

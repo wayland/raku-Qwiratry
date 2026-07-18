@@ -62,6 +62,7 @@
     "Qwiratry::Transformer::TreeRewrite": "lib/Qwiratry/Transformer/TreeRewrite.rakumod",
     "Qwiratry::Transformer": "lib/Qwiratry/Transformer.rakumod",
     "Qwiratry::Tree::Navigator::Base": "lib/Qwiratry/Tree/Navigator/Base.rakumod",
+    "Qwiratry::Tree::Navigator::Match": "lib/Qwiratry/Tree/Navigator/Match.rakumod",
     "Qwiratry::Tree::Navigator::RakuAST": "lib/Qwiratry/Tree/Navigator/RakuAST.rakumod",
     "Qwiratry::Tree::Navigator": "lib/Qwiratry/Tree/Navigator.rakumod",
     "Qwiratry::Tree::Replace": "lib/Qwiratry/Tree/Replace.rakumod",
