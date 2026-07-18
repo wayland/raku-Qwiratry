@@ -12,6 +12,9 @@ package appears to provide it).
 The behaviour is on by default and can be disabled by setting the environment
 variable C<QWIRATRY_SKIP_INSTALL_SUGGESTIONS>.
 
+L<search-packages> and L<parse-zef-search-output> are also used by
+L<Qwiratry::Setup> for interactive plugin discovery.
+
 =end pod
 
 unit module Qwiratry::Suggest;
@@ -28,7 +31,7 @@ unit module Qwiratry::Suggest;
 #| Set C<QWIRATRY_SKIP_INSTALL_SUGGESTIONS> to disable entirely; when disabled
 #| the exception is left untouched and propagates with its full message.
 sub report-and-suggest(Exception:D $exception, Str:D $module --> Nil) is export {
-	return if %*ENV<QWIRATRY_SKIP_INSTALL_SUGGESTIONS>;
+	%*ENV<QWIRATRY_SKIP_INSTALL_SUGGESTIONS> and return;
 
 	# 1. The error, before we call zef.
 	$*ERR.say($exception.gist);
@@ -46,7 +49,62 @@ sub report-and-suggest(Exception:D $exception, Str:D $module --> Nil) is export 
 	}
 
 	# Mark reported so the propagating exception's gist stays quiet.
-	$exception.reported = True if $exception.can('reported');
+	$exception.can('reported') and $exception.reported = True;
+}
+
+#| Strip C<:ver<…>> / C<:auth<…>> / C<:api<…>> suffixes from a zef Package cell.
+sub bare-identity(Str:D $package --> Str) is export {
+	my $name = $package;
+	$package ~~ / ^ (.+?) ':' [ 'ver' | 'auth' | 'api' ] '<' / and $name = ~$0;
+	canonical-identity($name)
+}
+
+#| Convert fez-style C<Qwiratry--Format--JSON> names to C<Qwiratry::Format::JSON>.
+#| Identities that already use C<::> are returned unchanged.
+sub canonical-identity(Str:D $identity --> Str) is export {
+	$identity.contains('--') or return $identity;
+	$identity.subst('--', '::', :g)
+}
+
+#| Parse C<zef search> table text into unique package records.
+#|
+#| Each record is a Hash with C<identity> (canonical C<::>-form module name) and
+#| C<description>. Dedupes case-insensitively, keeping the first occurrence
+#| (typically the newest version zef listed). Fez C<--> dist names are normalized
+#| to C<::> so callers never see the filesystem-style spelling.
+sub parse-zef-search-output(Str:D $output --> List) is export {
+	my %seen;
+	my @packages;
+	for $output.lines -> $line {
+		!($line ~~ / ^ \s* \d+ \s* '|' /) and next;
+		my @cols = $line.split('|');
+		!(@cols >= 3) and next;
+		my $package = @cols[2].trim;
+		!$package and next;
+		my $identity = bare-identity($package);
+		my $key = $identity.lc;
+		(%seen{$key}:exists) and next;
+		%seen{$key} = True;
+		my $description = @cols >= 4 ?? @cols[3].trim !! '';
+		@packages.push(%(
+			identity    => $identity,
+			description => $description,
+		));
+	}
+	@packages.List
+}
+
+#| Best-effort C<zef search $query>; returns package records or an empty list.
+#| Never throws: missing/offline zef is treated as no results.
+sub search-packages(Str:D $query --> List) is export {
+	my $output = try {
+		my $proc = run 'zef', 'search', $query, :out, :err;
+		my $text = $proc.out.slurp(:close);
+		$proc.err.slurp(:close);
+		$text;
+	};
+	!$output.defined and return ();
+	parse-zef-search-output($output)
 }
 
 #| Best-effort search of the Raku ecosystem (via the C<zef> CLI) for a package
@@ -58,29 +116,9 @@ sub report-and-suggest(Exception:D $exception, Str:D $module --> Nil) is export 
 #| package provides it. Never throws: any failure (zef missing, offline, etc.)
 #| is treated as "no result".
 sub find-package(Str:D $module --> Str) is export {
-	my $output = try {
-		my $proc = run 'zef', 'search', $module, :out, :err;
-		my $text = $proc.out.slurp(:close);
-		$proc.err.slurp(:close);
-		$text;
-	};
-	return Str unless $output.defined;
-
-	# zef renders results as a numbered, pipe-delimited table; a data row starts
-	# with an integer id. The third column holds the package identity, e.g.
-	# "JSON::Fast:ver<0.20>:auth<zef:timo>" — we want just the module name and an
-	# exact (case-insensitive) match, so "JSON::Fast" is not confused with
-	# "JSON::Fast::Hyper".
-	for $output.lines -> $line {
-		next unless $line ~~ / ^ \s* \d+ \s* '|' /;
-		my @cols = $line.split('|');
-		next unless @cols >= 3;
-		my $package = @cols[2].trim;
-		next unless $package;
-
-		my $name = $package;
-		$package ~~ / ^ (.+?) ':' [ 'ver' | 'auth' | 'api' ] '<' / and $name = ~$0;
-		return $name if $name.lc eq $module.lc;
+	my $want = canonical-identity($module).lc;
+	for search-packages($module) -> %pkg {
+		%pkg<identity>.lc eq $want and return %pkg<identity>;
 	}
 	Str
 }

@@ -1,0 +1,19 @@
+#!/usr/bin/env raku
+use Qwiratry::Setup;
+
+#| Interactive installer for Qwiratry Format/Location/Test ecosystem packages.
+multi MAIN(Bool :$dry-run = False) {
+	exit run-setup(:$dry-run);
+}
+
+multi MAIN(Bool :$help!) {
+	say qq:to/USAGE/;
+	Usage: qwiratry-setup [--dry-run] [--help]
+
+	  Discover Qwiratry Format/Location/Test packages via zef and
+	  interactively choose which to install.
+
+	  --dry-run   Discover and show the planned zef install; do not install
+	  --help      Show this help
+	USAGE
+}

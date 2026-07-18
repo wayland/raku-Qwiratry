@@ -39,6 +39,17 @@ zef install .
 
 Either way, you'll need to set RAKUDO_RAKUAST=1 to run it
 
+### Plugin setup
+
+After installing Qwiratry, run the interactive setup helper to discover and
+install the plugins/addons which will suit you best (eg. JSON, HTTP, and the
+like).  
+
+```bash
+qwiratry-setup
+# or: qwiratry-setup --dry-run
+```
+
 ## Quick Start
 
 ```raku

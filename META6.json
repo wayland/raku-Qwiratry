@@ -55,6 +55,7 @@
     "Qwiratry::Strategy::RewriteSpec": "lib/Qwiratry/Strategy/RewriteSpec.rakumod",
     "Qwiratry::Strategy::Traversal": "lib/Qwiratry/Strategy/Traversal.rakumod",
     "Qwiratry::Strategy": "lib/Qwiratry/Strategy.rakumod",
+    "Qwiratry::Setup": "lib/Qwiratry/Setup.rakumod",
     "Qwiratry::Suggest": "lib/Qwiratry/Suggest.rakumod",
     "Qwiratry::Table::Schema": "lib/Qwiratry/Table/Schema.rakumod",
     "Qwiratry::Table": "lib/Qwiratry/Table.rakumod",

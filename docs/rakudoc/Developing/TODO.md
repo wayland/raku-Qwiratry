@@ -24,8 +24,8 @@ New features:
 * DONE As a fallback, if there's no Format/Location, can we look up recommended 
   packages in zef, so that if a format is missing, it recommends to people that 
   they can install it
-* Use Matches as the tree as well as RakuAST
-* Maybe a qwiratry-setup script that asks which formats/locations you'd like to 
+* DONE Use Matches as the tree as well as RakuAST
+* DONE Make a qwiratry-setup script that asks which formats/locations you'd like to 
   install (after querying zef/ecosystem to find what's available); lets you 
   tick the ones you want, and then it'll install them
 

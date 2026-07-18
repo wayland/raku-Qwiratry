@@ -1,0 +1,134 @@
+#!/usr/bin/env raku
+use Test;
+use lib 'lib';
+
+use Qwiratry::Suggest;
+use Qwiratry::Setup;
+
+plan 6;
+
+my $fixture = q:to/EOF/;
+===> Found 8 results
+----------------------------------------------------------------
+ID|From                            |Package                                              |Description
+----------------------------------------------------------------
+0 |Zef::Repository::Ecosystems<fez>|Qwiratry::Format::JSON:ver<0.0.1>:auth<zef:wayland>  |JSON format backend
+1 |Zef::Repository::Ecosystems<fez>|Qwiratry::Format::JSON:ver<0.0.1>:auth<zef:wayland>  |JSON format backend
+2 |Zef::Repository::Ecosystems<fez>|Qwiratry--Location--HTTP:ver<0.0.2>:auth<zef:wayland>|HTTP and HTTPS location
+3 |Zef::Repository::Ecosystems<fez>|Qwiratry::Test:ver<0.0.1>:auth<zef:wayland>          |Conformance test kit
+4 |Zef::Repository::Ecosystems<fez>|Qwiratry:ver<0.0.6>:auth<zef:wayland>                |Core architecture
+5 |Zef::Repository::Ecosystems<fez>|Qwiratry::Format::JSONdemo:ver<0.0.1>                |Bundled demo
+6 |Zef::Repository::Ecosystems<fez>|Qwiratry::Location::File:ver<0.0.1>                  |Bundled file backend
+7 |Zef::Repository::Ecosystems<fez>|Qwiratry::Format::YAML:ver<0.0.1>:auth<zef:wayland>  |YAML format
+EOF
+
+subtest 'parse-zef-search-output dedupes and canonicalizes to :: form' => {
+	plan 5;
+
+	my @pkgs = parse-zef-search-output($fixture);
+	# JSON appears twice in the fixture; File/JSONdemo/YAML/HTTP/Test/core once each → 7 unique
+	is @pkgs.elems, 7, 'dedupes duplicate JSON rows';
+	ok @pkgs.first({ .<identity> eq 'Qwiratry::Format::JSON' }).defined, 'keeps bare JSON identity';
+	is @pkgs.first({ .<identity> eq 'Qwiratry::Format::JSON' })<description>,
+		'JSON format backend', 'captures description';
+	ok @pkgs.first({ .<identity> eq 'Qwiratry::Location::HTTP' }).defined,
+		'fez -- dist name becomes :: form';
+	nok @pkgs.first({ .<identity>.contains('--') }).defined, 'no -- identities remain';
+}
+
+subtest 'classify-identity categories and exclusions' => {
+	plan 8;
+
+	is classify-identity('Qwiratry::Format::JSON'), 'format', 'Format::JSON';
+	is classify-identity('Qwiratry::Format::YAML'), 'format', 'Format::YAML';
+	is classify-identity('Qwiratry::Location::HTTP'), 'location', 'Location::HTTP';
+	is classify-identity('Qwiratry::Location::S3'), 'location', 'Location::S3';
+	is classify-identity('Qwiratry::Test'), 'dev', 'Test';
+	is classify-identity('Qwiratry::Test::Format'), 'dev', 'Test::*';
+	is classify-identity('Qwiratry::Format::JSONdemo'), 'other', 'excludes bundled JSONdemo';
+	is classify-identity('Qwiratry::Location::File'), 'other', 'excludes bundled File';
+}
+
+subtest 'classify-packages groups fixture rows' => {
+	plan 6;
+
+	my %g = classify-packages(parse-zef-search-output($fixture));
+	is %g<format>.elems, 2, 'JSON and YAML are formats';
+	is %g<location>.elems, 1, 'HTTP is a location';
+	is %g<dev>.elems, 1, 'Test is a developer package';
+	ok %g<other>.elems >= 2, 'core and bundled demos land in other';
+	is-deeply %g<format>.map(*<label>).sort.List, <JSON YAML>.sort.List, 'format labels';
+	is %g<location>[0]<identity>, 'Qwiratry::Location::HTTP', 'location identity is :: form';
+}
+
+subtest 'display-label and canonical-identity' => {
+	plan 4;
+
+	is display-label('Qwiratry::Format::JSON'), 'JSON', 'module label';
+	is display-label('Qwiratry::Location::HTTP'), 'HTTP', 'location label';
+	is canonical-identity('Qwiratry--Format--JSON'), 'Qwiratry::Format::JSON',
+		'-- converts to ::';
+	is classify-identity('Qwiratry--Location--HTTP'), 'location',
+		'classify still accepts -- input via canonicalize';
+}
+
+subtest 'checklist-prompt toggles and returns selection' => {
+	plan 2;
+
+	my @pkgs = (
+		%( identity => 'Qwiratry::Format::JSON', label => 'JSON', description => '', installed => False ),
+		%( identity => 'Qwiratry::Format::YAML', label => 'YAML', description => '', installed => False ),
+	);
+	my $in = class {
+		has @.lines;
+		has $!i = 0;
+		method get() {
+			$!i >= @!lines.elems and return Nil;
+			@!lines[$!i++]
+		}
+	}.new(lines => ['1', 'done']);
+	my $out = class {
+		has @.printed;
+		method say(*@a) { @!printed.push(@a.join('')) }
+		method print(*@a) { @!printed.push(@a.join('')) }
+	}.new;
+
+	my @chosen = checklist-prompt('Formats', @pkgs, :$in, :$out);
+	is @chosen.elems, 1, 'one package selected';
+	is @chosen[0]<identity>, 'Qwiratry::Format::JSON', 'toggled item 1';
+}
+
+subtest 'checklist-prompt shows installed as I outside numbering' => {
+	plan 4;
+
+	my @pkgs = (
+		%( identity => 'Qwiratry::Location::HTTP', label => 'HTTP', description => 'http', installed => True ),
+		%( identity => 'Qwiratry::Location::S3', label => 'S3', description => 's3', installed => False ),
+	);
+	my $in = class {
+		has @.lines;
+		has $!i = 0;
+		method get() {
+			$!i >= @!lines.elems and return Nil;
+			@!lines[$!i++]
+		}
+	}.new(lines => ['done']);
+	my $out = class {
+		has @.printed is rw;
+		method say(*@a) { @!printed.push(@a.join('')) }
+		method print(*@a) { @!printed.push(@a.join('')) }
+	}.new;
+
+	my @chosen = checklist-prompt(
+		'Locations', @pkgs,
+		preselect => ['Qwiratry::Location::HTTP', 'Qwiratry::Location::S3'],
+		:$in, :$out,
+	);
+	ok $out.printed.first({ / '[I] HTTP' / }).defined, 'installed shown as [I]';
+	ok $out.printed.first({ / '[x] 1. S3' / }).defined, 'choosable is number 1 and pre-ticked';
+	nok $out.printed.first({ / '1. HTTP' / }).defined, 'installed is not numbered';
+	is-deeply @chosen.map(*<identity>).List, ('Qwiratry::Location::S3',),
+		'only choosable selection returned';
+}
+
+done-testing;
