@@ -1,0 +1,114 @@
+#!/usr/bin/env raku
+use v6.e.PREVIEW;
+use Test;
+use lib 'lib';
+
+use Qwiratry::Location;
+use Qwiratry::Location::File;
+use Qwiratry::Operator::Capability;
+use Qwiratry::Operator::IO;
+use Qwiratry::Query::Slang;
+
+plan 6;
+
+subtest 'tilde paths are accepted as File locations' => {
+	plan 3;
+	is Qwiratry::Location.backend-name-from-location('~/data.json'), 'File',
+		'~/file resolves to File backend';
+	is Qwiratry::Location.backend-name-from-location('~'), 'File',
+		'bare ~ resolves to File backend';
+	lives-ok { SourceOperator.new(:location('~/data.json')) },
+		'SourceOperator accepts ~/ paths';
+}
+
+subtest 'tilde expands via $*HOME for file reads' => {
+	plan 2;
+	unless $*HOME.defined {
+		skip-rest '$*HOME is unavailable';
+		return;
+	}
+
+	my $dir = $*HOME.add("qwiratry-tilde-test-$*PID");
+	$dir.mkdir;
+	my $file = $dir.add('payload.txt');
+	spurt $file, 'tilde-ok';
+	LEAVE {
+		try unlink $file;
+		try $dir.rmdir;
+	}
+
+	my $location = '~/' ~ $dir.basename ~ '/payload.txt';
+	my $text = Qwiratry::Operator::Capability::execute(
+		SourceOperator.new(:location($location)),
+	);
+	is $text, 'tilde-ok', 'source reads through ~/ expansion';
+
+	my $root = Qwiratry::Operator::Capability::execute(
+		SourceOperator.new(:location('~/' ~ $dir.basename)),
+	);
+	ok $root ~~ IO::Path && $root.d, 'directory ~/ expands to IO::Path';
+}
+
+subtest 'slang source accepts ~/ directory' => {
+	plan 1;
+	unless $*HOME.defined {
+		skip-rest '$*HOME is unavailable';
+		return;
+	}
+	my $root = ⮳ '~';
+	ok $root ~~ IO::Path && $root.absolute eq $*HOME.absolute,
+		'slang source of ~ is the home directory';
+}
+
+subtest 'file:// with tilde still expands' => {
+	plan 1;
+	unless $*HOME.defined {
+		skip-rest '$*HOME is unavailable';
+		return;
+	}
+	my $dir = $*HOME.add("qwiratry-tilde-url-$*PID");
+	$dir.mkdir;
+	my $file = $dir.add('via-url.txt');
+	spurt $file, 'url-tilde';
+	LEAVE {
+		try unlink $file;
+		try $dir.rmdir;
+	}
+	my $location = 'file://~/' ~ $dir.basename ~ '/via-url.txt';
+	is Qwiratry::Operator::Capability::execute(
+		SourceOperator.new(:location($location)),
+	), 'url-tilde', 'file://~/ expands after stripping scheme';
+}
+
+
+subtest '~user expands via getent' => {
+	plan 1;
+	my $user = ~$*USER;
+	my $root = ⮳("~" ~ $user);
+	ok $root ~~ IO::Path && $root.absolute eq $*HOME.absolute,
+		'~user resolves like $*HOME';
+}
+
+subtest 'trailing /* expands to directory entries' => {
+	plan 3;
+	unless $*HOME.defined {
+		skip-rest '$*HOME is unavailable';
+		return;
+	}
+	my $dir = $*HOME.add("qwiratry-glob-loc-$*PID");
+	$dir.mkdir;
+	my $file = $dir.add('inside.txt');
+	spurt $file, 'x';
+	LEAVE {
+		try unlink $file;
+		try $dir.rmdir;
+	}
+	my @entries = ⮳('~/' ~ $dir.basename ~ '/*').List;
+	ok @entries.elems >= 1, '/* expands to at least one entry';
+	ok @entries[0] ~~ IO::Path, 'glob expansion returns IO::Path nodes';
+	ok (@entries.grep({ .basename eq 'inside.txt' })).so,
+		'glob expansion includes expected file';
+}
+
+done-testing;
+

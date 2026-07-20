@@ -1,0 +1,113 @@
+#!/usr/bin/env raku
+use v6.e.PREVIEW;
+use Test;
+use lib 'lib';
+
+use Qwiratry::Location::File;
+use Qwiratry::Operator::Capability;
+use Qwiratry::Operator::IO;
+use Qwiratry::Query::Slang;
+use Qwiratry::Tree::Navigator;
+use Qwiratry::Tree::Navigator::Base;
+use Qwiratry::Tree::Navigator::Filesystem;
+
+plan 7;
+
+my $tmpdir = ('t/tmp/fs-nav-' ~ $*PID).IO.absolute.IO;
+$tmpdir.mkdir unless $tmpdir.d;
+
+my $file-a = $tmpdir.child('alpha.txt');
+my $file-b = $tmpdir.child('beta.log');
+my $subdir = $tmpdir.child('nested');
+$subdir.mkdir unless $subdir.d;
+my $file-c = $subdir.child('gamma.txt');
+spurt $file-a, 'alpha-content';
+spurt $file-b, 'beta-content';
+spurt $file-c, 'gamma-content';
+
+END {
+	try unlink $_ for $file-a, $file-b, $file-c;
+	try $subdir.rmdir;
+	try $tmpdir.rmdir;
+}
+
+subtest 'Filesystem tree navigator is discovered' => {
+	plan 3;
+
+	my @navigators = Qwiratry::Tree::Navigator.navigators;
+	ok 'Filesystem' (elem) @navigators, 'Filesystem navigator is discovered';
+
+	my $navigator = Qwiratry::Tree::Navigator.make(:navigator<Filesystem>);
+	ok $navigator ~~ Qwiratry::Tree::Navigator::Base, 'Filesystem navigator does Base';
+	ok IO::Path (elem) $navigator.supported-types, 'supports IO::Path';
+}
+
+subtest 'Source read returns IO::Path for directories and text for files' => {
+	plan 3;
+
+	my $dir = Qwiratry::Operator::Capability::execute(
+		SourceOperator.new(:location(~$tmpdir)),
+	);
+	ok $dir ~~ IO::Path, 'directory source returns IO::Path';
+	ok $dir.d, 'returned path is a directory';
+
+	my $text = Qwiratry::Operator::Capability::execute(
+		SourceOperator.new(:location(~$file-a)),
+	);
+	is $text, 'alpha-content', 'file source still returns text';
+}
+
+subtest 'Registry selects Filesystem navigator for IO::Path' => {
+	plan 3;
+
+	my $navigator = Qwiratry::Tree::Navigator.tree-navigator-for($tmpdir);
+	ok $navigator ~~ Qwiratry::Tree::Navigator::Filesystem,
+		'registry selects Filesystem navigator';
+	is $navigator.tree-children($tmpdir).elems, 3, 'directory exposes three entries';
+	is $navigator.tree-children($file-a).elems, 0, 'file has no children';
+}
+
+subtest 'Child navigation matches basename, glob, and regex' => {
+	plan 5;
+
+	my @alpha = ($tmpdir ⪪ <alpha.txt>).List;
+	is @alpha.elems, 1, 'exact basename match';
+	is @alpha[0].basename, 'alpha.txt', 'matched alpha.txt';
+
+	my @txt = ($tmpdir ⪪ <*.txt>).List;
+	is @txt.elems, 1, 'glob selects one top-level .txt file';
+
+	my @logs = ($tmpdir ⪪ /.+\.log$/).List;
+	is @logs.elems, 1, 'regex selects .log file';
+	is @logs[0].basename, 'beta.log', 'regex matched beta.log';
+}
+
+subtest 'Descendant navigation walks nested directories' => {
+	plan 2;
+
+	my @txt = ($tmpdir ⪪⪪ <*.txt>).List;
+	is @txt.elems, 2, 'descendant glob finds nested and top-level .txt';
+	ok @txt.map(*.basename).sort eqv <alpha.txt gamma.txt>.List.sort,
+		'found alpha.txt and gamma.txt';
+}
+
+subtest 'Slang source of a directory is navigable' => {
+	plan 2;
+
+	my $root = ⮳(~$tmpdir);
+	ok $root ~~ IO::Path, 'slang source returns directory path';
+	is ($root ⪪ <nested> ⪪ <gamma.txt>).List[0].basename, 'gamma.txt',
+		'can navigate into nested file via slang source';
+}
+
+
+subtest 'chained source then descendant evaluates adaptors' => {
+	plan 2;
+	my @hits = (⮳(~$tmpdir) ⪪⪪ <*.txt>).List;
+	is @hits.elems, 2, 'source chained into descendant finds nested txt files';
+	ok @hits.map(*.basename).sort eqv <alpha.txt gamma.txt>.List.sort,
+		'chained descendant matches expected basenames';
+}
+
+done-testing;
+

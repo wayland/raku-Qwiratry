@@ -23,7 +23,7 @@ class Qwiratry::Location::Base::Source {
 	=head2 C<read(Str $location)>
 
 	=begin code
-	method read(Str $location --> Str)
+	method read(Str $location --> Mu)
 	=end code
 
 	=head3 Parameters
@@ -33,14 +33,17 @@ class Qwiratry::Location::Base::Source {
 	 The location string or URI handled by the backend.
 
 
-	Reads text from C<$location>.
+	Reads from C<$location>. The abstract contract is deliberately C<Mu>:
+	concrete backends may return text, path objects, binary blobs, or other
+	payloads. File backends typically return C<Str> for ordinary files and
+	C<IO::Path> for directories (see L<Qwiratry::Location::File>).
 
 	Concrete source backends override this method. The pipeline reaches it through
 	L<Qwiratry::Operator::IO::SourceOperator> after L<Qwiratry::Location> has chosen
 	and validated the backend.
 
 	=end pod
-	method read(Str $location --> Str) {
+	method read(Str $location --> Mu) {
 		die "read not implemented by {self.^name}";
 	}
 }

@@ -86,6 +86,11 @@ role NavigationEagerEvaluator does EagerEvaluator {
 			if $op.subject ~~ NavigationOperator {
 				return self.select-list-for($op.subject, $origin);
 			}
+			# Evaluate adaptor subjects (Source/Parse/...) to concrete data before
+			# navigation axes walk them (chained slang like source then descendant).
+			if $op.subject ~~ AdaptorOperator {
+				return (execute($op.subject, :$origin),);
+			}
 			if $op.subject ~~ Seq {
 				return $op.subject.list;
 			}
@@ -228,7 +233,7 @@ role NavigationEagerEvaluator does EagerEvaluator {
 
 		for @children -> $child {
 			my $is-hit = $sel.is-wildcard($selector)
-				|| @hits.first({ $_ === $child }).defined
+				|| @hits.first({ self!same-tree-node($_, $child) }).defined
 				|| $sel.matches($selector, $child);
 			if $is-hit {
 				@out.push($child);
@@ -245,14 +250,24 @@ role NavigationEagerEvaluator does EagerEvaluator {
 		# Scalar / non-structural hits from one-step lookup (e.g. JSON C<login>
 		# values) are not in C<tree-children>; emit them after the structural walk.
 		# Wildcards stay structural-only, matching the previous Base behaviour.
+		# IO::Path children from separate C<.dir> calls are distinct objects, so
+		# also dedupe by absolute path when structural matching already pushed them.
 		unless $sel.is-wildcard($selector) {
 			for @hits -> $hit {
-				next if @children.first({ $_ === $hit }).defined;
+				next if @children.first({ self!same-tree-node($_, $hit) }).defined;
+				next if @out.first({ self!same-tree-node($_, $hit) }).defined;
 				@out.push($hit);
 				return @out.list if $limit.defined && @out.elems >= $limit;
 			}
 		}
 		$limit.defined ?? @out.head($limit).list !! @out.list
+	}
+
+	# Identity for ordinary nodes; absolute path equality for filesystem nodes.
+	method !same-tree-node(Mu $a, Mu $b --> Bool) {
+		return True if $a === $b;
+		return True if $a ~~ IO::Path && $b ~~ IO::Path && $a.absolute eq $b.absolute;
+		False
 	}
 
 	=begin pod

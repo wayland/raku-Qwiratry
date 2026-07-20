@@ -128,6 +128,8 @@ B<Example Protocols and URL Schemes>:
 =item C<⮳ <data.json>> - Relative file path
 =item C<⮳ </absolute/path/data.json>> - Absolute file path
 
+=item Directory locations return an C<IO::Path> root for tree navigation (child/descendant axes, basename/glob/regex selectors) instead of slurping contents.
+
 =item B<HTTP/HTTPS> (C<http://>, C<https://>):
 =item C<⮳ <https://example.com/data.json>> - HTTPS URL
 =item C<⮳ <http://localhost:8080/api/data>> - HTTP URL with port

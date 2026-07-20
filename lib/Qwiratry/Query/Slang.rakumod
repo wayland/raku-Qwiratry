@@ -306,8 +306,9 @@ multi sub infix:<».>(OperatorBase $left, &transform) is equiv(&infix:<x>) is ex
 }
 
 multi sub infix:<».>(Mu $left, &transform) is equiv(&infix:<x>) is export {
-	my $query = MapOperator.new(:subject($left), :transform(&transform));
-	auto-query($query, $left, $left)
+	return MapOperator.new(:subject($left), :transform(&transform))
+		if $*QWIRATRY-BUILD-QUERY;
+	$left.map(&transform)
 }
 
 =begin pod

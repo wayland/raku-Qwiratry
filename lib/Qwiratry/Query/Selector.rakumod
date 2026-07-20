@@ -18,6 +18,9 @@ class Qwiratry::Query::Selector
 Defines C<Qwiratry::Query::Selector>.
 
 =end pod
+use Glob::Grammar;
+use Glob::ToRegexActions;
+
 class Qwiratry::Query::Selector {
 
 	my $instance;
@@ -211,6 +214,31 @@ class Qwiratry::Query::Selector {
 	The C<$node> parameter.
 
 	=end pod
+	# Cached Glob::Grammar → anchored regex source strings.
+	has %!glob-pattern-cache;
+
+	method !is-glob(Str $pattern --> Bool) {
+		so $pattern.contains('*' | '?' | '[' | ']')
+	}
+
+	# Compile a glob once; reuse across large filesystem walks.
+	method !glob-pattern(Str $glob --> Str) {
+		return %!glob-pattern-cache{$glob} if %!glob-pattern-cache{$glob}:exists;
+		my $match = Glob::Grammar.parse($glob, actions => Glob::ToRegexActions.new);
+		%!glob-pattern-cache{$glob} = $match ?? ~$match.made !! Str;
+		%!glob-pattern-cache{$glob}
+	}
+
+	method !name-matches(Str $name, Str $selector --> Bool) {
+		my $want = self.normalize-name($selector);
+		if self!is-glob($want) {
+			my $pattern = self!glob-pattern($want);
+			return False without $pattern;
+			return so $name ~~ / <$pattern> /;
+		}
+		$name eq $want
+	}
+
 	method matches(Mu $selector, Mu $node --> Bool) {
 		self.is-wildcard($selector) and return True;
 		if self.is-type-object($selector) {
@@ -220,9 +248,13 @@ class Qwiratry::Query::Selector {
 			$selector.grep({ self.matches($_, $node) }).so and return True;
 			return False;
 		}
+		if $selector ~~ Regex {
+			my $name = self.node-name($node);
+			return $name.defined && so $name ~~ $selector;
+		}
 		if $selector ~~ Str {
 			my $name = self.node-name($node);
-			return $name.defined && $name eq self.normalize-name($selector);
+			return $name.defined && self!name-matches($name, $selector);
 		}
 		if $selector ~~ Callable {
 			return ?$selector($node);
@@ -252,6 +284,7 @@ class Qwiratry::Query::Selector {
 	=end pod
 	method node-name(Mu $node --> Mu) {
 		$node ~~ Str and return $node;
+		$node ~~ IO::Path and return $node.basename;
 		if $node ~~ Associative {
 			for <name tag type> -> $field {
 				$node{$field}:exists and return ~($node{$field});

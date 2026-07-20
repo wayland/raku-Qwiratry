@@ -189,9 +189,12 @@ class Qwiratry::Location does Implementation::Loader {
 
 	# Accept local path forms without requiring a scheme.
 	method !looks-like-local-path(Str $location --> Bool) {
-		$location.starts-with('/') || $location.starts-with('./')
+		so $location eq '~'
+			|| $location.starts-with('~/')
+			|| $location ~~ /^ '~' <[\w.-]>+ [ '/' .* ]? $/
+			|| $location.starts-with('/') || $location.starts-with('./')
 			|| ($location !~~ /^\w+:\/\// && $location.contains('.'))
-			|| $location ~~ /^[\w\.\-\/]+$/
+			|| $location ~~ /^[\w\.\-\*\?\[\]\/]+$/
 	}
 
 	# Throw a consistent location error for syntactically invalid locations.

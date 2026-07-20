@@ -8,7 +8,8 @@
   "build-depends": [],
   "depends": [
     "Slangify",
-    "Implementation::Loader:ver<0.0.9+>"
+    "Implementation::Loader:ver<0.0.9+>",
+    "Glob::Grammar"
   ],
   "raku": "6.e",
   "description": "Declarative query and data-walking architecture for Raku, with transformers, molds, walkers, and I/O pipelines.",
@@ -63,6 +64,7 @@
     "Qwiratry::Transformer::TreeRewrite": "lib/Qwiratry/Transformer/TreeRewrite.rakumod",
     "Qwiratry::Transformer": "lib/Qwiratry/Transformer.rakumod",
     "Qwiratry::Tree::Navigator::Base": "lib/Qwiratry/Tree/Navigator/Base.rakumod",
+    "Qwiratry::Tree::Navigator::Filesystem": "lib/Qwiratry/Tree/Navigator/Filesystem.rakumod",
     "Qwiratry::Tree::Navigator::Match": "lib/Qwiratry/Tree/Navigator/Match.rakumod",
     "Qwiratry::Tree::Navigator::RakuAST": "lib/Qwiratry/Tree/Navigator/RakuAST.rakumod",
     "Qwiratry::Tree::Navigator": "lib/Qwiratry/Tree/Navigator.rakumod",
