@@ -53,7 +53,7 @@ sub fail-home(Str $user) {
 
 # True when C<$path> contains glob metacharacters in its final segment.
 sub path-has-glob(Str $path --> Bool) {
-	my $slash = $path.rindex('/');
+	my $slash = $path.rindex('/') // -1;
 	my $pattern = $slash >= 0 ?? $path.substr($slash + 1) !! $path;
 	so $pattern.contains('*' | '?' | '[' | ']')
 }
@@ -79,6 +79,7 @@ sub expand-path-glob(Str $path --> List) {
 		X::Qwiratry::IO::LocationError.new(
 			:message("I/O location not found: $path"),
 			:location($path),
+			:resolved(~$dir.absolute),
 			:reason('File not found'),
 			:operator-type('SourceOperator'),
 		).throw;
@@ -150,6 +151,7 @@ class Qwiratry::Location::File::Source is Qwiratry::Location::Base::Source {
 				X::Qwiratry::IO::LocationError.new(
 					:message("I/O location not found: $location"),
 					:location($location),
+					:resolved(~$path.IO.absolute),
 					:reason('Glob matched no files'),
 					:operator-type('SourceOperator'),
 				).throw;
@@ -162,6 +164,7 @@ class Qwiratry::Location::File::Source is Qwiratry::Location::Base::Source {
 			X::Qwiratry::IO::LocationError.new(
 				:message("I/O location not found: $location"),
 				:location($location),
+				:resolved(~$io.absolute),
 				:reason('File not found'),
 				:operator-type('SourceOperator'),
 			).throw;

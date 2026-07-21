@@ -150,7 +150,7 @@ subtest 'X::Qwiratry::IO::LocationError basic construction' => {
 }
 
 subtest 'X::Qwiratry::IO::LocationError gist formatting' => {
-	plan 2;
+	plan 3;
     
 	my $ex = X::Qwiratry::IO::LocationError.new(
 		message => 'Location error',
@@ -160,6 +160,7 @@ subtest 'X::Qwiratry::IO::LocationError gist formatting' => {
     
 	like $ex.gist, /LocationError/, 'Gist contains exception name';
 	like $ex.gist, /invalid_url/, 'Gist contains reason';
+	like $ex.gist, /cwd/, 'Gist contains cwd';
 }
 
 subtest 'X::Qwiratry::IO::LocationError can be thrown and caught' => {

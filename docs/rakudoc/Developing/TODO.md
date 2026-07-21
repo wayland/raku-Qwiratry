@@ -32,13 +32,13 @@ New features:
 ### Modules
 
 *	Locations:
-	*	Filesystem -- if someone uses file:/ or something with no : on a 
+	*	DONE: Filesystem -- if someone uses file:/ or something with no : on a 
 		directory, then assume that we're treating that as a root for 
 		find/navigation; treat files and directories differently; test out 
 	        regex/glob matching
 *	Formats
-	*	JSON
-	*	YAML
+	*	DONE: JSON
+	*	DONE: YAML
 	*	XML
 	*	INI
 	*	TOML

@@ -10,6 +10,36 @@ This changelog follows the shape of Keep a Changelog, adapted to Rakudoc.
 Versions use the C<META6.json> version number and release tags use the
 C<release-x.y.z> convention.
 
+=head1 0.0.7 - 2026-07-21
+
+=head2 Added
+
+=item Filesystem tree navigation for C<IO::Path> directory roots returned by
+C<⮳>, including a dedicated C<Qwiratry::Tree::Navigator::Filesystem>.
+
+=item Final-segment glob support for file locations, plus focused tests for
+filesystem navigation and tilde-expanded paths.
+
+=head2 Changed
+
+=item File locations now expand C<~>, C<~/>, and C<~user/> paths, and source
+reads return C<IO::Path> for directories instead of slurping them as text.
+
+=item Query selector matching now understands basename globs and regexes for
+filesystem navigation, reusing the shared selector machinery.
+
+=head2 Fixed
+
+=item Navigation evaluators now resolve adaptor subjects before walking tree
+axes, so chained source-then-navigation expressions work correctly.
+
+=item Query slang C<».> now preserves C<MapOperator> for explicit
+C<query-ast { ... }> construction while plain evaluated data uses normal map
+behaviour.
+
+=item Location errors now report the resolved filesystem path and current
+working directory, making relative-path failures easier to diagnose.
+
 =head1 0.0.6 - 2026-07-02
 
 =head2 Added

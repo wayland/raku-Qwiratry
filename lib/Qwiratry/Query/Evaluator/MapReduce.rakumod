@@ -119,8 +119,11 @@ role MapReduceEagerEvaluator does EagerEvaluator {
 
 	=end pod
 	method code-result(&code, Mu $item --> Mu) {
+		# Bare blocks like `{ .Str.say }` have arity 0 but count 1, with
+		# signature `$_? = OUTER::<$_>`. Calling them with no args leaves
+		# $_ as Any; pass $item whenever the callable can take an argument.
 		try {
-			if &code.arity == 1 {
+			if &code.count >= 1 {
 				code($item);
 			}
 			else {

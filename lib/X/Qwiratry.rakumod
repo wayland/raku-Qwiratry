@@ -67,14 +67,24 @@ class X::Qwiratry::Format::NotFound is X::Qwiratry::Operator {
 
 Raised when reading from or writing to a location fails.
 
+C<$.location> is the location string from the query. Optional C<$.resolved> is
+the filesystem path after scheme/tilde expansion (useful when C<$.location> is
+relative). The gist also includes C<$*CWD> so relative-path failures are easier
+to diagnose under C<temp $*CWD> or threaded CWD changes.
+
 =end pod
 class X::Qwiratry::IO::LocationError is X::Qwiratry::Operator {
 	has Str $.location is required;
 	has Str $.reason is required;
+	has Str $.resolved;
 
 	method gist(--> Str) {
 		return '' if self.reported;
-		"X::Qwiratry::IO::LocationError: Location error for '$!location' (reason: $!reason)"
+		my $msg = "X::Qwiratry::IO::LocationError: Location error for '$!location' (reason: $!reason)";
+		$msg ~= "; resolved '$!resolved'"
+			if $!resolved.defined && $!resolved ne $!location;
+		$msg ~= "; cwd '$*CWD'";
+		$msg
 	}
 }
 
