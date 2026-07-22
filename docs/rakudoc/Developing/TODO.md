@@ -47,6 +47,12 @@ New features:
 
 * Ensure that everything (including raku-Qwiratry-Test) is pushed to fez/github
 
+### Tweak ideas
+
+Maybe do these:
+*	If parse op doesn't have a LHS, use STDIN
+*	If attribute op doesn't have a LHS, use $_
+
 ## Streamable Trees
 
 ### Core System

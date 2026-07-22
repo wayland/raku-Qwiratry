@@ -156,11 +156,14 @@ role MapReduceEagerEvaluator does EagerEvaluator {
 
 	=end pod
 	method reduce-with(&op, Mu $acc, Mu $item --> Mu) {
+		# Mirror code-result: bare topic blocks are arity 0 / count 1, so
+		# `arity == 1` misses them. Prefer count when deciding whether to
+		# pass $item; keep arity == 2 for genuine two-parameter reducers.
 		try {
 			if &op.arity == 2 {
 				op($acc, $item);
 			}
-			elsif &op.arity == 1 {
+			elsif &op.count >= 1 {
 				op($item);
 			}
 			else {

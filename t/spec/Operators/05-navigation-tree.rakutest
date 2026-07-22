@@ -47,7 +47,7 @@ subtest '§5 child and descendant examples work for demo trees' => {
 }
 
 subtest '§5 combine navigation with predicates' => {
-	plan 2;
+	plan 4;
 
 	my $tree = [
 		%(name => 'section', children => [
@@ -60,6 +60,12 @@ subtest '§5 combine navigation with predicates' => {
 	my @filtered = ($tree ⪪⪪ <item> σ -> $_ { $_<value> > 10 }).List;
 	is @filtered.elems, 2, 'predicate filters navigation results';
 	is @filtered.map(*<value>).sort, (20, 30), 'filtered items preserve matching values';
+
+	# Bare topic blocks are arity 0 / count 1; σ must pass the item in (same
+	# as MapEvaluator), not rely on `with` + OUTER::<$_>.
+	my @bare = ($tree ⪪⪪ <item> σ { $_<value> > 10 }).List;
+	is @bare.elems, 2, 'bare topic-block predicate filters navigation results';
+	is @bare.map(*<value>).sort, (20, 30), 'bare topic-block keeps matching values';
 }
 
 subtest '§5 root postfix returns the data root' => {

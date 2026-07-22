@@ -143,8 +143,12 @@ class SelectionEvaluator does LazyEvaluator is export {
 
 	=end pod
 	method selection-predicate-matches(&pred, Mu $base --> Bool) {
+		# Bare blocks like `{ $_<value> > 10 }` have arity 0 but count 1, with
+		# signature `$_? = OUTER::<$_>`. Calling them with no args leaves
+		# $_ as OUTER (often Any); pass $base whenever the callable can take
+		# an argument — same fix as MapEvaluator.code-result.
 		my $result = try {
-			if &pred.arity == 1 {
+			if &pred.count >= 1 {
 				pred($base).Bool;
 			}
 			else {
