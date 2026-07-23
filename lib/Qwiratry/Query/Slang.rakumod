@@ -28,6 +28,8 @@ use Qwiratry::Operator::MapReduce;
 use Qwiratry::Operator::IO;
 use Qwiratry::Operator::Capability;
 use Qwiratry::Query::Topic;
+use X::Qwiratry;
+use nqp;
 
 our $*QWIRATRY-BUILD-QUERY is export = False;
 our $*QWIRATRY-DATA-ROOT is export = Nil;
@@ -68,6 +70,20 @@ sub auto-adaptor(Mu $query, Mu $fallback, *@values --> Mu) {
 	build-query(|@values) ?? $query !! execute($query, :origin(query-origin($fallback)))
 }
 
+# Caller topic ($_) for bare navigation prefixes. $_ is not dynamic, so
+# CALLER::<$_> fails; PseudoStash is also empty across compilation units.
+# Callers pass nqp::ctxcaller(nqp::ctx()) from the prefix frame.
+sub navigation-topic(Mu $caller-ctx --> Mu) {
+	my Mu $got := nqp::getlexrel(nqp::decont($caller-ctx), '$_');
+	my $topic = nqp::isnull($got) ?? Mu !! nqp::hllize($got);
+	$topic.defined
+		?? $topic
+		!! X::Qwiratry::Operator.new(
+			message => 'Navigation operator without a left-hand side requires a defined topic ($_)',
+			:operator-type<Navigation>,
+		).throw
+}
+
 =begin pod
 
 Construct a binary set operator AST node.
@@ -95,15 +111,24 @@ sub nav-new(
 
 Child axis (C<⪪>): direct children matching C<$right>.
 
+Bare form (no LHS) uses the caller topic C<$_>.
+
 =end pod
 multi sub infix:<⪪>(Mu $left, Mu $right) is equiv(&infix:<x>) is export {
 	my $query = nav-new(ChildOperator, $left, $right);
 	build-query($left, $right) ?? $query !! evaluate-query($query, $left)
 }
 
+multi sub prefix:<⪪>(Mu $right) is export {
+	my $left = navigation-topic(nqp::ctxcaller(nqp::ctx()));
+	infix:<⪪>($left, $right)
+}
+
 =begin pod
 
 Parent axis (C<⪫>): parent or referencing rows; C<:reference> for incoming FKs.
+
+Bare form (no LHS) uses the caller topic C<$_>.
 
 =end pod
 multi sub infix:<⪫>(Mu $left, Mu $right, *%adverbs) is equiv(&infix:<x>) is export {
@@ -111,9 +136,16 @@ multi sub infix:<⪫>(Mu $left, Mu $right, *%adverbs) is equiv(&infix:<x>) is ex
 	build-query($left, $right) ?? $query !! evaluate-query($query, $left)
 }
 
+multi sub prefix:<⪫>(Mu $right, *%adverbs) is export {
+	my $left = navigation-topic(nqp::ctxcaller(nqp::ctx()));
+	infix:<⪫>($left, $right, |%adverbs)
+}
+
 =begin pod
 
 Descendant axis (C<⪪⪪>): nested children; C<:recursive> for table FK walks.
+
+Bare form (no LHS) uses the caller topic C<$_>.
 
 =end pod
 multi sub infix:<⪪⪪>(Mu $left, Mu $right, *%adverbs) is equiv(&infix:<x>) is export {
@@ -121,9 +153,16 @@ multi sub infix:<⪪⪪>(Mu $left, Mu $right, *%adverbs) is equiv(&infix:<x>) is
 	build-query($left, $right) ?? $query !! evaluate-query($query, $left)
 }
 
+multi sub prefix:<⪪⪪>(Mu $right, *%adverbs) is export {
+	my $left = navigation-topic(nqp::ctxcaller(nqp::ctx()));
+	infix:<⪪⪪>($left, $right, |%adverbs)
+}
+
 =begin pod
 
 Ancestor axis (C<⪫⪫>): ancestor nodes matching C<$right>.
+
+Bare form (no LHS) uses the caller topic C<$_>.
 
 =end pod
 multi sub infix:<⪫⪫>(Mu $left, Mu $right) is equiv(&infix:<x>) is export {
@@ -131,9 +170,16 @@ multi sub infix:<⪫⪫>(Mu $left, Mu $right) is equiv(&infix:<x>) is export {
 	build-query($left, $right) ?? $query !! evaluate-query($query, $left)
 }
 
+multi sub prefix:<⪫⪫>(Mu $right) is export {
+	my $left = navigation-topic(nqp::ctxcaller(nqp::ctx()));
+	infix:<⪫⪫>($left, $right)
+}
+
 =begin pod
 
 Following-sibling axis (C<⪨>): next sibling in document/table order.
+
+Bare form (no LHS) uses the caller topic C<$_>.
 
 =end pod
 multi sub infix:<⪨>(Mu $left, Mu $right) is equiv(&infix:<x>) is export {
@@ -141,9 +187,16 @@ multi sub infix:<⪨>(Mu $left, Mu $right) is equiv(&infix:<x>) is export {
 	build-query($left, $right) ?? $query !! evaluate-query($query, $left)
 }
 
+multi sub prefix:<⪨>(Mu $right) is export {
+	my $left = navigation-topic(nqp::ctxcaller(nqp::ctx()));
+	infix:<⪨>($left, $right)
+}
+
 =begin pod
 
 Preceding-sibling axis (C<⪩>): previous sibling in document/table order.
+
+Bare form (no LHS) uses the caller topic C<$_>.
 
 =end pod
 multi sub infix:<⪩>(Mu $left, Mu $right) is equiv(&infix:<x>) is export {
@@ -151,9 +204,16 @@ multi sub infix:<⪩>(Mu $left, Mu $right) is equiv(&infix:<x>) is export {
 	build-query($left, $right) ?? $query !! evaluate-query($query, $left)
 }
 
+multi sub prefix:<⪩>(Mu $right) is export {
+	my $left = navigation-topic(nqp::ctxcaller(nqp::ctx()));
+	infix:<⪩>($left, $right)
+}
+
 =begin pod
 
 Following axis (C<⪨⪨>): all following nodes in order.
+
+Bare form (no LHS) uses the caller topic C<$_>.
 
 =end pod
 multi sub infix:<⪨⪨>(Mu $left, Mu $right) is equiv(&infix:<x>) is export {
@@ -161,9 +221,16 @@ multi sub infix:<⪨⪨>(Mu $left, Mu $right) is equiv(&infix:<x>) is export {
 	build-query($left, $right) ?? $query !! evaluate-query($query, $left)
 }
 
+multi sub prefix:<⪨⪨>(Mu $right) is export {
+	my $left = navigation-topic(nqp::ctxcaller(nqp::ctx()));
+	infix:<⪨⪨>($left, $right)
+}
+
 =begin pod
 
 Preceding axis (C<⪩⪩>): all preceding nodes in order.
+
+Bare form (no LHS) uses the caller topic C<$_>.
 
 =end pod
 multi sub infix:<⪩⪩>(Mu $left, Mu $right) is equiv(&infix:<x>) is export {
@@ -171,14 +238,26 @@ multi sub infix:<⪩⪩>(Mu $left, Mu $right) is equiv(&infix:<x>) is export {
 	build-query($left, $right) ?? $query !! evaluate-query($query, $left)
 }
 
+multi sub prefix:<⪩⪩>(Mu $right) is export {
+	my $left = navigation-topic(nqp::ctxcaller(nqp::ctx()));
+	infix:<⪩⪩>($left, $right)
+}
+
 =begin pod
 
 Attribute axis (C<⥷>): read attribute or column C<$right> from C<$left>.
+
+Bare form (no LHS) uses the caller topic C<$_>.
 
 =end pod
 multi sub infix:<⥷>(Mu $left, Mu $right) is equiv(&infix:<x>) is export {
 	my $query = AttributeOperator.new(:subject($left), :key($right));
 	build-query($left, $right) ?? $query !! evaluate-query($query, $left)
+}
+
+multi sub prefix:<⥷>(Mu $right) is export {
+	my $left = navigation-topic(nqp::ctxcaller(nqp::ctx()));
+	infix:<⥷>($left, $right)
 }
 
 =begin pod

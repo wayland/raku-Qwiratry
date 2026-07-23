@@ -1,0 +1,69 @@
+#!/usr/bin/env raku
+#| Bare navigation prefixes use the caller topic ($_); missing topic is an error.
+use Test;
+use lib 'lib';
+
+use Qwiratry::Query::Slang;
+use Qwiratry::Operator::Navigation;
+use X::Qwiratry;
+
+plan 4;
+
+my %repo = (
+	name => 'vscode',
+	owner => %(login => 'microsoft', type => 'Organization'),
+	meta => %(stars => 1),
+);
+
+subtest 'bare nav axes read the caller topic' => {
+	plan 9;
+
+	given %repo {
+		is-deeply (⪪ <owner>).List, (%(login => 'microsoft', type => 'Organization'),),
+			'bare child';
+		is (⥷ <name>).List[0], 'vscode', 'bare attribute';
+		is (⪪⪪ <login>).List[0], 'microsoft', 'bare descendant';
+		ok (⪫ *).defined, 'bare parent runs';
+		ok (⪫⪫ *).defined, 'bare ancestor runs';
+		ok (⪨ *).defined, 'bare following-sibling runs';
+		ok (⪩ *).defined, 'bare preceding-sibling runs';
+		ok (⪨⪨ *).defined, 'bare following runs';
+		ok (⪩⪩ *).defined, 'bare preceding runs';
+	}
+}
+
+subtest 'bare attribute works inside σ topic blocks' => {
+	plan 1;
+
+	my @rows = (
+		%(name => 'a', score => 1),
+		%(name => 'b', score => 5),
+		%(name => 'c', score => 3),
+	);
+	my $result = @rows σ { (⥷ <score>).List[0] >= 3 };
+	is $result.List.map(*<name>).sort, <b c>,
+		'σ predicate can use bare attribute against the row topic';
+}
+
+subtest 'bare navigation without a defined topic throws' => {
+	plan 1;
+
+	throws-like
+		{ ⪪ <owner> },
+		X::Qwiratry::Operator,
+		message => /:s requires a defined topic/,
+		'bare child without topic is an error';
+}
+
+subtest 'query-ast preserves bare navigation subject from topic' => {
+	plan 2;
+
+	my $query;
+	given %repo {
+		$query = query-ast({ ⪪ <owner> });
+	}
+	ok $query ~~ ChildOperator, 'bare child builds a ChildOperator';
+	is-deeply $query.subject, %repo, 'subject is the topical value';
+}
+
+done-testing;

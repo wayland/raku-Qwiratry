@@ -17,6 +17,9 @@ C<release-x.y.z> convention.
 =item The parse operator (C<↱>) slurps an C<IO::Handle> left-hand side (such as
 C<$*IN>) before invoking the format parser; the handle is left open.
 
+=item Bare navigation operators (no LHS) use the caller topic C<$_>, matching
+the documented axis behaviour. A missing or undefined topic is an error.
+
 =head1 0.0.8 - 2026-07-22
 
 =head2 Fixed

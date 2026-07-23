@@ -51,7 +51,7 @@ New features:
 
 Maybe do these:
 *	DONE: Allow IO::Handle on LHS of parse op (for STDIN)
-*	If attribute op doesn't have a LHS, use $_
+*	DONE: If nav op (including attribute) doesn't have a LHS, use $_
 
 ## Streamable Trees
 
