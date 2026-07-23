@@ -584,7 +584,7 @@ multi sub prefix:<ρ>(Mu $relation, *%renames) is export {
 
 =begin pod
 
-Power set (C<℘> / C<𝒫>): all subsets of a collection (Operators.md §6.1.3).
+Power set (canonical C<𝒫> U+1D4AB; alias C<℘> U+2118): all subsets of a collection (Operators.md §6.1.3).
 
 =end pod
 multi sub prefix:<℘>(Mu $collection) is export {

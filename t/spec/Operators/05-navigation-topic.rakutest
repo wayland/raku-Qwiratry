@@ -1,5 +1,5 @@
 #!/usr/bin/env raku
-#| Bare navigation prefixes use the caller topic ($_); missing topic is an error.
+#| Operators.md §5 — bare navigation LHS uses caller topic ($_)
 use Test;
 use lib 'lib';
 
@@ -15,7 +15,7 @@ my %repo = (
 	meta => %(stars => 1),
 );
 
-subtest 'bare nav axes read the caller topic' => {
+subtest '§5 bare nav axes read the caller topic' => {
 	plan 9;
 
 	given %repo {
@@ -32,7 +32,7 @@ subtest 'bare nav axes read the caller topic' => {
 	}
 }
 
-subtest 'bare attribute works inside σ topic blocks' => {
+subtest '§5 bare attribute works inside σ topic blocks' => {
 	plan 1;
 
 	my @rows = (
@@ -45,7 +45,7 @@ subtest 'bare attribute works inside σ topic blocks' => {
 		'σ predicate can use bare attribute against the row topic';
 }
 
-subtest 'bare navigation without a defined topic throws' => {
+subtest '§5 bare navigation without a defined topic throws' => {
 	plan 1;
 
 	throws-like
@@ -55,7 +55,7 @@ subtest 'bare navigation without a defined topic throws' => {
 		'bare child without topic is an error';
 }
 
-subtest 'query-ast preserves bare navigation subject from topic' => {
+subtest '§5 query-ast preserves bare navigation subject from topic' => {
 	plan 2;
 
 	my $query;

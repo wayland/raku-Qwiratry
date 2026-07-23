@@ -47,7 +47,7 @@ subtest '§6.1 basic set operators combine query results' => {
 subtest '§6.1 power set returns all subsets of a small collection' => {
 	plan 1;
 
-	my @subsets = (℘ [1, 2]).List;
+	my @subsets = (𝒫 [1, 2]).List;
 	is @subsets.elems, 4, 'power set of two items has four subsets';
 }
 

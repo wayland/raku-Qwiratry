@@ -20,8 +20,17 @@ Filenames start with the section number so coverage is greppable:
 
 | File | Doc section |
 |------|-------------|
+| `Operators/02-precedence.rakutest` | Operators.md §2 |
+| `Operators/03-io.rakutest` | Operators.md §3 |
+| `Operators/04-mapreduce.rakutest` | Operators.md §4 |
+| `Operators/05-navigation-tree.rakutest` | Operators.md §5.1 tree axes |
+| `Operators/05-navigation-topic.rakutest` | Operators.md §5 bare `$_` LHS |
 | `Operators/05.2-table-fk-navigation.rakutest` | Operators.md §5.2.1–5.2.5 |
 | `Operators/05.2.8-ordered-row-navigation.rakutest` | Operators.md §5.2.8–5.2.11 |
+| `Operators/05.3-table-catalog.rakutest` | Operators.md §5.3 |
+| `Operators/06.1-set-relational.rakutest` | Operators.md §6.1–6.2 |
+| `Operators/07-composition.rakutest` | Operators.md §7 |
+| `Operators/nyi-operators.rakutest` | Documented but NYI forms (`todo` = OK to fail) |
 | `Specification/3.2-walker.rakutest` | Specification.md §3.2.1 |
 | `Specification/3.2.1-handover.rakutest` | Specification.md §3.2.1.6 |
 | `Specification/3.2.5-strategy.rakutest` | Specification.md §3.2.5–3.2.6 |
@@ -38,6 +47,9 @@ Filenames start with the section number so coverage is greppable:
 3. **Prefer examples from the docs** as seed cases; add edge cases only when the prose is normative.
 4. **Shared fixtures** live in `t/lib/Qwiratry/Spec/` — do not invent divergent sample data per file.
 5. Leave `t/unit/`, `t/operator/`, and `t/integration/` for implementation and multi-component scenarios that are not doc-indexed.
+6. **Not yet implemented** claims belong in `Operators/nyi-operators.rakutest` (or a section file) wrapped in
+   `todo 'NYI: …';` so failures are expected. When a todo starts passing, remove `todo` and move the
+   assertion into the matching section file.
 
 ## Running
 
@@ -47,9 +59,14 @@ RAKUDO_RAKUAST=1 raku -Ilib -It/lib t/spec/Operators/05.2-table-fk-navigation.ra
 RAKUDO_RAKUAST=1 prove6 -Ilib -It/lib t/spec
 ```
 
-## Planned coverage (not yet written)
+## Known Operators.md gaps tracked as `todo`
 
-| Area | Target files |
-|------|----------------|
-| Operators §2–§7 | **Done** — see `t/spec/Operators/` |
-| Specification §3.2 / §3.3 / §7 | **Done** — see `t/spec/Specification/` |
+See `Operators/nyi-operators.rakutest` for the live list. Major clusters:
+
+- I/O aliases `⮣` / `⮧` (U+2BA3 / U+2BA7); selection alias `𜸈`; unary complement `∁`
+- Named nav aliases (`child`, `parent`, …)
+- Ancestor `:reference`; sibling Int count
+- Universe ops `⩃` `⩂` `⊙` `⇒`; equijoin `▷=◁`, natural `≜`, named `▵`
+- Canonical power set `𝒫` (U+1D4AB) — already implemented; keep covered in `06.1-set-relational.rakutest`
+- `query-ast` dispatch for `⊖` / `≡` (Raku core glyphs can win on bare Arrays)
+- Right semijoin / antijoin keeping right-relation rows (`⋊` / `◁`)

@@ -1,0 +1,150 @@
+#!/usr/bin/env raku
+#| Operators.md — documented operators / forms not yet implemented (or incomplete)
+#
+# Convention: each assertion is wrapped in `todo` so a failure is expected until
+# the feature lands. When a todo unexpectedly passes, remove the `todo` and move
+# the case into the matching section file under t/spec/Operators/.
+#
+# Prefer behavioural checks over "does this glyph parse?" — Raku core already
+# defines some set glyphs (∉, ⊖, …), which would false-pass a compile-only test.
+use Test;
+use lib 'lib';
+use lib 't/lib';
+use MONKEY-SEE-NO-EVAL;
+
+use Qwiratry::Query::Slang;
+use Qwiratry::Operator::Navigation;
+use Qwiratry::Operator::Set;
+use Qwiratry::Spec::TableFixtures;
+use Qwiratry::Query::Runtime;
+
+my constant query-runtime = Qwiratry::Query::Runtime.instance;
+
+plan 9;
+
+sub slang-eval(Str $code) {
+	try { EVAL "use Qwiratry::Query::Slang;\n$code" }
+}
+
+sub slang-compiles(Str $code --> Bool) {
+	so try {
+		EVAL "use Qwiratry::Query::Slang;\n$code;\nTrue";
+		True;
+	}
+}
+
+subtest '§2 / §3 I/O aliases ↳ and ↵' => {
+	plan 2;
+	todo 'NYI: parse alias ↳ (Operators.md §2 / §3)';
+	ok slang-compiles(q[{ my $x = '{"a":1}' ↳ 'JSONdemo'; True }]),
+		'parse alias ↳ is available';
+	todo 'NYI: render alias ↵ (Operators.md §2 / §3)';
+	ok slang-compiles(q[{ my $x = %(a => 1) ↵ 'JSONdemo'; True }]),
+		'render alias ↵ is available';
+}
+
+subtest '§2 / §4 selection alias 𜸈 and junctive unary ∁' => {
+	plan 2;
+	todo 'NYI: selection alias 𜸈 (Operators.md §4)';
+	ok slang-compiles(q[{ my @r = (%(a => 1),); my $x = @r 𜸈 { True }; True }]),
+		'selection alias 𜸈 is available';
+	todo 'NYI: junctive unary complement ∁ (Operators.md §2 / §6.1.2.2)';
+	ok slang-compiles(q[{ my $x = ∁ %(a => 1); True }]),
+		'unary complement ∁ is available';
+}
+
+subtest '§5 named navigation aliases (child, parent, …)' => {
+	plan 5;
+	todo 'NYI: named alias child (Operators.md §5.1 table)';
+	ok slang-compiles(q[{ my $n = %(a => 1); my $x = $n child '*'; True }]),
+		'child alias is available';
+	todo 'NYI: named alias parent (Operators.md §5.1 table)';
+	ok slang-compiles(q[{ my $n = %(a => 1); my $x = $n parent '*'; True }]),
+		'parent alias is available';
+	todo 'NYI: named alias descendant (Operators.md §5.1 table)';
+	ok slang-compiles(q[{ my $n = %(a => 1); my $x = $n descendant '*'; True }]),
+		'descendant alias is available';
+	todo 'NYI: named alias attribute (Operators.md §5.1 table)';
+	ok slang-compiles(q[{ my $n = %(a => 1); my $x = $n attribute 'a'; True }]),
+		'attribute alias is available';
+	todo 'NYI: named alias data-root (Operators.md §5.1 table)';
+	ok slang-compiles(q[{ my $n = %(a => 1); my $x = $n data-root; True }]),
+		'data-root alias is available';
+}
+
+subtest '§5.2.6 ancestor :reference adverb' => {
+	plan 1;
+	todo 'NYI: ⪫⪫ does not store/accept :reference like ⪫ (Operators.md §5.2.6)';
+	my $q = try { query-ast({ %(id => 1) ⪫⪫ * :reference }) };
+	ok ($q ~~ AncestorOperator) && $q.can('adverbs') && so $q.adverbs<reference>,
+		'ancestor query AST records :reference';
+}
+
+subtest '§5.2.8 sibling Int count (RHS = how many)' => {
+	plan 1;
+	todo 'NYI: sibling RHS Int count (Operators.md §5.2.8)';
+	my %setup = orders-only-setup();
+	my $order = %setup<orders>[0];
+	my @next = query-runtime.select(query-ast({ $order ⪨ 2 }), %setup<catalog>).List;
+	is @next.elems, 2, 'following-sibling Int count returns the requested number of rows';
+}
+
+subtest '§6.1 Qwiratry relation AST for ⊖ and ≡' => {
+	plan 2;
+	# Plain Array ⊖ may hit Raku core set ops; query-ast should build Qwiratry nodes.
+	todo 'NYI or dispatch gap: ⊖ should build SymmetricDifferenceOperator via query-ast';
+	my $sym = try { query-ast({ (1, 2) ⊖ (2, 3) }) };
+	ok $sym ~~ SymmetricDifferenceOperator, '⊖ builds SymmetricDifferenceOperator';
+	todo 'NYI or dispatch gap: ≡ should build an identity operator via query-ast';
+	my $id = try { query-ast({ (1, 2) ≡ (1, 2) }) };
+	ok $id.defined && $id !~~ Bool, '≡ builds a Qwiratry query node (not only a Bool)';
+}
+
+subtest '§6.1.2 universe-based operators ⩃ / ⩂ / ⊙ / ⇒' => {
+	plan 4;
+	todo 'NYI: universe intersection ⩃ (Operators.md §6.1.2)';
+	ok slang-compiles(q[{ my $x = (1, 2) ⩃ (2, 3); True }]), '⩃ is available';
+	todo 'NYI: universe union ⩂ (Operators.md §6.1.2)';
+	ok slang-compiles(q[{ my $x = (1, 2) ⩂ (2, 3); True }]), '⩂ is available';
+	todo 'NYI: symmetric-difference complement ⊙ / XNOR (Operators.md §6.1.2.2)';
+	ok slang-compiles(q[{ my $x = (1, 2) ⊙ (2, 3); True }]), '⊙ is available';
+	todo 'NYI: set-difference complement ⇒ / IMPLY (Operators.md §6.1.2.2)';
+	ok slang-compiles(q[{ my $x = (1, 2) ⇒ (2, 3); True }]), '⇒ is available';
+}
+
+subtest '§6.2.4 equijoin / natural / named join forms' => {
+	plan 3;
+	todo 'NYI: equijoin ▷=◁ (Operators.md §6.2.4)';
+	ok slang-compiles(q[{ my @a = (%(id => 1),); my @b = (%(id => 1),); my $x = @a ▷=◁ @b; True }]),
+		'equijoin ▷=◁ is available';
+	todo 'NYI: natural join ≜ (Operators.md §6.2.4)';
+	ok slang-compiles(q[{ my @a = (%(id => 1),); my @b = (%(id => 1),); my $x = @a ≜ @b; True }]),
+		'natural join ≜ is available';
+	todo 'NYI: named join ▵ (Operators.md §6.2.4)';
+	ok slang-compiles(q[{ my $x = ▵ 'orders-customers'; True }]),
+		'named join ▵ is available';
+}
+
+subtest '§6.2 right semijoin / antijoin keep right-relation rows' => {
+	plan 2;
+	my @orders = [
+		%(order_id => 1, customer_id => 10),
+		%(order_id => 2, customer_id => 20),
+		%(order_id => 4, customer_id => 99),
+	];
+	my @customers = [
+		%(customer_id => 10, name => 'Alice'),
+		%(customer_id => 20, name => 'Bob'),
+		%(customer_id => 30, name => 'Carol'),
+	];
+	todo 'NYI/partial: ⋊ should keep matched customers (right relation rows)';
+	my @right-semi = (@customers ⋊ @orders).List;
+	ok @right-semi.elems == 2 && @right-semi[0]<name>:exists,
+		'right semijoin returns matched customer rows';
+	todo 'NYI/partial: ◁ should keep unmatched customers';
+	my @right-anti = (@customers ◁ @orders).List;
+	ok @right-anti.elems == 1 && (@right-anti[0]<name> // '') eq 'Carol',
+		'right antijoin returns unmatched customer rows';
+}
+
+done-testing;

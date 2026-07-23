@@ -41,10 +41,10 @@ Precedence levels in bold are standard Raku levels.  Those not in bold are level
 | Precedence Level            | Associativity | Operators | Comments |
 |-----------------------------|---------------|-----------|----------|
 | **Symbolic Unary**          | non           | ⇤ Π ρ ⮳   |          |
-| **Replication**             | left          | σ ⪪ ⪫ ⪪⪪ ⪫⪫ ⪨ ⪩ ⪨⪨ ⪩⪩ ⥷  ↱ ⮣ ↴ ⮧ ⮷ | |
-| **Concatenation**           | list          | ⋉ ⋊ ▷ ◁ ⨝ ⟕ ⟖ ⟗ ÷ ▵ × | |
+| **Replication**             | left          | σ 𜸈 ⇅ ⌿ ». ⪪ ⪫ ⪪⪪ ⪫⪫ ⪨ ⪩ ⪨⪨ ⪩⪩ ⥷  ↱ ⮣ ↴ ⮧ ⮷ | |
+| **Concatenation**           | list          | ⋉ ⋊ ▷ ◁ ⨝ ⟕ ⟖ ⟗ ▷=◁ ≜ ÷ ▵ × | |
 | **Junctive Exponentiation** | right         | 𝒫         | Tighter than Junctive unary |
-| **Junctive unary**          | left          | ⧩         | Tighter than Junctive and |
+| **Junctive unary**          | left          | ∁         | Tighter than Junctive and |
 | **Junctive and**            | list          | ∩ ⩃       |          |
 | **Junctive or**             | list          | ∪ ⩂ ⊖ ∖   |          |
 | **Chaining**                | chain         | ∈ ∊ (elem) ∉ ∋ ∍ (cont) ∌ ⊂ (<) ⊄ ⊃ (>) ⊅ ⊆ (<=) ⊈ ⊇ (>=) ⊉ ≡ (==) ≢ | |
@@ -884,12 +884,12 @@ These operators combine collections to produce new collections.
 
 ##### 6.1.2.1 Basic Set Operations
 
-| Operator | Unicode | Set Theory Term | Boolean Algebra Term | Description |
-|----------|---------|-----------------|---------------------|-------------|
-| ∩ | U+2229 | Intersection | AND | Returns elements present in both collections |
-| ∪ | U+222A | Union | OR | Returns elements present in either collection |
-| ⊖ | U+2296 | Symmetric Set Difference | XOR | Returns elements in exactly one collection |
-| ∖ | U+0020 U+2216 | Set Difference | | Returns elements in left collection but not in right |
+| Operator | Unicode       | Set Theory Term | Boolean Algebra Term | Description |
+|----------|---------------|-----------------|----------------------|-------------|
+| ∩        | U+2229        | Intersection    | AND                  | Returns elements present in both collections |
+| ∪        | U+222A        | Union           | OR                   | Returns elements present in either collection |
+| ⊖        | U+2296        | Symmetric Set Difference | XOR         | Returns elements in exactly one collection |
+| ∖        | U+0020 U+2216 | Set Difference  | AND-NOT              | Returns elements in left collection but not in right |
 
 **Note**: Operators without dots ensure each row is unique; operators with dots accept duplicates.
 
@@ -897,19 +897,19 @@ These operators combine collections to produce new collections.
 
 These operators require a Universe set that encompasses both collections. The context variable `$_` must be a collection that's a superset of both operands.
 
-| Operator | Unicode | Set Theory Term | Boolean Algebra Term | Description |
-|----------|---------|-----------------|---------------------|-------------|
-| ⩃ | U+2A43 | Intersection Complement | NAND | Returns elements not in the intersection |
-| ⩂ | U+2A42 | Union Complement | NOR | Returns elements not in the union |
-| (none) | | Symmetric Set Difference Complement | XNOR | Returns elements not in the symmetric difference |
-| (none) | | Set Difference Complement | | Returns elements not in the set difference |
-| (none) | | Complement | NOT | Returns elements not in the collection (unary) |
+| Operator | Unicode | Set Theory Term                     | Boolean Algebra Term | Description |
+|----------|---------|-------------------------------------|----------------------|-------------|
+| ⩃        | U+2A43  | Intersection Complement             | NAND                 | Returns elements not in the intersection |
+| ⩂        | U+2A42  | Union Complement                    | NOR                  | Returns elements not in the union |
+| ⊙        | U+2299  | Symmetric Set Difference Complement | XNOR                 | Returns elements not in the symmetric difference |
+| ⇒        | U+21D2  | Set Difference Complement           | IMPLY                | Returns elements not in the set difference |
+| ∁        | U+2201  | Complement                          | NOT                  | Returns elements not in the collection (unary) |
 
 #### 6.1.3 Operators Returning `Array[Collection]`
 
 | Operator | Unicode | Set Theory Term | Description |
 |----------|---------|----------------|-------------|
-| ℘ | U+2118 | Power Set | Unary. Makes a set whose members are all possible subsets of the collection |
+| 𝒫 | U+1D4AB | Power Set | Unary. Makes a set whose members are all possible subsets of the collection |
 
 #### 6.1.4 Collection Types and Semantics
 
@@ -923,7 +923,7 @@ Set operators work with any collection that can do Associative. The semantics de
 | ∪ | Returns elements present in either collection | Duplicate handling depends on collection type |
 | ⊖ | Returns elements in exactly one collection | Element matching depends on collection type |
 | ∖ | Returns elements in left collection but not in right | Element matching depends on collection type |
-| ℘ | Returns all possible subsets of the collection | Works with any collection type |
+| 𝒫 | Returns all possible subsets of the collection | Works with any collection type |
 
 **Collection Type Considerations**:
 - **Tables/Relations**: Element identity is typically determined by value equality of all columns/fields
@@ -953,7 +953,7 @@ my $combined = $relation1 ∪ $relation2;
 my $only-in-first = $relation1 ∖ $relation2;
 
 # Power set
-my @subsets = ℘ $relation;
+my @subsets = 𝒫 $relation;
 ```
 
 **Tree Node Examples**:
@@ -978,7 +978,7 @@ if ($root ⪪ <item> σ { ⥷ <active> }) ⊆ ($root ⪪ <item>) { ... }
 my @mixed = ($root ⪪ <item>) ∪ ($root ⥷ <metadata>);
 
 # Power set of tree nodes
-my @subsets = ℘ ($root ⪪ <item>);
+my @subsets = 𝒫 ($root ⪪ <item>);
 ```
 
 **Array Examples**:
