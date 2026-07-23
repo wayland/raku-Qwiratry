@@ -366,14 +366,18 @@ Return candidate sibling rows for following/preceding operators.
 
 =end pod
 	method !sibling-candidates(Mu $op, @rows, Int $index --> List) {
+		my $sel = $op.selector;
+		my $count = $sel ~~ Int ?? $sel.Int !! Int;
 		given $op {
 			when FollowingSiblingOperator {
-				$index + 1 < @rows and return (@rows[$index + 1],);
-				return ();
+				my @following = @rows[$index + 1 .. *];
+				return $count.defined ?? @following.head($count).List
+					!! (@following.head(1).List);
 			}
 			when PrecedingSiblingOperator {
-				$index > 0 and return (@rows[$index - 1],);
-				return ();
+				my @preceding = @rows[0 ..^ $index];
+				return $count.defined ?? @preceding.tail($count).List
+					!! (@preceding.tail(1).List);
 			}
 			when FollowingOperator {
 				return @rows[$index + 1 .. *];
@@ -392,9 +396,13 @@ Return candidate sibling rows for following/preceding operators.
 
 Filter sibling candidates by selector match.
 
+An C<Int> selector is a row count (already applied in C<!sibling-candidates>),
+not a row-matching pattern.
+
 =end pod
 	method !sibling-matches-selector(Associative $row, Mu $sel --> Bool) {
 		selector.is-wildcard($sel) and return True;
+		$sel ~~ Int and return True;
 		selector.table-row-matches($row, $sel);
 	}
 }

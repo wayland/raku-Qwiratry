@@ -10,8 +10,11 @@ unit module Qwiratry::Query::Evaluator::Join;
 use Qwiratry::Operator::Set;
 use Qwiratry::Query::Evaluator::Lazy;
 use Qwiratry::Query::Evaluator::Union;
+use Qwiratry::Query::NamedJoins;
+use X::Qwiratry;
 
 my constant union-evaluator = UnionEvaluator.new;
+
 
 =begin pod
 
@@ -718,11 +721,14 @@ class RightSemijoinEvaluator does JoinEvaluator is export {
 
 	=end pod
 	method select-seq(RightSemijoinOperator $query, Mu $origin, :&relation-source! --> Seq) {
-		my &cond = self.condition-for($query);
+		# Swap operands into LeftSemijoinIterator; reverse condition args to keep
+		# user-facing ($left, $right) order from the original query.
+		my $cond = self.condition-for($query);
+		my &swapped = $cond.defined ?? (-> $right-row, $left-row { $cond($left-row, $right-row) }) !! Nil;
 		self.lazy(
 			relation-source($query.right, $origin),
 			relation-source($query.left, $origin),
-			&cond,
+			&swapped,
 		)
 	}
 
@@ -862,11 +868,14 @@ class RightAntijoinEvaluator does JoinEvaluator is export {
 
 	=end pod
 	method select-seq(RightAntijoinOperator $query, Mu $origin, :&relation-source! --> Seq) {
-		my &cond = self.condition-for($query);
+		# Swap operands into LeftAntijoinIterator; reverse condition args to keep
+		# user-facing ($left, $right) order from the original query.
+		my $cond = self.condition-for($query);
+		my &swapped = $cond.defined ?? (-> $right-row, $left-row { $cond($left-row, $right-row) }) !! Nil;
 		self.lazy(
 			relation-source($query.right, $origin),
 			relation-source($query.left, $origin),
-			&cond,
+			&swapped,
 		)
 	}
 
@@ -1039,3 +1048,22 @@ class CrossJoinEvaluator does JoinEvaluator is export {
 		self.seq-from-iterator(CrossJoinIterator.new(:$left, :$right))
 	}
 }
+
+=begin pod
+
+=head2 C<class NamedJoinEvaluator>
+
+Recalls a previously registered join by name (Operators.md §6.2.4 C<▵>).
+
+=end pod
+class NamedJoinEvaluator does JoinEvaluator is export {
+	method select-seq(NamedJoinOperator $query, Mu $origin, :&relation-source! --> Seq) {
+		my $stored = Qwiratry::Query::NamedJoins.instance.lookup($query.name);
+		$stored.defined or X::Qwiratry::Operator.new(
+			message => "Named join '{$query.name}' is not registered",
+			:operator-type<NamedJoin>,
+		).throw;
+		relation-source($stored, $origin)
+	}
+}
+

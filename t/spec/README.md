@@ -61,12 +61,6 @@ RAKUDO_RAKUAST=1 prove6 -Ilib -It/lib t/spec
 
 ## Known Operators.md gaps tracked as `todo`
 
-See `Operators/nyi-operators.rakutest` for the live list. Major clusters:
+Still unimplemented (see `Operators/nyi-operators.rakutest`):
 
-- I/O aliases `⮣` / `⮧` (U+2BA3 / U+2BA7); selection alias `𜸈`; unary complement `∁`
-- Named nav aliases (`child`, `parent`, …)
-- Ancestor `:reference`; sibling Int count
-- Universe ops `⩃` `⩂` `⊙` `⇒`; equijoin `▷=◁`, natural `≜`, named `▵`
-- Canonical power set `𝒫` (U+1D4AB) — already implemented; keep covered in `06.1-set-relational.rakutest`
-- `query-ast` dispatch for `⊖` / `≡` (Raku core glyphs can win on bare Arrays)
-- Right semijoin / antijoin keeping right-relation rows (`⋊` / `◁`)
+- I/O aliases `⮣` / `⮧` (U+2BA3 / U+2BA7)

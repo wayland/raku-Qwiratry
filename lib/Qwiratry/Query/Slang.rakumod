@@ -28,6 +28,7 @@ use Qwiratry::Operator::MapReduce;
 use Qwiratry::Operator::IO;
 use Qwiratry::Operator::Capability;
 use Qwiratry::Query::Topic;
+use Qwiratry::Query::NamedJoins;
 use X::Qwiratry;
 use nqp;
 
@@ -160,19 +161,19 @@ multi sub prefix:<⪪⪪>(Mu $right, *%adverbs) is export {
 
 =begin pod
 
-Ancestor axis (C<⪫⪫>): ancestor nodes matching C<$right>.
+Ancestor axis (C<⪫⪫>): ancestor nodes matching C<$right>; C<:reference> for incoming FKs.
 
 Bare form (no LHS) uses the caller topic C<$_>.
 
 =end pod
-multi sub infix:<⪫⪫>(Mu $left, Mu $right) is equiv(&infix:<x>) is export {
-	my $query = nav-new(AncestorOperator, $left, $right);
+multi sub infix:<⪫⪫>(Mu $left, Mu $right, *%adverbs) is equiv(&infix:<x>) is export {
+	my $query = nav-new(AncestorOperator, $left, $right, |(%adverbs ?? :adverbs(%adverbs) !! |()));
 	build-query($left, $right) ?? $query !! evaluate-query($query, $left)
 }
 
-multi sub prefix:<⪫⪫>(Mu $right) is export {
+multi sub prefix:<⪫⪫>(Mu $right, *%adverbs) is export {
 	my $left = navigation-topic(nqp::ctxcaller(nqp::ctx()));
-	infix:<⪫⪫>($left, $right)
+	infix:<⪫⪫>($left, $right, |%adverbs)
 }
 
 =begin pod
@@ -272,6 +273,32 @@ multi sub postfix:<⇤>(Mu $subject) is export {
 
 =begin pod
 
+Named aliases for navigation axes (Operators.md §5.1).
+
+C<data-root> is a postfix; use unspace when a space is wanted (C<$node\ data-root>).
+
+=end pod
+multi sub infix:<child>(Mu $left, Mu $right) is equiv(&infix:<x>) is export {
+	infix:<⪪>($left, $right)
+}
+multi sub infix:<parent>(Mu $left, Mu $right, *%adverbs) is equiv(&infix:<x>) is export {
+	infix:<⪫>($left, $right, |%adverbs)
+}
+multi sub infix:<descendant>(Mu $left, Mu $right, *%adverbs) is equiv(&infix:<x>) is export {
+	infix:<⪪⪪>($left, $right, |%adverbs)
+}
+multi sub infix:<ancestor>(Mu $left, Mu $right, *%adverbs) is equiv(&infix:<x>) is export {
+	infix:<⪫⪫>($left, $right, |%adverbs)
+}
+multi sub infix:<attribute>(Mu $left, Mu $right) is equiv(&infix:<x>) is export {
+	infix:<⥷>($left, $right)
+}
+multi sub postfix:<data-root>(Mu $subject) is export {
+	postfix:<⇤>($subject)
+}
+
+=begin pod
+
 Set union (C<∪>).
 
 =end pod
@@ -316,24 +343,40 @@ multi sub infix:<∩>(Mu $left, Mu $right) is export {
 
 =begin pod
 
-Set difference (C<∖>).
+Set difference (canonical C<⊟> U+229F; alias C<∖> U+2216).
 
 =end pod
-multi sub infix:<∖>(OperatorBase $left, OperatorBase $right) is export {
+multi sub infix:<⊟>(OperatorBase $left, OperatorBase $right) is export {
 	SetDifferenceOperator.new(:left($left), :right($right))
+}
+
+multi sub infix:<⊟>(OperatorBase $left, Mu $right) is export {
+	SetDifferenceOperator.new(:left($left), :right($right))
+}
+
+multi sub infix:<⊟>(Mu $left, OperatorBase $right) is export {
+	SetDifferenceOperator.new(:left($left), :right($right))
+}
+
+multi sub infix:<⊟>(Mu $left, Mu $right) is export {
+	my $query = SetDifferenceOperator.new(:left($left), :right($right));
+	auto-query($query, $left, $left, $right)
+}
+
+multi sub infix:<∖>(OperatorBase $left, OperatorBase $right) is export {
+	infix:<⊟>($left, $right)
 }
 
 multi sub infix:<∖>(OperatorBase $left, Mu $right) is export {
-	SetDifferenceOperator.new(:left($left), :right($right))
+	infix:<⊟>($left, $right)
 }
 
 multi sub infix:<∖>(Mu $left, OperatorBase $right) is export {
-	SetDifferenceOperator.new(:left($left), :right($right))
+	infix:<⊟>($left, $right)
 }
 
 multi sub infix:<∖>(Mu $left, Mu $right) is export {
-	my $query = SetDifferenceOperator.new(:left($left), :right($right));
-	auto-query($query, $left, $left, $right)
+	infix:<⊟>($left, $right)
 }
 
 =begin pod
@@ -353,6 +396,23 @@ multi sub infix:<σ>(Mu $left, &predicate) is equiv(&infix:<x>) is export {
 multi sub prefix:<σ>(&predicate, Mu $subject) is export {
 	my $query = SelectionOperator.new(:subject($subject), :predicate(&predicate));
 	build-query($subject) ?? $query !! evaluate-query($query, $subject)
+}
+
+=begin pod
+
+Selection alias (C<𜸈> U+1CE08): same as C<σ>.
+
+=end pod
+multi sub infix:<𜸈>(OperatorBase $left, &predicate) is equiv(&infix:<x>) is export {
+	infix:<σ>($left, &predicate)
+}
+
+multi sub infix:<𜸈>(Mu $left, &predicate) is equiv(&infix:<x>) is export {
+	infix:<σ>($left, &predicate)
+}
+
+multi sub prefix:<𜸈>(&predicate, Mu $subject) is export {
+	prefix:<σ>(&predicate, $subject)
 }
 
 =begin pod
@@ -394,9 +454,17 @@ multi sub infix:<».>(Mu $left, &transform) is equiv(&infix:<x>) is export {
 
 Symmetric difference (C<⊖>).
 
+Positional candidates beat Raku core C<Set>/C<List> dispatch so C<query-ast>
+builds Qwiratry nodes for relation arrays and lists.
+
 =end pod
 multi sub infix:<⊖>(OperatorBase $left, OperatorBase $right) is export {
 	SymmetricDifferenceOperator.new(:left($left), :right($right))
+}
+
+multi sub infix:<⊖>(Positional $left, Positional $right) is export {
+	my $query = SymmetricDifferenceOperator.new(:left($left), :right($right));
+	auto-query($query, $left, $left, $right)
 }
 
 multi sub infix:<⊖>(Mu $left, Mu $right) is export {
@@ -448,10 +516,76 @@ multi sub infix:<⊆>(Mu $left, Mu $right) is export {
 
 Identity comparison (C<≡>).
 
+Positional candidates beat Raku core Boolean C<≡> so C<query-ast> builds
+C<IdentityOperator> for relation arrays and lists.
+
 =end pod
+multi sub infix:<≡>(Positional $left, Positional $right) is export {
+	my $query = IdentityOperator.new(:left($left), :right($right));
+	auto-query($query, $left, $left, $right)
+}
+
 multi sub infix:<≡>(Mu $left, Mu $right) is export {
 	my $query = IdentityOperator.new(:left($left), :right($right));
 	auto-query($query, $left, $left, $right)
+}
+
+=begin pod
+
+Universe-relative set operators (Operators.md §6.1.2.2).
+
+Caller topic C<$_> is the universe (must be a superset of both operands).
+
+=end pod
+sub universe-from-caller(Mu $caller-ctx --> Mu) {
+	navigation-topic($caller-ctx)
+}
+
+multi sub infix:<⩃>(Mu $left, Mu $right) is export {
+	my $universe = universe-from-caller(nqp::ctxcaller(nqp::ctx()));
+	my $query = SetDifferenceOperator.new(
+		:left($universe),
+		:right(IntersectionOperator.new(:left($left), :right($right))),
+	);
+	auto-query($query, $universe, $left, $right, $universe)
+}
+
+multi sub infix:<⩂>(Mu $left, Mu $right) is export {
+	my $universe = universe-from-caller(nqp::ctxcaller(nqp::ctx()));
+	my $query = SetDifferenceOperator.new(
+		:left($universe),
+		:right(UnionOperator.new(:left($left), :right($right))),
+	);
+	auto-query($query, $universe, $left, $right, $universe)
+}
+
+multi sub infix:<⊙>(Mu $left, Mu $right) is export {
+	my $universe = universe-from-caller(nqp::ctxcaller(nqp::ctx()));
+	my $query = SetDifferenceOperator.new(
+		:left($universe),
+		:right(SymmetricDifferenceOperator.new(:left($left), :right($right))),
+	);
+	auto-query($query, $universe, $left, $right, $universe)
+}
+
+multi sub infix:<⊡>(Mu $left, Mu $right) is export {
+	my $universe = universe-from-caller(nqp::ctxcaller(nqp::ctx()));
+	my $query = SetDifferenceOperator.new(
+		:left($universe),
+		:right(SetDifferenceOperator.new(:left($left), :right($right))),
+	);
+	auto-query($query, $universe, $left, $right, $universe)
+}
+
+=begin pod
+
+Unary complement (C<∁>): C<$_ ⊟ operand> (Operators.md §6.1.2.2).
+
+=end pod
+multi sub prefix:<∁>(Mu $collection) is tighter(&infix:<&>) is export {
+	my $universe = universe-from-caller(nqp::ctxcaller(nqp::ctx()));
+	my $query = SetDifferenceOperator.new(:left($universe), :right($collection));
+	auto-query($query, $universe, $collection, $universe)
 }
 
 =begin pod
@@ -462,6 +596,39 @@ Inner join (C<⨝>).
 multi sub infix:<⨝>(Mu $left, Mu $right, &condition?) is equiv(&infix:<~>) is export {
 	my $query = InnerJoinOperator.new(:left($left), :right($right), :condition(&condition));
 	auto-query($query, $left, $left, $right)
+}
+
+=begin pod
+
+Equijoin (C<▷=◁>): inner join restricted to equality matching.
+
+=end pod
+multi sub infix:<▷=◁>(Mu $left, Mu $right, &condition?) is equiv(&infix:<~>) is export {
+	my $query = EquijoinOperator.new(:left($left), :right($right), :condition(&condition));
+	auto-query($query, $left, $left, $right)
+}
+
+=begin pod
+
+Natural join (C<≜>): equijoin on shared column names.
+
+=end pod
+multi sub infix:<≜>(Mu $left, Mu $right) is equiv(&infix:<~>) is export {
+	my $query = NaturalJoinOperator.new(:left($left), :right($right));
+	auto-query($query, $left, $left, $right)
+}
+
+=begin pod
+
+Named join recall (C<▵>): look up a join registered via
+C<Qwiratry::Query::NamedJoins.instance.register(...)>.
+
+=end pod
+multi sub prefix:<▵>(Str $name) is export {
+	my $query = NamedJoinOperator.new(:name($name));
+	return $query if $*QWIRATRY-BUILD-QUERY;
+	return $query unless Qwiratry::Query::NamedJoins.instance.lookup($name).defined;
+	evaluate-query($query, Nil)
 }
 
 =begin pod

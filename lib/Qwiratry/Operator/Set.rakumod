@@ -157,6 +157,10 @@ class RenameOperator is RakuAST::Node does SetOperator does OperatorBase does La
 
 class InnerJoinOperator is RakuAST::Node does JoinOperatorNode is export { }
 
+class EquijoinOperator is InnerJoinOperator is export { }
+
+class NaturalJoinOperator is InnerJoinOperator is export { }
+
 class LeftOuterJoinOperator is RakuAST::Node does JoinOperatorNode is export { }
 
 class RightOuterJoinOperator is RakuAST::Node does JoinOperatorNode is export { }
@@ -170,6 +174,25 @@ class RightSemijoinOperator is RakuAST::Node does JoinOperatorNode is export { }
 class LeftAntijoinOperator is RakuAST::Node does JoinOperatorNode is export { }
 
 class RightAntijoinOperator is RakuAST::Node does JoinOperatorNode is export { }
+
+class NamedJoinOperator is RakuAST::Node does SetOperator does OperatorBase does LazyEvaluatedOperator is export {
+	has Str $.name is required;
+
+	=begin pod
+
+	=head2 C<NamedJoinOperator.describe()>
+
+	=begin code
+	method describe(--> Str)
+	=end code
+
+	Returns a debug label for a recalled named join.
+
+	=end pod
+	method describe(--> Str) {
+		"NamedJoinOperator(name: $!name)"
+	}
+}
 
 class DivisionOperator is RakuAST::Node does BinarySetOperatorNode does EagerEvaluatedOperator is export { }
 

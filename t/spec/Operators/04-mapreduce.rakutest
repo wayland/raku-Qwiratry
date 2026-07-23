@@ -10,7 +10,7 @@ use Qwiratry::Query::Runtime;
 
 my constant query-runtime = Qwiratry::Query::Runtime.instance;
 
-plan 2;
+plan 3;
 
 my @rows = [
 	%(name => 'alpha', status => 'active', score => 10),
@@ -81,6 +81,13 @@ subtest '§4 tree walker executes selection and sort on descendant query' => {
 		}
 	};
 	is @values, (10, 20, 30), 'sort orders matched tree nodes';
+}
+
+subtest '§4 selection alias 𜸈 filters like σ' => {
+	plan 1;
+
+	my @kept = (@rows 𜸈 { .<status> eq 'active' }).List;
+	is @kept.elems, 2, 'selection alias 𜸈 filters active rows';
 }
 
 done-testing;

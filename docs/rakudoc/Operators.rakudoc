@@ -48,7 +48,7 @@ B<Concatenation> | list | ⋉ ⋊ ▷ ◁ ⨝ ⟕ ⟖ ⟗ ▷=◁ ≜ ÷ ▵ × 
 Junctive Exponentiation | right | 𝒫 | Tighter than Junctive unary
 Junctive unary | left | ∁ | Tighter than Junctive and
 B<Junctive and> | list | ∩ ⩃ | 
-B<Junctive or> | list | ∪ ⩂ ⊖ ∖ | 
+B<Junctive or> | list | ∪ ⩂ ⊖ ⊙ ⊟ ⊡ ∖ | ∖ aliases ⊟ 
 B<Chaining> | chain | ∈ ∊ (elem) ∉ ∋ ∍ (cont) ∌ ⊂ (<) ⊄ ⊃ (>) ⊅ ⊆ (<=) ⊈ ⊇ (>=) ⊉ ≡ (==) ≢ | 
 =end table
 
@@ -860,7 +860,7 @@ givenroot $catalog {
 =item In normal code, query slang operators evaluate through C<Qwiratry::Query::Runtime> and return lazy C<Seq> results
 =item Use C<query-ast({ ... })> when a Walker, Mold, planner, or explicit runtime call needs raw operator AST
 =item Raw operators do not perform traversal themselves; they rely on B<Walkers> or the query runtime to interpret and execute them
-=item Predicates and combinators (like union C<∪>, intersection C<∩>, difference C<∖>) can be applied after or during operator execution
+=item Predicates and combinators (like union C<∪>, intersection C<∩>, difference C<⊟>) can be applied after or during operator execution
 
 =head1 6. Set Operators
 
@@ -907,10 +907,11 @@ Operator | Unicode | Set Theory Term | Boolean Algebra Term | Description
 ∩ | U+2229 | Intersection | AND | Returns elements present in both collections
 ∪ | U+222A | Union | OR | Returns elements present in either collection
 ⊖ | U+2296 | Symmetric Set Difference | XOR | Returns elements in exactly one collection
-∖ | U+0020 U+2216 | Set Difference |  | Returns elements in left collection but not in right
+⊟ | U+229F | Set Difference | AND-NOT | Returns elements in left collection but not in right
+∖ | U+2216 | Set Difference (alias) | AND-NOT | Alias of C<⊟>; same glyph Raku uses for set minus
 =end table
 
-B<Note>: Operators without dots ensure each row is unique; operators with dots accept duplicates.
+B<Glyph families>: circled operators (C<⊖> / C<⊙>) are the symmetric-difference pair; squared operators (C<⊟> / C<⊡>) are the (asymmetric) set-difference pair. C<∖> remains as an alias of C<⊟>.
 
 =head4 6.1.2.2 Universe-based Operators
 
@@ -921,9 +922,10 @@ Operator | Unicode | Set Theory Term | Boolean Algebra Term | Description
 ⩃ | U+2A43 | Intersection Complement | NAND | Returns elements not in the intersection
 ⩂ | U+2A42 | Union Complement | NOR | Returns elements not in the union
 ⊙ | U+2299 | Symmetric Set Difference Complement | XNOR | Returns elements not in the symmetric difference
-⇒ | U+21D2 | Set Difference Complement | IMPLY | Returns elements not in the set difference
+⊡ | U+22A1 | Set Difference Complement | IMPLY | Returns elements not in the set difference
 ∁ | U+2201 | Complement | NOT | Returns elements not in the collection (unary)
 =end table
+
 
 =head3 6.1.3 Operators Returning C<Array[Collection]>
 
@@ -943,7 +945,7 @@ Operator | General Semantics | Notes
 ∩ | Returns elements present in both collections | Element matching depends on collection type
 ∪ | Returns elements present in either collection | Duplicate handling depends on collection type
 ⊖ | Returns elements in exactly one collection | Element matching depends on collection type
-∖ | Returns elements in left collection but not in right | Element matching depends on collection type
+⊟ | Returns elements in left collection but not in right | Element matching depends on collection type
 𝒫 | Returns all possible subsets of the collection | Works with any collection type
 =end table
 
@@ -972,7 +974,7 @@ my $common = $relation1 ∩ $relation2;
 my $combined = $relation1 ∪ $relation2;
 
 # Set difference
-my $only-in-first = $relation1 ∖ $relation2;
+my $only-in-first = $relation1 ⊟ $relation2;
 
 # Power set
 my @subsets = 𝒫 $relation;
@@ -988,7 +990,7 @@ my @combined = ($root ⪪ <item>) ∪ ($root ⪪ <product>);
 my @common = ($root ⪪⪪ <div>) ∩ ($root ⪪⪪ <span>);
 
 # Set difference: nodes in first query but not second
-my @unique = ($root ⪪ <item>) ∖ ($root ⪪ <item> σ { ⥷ <archived> });
+my @unique = ($root ⪪ <item>) ⊟ ($root ⪪ <item> σ { ⥷ <archived> });
 
 # Test membership: is this node in the set?
 if $node ∈ ($root ⪪⪪ <item>) { ... }
@@ -1013,7 +1015,7 @@ my @combined = @array1 ∪ @array2;
 my @common = @array1 ∩ @array2;
 
 # Set difference
-my @only-in-first = @array1 ∖ @array2;
+my @only-in-first = @array1 ⊟ @array2;
 
 # Test membership
 if $item ∈ @array { ... }
@@ -1125,7 +1127,7 @@ my @combined = ($root ⪪ <item>) ∪ ($root ⥷ <metadata>);
 my @common = $query1 ∩ $query2;
 
 # Difference
-my @unique = $query1 ∖ $query2;
+my @unique = $query1 ⊟ $query2;
 =end code
 
 =head3 7.1.3 Predicates

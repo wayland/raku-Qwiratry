@@ -46,7 +46,7 @@ Precedence levels in bold are standard Raku levels.  Those not in bold are level
 | **Junctive Exponentiation** | right         | 𝒫         | Tighter than Junctive unary |
 | **Junctive unary**          | left          | ∁         | Tighter than Junctive and |
 | **Junctive and**            | list          | ∩ ⩃       |          |
-| **Junctive or**             | list          | ∪ ⩂ ⊖ ∖   |          |
+| **Junctive or**             | list          | ∪ ⩂ ⊖ ⊙ ⊟ ⊡ ∖ | |
 | **Chaining**                | chain         | ∈ ∊ (elem) ∉ ∋ ∍ (cont) ∌ ⊂ (<) ⊄ ⊃ (>) ⊅ ⊆ (<=) ⊈ ⊇ (>=) ⊉ ≡ (==) ≢ | |
 
 ## 3. I/O and Transformation Operators
@@ -845,7 +845,7 @@ givenroot $catalog {
 - In normal code, query slang operators evaluate through `Qwiratry::Query::Runtime` and return lazy `Seq` results
 - Use `query-ast({ ... })` when a Walker, Mold, planner, or explicit runtime call needs raw operator AST
 - Raw operators do not perform traversal themselves; they rely on **Walkers** or the query runtime to interpret and execute them
-- Predicates and combinators (like union `∪`, intersection `∩`, difference `∖`) can be applied after or during operator execution
+- Predicates and combinators (like union `∪`, intersection `∩`, difference `⊟`) can be applied after or during operator execution
 
 ## 6. Set Operators
 
@@ -889,9 +889,10 @@ These operators combine collections to produce new collections.
 | ∩        | U+2229        | Intersection    | AND                  | Returns elements present in both collections |
 | ∪        | U+222A        | Union           | OR                   | Returns elements present in either collection |
 | ⊖        | U+2296        | Symmetric Set Difference | XOR         | Returns elements in exactly one collection |
-| ∖        | U+0020 U+2216 | Set Difference  | AND-NOT              | Returns elements in left collection but not in right |
+| ⊟        | U+229F        | Set Difference  | AND-NOT              | Returns elements in left collection but not in right |
+| ∖        | U+2216        | Set Difference (alias) | AND-NOT           | Alias of `⊟`; same glyph Raku uses for set minus |
 
-**Note**: Operators without dots ensure each row is unique; operators with dots accept duplicates.
+**Glyph families**: circled operators (`⊖` / `⊙`) are the symmetric-difference pair; squared operators (`⊟` / `⊡`) are the (asymmetric) set-difference pair. `∖` remains as an alias of `⊟`.
 
 ##### 6.1.2.2 Universe-based Operators
 
@@ -902,7 +903,7 @@ These operators require a Universe set that encompasses both collections. The co
 | ⩃        | U+2A43  | Intersection Complement             | NAND                 | Returns elements not in the intersection |
 | ⩂        | U+2A42  | Union Complement                    | NOR                  | Returns elements not in the union |
 | ⊙        | U+2299  | Symmetric Set Difference Complement | XNOR                 | Returns elements not in the symmetric difference |
-| ⇒        | U+21D2  | Set Difference Complement           | IMPLY                | Returns elements not in the set difference |
+| ⊡        | U+22A1  | Set Difference Complement           | IMPLY                | Returns elements not in the set difference |
 | ∁        | U+2201  | Complement                          | NOT                  | Returns elements not in the collection (unary) |
 
 #### 6.1.3 Operators Returning `Array[Collection]`
@@ -922,7 +923,7 @@ Set operators work with any collection that can do Associative. The semantics de
 | ∩ | Returns elements present in both collections | Element matching depends on collection type |
 | ∪ | Returns elements present in either collection | Duplicate handling depends on collection type |
 | ⊖ | Returns elements in exactly one collection | Element matching depends on collection type |
-| ∖ | Returns elements in left collection but not in right | Element matching depends on collection type |
+| ⊟ | Returns elements in left collection but not in right | Element matching depends on collection type |
 | 𝒫 | Returns all possible subsets of the collection | Works with any collection type |
 
 **Collection Type Considerations**:
@@ -950,7 +951,7 @@ my $common = $relation1 ∩ $relation2;
 my $combined = $relation1 ∪ $relation2;
 
 # Set difference
-my $only-in-first = $relation1 ∖ $relation2;
+my $only-in-first = $relation1 ⊟ $relation2;
 
 # Power set
 my @subsets = 𝒫 $relation;
@@ -966,7 +967,7 @@ my @combined = ($root ⪪ <item>) ∪ ($root ⪪ <product>);
 my @common = ($root ⪪⪪ <div>) ∩ ($root ⪪⪪ <span>);
 
 # Set difference: nodes in first query but not second
-my @unique = ($root ⪪ <item>) ∖ ($root ⪪ <item> σ { ⥷ <archived> });
+my @unique = ($root ⪪ <item>) ⊟ ($root ⪪ <item> σ { ⥷ <archived> });
 
 # Test membership: is this node in the set?
 if $node ∈ ($root ⪪⪪ <item>) { ... }
@@ -991,7 +992,7 @@ my @combined = @array1 ∪ @array2;
 my @common = @array1 ∩ @array2;
 
 # Set difference
-my @only-in-first = @array1 ∖ @array2;
+my @only-in-first = @array1 ⊟ @array2;
 
 # Test membership
 if $item ∈ @array { ... }
@@ -1099,7 +1100,7 @@ my @combined = ($root ⪪ <item>) ∪ ($root ⥷ <metadata>);
 my @common = $query1 ∩ $query2;
 
 # Difference
-my @unique = $query1 ∖ $query2;
+my @unique = $query1 ⊟ $query2;
 ```
 
 #### 7.1.3 Predicates

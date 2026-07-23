@@ -28,7 +28,7 @@ Defines C<Qwiratry::Query::Extract>.
 class Qwiratry::Query::Extract {
 
 	my constant @NAV-INFIX = «⪪ ⪫ ⪪⪪ ⪫⪫ ⪨ ⪩ ⪨⪨ ⪩⪩ ⥷»;
-	my constant @QUERY-COMBINATOR-INFIX = «∪ ∩ ∖ ⊖»;
+	my constant @QUERY-COMBINATOR-INFIX = «∪ ∩ ⊟ ∖ ⊖»;
 
 	my $instance;
 

@@ -14,7 +14,7 @@ my %setup = orders-only-setup();
 my @orders := %setup<orders>;
 my $catalog = %setup<catalog>;
 
-plan 6;
+plan 7;
 
 subtest '§5.2.8 Following sibling returns next row' => {
 	plan 2;
@@ -63,6 +63,14 @@ subtest '§5.2.8 Table base returns empty for sibling operators' => {
 
 	is query-runtime.select(query-ast({ $catalog ⪨ <*> }), $catalog).elems, 0,
 		'sibling operator on table returns empty';
+}
+
+subtest '§5.2.8 following-sibling Int count returns that many next rows' => {
+	plan 1;
+
+	my $order = @orders[0];
+	my @next = query-runtime.select(query-ast({ $order ⪨ 2 }), $catalog).List;
+	is @next.elems, 2, 'following-sibling Int count returns the requested number of rows';
 }
 
 done-testing;

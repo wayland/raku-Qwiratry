@@ -7,10 +7,11 @@ use Qwiratry::Tree::Navigator::Base;
 use Qwiratry::Query::Slang;
 use Qwiratry::Mold::Slang;
 use Qwiratry::Query::Runtime;
+use Qwiratry::Operator::Navigation;
 
 my constant query-runtime = Qwiratry::Query::Runtime.instance;
 
-plan 5;
+plan 6;
 
 subtest '§5 child/attribute semantics work for JSON-like associative trees' => {
 	plan 4;
@@ -100,6 +101,15 @@ subtest '§5 navigator examples expose children; descendants via evaluator' => {
 		'descendant evaluator finds nested login';
 	is $navigator.tree-attributes(%json)<name>, 'vscode',
 		'navigator attributes expose associative keys';
+}
+
+subtest '§5.1 named navigation aliases build the matching operator nodes' => {
+	plan 5;
+	ok query-ast({ %(a => 1) child '*' }) ~~ ChildOperator, 'child alias builds ChildOperator';
+	ok query-ast({ %(a => 1) parent '*' }) ~~ ParentOperator, 'parent alias builds ParentOperator';
+	ok query-ast({ %(a => 1) descendant '*' }) ~~ DescendantOperator, 'descendant alias builds DescendantOperator';
+	ok query-ast({ %(a => 1) attribute 'a' }) ~~ AttributeOperator, 'attribute alias builds AttributeOperator';
+	ok query-ast({ %(a => 1)\ data-root }) ~~ RootOperator, 'data-root alias builds RootOperator';
 }
 
 done-testing;
