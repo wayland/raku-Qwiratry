@@ -61,6 +61,8 @@ I/O and Transformation Operators handle parsing, rendering, and reading/writing 
 
 The parse operator takes a format argument (e.g., `JSON`, `XML`, `CSV`). Possible values are controlled by the existence of a `Qwiratry::Format::*` module with a `Parse` implementation.
 
+The left-hand side is normally text. An `IO::Handle` (including `$*IN`) is slurped first; the handle is left open.
+
 **Parse Examples**:
 
 ```raku
@@ -69,6 +71,9 @@ my $json_root = ⮳ <data.json> ↱ <JSON>;
 
 # Parse XML
 my $xml_root = ⮳ <config.xml> ↱ <XML>;
+
+# Parse from STDIN (or any IO::Handle)
+my $from_stdin = $*IN ↱ <JSON>;
 ```
 
 ### 3.2 Render Operator
@@ -129,7 +134,7 @@ The source operator accepts a location parameter that specifies where to read da
 Note that it's also possible to avoid the source operator:
 
 - Since Raku has shell quoting (`qx`), there's no need for shell execution
-- Since Raku has `$*IN`, there's no need for special STDIN-reading semantics
+- Pass `$*IN` (or any `IO::Handle`) to parse: `$*IN ↱ <JSON>`
 - The `"filename.json".IO.lines` could also be used
 - Databases can be read by providing database-reading classes
 

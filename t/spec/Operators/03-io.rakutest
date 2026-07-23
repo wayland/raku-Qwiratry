@@ -7,7 +7,7 @@ use Qwiratry::Format;
 use Qwiratry::Format::JSONdemo;
 use Qwiratry::Query::Slang;
 
-plan 3;
+plan 5;
 
 my $tmpdir = 't/tmp'.IO;
 $tmpdir.mkdir unless $tmpdir.d;
@@ -55,6 +55,44 @@ subtest '§3 query-ast preserves raw I/O operator pipeline nodes' => {
 	ok $query ~~ RenderOperator, 'query-ast returns the render operator node';
 	ok $query.subject ~~ ParseOperator, 'render subject is parse operator';
 	ok $query.subject.subject ~~ SourceOperator, 'parse subject is source operator';
+}
+
+subtest '§3 parse slurps IO::Handle subjects' => {
+	plan 2;
+
+	my $input = $tmpdir.child("spec-io-handle-{$*PID}.json");
+	$input.spurt('{"name":"from-handle"}');
+	my $fh = $input.open(:r);
+	my $parsed = $fh ↱ 'JSONdemo';
+	ok $fh.opened, 'parse leaves the handle open';
+	is-deeply $parsed, { name => 'from-handle' }, 'parse reads handle contents';
+	$fh.close;
+	$input.unlink if $input.e;
+}
+
+subtest '§3 parse prefers IO::Handle subject over a different origin handle' => {
+	plan 1;
+
+	use Qwiratry::Operator::Capability;
+	use Qwiratry::Operator::IO;
+
+	my $from-subject = $tmpdir.child("spec-io-subject-{$*PID}.json");
+	my $from-origin = $tmpdir.child("spec-io-origin-{$*PID}.json");
+	$from-subject.spurt('{"name":"from-subject"}');
+	$from-origin.spurt('{"name":"from-origin"}');
+
+	my $subject-fh = $from-subject.open(:r);
+	my $origin-fh = $from-origin.open(:r);
+	my $op = ParseOperator.new(:subject($subject-fh), :format<JSONdemo>);
+	my $parsed = execute($op, :origin($origin-fh));
+
+	is-deeply $parsed, { name => 'from-subject' },
+		'execute-input reads subject, not the origin handle';
+
+	$subject-fh.close;
+	$origin-fh.close;
+	$from-subject.unlink if $from-subject.e;
+	$from-origin.unlink if $from-origin.e;
 }
 
 done-testing;

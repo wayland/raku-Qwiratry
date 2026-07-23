@@ -65,6 +65,9 @@ Operator | Unicode | Description
 
 The parse operator takes a format argument (e.g., C<JSON>, C<XML>, C<CSV>). Possible values are controlled by the existence of a C<Qwiratry::Format::*> module with a C<Parse> implementation.
 
+The left-hand side is normally text. An C<IO::Handle> (including C<$*IN>) is
+slurped first; the handle is left open.
+
 B<Parse Examples>:
 
 =begin code :lang<raku>
@@ -73,6 +76,9 @@ my $json_root = ⮳ <data.json> ↱ <JSON>;
 
 # Parse XML
 my $xml_root = ⮳ <config.xml> ↱ <XML>;
+
+# Parse from STDIN (or any IO::Handle)
+my $from_stdin = $*IN ↱ <JSON>;
 =end code
 
 =head2 3.2 Render Operator
@@ -137,7 +143,7 @@ B<Example Protocols and URL Schemes>:
 Note that it's also possible to avoid the source operator:
 
 =item Since Raku has shell quoting (C<qx>), there's no need for shell execution
-=item Since Raku has C<$*IN>, there's no need for special STDIN-reading semantics
+=item Pass C<$*IN> (or any C<IO::Handle>) to parse: C<$*IN ↱ <JSON>>
 =item The C<"filename.json".IO.lines> could also be used
 =item Databases can be read by providing database-reading classes
 

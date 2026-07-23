@@ -203,19 +203,31 @@ role FormatOperatorNode does FormatOperator does AdaptorOperatorNode does Chaine
 		Qwiratry::Format.ensure-format(:type(self.format-type), :format($!format));
 	}
 
+	# Evaluate this format operator's subject, falling back to the pipeline origin.
+	method !execute-input(Mu $origin, &execute) {
+		execute(self.subject // $origin, :$origin)
+	}
+
 	=begin pod
 
-	=head2 C<format-input(Mu $origin, &execute)>
+	=head2 C<format-input>
 
 	=begin code
-	method format-input(Mu $origin, &execute)
+	multi method format-input(IO::Handle:D $handle, &execute)
+	multi method format-input(Mu $origin, &execute)
 	=end code
 
-	Evaluate this format operator's subject, falling back to the pipeline origin.
+	Produce format-ready input. A raw C<IO::Handle> left-hand side (such as
+	C<$*IN>) is resolved via C<!execute-input> then slurped (handle left open).
+	Otherwise the subject is resolved via C<!execute-input> only.
 
 	=end pod
-	method format-input(Mu $origin, &execute) {
-		execute(self.subject // $origin, :$origin)
+	multi method format-input(IO::Handle:D $handle, &execute) {
+		self!execute-input($handle, &execute).slurp
+	}
+
+	multi method format-input(Mu $origin, &execute) {
+		self!execute-input($origin, &execute)
 	}
 
 	=begin pod
@@ -290,7 +302,8 @@ class ParseOperator is RakuAST::Node does FormatOperatorNode is export {
 
 
 	Evaluates the subject (or pipeline origin) to text and parses it with the
-	configured format implementation.
+	configured format implementation. C<format-input> slurps an C<IO::Handle>
+	left-hand side when present.
 
 	=end pod
 	method evaluate(Mu :$origin, :&execute) {

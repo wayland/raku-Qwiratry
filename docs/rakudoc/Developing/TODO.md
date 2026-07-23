@@ -39,18 +39,18 @@ New features:
 *	Formats
 	*	DONE: JSON
 	*	DONE: YAML
-	*	XML
+	*	DONE: XML
 	*	INI
 	*	TOML
 	*	XKB in conjunction with writing an article about it (cf. articles)
 
 
-* Ensure that everything (including raku-Qwiratry-Test) is pushed to fez/github
+* DONE Ensure that everything (including raku-Qwiratry-Test) is pushed to fez/github
 
 ### Tweak ideas
 
 Maybe do these:
-*	If parse op doesn't have a LHS, use STDIN
+*	DONE: Allow IO::Handle on LHS of parse op (for STDIN)
 *	If attribute op doesn't have a LHS, use $_
 
 ## Streamable Trees

@@ -10,6 +10,13 @@ This changelog follows the shape of Keep a Changelog, adapted to Rakudoc.
 Versions use the C<META6.json> version number and release tags use the
 C<release-x.y.z> convention.
 
+=head1 Unreleased
+
+=head2 Added
+
+=item The parse operator (C<↱>) slurps an C<IO::Handle> left-hand side (such as
+C<$*IN>) before invoking the format parser; the handle is left open.
+
 =head1 0.0.8 - 2026-07-22
 
 =head2 Fixed
