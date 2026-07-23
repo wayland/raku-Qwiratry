@@ -12,6 +12,8 @@ C<release-x.y.z> convention.
 
 =head1 Unreleased
 
+=head1 0.0.9 - 2026-07-23
+
 =head2 Added
 
 =item The parse operator (C<↱>) slurps an C<IO::Handle> left-hand side (such as
@@ -19,6 +21,27 @@ C<$*IN>) before invoking the format parser; the handle is left open.
 
 =item Bare navigation operators (no LHS) use the caller topic C<$_>, matching
 the documented axis behaviour. A missing or undefined topic is an error.
+
+=item Selection alias C<𜸈>, named navigation aliases (C<child>, C<parent>,
+C<descendant>, C<attribute>, C<data-root>), and ancestor C<:reference> support.
+
+=item Universe-based set operators C<⩃>, C<⩂>, C<⊙>, and C<⊡>, plus unary
+complement C<∁> (universe from caller C<$_>).
+
+=item Equijoin C<▷=◁>, natural join C<≜>, and named join recall C<▵> via
+C<Qwiratry::Query::NamedJoins>.
+
+=item Following/preceding-sibling C<Int> RHS counts how many sibling rows to
+return.
+
+=head2 Changed
+
+=item Set difference is canonical C<⊟> (U+229F), with C<∖> kept as an alias;
+set-difference complement is C<⊡> (U+22A1). Circled C<⊖>/C<⊙> remain the
+symmetric-difference pair.
+
+=item C<query-ast> builds Qwiratry nodes for C<⊖> and C<≡> on C<Positional>
+operands instead of losing to Raku core set/Bool dispatch.
 
 =head1 0.0.8 - 2026-07-22
 

@@ -43,6 +43,7 @@
     "Qwiratry::Query::Evaluator::Set": "lib/Qwiratry/Query/Evaluator/Set.rakumod",
     "Qwiratry::Query::Evaluator::Union": "lib/Qwiratry/Query/Evaluator/Union.rakumod",
     "Qwiratry::Query::Extract": "lib/Qwiratry/Query/Extract.rakumod",
+    "Qwiratry::Query::NamedJoins": "lib/Qwiratry/Query/NamedJoins.rakumod",
     "Qwiratry::Query::RelationCommon": "lib/Qwiratry/Query/RelationCommon.rakumod",
     "Qwiratry::Query::Runtime": "lib/Qwiratry/Query/Runtime.rakumod",
     "Qwiratry::Query::Selector": "lib/Qwiratry/Query/Selector.rakumod",
@@ -81,5 +82,5 @@
   },
   "resources": [],
   "test-depends": [],
-  "version": "0.0.8"
+  "version": "0.0.9"
 }
