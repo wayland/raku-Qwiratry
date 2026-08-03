@@ -16,6 +16,10 @@ directory root for directories, or a C<List> of C<IO::Path> nodes when a glob
 matches more than one path (or exactly one directory). Destination writes coerce
 content to text and create parent directories before writing.
 
+Ordinary files also support optional streaming: C<read-pull> yields fixed-size
+C<Str> chunks, and C<open-sink-push> returns a sink with C<write-chunk>/C<close> for
+incremental writes.
+
 =end pod
 use Glob::Grammar;
 use Glob::ToRegexActions;
@@ -113,16 +117,28 @@ sub path-from-location(Str $location --> Str) {
 	$path
 }
 
-class Qwiratry::Location::File::Source is Qwiratry::Location::Base::Source {
+class Qwiratry::Location::File::Sink {
+	has IO::Handle $.handle is required;
+
+	method write-chunk(Str:D $chunk --> Nil) {
+		$!handle.print($chunk);
+	}
+
+	method close(--> Nil) {
+		$!handle.close;
+	}
+}
+
+class Qwiratry::Location::File::Source is Qwiratry::Location::Base::SourceWalkable does Qwiratry::Location::Base::SourcePull {
 
 	=begin pod
 
 	=head1 Methods
 
-	=head2 C<read(Str $location)>
+	=head2 C<read-walkable(Str $location)>
 
 	=begin code
-	method read(Str $location --> Mu)
+	method read-walkable(Str $location --> Mu)
 	=end code
 
 	=head3 Parameters
@@ -143,7 +159,7 @@ class Qwiratry::Location::File::Source is Qwiratry::Location::Base::Source {
 	query.
 
 	=end pod
-	method read(Str $location --> Mu) {
+	method read-walkable(Str $location --> Mu) {
 		my $path = path-from-location($location);
 		if path-has-glob($path) {
 			my @matches = expand-path-glob($path).List;
@@ -172,16 +188,84 @@ class Qwiratry::Location::File::Source is Qwiratry::Location::Base::Source {
 		return $io if $io.d;
 		$io.slurp
 	}
-}
-
-class Qwiratry::Location::File::Destination is Qwiratry::Location::Base::Destination {
 
 	=begin pod
 
-	=head2 C<write(Str $location, Mu $content)>
+	=head2 C<read-pull(Str:D $location)>
 
 	=begin code
-	method write(Str $location, Mu $content --> Mu)
+	method read-pull(Str:D $location --> Iterator:D)
+	=end code
+
+	=head3 Parameters
+
+	=item C<$location>
+
+	 The location string or URI handled by the backend.
+
+
+	Reads an ordinary file as a pull iterator of fixed-size C<Str> chunks.
+
+	Each chunk is up to 4096 characters. Glob locations and directories are not
+	streamed; they raise L<X::Qwiratry::IO::LocationError>.
+
+	=end pod
+	method read-pull(Str:D $location --> Iterator:D) {
+		my $path = path-from-location($location);
+		if path-has-glob($path) {
+			X::Qwiratry::IO::LocationError.new(
+				:message("Glob locations cannot be read as text chunks: $location"),
+				:location($location),
+				:resolved(~$path.IO.absolute),
+				:reason('Invalid location format'),
+				:operator-type('SourceOperator'),
+			).throw;
+		}
+
+		my $io = $path.IO;
+		unless $io.e {
+			X::Qwiratry::IO::LocationError.new(
+				:message("I/O location not found: $location"),
+				:location($location),
+				:resolved(~$io.absolute),
+				:reason('File not found'),
+				:operator-type('SourceOperator'),
+			).throw;
+		}
+		if $io.d {
+			X::Qwiratry::IO::LocationError.new(
+				:message("Directory locations cannot be read as text chunks: $location"),
+				:location($location),
+				:resolved(~$io.absolute),
+				:reason('Invalid location format'),
+				:operator-type('SourceOperator'),
+			).throw;
+		}
+
+		my $handle = $io.open(:r);
+		my constant $chunk-size = 4096;
+		Seq.from-loop({
+			my $chunk := $handle.readchars($chunk-size);
+			# readchars returns '' at EOF; close and end the iterator.
+			if $chunk.chars {
+				$chunk
+			}
+			else {
+				$handle.close;
+				IterationEnd
+			}
+		}).iterator
+	}
+}
+
+class Qwiratry::Location::File::Destination is Qwiratry::Location::Base::DestinationWalkable does Qwiratry::Location::Base::DestinationPush {
+
+	=begin pod
+
+	=head2 C<write-walkable(Str $location, Mu $content)>
+
+	=begin code
+	method write-walkable(Str $location, Mu $content --> Mu)
 	=end code
 
 	=head3 Parameters
@@ -203,7 +287,7 @@ class Qwiratry::Location::File::Destination is Qwiratry::Location::Base::Destina
 	callers.
 
 	=end pod
-	method write(Str $location, Mu $content --> Mu) {
+	method write-walkable(Str $location, Mu $content --> Mu) {
 		my $path = path-from-location($location);
 		if path-has-glob($path) {
 			X::Qwiratry::IO::LocationError.new(
@@ -217,5 +301,41 @@ class Qwiratry::Location::File::Destination is Qwiratry::Location::Base::Destina
 		$path.IO.parent.d or $path.IO.parent.mkdir;
 		spurt $path, $text;
 		$content
+	}
+
+	=begin pod
+
+	=head2 C<open-sink-push(Str:D $location)>
+
+	=begin code
+	method open-sink-push(Str:D $location --> Mu)
+	=end code
+
+	=head3 Parameters
+
+	=item C<$location>
+
+	 The location string or URI handled by the backend.
+
+
+	Opens an incremental file sink for C<$location>.
+
+	Glob patterns are rejected. Parent directories are created as needed. The
+	returned C<Qwiratry::Location::File::Sink> supports C<write-chunk> and
+	C<close>.
+
+	=end pod
+	method open-sink-push(Str:D $location --> Mu) {
+		my $path = path-from-location($location);
+		if path-has-glob($path) {
+			X::Qwiratry::IO::LocationError.new(
+				:message("Glob locations cannot be write destinations: $location"),
+				:location($location),
+				:reason('Invalid location format'),
+				:operator-type('DestinationOperator'),
+			).throw;
+		}
+		$path.IO.parent.d or $path.IO.parent.mkdir;
+		Qwiratry::Location::File::Sink.new(:handle($path.IO.open(:w)))
 	}
 }

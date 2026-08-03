@@ -49,16 +49,16 @@ class Qwiratry::Format::CSVdemo::LineActions {
 	}
 }
 
-class Qwiratry::Format::CSVdemo::Parse is Qwiratry::Format::Base::Parse {
+class Qwiratry::Format::CSVdemo::Parse is Qwiratry::Format::Base::ParseWalkable {
 
 	=begin pod
 
 	=head1 Methods
 
-	=head2 C<parse(Str $input-string)>
+	=head2 C<parse-walkable(Str $input-string)>
 
 	=begin code
-	method parse(Str $input-string --> Mu)
+	method parse-walkable(Str $input-string --> Mu)
 	=end code
 
 	=head3 Parameters
@@ -75,7 +75,7 @@ class Qwiratry::Format::CSVdemo::Parse is Qwiratry::Format::Base::Parse {
 	can rely on every header key existing.
 
 	=end pod
-	method parse(Str $input-string --> Mu) {
+	method parse-walkable(Str $input-string --> Mu) {
 		my @lines = $input-string.lines.grep(*.chars);
 		@lines or return @();
 		my @records = @lines.map({ self!parse-line($_) });
@@ -102,14 +102,14 @@ class Qwiratry::Format::CSVdemo::Parse is Qwiratry::Format::Base::Parse {
 	}
 }
 
-class Qwiratry::Format::CSVdemo::Render is Qwiratry::Format::Base::Render {
+class Qwiratry::Format::CSVdemo::Render is Qwiratry::Format::Base::RenderWalkable {
 
 	=begin pod
 
-	=head2 C<render(Mu $data, Associative :%options)>
+	=head2 C<render-walkable(Mu $data, Associative :%options)>
 
 	=begin code
-	method render(Mu $data, Associative :%options --> Str)
+	method render-walkable(Mu $data, Associative :%options --> Str)
 	=end code
 
 	=head3 Parameters
@@ -129,7 +129,7 @@ class Qwiratry::Format::CSVdemo::Render is Qwiratry::Format::Base::Render {
 	derived from the first row's keys and sorted for stable output.
 
 	=end pod
-	method render(Mu $data, Associative :%options --> Str) {
+	method render-walkable(Mu $data, Associative :%options --> Str) {
 		my @rows = $data ~~ Positional ?? $data.list !! ($data,);
 		@rows or return '';
 		my @headers = @rows[0].keys.sort;

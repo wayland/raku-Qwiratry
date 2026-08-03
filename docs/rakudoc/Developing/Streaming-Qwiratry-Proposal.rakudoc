@@ -29,10 +29,8 @@ than callback-driven or push-driven APIs.
 
 =head1 Status
 
-This is a design proposal. It does not describe implemented behavior unless
-explicitly stated otherwise.
-
-It's tentative, and may change as goals change.  
+Streaming support landed in Qwiratry C<0.10.0>. This document remains the
+design rationale for the optional pull-based roles and operator fallback rules.
 
 =head1 Motivation
 
@@ -476,5 +474,117 @@ role Qwiratry::Location::Base::StreamingDestination {
 This design is small, consistent with the existing architecture, compatible with
 current extensions, and strong enough to support genuinely incremental I/O where
 the surrounding query semantics allow it.
+
+=head1 Streaming Rename
+
+This rename has been applied. The table below remains as the historical
+vocabulary map from the original C<0.10.0> streaming surface to the
+walkable / pull / push names now used in code.
+
+The goal is a three-way I/O-boundary breakdown:
+
+=item B<Walkable> — whole-value adaptors. The consumer works with a complete
+payload (for example a full C<Str>, or a fully assembled structure). This is the
+original C<parse> / C<render> / C<read> / C<write> family.
+
+=item B<Pull> — consumer-driven chunk adaptors. The consumer pulls an C<Iterator>
+of text chunks. In C<0.10.0> this was the C<*-chunks> / C<Streaming*> family.
+
+=item B<Push> — producer-driven chunk adaptors. The producer emits into a
+C<Supply> / sink-style API. Destination sinks already accept pushed chunks via
+C<write-chunk>.
+
+C<Walkable> here is I/O-boundary terminology for whole-value transfer. It is not
+the same thing as query-layer navigation over an already-loaded structure, even
+though both can feel “incremental” to a caller.
+
+B<Umbrella:> “streaming” (as a capability flag) means push or pull is
+available; walkable is the non-streaming whole-value path.
+
+=begin table
+Old name                                          | New name                                              | Notes
+C<Qwiratry::Format::Base::Parse>                  | C<Qwiratry::Format::Base::ParseWalkable>              | Whole-value parse contract
+C<Parse.parse>                                    | C<ParseWalkable.parse-walkable>                       | Accepts a complete C<Str>
+C<Qwiratry::Format::Base::StreamingParse>         | C<Qwiratry::Format::Base::ParsePull>                  | Optional pull-chunk parse capability
+C<StreamingParse.parse-chunks>                    | C<ParsePull.parse-pull>                               | Accepts C<Iterator> of C<Str> chunks
+C<Qwiratry::Format::Base::Render>                 | C<Qwiratry::Format::Base::RenderWalkable>             | Whole-value render contract
+C<Render.render>                                  | C<RenderWalkable.render-walkable>                     | Produces a complete C<Str>
+C<Qwiratry::Format::Base::StreamingRender>        | C<Qwiratry::Format::Base::RenderPull>                 | Optional pull-chunk render capability
+C<StreamingRender.render-chunks>                  | C<RenderPull.render-pull>                             | Produces C<Iterator> of C<Str> chunks
+C<Qwiratry::Location::Base::Source>               | C<Qwiratry::Location::Base::SourceWalkable>           | Whole-value source contract
+C<Source.read>                                    | C<SourceWalkable.read-walkable>                       | Returns a complete payload
+C<Qwiratry::Location::Base::StreamingSource>      | C<Qwiratry::Location::Base::SourcePull>               | Optional pull-chunk source capability
+C<StreamingSource.read-chunks>                    | C<SourcePull.read-pull>                               | Returns C<Iterator> of C<Str> chunks
+C<Qwiratry::Location::Base::Destination>          | C<Qwiratry::Location::Base::DestinationWalkable>      | Whole-value destination contract
+C<Destination.write>                              | C<DestinationWalkable.write-walkable>                 | Consumes a complete payload
+C<Qwiratry::Location::Base::StreamingDestination> | C<Qwiratry::Location::Base::DestinationPush>          | Optional push/sink destination capability
+C<StreamingDestination.open-sink>                 | C<DestinationPush.open-sink-push>                     | Returns a chunk sink (C<write-chunk> / C<close>)
+=end table
+
+Operator selection under the new names: when both sides of a boundary share
+push or both share pull, prefer that streaming path; otherwise fall back
+toward walkable (joining, materializing, or bridging as needed).
+
+=head1 Streaming Thoughts
+
+
+We should have two language models (stream/walk), and three APIs (walkable/push/pull).  
+
+=head2 Transformers
+
+Transformers should support attributes; these can fulfil the role that accumulators fill in XSLT.  They probably already do, but we should check.  
+Transformers should support multicontext; see below.  
+
+=head2 Molds
+
+Molds should support the following characteristics:
+=item1 Context node ($_ or $/ or something)
+=item1 Sibling Limit: This is how far it's permitted to look at previous/next siblings before throwing an error.  This is to help control memory consumption (for streaming behaviour).  These are preceding-limit and following-limit.  
+    =item2 Default: Inf.  This is Walkable.  
+    =item2 0: This is like Streaming mode in XSLT
+    =item2 1: This allows the immediately preceding/following sibling to be accessed, but no further (following-limit)
+    =item2 n: Any other number can be put here; I haven't seen a use for it, but someone might have one someday.  
+    =item2 Note that nodes can always access ancestors, descendants, and attributes -- the above restrictions are for siblings.  
+=item1 Multicontext:
+    =item2 Molds can be marked as multi-input or multi-output.  This is to facilitate the processing of multiple streams in parallel.  
+    =item2 If a mold/transformer marks itself multi-input, then we need to handle this as multiple contexts somehow; not sure how we do this; probably with extra parameters to the mold.  .  
+=item1 Questions
+    =item2 How do we integrate molds (or maybe mold protos) with the walkable/push/pull capabilities/APIs
+
+The smart thing to do as a developer is to have a mold that's in streaming mode, and then it calls out to other molds (with different names) that are not in streaming mode.  
+
+=head2 Operators
+
+We should be looking at having the walkable/push/pull APIs being capabilities, rather than roles; we should probably have the base one just throw exceptions, and then work from there.  Also, there should be a fourth capability, "streaming", which is true if push or pull is true.  
+
+=head2 Future thoughts
+
+* Consider allowing markers on loops, etc, to indicate that the loop items should be processed in order (cf. xsl:iterate vs. xsl:for-each)
+* Possibly also worthwhile being able to mark that things can be done in parallel in groups
+
+=head1 Raku Push, Pull, and Walkable
+
+A map of existing Raku features onto the three axes used elsewhere in this
+document. Empty cells mean that feature is not really that model.
+
+=item B<Push> — producer drives (Supply / SAX-ish).
+
+=item B<Pull> — consumer drives (C<pull-one> / StAX-ish).
+
+=item B<Walkable> — whole value in hand, then navigate (DOM-ish).
+
+Grammars sit on two columns: walkable B<input>, push-like B<actions>.
+
+=begin table
+Thing                         | Push                                              | Pull                                              | Walkable
+Sequences                     |                                                   | C<Seq>, C<Iterator>, C<gather>/C<take>            | C<List>, C<Array> (eager / C<.list>)
+Reactive streams              | C<Supply>, C<Supplier>, C<tap>, C<react>/C<whenever> | (via bridges, e.g. Channel / draining)          |
+Queues                        | C<Channel.send>                                   | C<Channel.receive>                                |
+Single async value            | C<Promise.then> (callback)                        | C<await>                                          | kept/broken result value
+Text I/O                      | e.g. C<Supply> from async/react I/O               | C<.lines>, C<.get>, read-ish iterators            | C<.slurp>, whole-buffer reads
+Grammars                      | Action methods (engine calls you)                 |                                                   | Input is a whole C<Str>; result is a C<Match> tree
+Associatives / positionals    |                                                   | iterating C<.iterator> / C<.kv> etc.              | C<Hash>, C<Map>, C<Array> as complete structures
+Hyper / race                  |                                                   |                                                   | Parallel over a complete (or sliced) input; not a stream protocol
+=end table
 
 =end rakudoc

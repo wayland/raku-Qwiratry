@@ -82,16 +82,16 @@ Add the format module to C<META6.json> C<provides> so discovery can load it.
 
 =head2 Parser Contract
 
-C<Qwiratry::Format::Base::Parse> is the base class for parsers. A custom parser
-inherits from this and currently implements C<parse(Str $input-string --> Mu)>.
+C<Qwiratry::Format::Base::ParseWalkable> is the base class for parsers. A custom parser
+inherits from this and currently implements C<parse-walkable(Str $input-string --> Mu)>.
 
 =head2 Minimal Parser Example
 
 =begin code :lang<raku>
 use Qwiratry::Format::Base;
 
-class Qwiratry::Format::Example::Parse is Qwiratry::Format::Base::Parse {
-    method parse(Str $input-data --> Mu) {
+class Qwiratry::Format::Example::Parse is Qwiratry::Format::Base::ParseWalkable {
+    method parse-walkable(Str $input-data --> Mu) {
         %(raw => $input-data)
     }
 }
@@ -101,17 +101,17 @@ class Qwiratry::Format::Example::Parse is Qwiratry::Format::Base::Parse {
 
 =head2 Renderer Contract
 
-C<Qwiratry::Format::Base::Render> is the base class for renderers. A custom
+C<Qwiratry::Format::Base::RenderWalkable> is the base class for renderers. A custom
 renderer inherits from this and implements
-C<render(Mu $data, Associative :%options --> Str)>.
+C<render-walkable(Mu $data, Associative :%options --> Str)>.
 
 =head2 Minimal Renderer Example
 
 =begin code :lang<raku>
 use Qwiratry::Format::Base;
 
-class Qwiratry::Format::Example::Render is Qwiratry::Format::Base::Render {
-    method render(Mu $data, Associative :%options --> Str) {
+class Qwiratry::Format::Example::Render is Qwiratry::Format::Base::RenderWalkable {
+    method render-walkable(Mu $data, Associative :%options --> Str) {
         $data.raku
     }
 }
@@ -160,15 +160,15 @@ custom tree nodes.
 
 Factory and discovery service for parse and render implementations.
 
-=item C<Qwiratry::Format::Base::Parse>
+=item C<Qwiratry::Format::Base::ParseWalkable>
 
 Base class for parsers. A custom parser inherits from this and currently implements
-C<parse(Str $input-string --> Mu)>.
+C<parse-walkable(Str $input-string --> Mu)>.
 
-=item C<Qwiratry::Format::Base::Render>
+=item C<Qwiratry::Format::Base::RenderWalkable>
 
 Base class for renderers. A custom renderer inherits from this and implements
-C<render(Mu $data, Associative :%options --> Str)>.
+C<render-walkable(Mu $data, Associative :%options --> Str)>.
 
 =item C<Qwiratry::Tree::Navigator::Base>
 

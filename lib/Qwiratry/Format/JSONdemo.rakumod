@@ -94,16 +94,16 @@ class Qwiratry::Format::JSONdemo::Actions {
 	}
 }
 
-class Qwiratry::Format::JSONdemo::Parse is Qwiratry::Format::Base::Parse {
+class Qwiratry::Format::JSONdemo::Parse is Qwiratry::Format::Base::ParseWalkable {
 
 	=begin pod
 
 	=head1 Methods
 
-	=head2 C<parse(Str $input-string)>
+	=head2 C<parse-walkable(Str $input-string)>
 
 	=begin code
-	method parse(Str $input-string --> Mu)
+	method parse-walkable(Str $input-string --> Mu)
 	=end code
 
 	=head3 Parameters
@@ -120,7 +120,7 @@ class Qwiratry::Format::JSONdemo::Parse is Qwiratry::Format::Base::Parse {
 	a user-facing diagnostic.
 
 	=end pod
-	method parse(Str $input-string --> Mu) {
+	method parse-walkable(Str $input-string --> Mu) {
 		my $match = Qwiratry::Format::JSONdemo::Grammar.parse(
 			$input-string,
 			:actions(Qwiratry::Format::JSONdemo::Actions.new),
@@ -130,14 +130,14 @@ class Qwiratry::Format::JSONdemo::Parse is Qwiratry::Format::Base::Parse {
 	}
 }
 
-class Qwiratry::Format::JSONdemo::Render is Qwiratry::Format::Base::Render {
+class Qwiratry::Format::JSONdemo::Render is Qwiratry::Format::Base::RenderWalkable {
 
 	=begin pod
 
-	=head2 C<render(Mu $data, Associative :%options)>
+	=head2 C<render-walkable(Mu $data, Associative :%options)>
 
 	=begin code
-	method render(Mu $data, Associative :%options --> Str)
+	method render-walkable(Mu $data, Associative :%options --> Str)
 	=end code
 
 	=head3 Parameters
@@ -157,7 +157,7 @@ class Qwiratry::Format::JSONdemo::Render is Qwiratry::Format::Base::Render {
 	the demo renderer small while preserving the common format-backend signature.
 
 	=end pod
-	method render(Mu $data, Associative :%options --> Str) {
+	method render-walkable(Mu $data, Associative :%options --> Str) {
 		my $pretty = %options<pretty> // False;
 		self.to-json-text($data, $pretty, 0)
 	}

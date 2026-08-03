@@ -69,7 +69,7 @@ class Qwiratry::Query::RelationCommon {
 		if $a ~~ Associative && $b ~~ Associative {
 			my @keys = ($a.keys, $b.keys).flat.map({ self!normalize-key-name($_) }).unique.sort;
 			for @keys -> $name {
-				next unless $a{$name}:exists && $b{$name}:exists;
+				next unless ($a{$name}:exists) && ($b{$name}:exists);
 				my $va = $a{$name};
 				my $vb = $b{$name};
 				$va.defined == $vb.defined or return False;
@@ -242,7 +242,7 @@ class Qwiratry::Query::RelationCommon {
 		@keys or return False;
 		for @keys -> $key {
 			my $name = self!normalize-key-name($key);
-			next unless $l{$name}:exists && $r{$name}:exists;
+			next unless ($l{$name}:exists) && ($r{$name}:exists);
 			$l{$name}.gist eq $r{$name}.gist or return False;
 		}
 		True

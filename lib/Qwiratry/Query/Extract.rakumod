@@ -170,7 +170,7 @@ class Qwiratry::Query::Extract {
 		my $key = @segments[0].value;
 
 		-> $node {
-			$node ~~ Associative && $node{$key}:exists
+			$node ~~ Associative && ($node{$key}:exists)
 		}
 	}
 

@@ -1,0 +1,228 @@
+#!/usr/bin/env raku
+#| Streaming I/O capability tests for Format/Location roles and operators
+use Test;
+use lib 'lib';
+
+use Qwiratry::Format;
+use Qwiratry::Format::Base;
+use Qwiratry::Format::JSONdemo;
+use Qwiratry::Format::NDJSONdemo;
+use Qwiratry::Location;
+use Qwiratry::Location::Base;
+use Qwiratry::Location::File;
+use Qwiratry::Operator::Capability;
+use Qwiratry::Operator::IO;
+use Qwiratry::Operator::MapReduce;
+use Qwiratry::Query::Runtime;
+
+my constant query-runtime = Qwiratry::Query::Runtime.instance;
+
+%*ENV<QWIRATRY_SKIP_INSTALL_SUGGESTIONS> = 1;
+
+plan 10;
+
+my $tmpdir = 't/tmp'.IO;
+$tmpdir.mkdir unless $tmpdir.d;
+
+sub collect-chunks(Iterator:D $chunks --> Str) {
+	my @parts;
+	loop {
+		my $pulled := $chunks.pull-one;
+		last if $pulled =:= IterationEnd;
+		@parts.push($pulled.Str);
+	}
+	@parts.join
+}
+
+subtest 'discovery still finds formats and file location' => {
+	plan 4;
+
+	ok 'NDJSONdemo' (elem) Qwiratry::Format.formats(:type<Parse>),
+		'NDJSONdemo parse is discoverable';
+	ok 'NDJSONdemo' (elem) Qwiratry::Format.formats(:type<Render>),
+		'NDJSONdemo render is discoverable';
+	ok 'File' (elem) Qwiratry::Location.backends(:type<Source>),
+		'File source backend is discoverable';
+	ok 'File' (elem) Qwiratry::Location.backends(:type<Destination>),
+		'File destination backend is discoverable';
+}
+
+subtest 'whole-value JSONdemo and File APIs still work' => {
+	plan 3;
+
+	my $path = $tmpdir.child("streaming-whole-{$*PID}.json");
+	$path.spurt('{"n":1}');
+
+	my $source = Qwiratry::Location.make(:type<Source>, :location(~$path));
+	is $source.read-walkable(~$path), '{"n":1}', 'File read still returns whole text';
+
+	my $parsed = Qwiratry::Format.make(:type<Parse>, :format<JSONdemo>).parse-walkable('{"n":1}');
+	is $parsed<n>, 1, 'JSONdemo parse unchanged';
+
+	my $rendered = Qwiratry::Format.make(:type<Render>, :format<JSONdemo>).render-walkable(%(n => 2));
+	is $rendered, '{"n": 2}', 'JSONdemo render unchanged';
+
+	$path.unlink if $path.e;
+}
+
+subtest 'File and NDJSONdemo expose streaming capabilities' => {
+	plan 4;
+
+	my $source = Qwiratry::Location.make(:type<Source>, :location('x.json'));
+	ok $source ~~ Qwiratry::Location::Base::SourcePull, 'File source does SourcePull';
+
+	my $dest = Qwiratry::Location.make(:type<Destination>, :location('x.json'));
+	ok $dest ~~ Qwiratry::Location::Base::DestinationPush, 'File destination does DestinationPush';
+
+	my $parse = Qwiratry::Format.make(:type<Parse>, :format<NDJSONdemo>);
+	ok $parse ~~ Qwiratry::Format::Base::ParsePull, 'NDJSONdemo parse does ParsePull';
+
+	my $render = Qwiratry::Format.make(:type<Render>, :format<NDJSONdemo>);
+	ok $render ~~ Qwiratry::Format::Base::RenderPull, 'NDJSONdemo render does RenderPull';
+}
+
+subtest 'streaming source composes with non-streaming parser via fallback' => {
+	plan 2;
+
+	my $path = $tmpdir.child("streaming-fallback-parse-{$*PID}.json");
+	$path.spurt('[{"score":1},{"score":5}]');
+
+	# Whole-value source + non-streaming parser (normal path).
+	my $result = execute(
+		ParseOperator.new(
+			:subject(SourceOperator.new(:location(~$path))),
+			:format('JSONdemo'),
+		),
+	);
+	my @rows = $result.list;
+	is @rows.elems, 2, 'source read + JSONdemo parse still works';
+	is @rows.map(*<score>).sort, (1, 5), 'parsed values survive non-streaming path';
+
+	$path.unlink if $path.e;
+}
+
+subtest 'chunk iterator falls back to join for non-streaming parser' => {
+	plan 1;
+
+	my $text = '[{"score":7}]';
+	my $chunks = $text.comb(4).iterator;
+	my $result = execute(
+		ParseOperator.new(:subject($chunks), :format('JSONdemo')),
+	);
+	is $result[0]<score>, 7, 'ParseOperator joins chunks before JSONdemo.parse';
+}
+
+subtest 'streaming source and streaming parser use read-pull + parse-pull' => {
+	plan 2;
+
+	my $path = $tmpdir.child("streaming-both-{$*PID}.ndjson");
+	$path.spurt(q:to/END/);
+	{"a":1}
+	{"a":2}
+	END
+
+	my $result = execute(
+		ParseOperator.new(
+			:subject(SourceOperator.new(:location(~$path))),
+			:format('NDJSONdemo'),
+		),
+	);
+	ok $result ~~ Seq, 'dual streaming path returns lazy Seq from parse-pull';
+	is $result.map(*<a>).eager, (1, 2), 'stream-parsed NDJSON records';
+
+	$path.unlink if $path.e;
+}
+
+subtest 'non-streaming Str input uses whole-value parse on streaming format' => {
+	plan 2;
+
+	my $ndjson = q:to/END/;
+	{"a":1}
+	{"a":2}
+	END
+
+	my $result = execute(
+		ParseOperator.new(:subject($ndjson), :format('NDJSONdemo')),
+	);
+	ok $result ~~ Positional, 'whole-value parse path used for Str input';
+	is $result.map(*<a>).List, (1, 2), 'NDJSONdemo whole-value parse works';
+}
+
+subtest 'streaming renderer does not force lazy Seq into a list' => {
+	plan 3;
+
+	my $forced = False;
+	my $lazy = Seq.from-loop({
+		state $n = 0;
+		$n++ >= 3 ?? IterationEnd !! %(id => $n, note => 'lazy')
+	});
+	$lazy does role {
+		method list(|c) {
+			$forced = True;
+			nextsame;
+		}
+	};
+
+	my $chunks = execute(
+		RenderOperator.new(:subject($lazy), :format('NDJSONdemo')),
+	);
+	ok $chunks ~~ Iterator, 'streaming render returns Iterator';
+	ok !$forced, 'lazy Seq was not forced via .list before render-pull';
+
+	my $text = collect-chunks($chunks);
+	like $text, rx/'{"id": 1'/, 'rendered NDJSON includes first record';
+}
+
+subtest 'streamed destination writes complete output in order' => {
+	plan 2;
+
+	my $input = $tmpdir.child("streaming-in-{$*PID}.ndjson");
+	my $output = $tmpdir.child("streaming-out-{$*PID}.ndjson");
+	$input.spurt(q:to/END/);
+	{"name":"alpha","status":"active"}
+	{"name":"beta","status":"inactive"}
+	{"name":"gamma","status":"active"}
+	END
+
+	execute(
+		DestinationOperator.new(
+			:location(~$output),
+			:subject(
+				RenderOperator.new(
+					:format('NDJSONdemo'),
+					:subject(
+						SelectionOperator.new(
+							:predicate(-> $_ { $_<status> eq 'active' }),
+							:subject(
+								ParseOperator.new(
+									:format('NDJSONdemo'),
+									:subject(SourceOperator.new(:location(~$input)))
+								)
+							)
+						)
+					)
+				)
+			)
+		)
+	);
+
+	ok $output.e, 'destination file was written';
+	my @lines = $output.slurp.lines.grep(*.chars);
+	is @lines.elems, 2, 'filtered active rows written in stream order';
+
+	$input.unlink if $input.e;
+	$output.unlink if $output.e;
+}
+
+subtest 'NDJSONdemo parse-pull buffers across arbitrary chunk splits' => {
+	plan 1;
+
+	my $text = '{"x":1}' ~ "\n" ~ '{"x":2}' ~ "\n";
+	# Deliberately split mid-token.
+	my @parts = $text.comb(3);
+	my $chunks = @parts.iterator;
+	my $seq = Qwiratry::Format.make(:type<Parse>, :format<NDJSONdemo>).parse-pull($chunks);
+	is $seq.map(*<x>).eager, (1, 2), 'parse-pull reassembly works across splits';
+}
+
+done-testing;

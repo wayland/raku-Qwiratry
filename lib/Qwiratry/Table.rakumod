@@ -42,7 +42,7 @@ class Catalog is export {
 	}
 
 	method active-rows(--> List) {
-		$!active-table.defined && $!tables{$!active-table}:exists or return ();
+		$!active-table.defined && ($!tables{$!active-table}:exists) or return ();
 		$!tables{$!active-table}.list;
 	}
 
@@ -132,7 +132,7 @@ Child-axis navigation: active table rows, FK follow, or column filter.
 
 		if $base ~~ Catalog {
 			my $table-name = $base.active-table // '';
-			$table-name && $base.tables{$table-name}:exists or return ();
+			$table-name && ($base.tables{$table-name}:exists) or return ();
 			my @rows = $base.tables{$table-name}.list;
 			selector.is-wildcard($sel) and return @rows;
 			return @rows.grep({ selector.table-row-matches($_, $sel) }).List;
@@ -173,7 +173,7 @@ Parent-axis navigation: owning table or referencing rows when C<:reference>.
 				return self.referencing-rows($base, $table-name);
 			}
 			my $table-name = self.table-name-for($base);
-			$table-name.defined && self.tables{$table-name}:exists or return ();
+			$table-name.defined && (self.tables{$table-name}:exists) or return ();
 			return (self.tables{$table-name},);
 		}
 
@@ -350,7 +350,7 @@ Locate a row's index and table row list for ordered-row sibling navigation.
 =end pod
 	method !row-order-context(Associative $row --> Mu) {
 		my $table-name = self.table-name-for($row);
-		$table-name.defined && self.tables{$table-name}:exists or return;
+		$table-name.defined && (self.tables{$table-name}:exists) or return;
 		my @rows = self.tables{$table-name}.list;
 		for 0..^@rows -> $i {
 			return %(rows => @rows, index => $i) if @rows[$i] === $row

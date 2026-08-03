@@ -85,9 +85,13 @@ class Qwiratry::Format does Implementation::Loader {
 		self.format-module-name($format) ~ '::' ~ self.normalize-type-name($type)
 	}
 
-	# Return the abstract base class name for an operation type.
+	# Return the abstract walkable base class name for an operation type.
 	method !base-class-name(Str $type --> Str) {
-		'Qwiratry::Format::Base::' ~ self.normalize-type-name($type)
+		my $normalized = self.normalize-type-name($type);
+		my %walkable =
+			Parse => 'ParseWalkable',
+			Render => 'RenderWalkable';
+		'Qwiratry::Format::Base::' ~ (%walkable{$normalized} // $normalized)
 	}
 
 	# Return format module labels from discovered Qwiratry::Format::* modules.

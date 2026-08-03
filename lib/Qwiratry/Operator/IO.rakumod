@@ -20,9 +20,22 @@ C<:&execute>.
 unit module Qwiratry::Operator::IO;
 
 use Qwiratry::Format;
+use Qwiratry::Format::Base;
 use Qwiratry::Location;
+use Qwiratry::Location::Base;
 use Qwiratry::Operator::Capability;
 use X::Qwiratry;
+
+# Join a pull stream of text chunks into one Str for whole-value fallback.
+sub join-text-chunks(Iterator:D $chunks --> Str) {
+	my @parts;
+	loop {
+		my $pulled := $chunks.pull-one;
+		last if $pulled =:= IterationEnd;
+		@parts.push($pulled.Str);
+	}
+	@parts.join
+}
 
 =begin pod
 
@@ -122,16 +135,44 @@ role LocationOperatorNode does LocationOperator does AdaptorOperatorNode {
 	Reads source locations directly. Destination locations evaluate their subject
 	or pipeline origin, write that content, and return it for pass-through.
 
+	Sources always use whole-value C<read-walkable> here so directory roots, globs,
+	and existing callers keep their current return shapes. Pull composition is
+	chosen by C<ParseOperator> when both the source and parser support pull chunks.
+
+	Push destinations prefer an incremental sink when the upstream value is
+	a text-chunk C<Iterator>; otherwise they fall back to whole-value
+	C<write-walkable>. Streamed destination pass-through is single-consumer: the
+	returned value is the consumed iterator, which is exhausted after writing.
+
 	=end pod
 	method evaluate(Mu :$origin, :&execute) {
 		my $implementation = self.location-implementation;
 
 		if self.location-type eq 'Source' {
-			return $implementation.read(self.location);
+			return $implementation.read-walkable(self.location);
 		}
 
-		my $content = execute(self.subject // $origin, :$origin);
-		$implementation.write(self.location, $content);
+		# Prefer the chained subject; do not use // with $origin here — a defined
+		# but empty List origin would be wrong, and bare C<execute(...)> must call
+		# the pipeline callback (parameter), not be confused with other candidates.
+		my $upstream = self.subject.defined ?? self.subject !! $origin;
+		my $content = &execute($upstream, :$origin);
+		if $implementation ~~ Qwiratry::Location::Base::DestinationPush
+			&& $content ~~ Iterator
+		{
+			my $sink = $implementation.open-sink-push(self.location);
+			loop {
+				my $pulled := $content.pull-one;
+				last if $pulled =:= IterationEnd;
+				$sink.write-chunk($pulled.Str);
+			}
+			$sink.close;
+			return $content;
+		}
+		if $content ~~ Iterator {
+			$content = join-text-chunks($content);
+		}
+		$implementation.write-walkable(self.location, $content);
 		$content
 	}
 }
@@ -305,9 +346,38 @@ class ParseOperator is RakuAST::Node does FormatOperatorNode is export {
 	configured format implementation. C<format-input> slurps an C<IO::Handle>
 	left-hand side when present.
 
+	When both the format does C<ParsePull> and the subject is a
+	C<SourceOperator> whose backend does C<SourcePull>, prefers
+	C<read-pull> + C<parse-pull>. A bare text-chunk C<Iterator> input also
+	uses C<parse-pull> when available; otherwise chunks are joined for
+	C<parse-walkable>.
+
 	=end pod
 	method evaluate(Mu :$origin, :&execute) {
-		self.format-implementation.parse(self.format-input($origin, &execute))
+		my $implementation = self.format-implementation;
+
+		if $implementation ~~ Qwiratry::Format::Base::ParsePull
+			&& (self.subject // $origin) ~~ SourceOperator
+		{
+			my $source-op = self.subject // $origin;
+			my $source-impl = $source-op.location-implementation;
+			if $source-impl ~~ Qwiratry::Location::Base::SourcePull {
+				return $implementation.parse-pull(
+					$source-impl.read-pull($source-op.location),
+				);
+			}
+		}
+
+		my $input = self.format-input($origin, &execute);
+		if $implementation ~~ Qwiratry::Format::Base::ParsePull
+			&& $input ~~ Iterator
+		{
+			return $implementation.parse-pull($input);
+		}
+		if $input ~~ Iterator {
+			$input = join-text-chunks($input);
+		}
+		$implementation.parse-walkable($input)
 	}
 }
 
@@ -372,11 +442,20 @@ class RenderOperator is RakuAST::Node does FormatOperatorNode is export {
 	Evaluates the subject (or pipeline origin) to data and renders it with the
 	configured format implementation and options.
 
+	When the format does C<RenderPull>, calls C<render-pull> without
+	forcing a lazy C<Seq> into a list. Walkable renderers still normalize
+	C<Seq> inputs to a list before C<render-walkable>.
+
 	=end pod
 	method evaluate(Mu :$origin, :&execute) {
+		my $implementation = self.format-implementation;
 		my $data = self.format-input($origin, &execute);
+		my %opts = %(%.options // %());
+		if $implementation ~~ Qwiratry::Format::Base::RenderPull {
+			return $implementation.render-pull($data, |%opts);
+		}
 		my $payload = $data ~~ Seq ?? $data.list !! $data;
-		self.format-implementation.render($payload, |%(%.options // %()))
+		$implementation.render-walkable($payload, |%opts)
 	}
 }
 

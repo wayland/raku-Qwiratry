@@ -126,9 +126,13 @@ class Qwiratry::Location does Implementation::Loader {
 		self.backend-module-name($backend) ~ '::' ~ self.normalize-type-name($type)
 	}
 
-	# Return the abstract base class name for an operation type.
+	# Return the abstract walkable base class name for an operation type.
 	method !base-class-name(Str $type --> Str) {
-		'Qwiratry::Location::Base::' ~ self.normalize-type-name($type)
+		my $normalized = self.normalize-type-name($type);
+		my %walkable =
+			Source => 'SourceWalkable',
+			Destination => 'DestinationWalkable';
+		'Qwiratry::Location::Base::' ~ (%walkable{$normalized} // $normalized)
 	}
 
 	# Normalize URI schemes for registry lookup.

@@ -12,6 +12,30 @@ C<release-x.y.z> convention.
 
 =head1 Unreleased
 
+=head2 Added
+
+=item Optional pull/sink capability roles on format and location bases:
+C<ParsePull>, C<RenderPull>, C<SourcePull>, and C<DestinationPush>, using pull
+C<Iterator> text chunks (and a destination sink for incremental writes).
+
+=item Adaptor operators preserve streaming when both sides support pull, with
+whole-value (walkable) fallback otherwise. Pull render no longer forces a lazy
+C<Seq> into a list.
+
+=item File locations implement C<read-pull> and C<open-sink-push>.
+
+=item C<Qwiratry::Format::NDJSONdemo> reference format with whole-value and
+pull parse/render.
+
+=head2 Changed
+
+=item Walkable/pull/push rename of format and location base contracts:
+C<Parse>/C<parse> → C<ParseWalkable>/C<parse-walkable>,
+C<StreamingParse>/C<parse-chunks> → C<ParsePull>/C<parse-pull>,
+and the matching render/source/destination renames (see
+L<Streaming-Qwiratry-Proposal.md>). Factory C<:type> labels remain
+C<Parse>/C<Render>/C<Source>/C<Destination>.
+
 =head1 0.0.9 - 2026-07-23
 
 =head2 Added

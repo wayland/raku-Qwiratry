@@ -24,7 +24,7 @@ subtest 'source parse render destination round-trip with temp files' => {
 	ok $output.e, 'destination file was written';
 	ok $result.defined, 'I/O slang returns rendered content directly';
 
-	my $parsed = Qwiratry::Format.make(:type<Parse>, :format<JSONdemo>).parse($output.slurp);
+	my $parsed = Qwiratry::Format.make(:type<Parse>, :format<JSONdemo>).parse-walkable($output.slurp);
 	my @rows = $parsed ~~ Positional ?? $parsed.list !! ($parsed,);
 	is @rows.elems, 1, 'pipeline filtered to active rows only';
 

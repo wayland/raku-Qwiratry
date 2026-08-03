@@ -52,15 +52,15 @@ location family. A backend can implement only source, only destination, or both.
 use X::Qwiratry;
 use Qwiratry::Location::Base;
 
-class Qwiratry::Location::Postgres::Source is Qwiratry::Location::Base::Source {
-    method read(Str $location --> Str) {
+class Qwiratry::Location::Postgres::Source is Qwiratry::Location::Base::SourceWalkable {
+    method read-walkable(Str $location --> Str) {
         # Connect to $location and return text, rows encoded as text,
         # or another representation expected by the rest of the pipeline.
     }
 }
 
-class Qwiratry::Location::Postgres::Destination is Qwiratry::Location::Base::Destination {
-    method write(Str $location, Mu $content --> Mu) {
+class Qwiratry::Location::Postgres::Destination is Qwiratry::Location::Base::DestinationWalkable {
+    method write-walkable(Str $location, Mu $content --> Mu) {
         # Connect to $location and write $content.
         $content
     }
@@ -100,7 +100,7 @@ my $data = execute($source);
 Under the operator surface, Qwiratry resolves the concrete source through:
 
 =begin code :lang<raku>
-Qwiratry::Location.make(:type<Source>, :location<input.csv>).read('input.csv')
+Qwiratry::Location.make(:type<Source>, :location<input.csv>).read-walkable('input.csv')
 =end code
 
 =head1 Destination
@@ -137,7 +137,7 @@ my $output = execute($destination);
 Under the operator surface, Qwiratry resolves the concrete destination through:
 
 =begin code :lang<raku>
-Qwiratry::Location.make(:type<Destination>, :location<output.csv>).write('output.csv', $rendered)
+Qwiratry::Location.make(:type<Destination>, :location<output.csv>).write-walkable('output.csv', $rendered)
 =end code
 
 =head1 Testing
@@ -178,8 +178,8 @@ implementation objects.
 
 =item C<Qwiratry::Location::Base>
 
-Defines C<Qwiratry::Location::Base::Source> and
-C<Qwiratry::Location::Base::Destination>, the abstract contracts for backend
+Defines C<Qwiratry::Location::Base::SourceWalkable> and
+C<Qwiratry::Location::Base::DestinationWalkable>, the abstract contracts for backend
 implementations.
 
 =item C<Qwiratry::Location::File>

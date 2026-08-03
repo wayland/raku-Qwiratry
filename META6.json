@@ -19,6 +19,7 @@
     "Qwiratry::Format::Base": "lib/Qwiratry/Format/Base.rakumod",
     "Qwiratry::Format::CSVdemo": "lib/Qwiratry/Format/CSVdemo.rakumod",
     "Qwiratry::Format::JSONdemo": "lib/Qwiratry/Format/JSONdemo.rakumod",
+    "Qwiratry::Format::NDJSONdemo": "lib/Qwiratry/Format/NDJSONdemo.rakumod",
     "Qwiratry::Format": "lib/Qwiratry/Format.rakumod",
     "Qwiratry::Location::Base": "lib/Qwiratry/Location/Base.rakumod",
     "Qwiratry::Location::File": "lib/Qwiratry/Location/File.rakumod",
@@ -82,5 +83,5 @@
   },
   "resources": [],
   "test-depends": [],
-  "version": "0.0.9"
+  "version": "0.10.0"
 }

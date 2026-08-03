@@ -206,6 +206,11 @@ class SelectionEvaluator does LazyEvaluator is export {
 			return select-seq($query.subject, $origin);
 		}
 		if $query.subject ~~ AdaptorOperator {
+			# pipeline-root already executed the adaptor into $origin. Streaming
+			# parsers return Seq/Iterator, which are not Positional — pass them
+			# through so rows are pulled, instead of wrapping the whole stream
+			# as a single element.
+			return $origin if $origin ~~ Seq | Iterator;
 			return $origin ~~ Positional ?? $origin !! ($origin,);
 		}
 		if $query.subject ~~ Qwiratry::Table::Catalog {

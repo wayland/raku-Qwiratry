@@ -23,7 +23,7 @@ subtest '§3 pipeline: source → parse → select → render → destination' =
 	ok $output.e, 'destination file was written';
 	ok $result.defined, 'pipeline returns rendered content';
 
-	my $parsed = Qwiratry::Format.make(:type<Parse>, :format<JSONdemo>).parse($output.slurp);
+	my $parsed = Qwiratry::Format.make(:type<Parse>, :format<JSONdemo>).parse-walkable($output.slurp);
 	my @rows = $parsed ~~ Positional ?? $parsed.list !! ($parsed,);
 	is @rows.elems, 1, 'pipeline filtered to active rows only';
 
