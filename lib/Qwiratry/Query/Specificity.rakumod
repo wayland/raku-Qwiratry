@@ -4,13 +4,13 @@ Calculate mold ordering specificity scores from navigation Query AST nodes.
 
 Scoring follows Specification.md section 3.3.2.4 (ORDER-MOLDS):
 
-=item Multilevel axes (descendant, ancestor, following, preceding) → −100
+=item Multilevel sectors (descendant, ancestor, following, preceding) → −100
 
 =item Wildcards → −10
 
 =item Explicit path elements → +5
 
-=item Attribute axes → +5
+=item Attribute sectors → +5
 
 Higher scores mean more specific molds and win ordering ties.
 

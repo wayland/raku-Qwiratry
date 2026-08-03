@@ -766,7 +766,7 @@ class Transformer does Callable is export {
 
 	The navigation-query part of the original future work has been implemented:
 	C<when-query> ASTs are delegated to L<Qwiratry::Query::Specificity>, which
-	scores multilevel axes, wildcards, explicit path elements, attribute axes, and
+	scores multilevel sectors, wildcards, explicit path elements, attribute sectors, and
 	union-like branches.
 
 	Predicate-only molds still use the default score. Future work may analyze

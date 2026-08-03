@@ -110,7 +110,7 @@ sub nav-new(
 
 =begin pod
 
-Child axis (C<⪪>): direct children matching C<$right>.
+Child sector (C<⪪>): direct children matching C<$right>.
 
 Bare form (no LHS) uses the caller topic C<$_>.
 
@@ -127,7 +127,7 @@ multi sub prefix:<⪪>(Mu $right) is export {
 
 =begin pod
 
-Parent axis (C<⪫>): parent or referencing rows; C<:reference> for incoming FKs.
+Parent sector (C<⪫>): parent or referencing rows; C<:reference> for incoming FKs.
 
 Bare form (no LHS) uses the caller topic C<$_>.
 
@@ -144,7 +144,7 @@ multi sub prefix:<⪫>(Mu $right, *%adverbs) is export {
 
 =begin pod
 
-Descendant axis (C<⪪⪪>): nested children; C<:recursive> for table FK walks.
+Descendant sector (C<⪪⪪>): nested children; C<:recursive> for table FK walks.
 
 Bare form (no LHS) uses the caller topic C<$_>.
 
@@ -161,7 +161,7 @@ multi sub prefix:<⪪⪪>(Mu $right, *%adverbs) is export {
 
 =begin pod
 
-Ancestor axis (C<⪫⪫>): ancestor nodes matching C<$right>; C<:reference> for incoming FKs.
+Ancestor sector (C<⪫⪫>): ancestor nodes matching C<$right>; C<:reference> for incoming FKs.
 
 Bare form (no LHS) uses the caller topic C<$_>.
 
@@ -178,7 +178,7 @@ multi sub prefix:<⪫⪫>(Mu $right, *%adverbs) is export {
 
 =begin pod
 
-Following-sibling axis (C<⪨>): next sibling in document/table order.
+Following-sibling sector (C<⪨>): next sibling in document/table order.
 
 Bare form (no LHS) uses the caller topic C<$_>.
 
@@ -195,7 +195,7 @@ multi sub prefix:<⪨>(Mu $right) is export {
 
 =begin pod
 
-Preceding-sibling axis (C<⪩>): previous sibling in document/table order.
+Preceding-sibling sector (C<⪩>): previous sibling in document/table order.
 
 Bare form (no LHS) uses the caller topic C<$_>.
 
@@ -212,7 +212,7 @@ multi sub prefix:<⪩>(Mu $right) is export {
 
 =begin pod
 
-Following axis (C<⪨⪨>): all following nodes in order.
+Following sector (C<⪨⪨>): all following nodes in order.
 
 Bare form (no LHS) uses the caller topic C<$_>.
 
@@ -229,7 +229,7 @@ multi sub prefix:<⪨⪨>(Mu $right) is export {
 
 =begin pod
 
-Preceding axis (C<⪩⪩>): all preceding nodes in order.
+Preceding sector (C<⪩⪩>): all preceding nodes in order.
 
 Bare form (no LHS) uses the caller topic C<$_>.
 
@@ -246,7 +246,7 @@ multi sub prefix:<⪩⪩>(Mu $right) is export {
 
 =begin pod
 
-Attribute axis (C<⥷>): read attribute or column C<$right> from C<$left>.
+Attribute sector (C<⥷>): read attribute or column C<$right> from C<$left>.
 
 Bare form (no LHS) uses the caller topic C<$_>.
 
@@ -273,7 +273,7 @@ multi sub postfix:<⇤>(Mu $subject) is export {
 
 =begin pod
 
-Named aliases for navigation axes (Operators.md §5.1).
+Named aliases for navigation sectors (Operators.md §5.1).
 
 C<data-root> is a postfix; use unspace when a space is wanted (C<$node\ data-root>).
 

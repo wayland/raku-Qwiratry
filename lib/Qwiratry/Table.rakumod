@@ -124,7 +124,7 @@ Return True when C<$base> is a single table row (associative, not a catalog).
 
 =begin pod
 
-Child-axis navigation: active table rows, FK follow, or column filter.
+Child-sector navigation: active table rows, FK follow, or column filter.
 
 =end pod
 	method child-results(Mu $base, Mu $op --> List) {
@@ -159,7 +159,7 @@ Child-axis navigation: active table rows, FK follow, or column filter.
 
 =begin pod
 
-Parent-axis navigation: owning table or referencing rows when C<:reference>.
+Parent-sector navigation: owning table or referencing rows when C<:reference>.
 
 =end pod
 	method parent-results(Mu $base, Mu $op --> List) {
@@ -187,7 +187,7 @@ Parent-axis navigation: owning table or referencing rows when C<:reference>.
 
 =begin pod
 
-Descendant-axis navigation; table rows require C<:recursive> for FK walks.
+Descendant-sector navigation; table rows require C<:recursive> for FK walks.
 
 =end pod
 	method descendant-results(Mu $base, Mu $op --> List) {
@@ -203,7 +203,7 @@ Descendant-axis navigation; table rows require C<:recursive> for FK walks.
 
 =begin pod
 
-Sibling-axis navigation within a table's ordered row list.
+Sibling-sector navigation within a table's ordered row list.
 
 =end pod
 	method sibling-results(Mu $base, Mu $op --> List) {

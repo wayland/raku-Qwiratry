@@ -134,7 +134,7 @@ B<Example Protocols and URL Schemes>:
 =item C<⮳ <data.json>> - Relative file path
 =item C<⮳ </absolute/path/data.json>> - Absolute file path
 
-=item Directory locations return an C<IO::Path> root for tree navigation (child/descendant axes, basename/glob/regex selectors) instead of slurping contents.
+=item Directory locations return an C<IO::Path> root for tree navigation (child/descendant sectors, basename/glob/regex selectors) instead of slurping contents.
 
 =item B<HTTP/HTTPS> (C<http://>, C<https://>):
 =item C<⮳ <https://example.com/data.json>> - HTTPS URL
@@ -341,16 +341,16 @@ my $sum = $relation ==> ⌿ { $^a + $^b.age };
 
 =head1 5. Navigation Operators
 
-Navigation Operators provide axis-based navigation for tree-like structures (XML, JSON, ASTs, Match trees, etc.), but other structures, such as tables. These operators are inspired by XPath axes but stay idiomatically Raku.  All navigation operators require a right operand (which can be a Whatever C<*>), except for the root operator (C<⇤>) which is a B<unary postfix operator>.  If a left operand is provided, they use that as input, otherwise, they use $_ as input.  They may take additional operands as adverbs.
+Navigation Operators provide sector-based navigation for tree-like structures (XML, JSON, ASTs, Match trees, etc.), but other structures, such as tables. These operators are inspired by XPath sectors but stay idiomatically Raku.  All navigation operators require a right operand (which can be a Whatever C<*>), except for the root operator (C<⇤>) which is a B<unary postfix operator>.  If a left operand is provided, they use that as input, otherwise, they use $_ as input.  They may take additional operands as adverbs.
 
 Navigation operators can be chained: C<$node ⪪ I< ⪪ >> means "children of children"
 
 =head2 5.1 Navigation Operators Reference
 
-Each operator returns the set of nodes along the corresponding axis. All axis operators are both B<callable> and B<iterable>, allowing them to be used in path specifications and composed with other operators.  Navigation operators can be used with trees, but also tables and relational data structures. The semantics depend on the left operand type.
+Each operator returns the set of nodes along the corresponding sector. All sector operators are both B<callable> and B<iterable>, allowing them to be used in path specifications and composed with other operators.  Navigation operators can be used with trees, but also tables and relational data structures. The semantics depend on the left operand type.
 
 =begin table
-Axis | Unicode | Alias | Tree | Table | Table Row
+Sector | Unicode | Alias | Tree | Table | Table Row
 Child | ⪪ | C<child> | Direct children of the current node | Returns rows | Returns FK rows or nothing (if column has no FK)
 Parent | ⪫ | C<parent> | Direct parent of the current node | Returns containing namespace (schema/database/etc.) | Returns the table containing the row
 Descendant | ⪪⪪ | C<descendant> | All descendants of the current node | Returns all rows (same as ⪪) | Walker-dependent: may descend into FKs (optionally filtered by labels), or throw exception
@@ -853,8 +853,8 @@ givenroot $catalog {
 
 =head2 5.4 Implementation Notes
 
-=item Axis operators are B<implementation-dependent> - different Walkers may implement them differently:
-=item They may compose iterators to retrieve nodes along the specified axis
+=item Sector operators are B<implementation-dependent> - different Walkers may implement them differently:
+=item They may compose iterators to retrieve nodes along the specified sector
 =item They may be translated into other query languages (e.g., SQL for database walkers)
 =item They may use domain-specific traversal strategies
 =item In normal code, query slang operators evaluate through C<Qwiratry::Query::Runtime> and return lazy C<Seq> results
@@ -1274,7 +1274,7 @@ Qwiratry operators provide a comprehensive set of tools for querying and transfo
 
 =item B<I/O Operations> - Parsing, rendering, and external data access
 =item B<Aggregation> - Selection, sorting, mapping, and reduction
-=item B<Data Navigation> - Axis-based traversal for hierarchical structures
+=item B<Data Navigation> - Sector-based traversal for hierarchical structures
 =item B<Set Operations> - Set theory and relational algebra for tables/relations, including column manipulation, projection, renaming, and joins
 
 All operators are:

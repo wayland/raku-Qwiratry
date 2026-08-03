@@ -87,7 +87,7 @@ role PipelineStep is export {
 
 =begin pod
 
-Marks an operator as a navigation query (tree, table, or graph axes).
+Marks an operator as a navigation query (tree, table, or graph sectors).
 
 =end pod
 role NavigationOperator does PipelineStep is export {

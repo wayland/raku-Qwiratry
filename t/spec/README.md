@@ -23,7 +23,7 @@ Filenames start with the section number so coverage is greppable:
 | `Operators/02-precedence.rakutest` | Operators.md §2 |
 | `Operators/03-io.rakutest` | Operators.md §3 |
 | `Operators/04-mapreduce.rakutest` | Operators.md §4 |
-| `Operators/05-navigation-tree.rakutest` | Operators.md §5.1 tree axes |
+| `Operators/05-navigation-tree.rakutest` | Operators.md §5.1 tree sectors |
 | `Operators/05-navigation-topic.rakutest` | Operators.md §5 bare `$_` LHS |
 | `Operators/05.2-table-fk-navigation.rakutest` | Operators.md §5.2.1–5.2.5 |
 | `Operators/05.2.8-ordered-row-navigation.rakutest` | Operators.md §5.2.8–5.2.11 |

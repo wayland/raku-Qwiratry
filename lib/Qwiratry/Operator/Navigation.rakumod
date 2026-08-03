@@ -8,13 +8,13 @@ Operators declare L<NavigationOperator> capability and are interpreted by Walker
 during planning. Execution semantics (tree vs table vs graph) are Walker-specific.
 
 The query slang lowers navigation syntax such as child, descendant, sibling, and
-attribute axes into these node classes. Each node stores only the structural
+attribute sectors into these node classes. Each node stores only the structural
 pieces of the query: an optional C<subject>, a selector or key, and any adverbs.
 Walkers and L<Qwiratry::Query::Runtime> provide the domain-specific meaning.
 
 =head1 Operator Families
 
-C<NavigationOperatorNode> covers axis operators that select related nodes using
+C<NavigationOperatorNode> covers sector operators that select related nodes using
 a selector. C<AttributeOperator> reads a named attribute or column. C<RootOperator>
 anchors a pipeline at the original query root or an explicit subject.
 
@@ -78,7 +78,7 @@ class AttributeOperator is RakuAST::Node does NavigationOperator does OperatorBa
 	method describe(--> Str)
 	=end code
 
-	Returns a debug label for an attribute-axis node, including the key and any
+	Returns a debug label for an attribute-sector node, including the key and any
 	explicit subject.
 
 	=end pod

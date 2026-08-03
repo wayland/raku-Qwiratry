@@ -838,10 +838,10 @@ Ordering:
 1. Molds can have a `:priority` trait (default 0). Highest numbers first, lowest numbers last.  Numbers can be negative.  
 2. Molds with equal priority are sorted by specificity score.  So if there's only one mold with a given priority, its specificity doesn't need to be calculated.  
 3. Specificity is calculated based on the `when` clause:
-   * Multilevel axis (ancestor/descendant/preceding/following) → -100  
+   * Multilevel sector (ancestor/descendant/preceding/following) → -100  
    * Wildcards (`*`) → -10  
    * Each explicit path element → +5  
-   * Each attribute axis → +5  
+   * Each attribute sector → +5  
    * If there's a Union or the like, then we calculate each branch, and take the max, which becomes the specificity for this branch.  
 4. Molds have a `:tie-breaker` trait (default 0) which you are required to set if two molds have the same specificity, and could match the same node.  
 5. If there are two which rank equally, and could match the same object, an error is thrown asking you to select a tie-breaker
@@ -927,7 +927,7 @@ Molds define **match-and-action rules** within a Transformer. Each mold consists
 | Matcher | `when {...}` | This is a code block.  It's expected to contain a query such as those involving by the Tree Operators.  It can be used for matching nodes (like the `select` clause on an XSLT mold) |
 | Action  | `do {...}` | This code block produces output nodes.  If the mold is turned into a method, this is the body of the method |
 
-#### Iterators, Axis Operators, and Predicates
+#### Iterators, Sector Operators, and Predicates
 
 * `when` clauses can use **composed iterators** (which are both callable and iterable) for path specifications:
 
@@ -935,7 +935,7 @@ Molds define **match-and-action rules** within a Transformer. Each mold consists
 mold section() when { $_ ⪪⪪ <div> } do { <action on div> }
 ````
 
-* Axis operators (like `⪪`, `⪫`, `⥷`) can be used directly within molds to select nodes.  
+* Sector operators (like `⪪`, `⪫`, `⥷`) can be used directly within molds to select nodes.  
 * Predicates and combinators (like `∪`, `∩`) can refine node selection in `when` clauses.  
 
 

@@ -330,15 +330,15 @@ my $sum = $relation ==> ⌿ { $^a + $^b.age };
 
 ## 5. Navigation Operators
 
-Navigation Operators provide axis-based navigation for tree-like structures (XML, JSON, ASTs, Match trees, etc.), but other structures, such as tables. These operators are inspired by XPath axes but stay idiomatically Raku.  All navigation operators require a right operand (which can be a Whatever `*`), except for the root operator (`⇤`) which is a **unary postfix operator**.  If a left operand is provided, they use that as input, otherwise, they use $_ as input.  They may take additional operands as adverbs.  
+Navigation Operators provide sector-based navigation for tree-like structures (XML, JSON, ASTs, Match trees, etc.), but other structures, such as tables. These operators are inspired by XPath sectors but stay idiomatically Raku.  All navigation operators require a right operand (which can be a Whatever `*`), except for the root operator (`⇤`) which is a **unary postfix operator**.  If a left operand is provided, they use that as input, otherwise, they use $_ as input.  They may take additional operands as adverbs.  
 
 Navigation operators can be chained: `$node ⪪ * ⪪ *` means "children of children"
 
 ### 5.1 Navigation Operators Reference
 
-Each operator returns the set of nodes along the corresponding axis. All axis operators are both **callable** and **iterable**, allowing them to be used in path specifications and composed with other operators.  Navigation operators can be used with trees, but also tables and relational data structures. The semantics depend on the left operand type. 
+Each operator returns the set of nodes along the corresponding sector. All sector operators are both **callable** and **iterable**, allowing them to be used in path specifications and composed with other operators.  Navigation operators can be used with trees, but also tables and relational data structures. The semantics depend on the left operand type. 
 
-| Axis              | Unicode | Alias          | Tree | Table | Table Row |
+| Sector              | Unicode | Alias          | Tree | Table | Table Row |
 |-------------------|---------|----------------|------|-------|-----------|
 | Child             | ⪪  | `child`             | Direct children of the current node | Returns rows | Returns FK rows or nothing (if column has no FK) |
 | Parent            | ⪫  | `parent`            | Direct parent of the current node | Returns containing namespace (schema/database/etc.) | Returns the table containing the row |
@@ -838,8 +838,8 @@ givenroot $catalog {
 
 ### 5.4 Implementation Notes
 
-- Axis operators are **implementation-dependent** - different Walkers may implement them differently:
-  - They may compose iterators to retrieve nodes along the specified axis
+- Sector operators are **implementation-dependent** - different Walkers may implement them differently:
+  - They may compose iterators to retrieve nodes along the specified sector
   - They may be translated into other query languages (e.g., SQL for database walkers)
   - They may use domain-specific traversal strategies
 - In normal code, query slang operators evaluate through `Qwiratry::Query::Runtime` and return lazy `Seq` results
@@ -1246,7 +1246,7 @@ Qwiratry operators provide a comprehensive set of tools for querying and transfo
 
 1. **I/O Operations** - Parsing, rendering, and external data access
 2. **Aggregation** - Selection, sorting, mapping, and reduction
-3. **Data Navigation** - Axis-based traversal for hierarchical structures
+3. **Data Navigation** - Sector-based traversal for hierarchical structures
 4. **Set Operations** - Set theory and relational algebra for tables/relations, including column manipulation, projection, renaming, and joins
 
 All operators are:

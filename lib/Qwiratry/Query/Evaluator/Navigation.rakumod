@@ -87,7 +87,7 @@ role NavigationEagerEvaluator does EagerEvaluator {
 				return self.select-list-for($op.subject, $origin);
 			}
 			# Evaluate adaptor subjects (Source/Parse/...) to concrete data before
-			# navigation axes walk them (chained slang like source then descendant).
+			# navigation sectors walk them (chained slang like source then descendant).
 			if $op.subject ~~ AdaptorOperator {
 				return (execute($op.subject, :$origin),);
 			}

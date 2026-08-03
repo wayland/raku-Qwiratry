@@ -150,7 +150,7 @@ class Qwiratry::Location::File::Source is Qwiratry::Location::Base::SourceWalkab
 
 	Reads C<$location>. Ordinary files return their text contents. Directories
 	return an C<IO::Path> root that L<Qwiratry::Tree::Navigator::Filesystem>
-	can navigate with the usual axis operators. When the location's final
+	can navigate with the usual sector operators. When the location's final
 	segment is a glob, returns a C<List> of matching C<IO::Path> entries.
 
 	Missing paths and globs that match nothing are reported as

@@ -6,7 +6,7 @@ Filesystem tree navigator.
 
 Adapts C<IO::Path> nodes to Qwiratry's tree navigation protocol so a directory
 returned by L<Qwiratry::Location::File::Source> can be queried with the usual
-axis operators.
+sector operators.
 
 Directories expose their entries as children. Ordinary files are leaves.
 Symlink directories are listed as children but are not descended into, which

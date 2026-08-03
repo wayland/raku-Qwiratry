@@ -45,20 +45,20 @@ subtest 'Named mold with empty signature (Specification.md example)' => {
 	is $mold.execute(Any), 'ok', 'named mold do-block executes';
 }
 
-subtest 'when clause may use axis operators (Specification.md §3.3.3)' => {
+subtest 'when clause may use sector operators (Specification.md §3.3.3)' => {
 	plan 2;
 
 	clear-collected-molds();
-	transformer AxisWhenSpec is Transformer {
+	transformer SectorWhenSpec is Transformer {
 		mold section() when { $_ ⪪ <div> } do { 'div-action' }
 		mold do { 'other' }
 	}
 
-	my $t = AxisWhenSpec.new;
+	my $t = SectorWhenSpec.new;
 	my $named = $t.molds.first({ .name eq 'section' });
-	ok $named.defined, 'mold with axis when-clause compiles';
+	ok $named.defined, 'mold with sector when-clause compiles';
 	# Pure query when-blocks are extracted to when-query (see mold-when-query.rakutest)
-	ok $named.when-query.defined, 'axis when-clause extracted as when-query';
+	ok $named.when-query.defined, 'sector when-clause extracted as when-query';
 }
 
 subtest 'Unmatched node produces no mold output via APPLY' => {

@@ -863,10 +863,10 @@ Ordering:
 =item Molds can have a C<:priority> trait (default 0). Highest numbers first, lowest numbers last.  Numbers can be negative.
 =item Molds with equal priority are sorted by specificity score.  So if there's only one mold with a given priority, its specificity doesn't need to be calculated.
 =item Specificity is calculated based on the C<when> clause:
-=item Multilevel axis (ancestor/descendant/preceding/following) → -100
+=item Multilevel sector (ancestor/descendant/preceding/following) → -100
 =item Wildcards (C<*>) → -10
 =item Each explicit path element → +5
-=item Each attribute axis → +5
+=item Each attribute sector → +5
 =item If there's a Union or the like, then we calculate each branch, and take the max, which becomes the specificity for this branch.
 =item Molds have a C<:tie-breaker> trait (default 0) which you are required to set if two molds have the same specificity, and could match the same node.
 =item If there are two which rank equally, and could match the same object, an error is thrown asking you to select a tie-breaker
@@ -954,7 +954,7 @@ Matcher | C<when {...}> | This is a code block.  It's expected to contain a quer
 Action | C<do {...}> | This code block produces output nodes.  If the mold is turned into a method, this is the body of the method
 =end table
 
-=head4 Iterators, Axis Operators, and Predicates
+=head4 Iterators, Sector Operators, and Predicates
 
 =item C<when> clauses can use B<composed iterators> (which are both callable and iterable) for path specifications:
 
@@ -962,7 +962,7 @@ Action | C<do {...}> | This code block produces output nodes.  If the mold is tu
 mold section() when { $_ ⪪⪪ <div> } do { <action on div> }
 =end code
 
-=item Axis operators (like C<⪪>, C<⪫>, C<⥷>) can be used directly within molds to select nodes.
+=item Sector operators (like C<⪪>, C<⪫>, C<⥷>) can be used directly within molds to select nodes.
 =item Predicates and combinators (like C<∪>, C<∩>) can refine node selection in C<when> clauses.
 
 =head4 Return Values

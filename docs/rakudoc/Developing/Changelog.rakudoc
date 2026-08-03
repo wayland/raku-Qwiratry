@@ -44,7 +44,7 @@ C<Parse>/C<Render>/C<Source>/C<Destination>.
 C<$*IN>) before invoking the format parser; the handle is left open.
 
 =item Bare navigation operators (no LHS) use the caller topic C<$_>, matching
-the documented axis behaviour. A missing or undefined topic is an error.
+the documented sector behaviour. A missing or undefined topic is an error.
 
 =item Selection alias C<𜸈>, named navigation aliases (C<child>, C<parent>,
 C<descendant>, C<attribute>, C<data-root>), and ancestor C<:reference> support.
@@ -97,7 +97,7 @@ filesystem navigation, reusing the shared selector machinery.
 =head2 Fixed
 
 =item Navigation evaluators now resolve adaptor subjects before walking tree
-axes, so chained source-then-navigation expressions work correctly.
+sectors, so chained source-then-navigation expressions work correctly.
 
 =item Query slang C<».> now preserves C<MapOperator> for explicit
 C<query-ast { ... }> construction while plain evaluated data uses normal map
