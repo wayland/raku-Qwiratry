@@ -39,31 +39,34 @@ format.
 
 =head2 Hook Model
 
-A strategy may implement any of these hooks:
+A strategy may implement any of these hooks. Walkable walkers may also pass an
+optional C<WalkCursor :$cursor> as the last named argument when the hook’s
+signature accepts it (Traversal probes before passing):
 
-=item C<before($element, Context $ctx)>
+=item C<before($element, Context $ctx, WalkCursor :$cursor)>
 
 Called before visiting an element.
 
-=item C<on-match($element, QueryMatch $match, Context $ctx)>
+=item C<on-match($element, QueryMatch $match, Context $ctx, WalkCursor :$cursor)>
 
 Called when a query matches an element.
 
-=item C<should-follow($origin, $relation, $target, Context $ctx)>
+=item C<should-follow($origin, $relation, $target, Context $ctx, WalkCursor :$cursor)>
 
 Returns whether traversal should follow a relation.
 
-=item C<after($element, Context $ctx)>
+=item C<after($element, Context $ctx, WalkCursor :$cursor)>
 
 Called after an element and its relations are processed.
 
-=item C<finish($root, Context $ctx)>
+=item C<finish($root, Context $ctx, WalkCursor :$cursor)>
 
 Called after traversal completes.
 
 =item C<should-continue($root, Context $ctx)>
 
-Returns whether another traversal pass should run.
+Returns whether another traversal pass should run. C<:cursor> is not required
+on this hook; omit it unless a walker supplies one for multi-pass cases.
 
 =head2 Minimal Strategy Example
 

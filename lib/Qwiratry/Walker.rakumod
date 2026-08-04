@@ -195,6 +195,22 @@ role Qwiratry::Walker::Plan {
 	method capabilities(--> Associative) {
 		Qwiratry::Walker::Capabilities.instance.default-plan()
 	}
+
+	=begin pod
+
+	=head2 C<cursor()>
+
+	=begin code
+	method cursor(--> Mu)
+	=end code
+
+	Optional Walkable face: return a fresh L<Qwiratry::QueryCursor> for this
+	plan. Default throws; Tree plans override.
+
+	=end pod
+	method cursor(--> Mu) {
+		die "{self.^name}.cursor is not supported for this plan";
+	}
 }
 
 =begin pod

@@ -113,7 +113,9 @@ element-child semantics instead.
 
 Descendant walks (C<< ⪪⪪ >>) are owned by the query evaluator
 (C<DescendantEvaluator>), which composes this one-step lookup with
-C<tree-children>. Navigators should not implement recursive descendant walks.
+C<tree-children>. Navigators should not implement recursive descendant walks
+for query matching; they may still expose multi-step helpers used by Cursors
+and Evaluators (see below).
 
 =head2 C<tree-parent>
 
@@ -148,6 +150,19 @@ multi method tree-attribute-value(Mu $node, Mu $key --> Mu)
 Return one attribute or key value from C<$node>. Attribute access goes through
 the navigator so XML attributes and JSON keys can differ from child navigation.
 C<⥷> uses C<tree-attribute-value>.
+
+=head2 Multi-Step Helpers And Walk-Local Caches
+
+C<Qwiratry::Tree::Navigator::Base> also provides multi-step sector helpers used
+by L<Qwiratry::QueryCursor> and the Navigation Evaluator, including
+C<tree-ancestors>, C<tree-descendants>, C<tree-sector-seq>, and related
+following/preceding walks.
+
+Registry / shared navigators stay cache-free. Cursors mint B<walk-local>
+navigators via C<tree-navigator-walk-local> (or C<walk-local-copy>). Those
+instances may cache; C<Tree::Replace> invalidates through
+C<invalidate-caches> when C<$*QWIRATRY-WALK-NAVIGATOR> is set. Do not put
+mutable walk caches on discovered registry instances.
 
 =head1 Discovery
 

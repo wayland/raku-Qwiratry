@@ -183,3 +183,58 @@ class X::Qwiratry::NextMold is X::Qwiratry::Walker {
 		"X::Qwiratry::NextMold: $.message (walker-type: $.walker-type)"
 	}
 }
+
+=begin pod
+
+Base exception for Cursor movement / argument errors.
+
+=end pod
+class X::Qwiratry::Cursor is X::Qwiratry::Walker {
+	method gist(--> Str) {
+		"X::Qwiratry::Cursor: $.message (walker-type: $.walker-type)"
+	}
+}
+
+=begin pod
+
+Both C<:axis> and C<:sector> were passed to a Cursor scroll method.
+
+=end pod
+class X::Qwiratry::Cursor::ConflictingDirection is X::Qwiratry::Cursor {
+	method gist(--> Str) {
+		"X::Qwiratry::Cursor::ConflictingDirection: $.message"
+	}
+}
+
+=begin pod
+
+Negative step (or Range endpoint) used with C<:sector>.
+
+=end pod
+class X::Qwiratry::Cursor::NegativeSectorStep is X::Qwiratry::Cursor {
+	method gist(--> Str) {
+		"X::Qwiratry::Cursor::NegativeSectorStep: $.message"
+	}
+}
+
+=begin pod
+
+Unsupported Axis, Sector, or scroll operation for this Cursor.
+
+=end pod
+class X::Qwiratry::Cursor::Unsupported is X::Qwiratry::Cursor {
+	method gist(--> Str) {
+		"X::Qwiratry::Cursor::Unsupported: $.message"
+	}
+}
+
+=begin pod
+
+Invalid Range for a count-taking C<fetch-*> method.
+
+=end pod
+class X::Qwiratry::Cursor::InvalidRange is X::Qwiratry::Cursor {
+	method gist(--> Str) {
+		"X::Qwiratry::Cursor::InvalidRange: $.message"
+	}
+}

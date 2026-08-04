@@ -63,6 +63,7 @@ L<Qwiratry::Strategy::ControlSignal>:
 =end pod
 unit module Qwiratry::Strategy;
 
+use WalkCursor;
 use Qwiratry::Context;
 use Qwiratry::Strategy::ControlSignal;
 use Qwiratry::Strategy::RewriteSpec;
@@ -95,10 +96,10 @@ role Strategy is export {
 
 	=head1 Methods
 
-	=head2 C<before($element, Context $ctx)>
+	=head2 C<before($element, Context $ctx, WalkCursor :$cursor)>
 
 	=begin code
-	method before($element, Context $ctx)
+	method before($element, Context $ctx, WalkCursor :$cursor)
 	=end code
 
 	=head3 Parameters
@@ -111,6 +112,11 @@ role Strategy is export {
 
 	 The context shared by this traversal, including walker state and the active
 	 strategy.
+
+	=item C<:$cursor>
+
+	 Optional L<WalkCursor> for the live walk position when the walker provides one.
+	 Undefined when traversal has no Cursor (pull-only paths).
 
 	Called before visiting an element.
 
@@ -133,14 +139,14 @@ role Strategy is export {
 	Use the default continue behavior.
 
 	=end pod
-	method before($element, Context $ctx) { Nil }
+	method before($element, Context $ctx, WalkCursor :$cursor) { Nil }
     
 	=begin pod
 
-	=head2 C<on-match($element, QueryMatch $match, Context $ctx)>
+	=head2 C<on-match($element, QueryMatch $match, Context $ctx, WalkCursor :$cursor)>
 
 	=begin code
-	method on-match($element, QueryMatch $match, Context $ctx)
+	method on-match($element, QueryMatch $match, Context $ctx, WalkCursor :$cursor)
 	=end code
 
 	=head3 Parameters
@@ -156,6 +162,10 @@ role Strategy is export {
 	=item C<$ctx>
 
 	 The shared traversal context.
+
+	=item C<:$cursor>
+
+	 Optional L<WalkCursor> for the live walk position when the walker provides one.
 
 	Called when the active query matches C<$element>.
 
@@ -179,14 +189,14 @@ role Strategy is export {
 	Continue normally.
 
 	=end pod
-	method on-match($element, QueryMatch $match, Context $ctx) { Nil }
+	method on-match($element, QueryMatch $match, Context $ctx, WalkCursor :$cursor) { Nil }
     
 	=begin pod
 
-	=head2 C<should-follow($origin, $relation, $target, Context $ctx)>
+	=head2 C<should-follow($origin, $relation, $target, Context $ctx, WalkCursor :$cursor)>
 
 	=begin code
-	method should-follow($origin, $relation, $target, Context $ctx --> Bool)
+	method should-follow($origin, $relation, $target, Context $ctx, WalkCursor :$cursor --> Bool)
 	=end code
 
 	=head3 Parameters
@@ -207,6 +217,10 @@ role Strategy is export {
 
 	 The shared traversal context.
 
+	=item C<:$cursor>
+
+	 Optional L<WalkCursor> for the live walk position when the walker provides one.
+
 	Returns whether traversal should follow a relation from C<$origin> to
 	C<$target>.
 
@@ -218,14 +232,14 @@ role Strategy is export {
 	Return C<True> to follow the relation, or C<False> to prune that branch.
 
 	=end pod
-	method should-follow($origin, $relation, $target, Context $ctx --> Bool) { True }
+	method should-follow($origin, $relation, $target, Context $ctx, WalkCursor :$cursor --> Bool) { True }
     
 	=begin pod
 
-	=head2 C<after($element, Context $ctx)>
+	=head2 C<after($element, Context $ctx, WalkCursor :$cursor)>
 
 	=begin code
-	method after($element, Context $ctx)
+	method after($element, Context $ctx, WalkCursor :$cursor)
 	=end code
 
 	=head3 Parameters
@@ -237,6 +251,10 @@ role Strategy is export {
 	=item C<$ctx>
 
 	 The shared traversal context.
+
+	=item C<:$cursor>
+
+	 Optional L<WalkCursor> for the live walk position when the walker provides one.
 
 	Called after visiting an element and its followed relations.
 
@@ -258,14 +276,14 @@ role Strategy is export {
 	Continue normally.
 
 	=end pod
-	method after($element, Context $ctx) { Nil }
+	method after($element, Context $ctx, WalkCursor :$cursor) { Nil }
     
 	=begin pod
 
-	=head2 C<finish($root, Context $ctx)>
+	=head2 C<finish($root, Context $ctx, WalkCursor :$cursor)>
 
 	=begin code
-	method finish($root, Context $ctx --> FinishResult)
+	method finish($root, Context $ctx, WalkCursor :$cursor --> FinishResult)
 	=end code
 
 	=head3 Parameters
@@ -278,6 +296,10 @@ role Strategy is export {
 
 	 The final shared context for the traversal.
 
+	=item C<:$cursor>
+
+	 Optional L<WalkCursor> for the live walk position when the walker provides one.
+
 	Called once when traversal completes or is stopped.
 
 	Return a L<Qwiratry::Strategy::FinishResult> with any aggregate or diagnostic
@@ -288,7 +310,7 @@ role Strategy is export {
 	Returns a C<FinishResult> describing the traversal outcome.
 
 	=end pod
-	method finish($root, Context $ctx --> FinishResult) {
+	method finish($root, Context $ctx, WalkCursor :$cursor --> FinishResult) {
 		FinishResult.new(type => 'final-result', value => Nil)
 	}
     

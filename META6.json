@@ -16,6 +16,8 @@
   "name": "Qwiratry",
   "provides": {
     "Qwiratry::Context": "lib/Qwiratry/Context.rakumod",
+    "WalkCursor": "lib/WalkCursor.rakumod",
+    "Qwiratry::QueryCursor": "lib/Qwiratry/QueryCursor.rakumod",
     "Qwiratry::Format::Base": "lib/Qwiratry/Format/Base.rakumod",
     "Qwiratry::Format::CSVdemo": "lib/Qwiratry/Format/CSVdemo.rakumod",
     "Qwiratry::Format::JSONdemo": "lib/Qwiratry/Format/JSONdemo.rakumod",

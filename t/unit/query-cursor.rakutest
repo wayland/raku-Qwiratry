@@ -1,0 +1,79 @@
+#!/usr/bin/env raku
+use Test;
+use lib 'lib';
+
+use WalkCursor;
+use Qwiratry::QueryCursor;
+use Qwiratry::Walker::Implementation::Tree;
+use Qwiratry::Operator::Navigation;
+use Qwiratry::Strategy;
+use X::Qwiratry;
+
+plan 13;
+
+my $root = %(
+	name => 'root',
+	children => [
+		%( name => 'a', children => [ %( name => 'a1' ), %( name => 'a2' ) ] ),
+		%( name => 'b' ),
+		%( name => 'c' ),
+	],
+);
+
+my $cursor = Qwiratry::QueryCursor.new(:origin($root), :current($root));
+ok $cursor ~~ WalkCursor, 'QueryCursor does WalkCursor';
+is $cursor.current<name>, 'root', 'starts at origin';
+
+my $child = $cursor.fetch-relative(1, :sector(Sector::child));
+is $child<name>, 'a', 'fetch-relative(1, :sector(child))';
+is $cursor.current<name>, 'a', 'current updated';
+
+is $cursor.move-relative(1, :sector(Sector::following-sibling)), 1, 'move to next sibling';
+is $cursor.current<name>, 'b', 'on sibling b';
+
+my $clone = $cursor.clone-position;
+$cursor.fetch-relative(1, :sector(Sector::following-sibling));
+is $cursor.current<name>, 'c', 'original advanced';
+is $clone.current<name>, 'b', 'clone independent';
+
+throws-like {
+	$cursor.fetch-relative(1, :axis(Axis.preceding-following), :sector(Sector::child));
+}, X::Qwiratry::Cursor::ConflictingDirection, 'axis+sector conflict';
+
+throws-like {
+	$cursor.fetch-relative(-1, :sector(Sector::child));
+}, X::Qwiratry::Cursor::NegativeSectorStep, 'negative sector step';
+
+my $walker = Qwiratry::Walker::Implementation::Tree.new;
+my $plan = $walker.plan(RootOperator.new, $root);
+my $pc = $plan.cursor;
+ok $pc ~~ Qwiratry::QueryCursor, 'TreePlan.cursor';
+
+my class Collect does Strategy {
+	has Int $.with-cursor = 0;
+	method before($element, $ctx, WalkCursor :$cursor) {
+		$!with-cursor++ if $cursor.defined;
+		Nil
+	}
+}
+my $strategy = Collect.new;
+my $sw = Qwiratry::Walker::Implementation::Tree.new(:strategy($strategy));
+my $iter = $sw.start(DescendantOperator.new(:subject($root), :selector('*')), $root);
+while $iter.pull-one !~~ IterationEnd { }
+ok $strategy.with-cursor > 0, 'strategy before receives :cursor';
+
+sub collect-names($it) {
+	my @names;
+	loop {
+		my $v = $it.pull-one;
+		last if $v ~~ IterationEnd;
+		@names.push($v<name> // $v.gist);
+	}
+	@names
+}
+my $bridge = $plan.cursor.iterator;
+my @from-plan = collect-names($plan.iterator);
+my @from-cursor = collect-names($bridge);
+is-deeply @from-cursor, @from-plan, 'QueryCursor.iterator matches Plan.iterator';
+
+done-testing;

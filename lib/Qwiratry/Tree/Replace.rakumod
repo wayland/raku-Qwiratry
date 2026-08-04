@@ -81,7 +81,11 @@ class Qwiratry::Tree::Replace {
 		my $parent = Qwiratry::Tree::Navigator.tree-navigator-for($old, :origin($root))
 			.tree-parent($old, :origin($root));
 		$parent.defined or return False;
-		self!replace-in-parent($parent, $old, $new);
+		my $ok = self!replace-in-parent($parent, $old, $new);
+		if $ok && $*QWIRATRY-WALK-NAVIGATOR.defined {
+			$*QWIRATRY-WALK-NAVIGATOR.invalidate-caches(:origin($root), :$old, :$new);
+		}
+		$ok
 	}
 
 	=begin pod

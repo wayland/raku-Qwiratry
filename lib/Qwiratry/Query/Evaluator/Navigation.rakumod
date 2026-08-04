@@ -307,7 +307,7 @@ role NavigationEagerEvaluator does EagerEvaluator {
 	method tree-descendants(Mu $node, Mu :$origin --> Seq)
 	=end code
 
-	Documents C<method tree-descendants>.
+	Depth-first descendants via the selected Tree Navigator’s multi-step helper.
 
 	=item C<$node>
 
@@ -319,12 +319,8 @@ role NavigationEagerEvaluator does EagerEvaluator {
 
 	=end pod
 	method tree-descendants(Mu $node, Mu :$origin --> Seq) {
-		gather {
-			for self.tree-children($node, :$origin) -> $child {
-				take $child;
-				take $_ for self.tree-descendants($child, :$origin);
-			}
-		}
+		Qwiratry::Tree::Navigator.tree-navigator-for($node, :$origin)
+			.tree-descendants($node)
 	}
 
 	=begin pod
@@ -359,7 +355,7 @@ role NavigationEagerEvaluator does EagerEvaluator {
 	method tree-ancestors(Mu $node, Mu :$origin --> Seq)
 	=end code
 
-	Documents C<method tree-ancestors>.
+	Ancestor chain via the selected Tree Navigator’s multi-step helper.
 
 	=item C<$node>
 
@@ -371,13 +367,8 @@ role NavigationEagerEvaluator does EagerEvaluator {
 
 	=end pod
 	method tree-ancestors(Mu $node, Mu :$origin --> Seq) {
-		gather {
-			my $current = self.tree-parent($node, :$origin);
-			while $current.defined {
-				take $current;
-				$current = self.tree-parent($current, :$origin);
-			}
-		}
+		Qwiratry::Tree::Navigator.tree-navigator-for($node, :$origin)
+			.tree-ancestors($node, :$origin)
 	}
 
 	=begin pod
@@ -388,7 +379,7 @@ role NavigationEagerEvaluator does EagerEvaluator {
 	method sibling-context(Mu $node, Mu :$origin --> Associative)
 	=end code
 
-	Documents C<method sibling-context>.
+	Sibling list via Navigator parent/children (C<%( all => ... )>).
 
 	=item C<$node>
 
@@ -400,8 +391,9 @@ role NavigationEagerEvaluator does EagerEvaluator {
 
 	=end pod
 	method sibling-context(Mu $node, Mu :$origin --> Associative) {
-		my $parent = self.tree-parent($node, :$origin);
-		$parent.defined and return %(all => self.tree-children($parent, :$origin));
+		my $navigator = Qwiratry::Tree::Navigator.tree-navigator-for($node, :$origin);
+		my $parent = $navigator.tree-parent($node, :$origin);
+		$parent.defined and return %(all => $navigator.tree-children($parent));
 		%(all => ())
 	}
 

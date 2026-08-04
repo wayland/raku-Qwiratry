@@ -307,4 +307,192 @@ role Qwiratry::Tree::Navigator::Base {
 		}
 		Nil
 	}
+
+	# --- Walk-local caches and multi-step sector helpers (Cursor proposal) ---
+
+	has Mu $!cache-parent;
+	has Mu $!cache-parent-of;
+	has Mu $!cache-siblings;
+	has Mu $!cache-siblings-of;
+	has Int $!cache-index = -1;
+
+	=begin pod
+
+	Return a fresh walk-local navigator of the same type (empty caches).
+
+	Shared registry instances must not be used for caching; Cursor/walk owners
+	call this after C<tree-navigator-for>.
+
+	=end pod
+	method walk-local-copy(--> ::?CLASS) {
+		self.WHAT.new
+	}
+
+	=begin pod
+
+	Drop walk-local caches, optionally scoped to a TreeRewrite replacement.
+
+	=end pod
+	method invalidate-caches(Mu :$origin, Mu :$old, Mu :$new) {
+		$!cache-parent = Nil;
+		$!cache-parent-of = Nil;
+		$!cache-siblings = Nil;
+		$!cache-siblings-of = Nil;
+		$!cache-index = -1;
+		Nil
+	}
+
+	method !parent-of(Mu $node, Mu :$origin --> Mu) {
+		if $!cache-parent-of.defined && $!cache-parent-of === $node && $!cache-parent.defined {
+			return $!cache-parent;
+		}
+		my $parent = self.tree-parent($node, |%(:$origin if $origin.defined));
+		$!cache-parent-of = $node;
+		$!cache-parent = $parent;
+		$parent
+	}
+
+	method !sibling-list(Mu $node, Mu :$origin --> List) {
+		if $!cache-siblings-of.defined && $!cache-siblings-of === $node && $!cache-siblings.defined {
+			return $!cache-siblings.List;
+		}
+		my $parent = self!parent-of($node, |%(:$origin if $origin.defined));
+		my @all = $parent.defined ?? self.tree-children($parent).list !! ();
+		$!cache-siblings-of = $node;
+		$!cache-siblings = @all;
+		$!cache-index = -1;
+		for 0 ..^ @all -> $i {
+			if @all[$i] === $node {
+				$!cache-index = $i;
+				last;
+			}
+		}
+		@all.list
+	}
+
+	method !sibling-index(Mu $node, Mu :$origin --> Int) {
+		self!sibling-list($node, |%(:$origin if $origin.defined));
+		$!cache-index
+	}
+
+	=begin pod
+
+	Depth-first document-order nodes under C<$root> (inclusive).
+
+	=end pod
+	method tree-document-order(Mu $root --> Seq) {
+		gather {
+			my sub walk(Mu $n) {
+				$n.defined or return;
+				take $n;
+				for self.tree-children($n) -> $c {
+					walk($c);
+				}
+			}
+			walk($root);
+		}
+	}
+
+	=begin pod
+
+	Ancestors of C<$node> from parent toward the root (when C<:origin> allows).
+
+	=end pod
+	method tree-ancestors(Mu $node, Mu :$origin --> Seq) {
+		gather {
+			my $current = self!parent-of($node, |%(:$origin if $origin.defined));
+			while $current.defined {
+				take $current;
+				$current = self!parent-of($current, |%(:$origin if $origin.defined));
+			}
+		}
+	}
+
+	=begin pod
+
+	Descendants of C<$node> in document order (children first, recursive).
+
+	=end pod
+	method tree-descendants(Mu $node --> Seq) {
+		gather {
+			for self.tree-children($node) -> $child {
+				take $child;
+				take $_ for self.tree-descendants($child);
+			}
+		}
+	}
+
+	=begin pod
+
+	Nodes along a navigation sector from C<$node>, excluding self.
+
+	=end pod
+	method tree-sector-seq(Mu $node, Str $sector, Mu :$origin --> Seq) {
+		given $sector {
+			when 'child' {
+				self.tree-children($node).Seq
+			}
+			when 'parent' {
+				my $p = self!parent-of($node, |%(:$origin if $origin.defined));
+				$p.defined ?? ($p,).Seq !! ().Seq
+			}
+			when 'descendant' {
+				self.tree-descendants($node)
+			}
+			when 'ancestor' {
+				self.tree-ancestors($node, |%(:$origin if $origin.defined))
+			}
+			when 'following-sibling' {
+				my @sib = self!sibling-list($node, |%(:$origin if $origin.defined));
+				my $i = self!sibling-index($node, |%(:$origin if $origin.defined));
+				$i >= 0 ?? @sib[$i + 1 .. *].Seq !! ().Seq
+			}
+			when 'preceding-sibling' {
+				my @sib = self!sibling-list($node, |%(:$origin if $origin.defined));
+				my $i = self!sibling-index($node, |%(:$origin if $origin.defined));
+				$i >= 0 ?? @sib[0 ..^ $i].reverse.Seq !! ().Seq
+			}
+			when 'following' {
+				$origin.defined or return ().Seq;
+				my @doc = self.tree-document-order($origin).list;
+				my $i = @doc.first({ $_ === $node }, :k);
+				$i.defined or return ().Seq;
+				my %desc = self.tree-descendants($node).map({ $_ => True }).Hash;
+				gather for @doc[$i + 1 .. *] -> $n {
+					next if %desc{$n}:exists;
+					take $n;
+				}
+			}
+			when 'preceding' {
+				$origin.defined or return ().Seq;
+				my @doc = self.tree-document-order($origin).list;
+				my $i = @doc.first({ $_ === $node }, :k);
+				$i.defined or return ().Seq;
+				my %anc = self.tree-ancestors($node, :$origin).map({ $_ => True }).Hash;
+				gather for @doc[0 ..^ $i].reverse -> $n {
+					next if %anc{$n}:exists;
+					take $n;
+				}
+			}
+			when 'self' {
+				($node,).Seq
+			}
+			default {
+				().Seq
+			}
+		}
+	}
+
+	=begin pod
+
+	Return the C<$n>th node along C<$sector> from C<$node> (1-based step count),
+	or C<Nil> when missing. C<$n == 0> returns C<$node> (self).
+
+	=end pod
+	method tree-along-sector(Mu $node, Str $sector, Int $n, Mu :$origin --> Mu) {
+		$n == 0 and return $node;
+		$n < 0 and return Nil;
+		my @seq = self.tree-sector-seq($node, $sector, |%(:$origin if $origin.defined)).list;
+		$n <= @seq.elems ?? @seq[$n - 1] !! Nil
+	}
 }

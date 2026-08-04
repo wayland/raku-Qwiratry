@@ -101,7 +101,9 @@ class Qwiratry::Query::Selector {
 
 	=end pod
 	method is-type-object(Mu $selector --> Bool) {
-		$selector ~~ Mu:U && $selector.^name ne 'Nil'
+		# Prefer !.DEFINITE over ~~ Mu:U — some Rakudo builds treat defined
+		# Str values as matching Mu:U, which would swallow name selectors.
+		!$selector.DEFINITE && $selector.^name ne 'Nil'
 	}
 
 	=begin pod

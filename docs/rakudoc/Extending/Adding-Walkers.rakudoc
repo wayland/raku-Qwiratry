@@ -74,6 +74,12 @@ class MyWalker does Qwiratry::Walker {
 A plan does C<Qwiratry::Walker::Plan> and provides an iterator, the original
 query, and a human-readable description.
 
+Walkable models may also expose C<Plan.cursor>, returning a
+L<Qwiratry::QueryCursor> (or other L<WalkCursor>) with independent position and
+walk-local Navigator state. C<Plan.iterator> remains the Streamable-Pull face
+and must keep working for callers that never ask for a Cursor. See
+C<docs/rakudoc/Developing/Cursor-Proposal.md>.
+
 =begin code :lang<raku>
 class MyPlan does Qwiratry::Walker::Plan {
     has Mu $.query;

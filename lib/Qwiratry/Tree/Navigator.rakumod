@@ -222,7 +222,8 @@ class Qwiratry::Tree::Navigator does Implementation::Loader {
 		my @navigators;
 		for @domains.unique -> $domain {
 			%!domain-tree-navigators{$domain}:exists or next;
-			@navigators.append(|%!domain-tree-navigators{$domain});
+			@navigators.append($_)
+				for @(%!domain-tree-navigators{$domain} // ());
 		}
 		@navigators.list
 	}
@@ -255,9 +256,11 @@ class Qwiratry::Tree::Navigator does Implementation::Loader {
 			die "tree navigator override must do Qwiratry::Tree::Navigator::Base";
 		}
 		for self!discovered-tree-navigators -> $navigator {
+			next unless $navigator ~~ Qwiratry::Tree::Navigator::Base;
 			$navigator.supports($node) and return $navigator;
 		}
 		for self!domain-tree-navigators($node, :$origin) -> $navigator {
+			next unless $navigator ~~ Qwiratry::Tree::Navigator::Base;
 			$navigator.supports($node) and return $navigator;
 		}
 		for @!registered-tree-navigator-types -> %registration {
@@ -267,5 +270,15 @@ class Qwiratry::Tree::Navigator does Implementation::Loader {
 			$navigator.supports($node) and return $navigator;
 		}
 		Qwiratry::Tree::Navigator::Base.new
+	}
+
+	=begin pod
+
+	Return a walk-local navigator for C<$node> (fresh caches).
+
+	=end pod
+	method tree-navigator-walk-local(Mu $node, Mu :$navigator, Mu :$origin) {
+		self.DEFINITE or return self.instance.tree-navigator-walk-local($node, :$navigator, :$origin);
+		self.tree-navigator-for($node, :$navigator, :$origin).walk-local-copy
 	}
 }

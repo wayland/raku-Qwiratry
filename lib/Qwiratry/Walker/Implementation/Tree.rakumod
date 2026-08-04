@@ -33,6 +33,8 @@ use Qwiratry::Query::Runtime;
 use Qwiratry::Tree::Navigator;
 use Qwiratry::Strategy::Traversal;
 use Qwiratry::Strategy::ControlSignal;
+use Qwiratry::QueryCursor;
+use WalkCursor;
 use X::Qwiratry;
 
 my constant traversal = Qwiratry::Strategy::Traversal.instance;
@@ -68,6 +70,7 @@ class Qwiratry::Walker::Implementation::Tree does Qwiratry::Walker is export {
 	my class StrategyTreeIterator does QueryIterator {
 		has Mu $.root is required is built;
 		has Mu $.query-ast is required is built;
+		has Qwiratry::QueryCursor $.cursor is built;
 		has @!stack;
 		has @!yield-queue;
 		has TraversalState $!state = TraversalState.new;
@@ -76,13 +79,20 @@ class Qwiratry::Walker::Implementation::Tree does Qwiratry::Walker is export {
 
 		submethod TWEAK {
 			$!root.defined and @!stack = [$!root];
+			unless $!cursor.defined {
+				$!cursor = Qwiratry::QueryCursor.new(
+					:origin($!root),
+					:current($!root),
+					:context($.context),
+				);
+			}
 		}
 
 		# Stops tree iteration, invokes finish hooks once, and marks the iterator finished.
 		method !stop-traversal() {
 			@!stack = ();
 			unless $!finish-invoked {
-				traversal.invoke-finish($!root, $.context);
+				traversal.invoke-finish($!root, $.context, :cursor($!cursor));
 				$!finish-invoked = True;
 			}
 			$!finished = True;
@@ -91,8 +101,9 @@ class Qwiratry::Walker::Implementation::Tree does Qwiratry::Walker is export {
 		# Runs traversal hooks for one element and queues matching nodes for yielding.
 		method !visit-element(Mu $element, :$yield = True --> Mu) {
 			$!state.clear-skip;
+			$!cursor.current = $element;
 
-			my $before = traversal.run-before($element, $.context, $!state);
+			my $before = traversal.run-before($element, $.context, $!state, :cursor($!cursor));
 			if $!state.stopped {
 				self!stop-traversal;
 				return $yield ?? $element !! IterationEnd;
@@ -106,21 +117,20 @@ class Qwiratry::Walker::Implementation::Tree does Qwiratry::Walker is export {
 				$.context.defined and $.context.nodes-visited++;
 			}
 
-			traversal.run-on-match($element, $!query-ast, $!root, $.context, $!state);
+			traversal.run-on-match($element, $!query-ast, $!root, $.context, $!state, :cursor($!cursor));
 			if $!state.stopped {
 				self!stop-traversal;
 				return $yield ?? $element !! IterationEnd;
 			}
 
 			unless $!state.should-skip-expand {
-				for Qwiratry::Tree::Navigator.tree-navigator-for($element, :origin($!root))
-						.tree-children($element) -> $child {
-					next unless traversal.should-follow($element, 'child', $child, $.context);
+				for $!cursor.navigator.tree-children($element) -> $child {
+					next unless traversal.should-follow($element, 'child', $child, $.context, :cursor($!cursor));
 					@!stack.push($child);
 				}
 			}
 
-			traversal.run-after($element, $.context, $!state);
+			traversal.run-after($element, $.context, $!state, :cursor($!cursor));
 			if $!state.stopped {
 				self!stop-traversal;
 			}
@@ -147,7 +157,7 @@ class Qwiratry::Walker::Implementation::Tree does Qwiratry::Walker is export {
 			}
 
 			unless $!finish-invoked {
-				traversal.invoke-finish($!root, $.context);
+				traversal.invoke-finish($!root, $.context, :cursor($!cursor));
 				$!finish-invoked = True;
 			}
 			$!finished = True;
@@ -160,13 +170,31 @@ class Qwiratry::Walker::Implementation::Tree does Qwiratry::Walker is export {
 		has Mu $.root is required;
 		has $.walker is required;
 
+		method cursor(--> Qwiratry::QueryCursor) {
+			my $ctx = TreeContext.new(strategy => $!walker.strategy);
+			Qwiratry::QueryCursor.new(
+				:origin($!root),
+				:current($!root),
+				:context($ctx),
+				:plan(self),
+				:default-axis(Axis.preceding-following),
+			)
+		}
+
 		method iterator(--> QueryIterator) {
 			my $ctx = TreeContext.new(strategy => $!walker.strategy);
 			if $ctx.strategy.defined {
+				my $cursor = Qwiratry::QueryCursor.new(
+					:origin($!root),
+					:current($!root),
+					:context($ctx),
+					:plan(self),
+				);
 				return StrategyTreeIterator.new(
 					:root($!root),
 					:query-ast($!query-ast),
 					:context($ctx),
+					:$cursor,
 				);
 			}
 			TreeIterator.new(

@@ -27,7 +27,19 @@ C<Seq> into a list.
 =item C<Qwiratry::Format::NDJSONdemo> reference format with whole-value and
 pull parse/render.
 
+=item Generic C<WalkCursor> / C<Sector> / C<Axis> (C<lib/WalkCursor.rakumod>) and
+C<Qwiratry::QueryCursor> with C<fetch-*>/C<move-*> movement; Tree plans expose
+C<.cursor>; Strategy hooks accept optional C<WalkCursor :$cursor>; Tree Navigators
+gain multi-step sector helpers and walk-local caches (invalidated on TreeRewrite
+via C<$*QWIRATRY-WALK-NAVIGATOR>); Navigation Evaluator delegates ancestor /
+descendant / sibling helpers to those APIs; C<QueryCursor.iterator> bridges to
+C<Plan.iterator>.
+
 =head2 Changed
+
+=item C<Qwiratry::Query::Selector.is-type-object> uses C<!DEFINITE> so defined
+string name selectors are not treated as type objects (fixes demo-tree
+C<tree-child-results> / descendant name matching on some Rakudo builds).
 
 =item Walkable/pull/push rename of format and location base contracts:
 C<Parse>/C<parse> → C<ParseWalkable>/C<parse-walkable>,
