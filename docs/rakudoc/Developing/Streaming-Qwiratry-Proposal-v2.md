@@ -45,7 +45,7 @@ We should be looking at having the walkable/push/pull APIs being capabilities, r
 
 # Raku Push, Pull, and Walkable
 
-A map of existing Raku features onto the three axes used elsewhere in this document. Empty cells mean that feature is not really that model.
+A map of existing Raku features onto the three sectors used elsewhere in this document. Empty cells mean that feature is not really that model.
 
 * **Push** — producer drives (Supply / SAX-ish).
 * **Pull** — consumer drives (`pull-one` / StAX-ish).

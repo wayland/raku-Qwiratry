@@ -367,56 +367,48 @@ This design is small, consistent with the existing architecture, compatible with
 
 This rename has been applied. The table below remains as the historical
 vocabulary map from the original `0.10.0` streaming surface to the
-walkable / pull / push names now used in code.
+walkable / pull names now used in code.
 
-The goal is a **three-way** I/O-boundary breakdown:
+The goal is a **two-way** I/O-boundary breakdown:
 
 * **Walkable** — whole-value adaptors. The consumer works with a complete
   payload (for example a full `Str`, or a fully assembled structure). This is
   the original `parse` / `render` / `read` / `write` family (DOM-ish).
 * **Pull** — consumer-driven chunk adaptors. The consumer pulls an `Iterator`
-  of text chunks (StAX-ish). In `0.10.0` this is the `*-chunks` /
-  `Streaming*` family.
-* **Push** — producer-driven chunk adaptors. The producer emits into a
-  `Supply` / sink-style API (SAX-ish). Not implemented in `0.10.0` yet except
-  insofar as destination sinks already accept pushed chunks via `write-chunk`.
+  of text chunks (StAX-ish). In the pre-rename `0.10.0` surface this was the
+  `*-chunks` / `Streaming*` family.
 
 `Walkable` here is I/O-boundary terminology for whole-value transfer. It is not
 the same thing as query-layer navigation over an already-loaded structure, even
 though both can feel “incremental” to a caller.
 
-**Umbrella:** “streaming” (as a capability flag) means push **or** pull is
-available; walkable is the non-streaming whole-value path.
+**Umbrella:** “streaming” (as a capability flag) means pull is available;
+walkable is the non-streaming whole-value path. Destination chunk sinks
+(`DestinationPush` / `open-sink-push`) are the write-side complement of pull
+render: the operator drains an `Iterator` into `write-chunk`. Further
+`Supply`-oriented streaming design is in
+[Streaming-Qwiratry-Proposal-v2.md](Streaming-Qwiratry-Proposal-v2.md).
 
 
 | Old name                                         | New name                                        | Notes                                                                   |
 | -------------------------------------------------- | ------------------------------------------------- | ------------------------------------------------------------------------- |
 | `Qwiratry::Format::Base::Parse`                  | `Qwiratry::Format::Base::ParseWalkable`         | Whole-value parse contract                                              |
-| `Parse.parse`                                    | `ParseWalkable.parse-walkable`                  | Accepts a complete`Str`                                                 |
+| `Parse.parse`                                    | `ParseWalkable.parse-walkable`                  | Accepts a complete `Str`                                                |
 | `Qwiratry::Format::Base::StreamingParse`         | `Qwiratry::Format::Base::ParsePull`             | Optional pull-chunk parse capability                                    |
-| `StreamingParse.parse-chunks`                    | `ParsePull.parse-pull`                          | Accepts`Iterator` of `Str` chunks                                       |
-| *(none — planned)*                              | `Qwiratry::Format::Base::ParsePush`             | Optional push-chunk parse capability                                    |
-| *(none — planned)*                              | `ParsePush.parse-push`                          | Accepts`Supply` (or equivalent) of `Str` chunks                         |
+| `StreamingParse.parse-chunks`                    | `ParsePull.parse-pull`                          | Accepts `Iterator` of `Str` chunks                                      |
 | `Qwiratry::Format::Base::Render`                 | `Qwiratry::Format::Base::RenderWalkable`        | Whole-value render contract                                             |
-| `Render.render`                                  | `RenderWalkable.render-walkable`                | Produces a complete`Str`                                                |
+| `Render.render`                                  | `RenderWalkable.render-walkable`                | Produces a complete `Str`                                               |
 | `Qwiratry::Format::Base::StreamingRender`        | `Qwiratry::Format::Base::RenderPull`            | Optional pull-chunk render capability                                   |
-| `StreamingRender.render-chunks`                  | `RenderPull.render-pull`                        | Produces`Iterator` of `Str` chunks                                      |
-| *(none — planned)*                              | `Qwiratry::Format::Base::RenderPush`            | Optional push-chunk render capability                                   |
-| *(none — planned)*                              | `RenderPush.render-push`                        | Produces`Supply` of `Str` chunks                                        |
+| `StreamingRender.render-chunks`                  | `RenderPull.render-pull`                        | Produces `Iterator` of `Str` chunks                                     |
 | `Qwiratry::Location::Base::Source`               | `Qwiratry::Location::Base::SourceWalkable`      | Whole-value source contract                                             |
 | `Source.read`                                    | `SourceWalkable.read-walkable`                  | Returns a complete payload                                              |
 | `Qwiratry::Location::Base::StreamingSource`      | `Qwiratry::Location::Base::SourcePull`          | Optional pull-chunk source capability                                   |
-| `StreamingSource.read-chunks`                    | `SourcePull.read-pull`                          | Returns`Iterator` of `Str` chunks                                       |
-| *(none — planned)*                              | `Qwiratry::Location::Base::SourcePush`          | Optional push-chunk source capability                                   |
-| *(none — planned)*                              | `SourcePush.read-push`                          | Returns`Supply` of `Str` chunks                                         |
+| `StreamingSource.read-chunks`                    | `SourcePull.read-pull`                          | Returns `Iterator` of `Str` chunks                                      |
 | `Qwiratry::Location::Base::Destination`          | `Qwiratry::Location::Base::DestinationWalkable` | Whole-value destination contract                                        |
 | `Destination.write`                              | `DestinationWalkable.write-walkable`            | Consumes a complete payload                                             |
-| *(none — planned)*                              | `Qwiratry::Location::Base::DestinationPull`     | Optional pull-chunk destination capability                              |
-| *(none — planned)*                              | `DestinationPull.write-pull`                    | Consumes`Iterator` of `Str` chunks                                      |
-| `Qwiratry::Location::Base::StreamingDestination` | `Qwiratry::Location::Base::DestinationPush`     | Optional push/sink destination capability                               |
-| `StreamingDestination.open-sink`                 | `DestinationPush.open-sink-push`                | Returns a chunk sink (`write-chunk` / `close`); caller pushes chunks in |
+| `Qwiratry::Location::Base::StreamingDestination` | `Qwiratry::Location::Base::DestinationPush`     | Optional chunk-sink destination (`write-chunk` / `close`)               |
+| `StreamingDestination.open-sink`                 | `DestinationPush.open-sink-push`                | Returns a chunk sink; operator drains pull chunks into it               |
 
 Operator selection under the new names: when both sides of a boundary share
-push or both share pull, prefer that streaming path; otherwise fall back
-toward walkable (joining, materializing, or bridging as needed). Push↔pull
-mismatches may use an edge pump or queue rather than forcing walkable.
+pull, prefer that path; otherwise fall back toward walkable (joining or
+materializing as needed).
