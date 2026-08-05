@@ -77,7 +77,7 @@ subtest 'Table walker left outer join preserves unmatched left rows' => {
 	my @joined = walker-rows($query);
 
 	is @joined.elems, 4, 'left outer includes customer without orders';
-	ok @joined.grep({ .<name> eq 'Carol' && !.<order_id>:exists }),
+	ok @joined.grep({ .<name> eq 'Carol' && !(.<order_id>:exists) }),
 		'unmatched customer appears without order columns';
 }
 
@@ -88,7 +88,7 @@ subtest 'Table walker right outer join preserves unmatched right rows' => {
 	my @joined = walker-rows($query);
 
 	is @joined.elems, 4, 'right outer includes order without customer match';
-	ok @joined.grep({ .<order_id> == 4 && !.<name>:exists }),
+	ok @joined.grep({ .<order_id> == 4 && !(.<name>:exists) }),
 		'orphan order appears without customer columns';
 }
 

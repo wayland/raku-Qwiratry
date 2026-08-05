@@ -28,7 +28,7 @@ subtest 'is-pure-query-when detects pure query when blocks' => {
 	plan 2;
 
 	my $pure = { $_ ⪪ <section> };
-	my $mixed = { $_ ⪪⪪ <item> && .<value>:exists };
+	my $mixed = { $_ ⪪⪪ <item> && (.<value>:exists) };
 
 	ok extract.is-pure-query-when($pure), 'pure query when block recognized';
 	nok extract.is-pure-query-when($mixed), 'mixed predicate when block rejected';

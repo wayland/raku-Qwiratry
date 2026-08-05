@@ -76,11 +76,11 @@ subtest '§6.2 inner and outer joins combine relations' => {
 	is @joined.elems, 3, 'inner join yields one row per matching order';
 
 	my @left = (@customers ⟕ @orders).List;
-	ok @left.grep({ .<name> eq 'Carol' && !.<order_id>:exists }),
+	ok @left.grep({ .<name> eq 'Carol' && !(.<order_id>:exists) }),
 		'left outer join keeps unmatched left rows';
 
 	my @right = (@customers ⟖ @orders).List;
-	ok @right.grep({ .<order_id> == 4 && !.<name>:exists }),
+	ok @right.grep({ .<order_id> == 4 && !(.<name>:exists) }),
 		'right outer join keeps unmatched right rows';
 
 	my @full = (@customers ⟗ @orders).List;
@@ -100,7 +100,7 @@ subtest '§6.2 semijoin and antijoin return matching / non-matching rows' => {
 
 	# A ⋊ B / A ◁ B keep B rows (Operators.md §6.2.2)
 	my @right-semi = (@orders ⋊ @customers).List;
-	ok @right-semi.elems == 2 && @right-semi[0]<name>:exists,
+	ok @right-semi.elems == 2 && (@right-semi[0]<name>:exists),
 		'right semijoin returns matched customer rows';
 	my @right-anti = (@orders ◁ @customers).List;
 	ok @right-anti.elems == 1 && (@right-anti[0]<name> // '') eq 'Carol',
