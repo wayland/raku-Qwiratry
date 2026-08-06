@@ -21,6 +21,26 @@ Most extension work belongs in one of the focused guides:
 The remaining extender-facing items in C<What-for-Who.md> are shared exception
 classes that are not covered by the focused extension guides.
 
+=head1 Query slang and Topic slang
+
+Operator symbols live in L<Qwiratry::Query::Slang::Ops> and are re-exported by
+L<Qwiratry::Query::Slang>. Universe operators and bare navigation under C<given>
+need the Topic slang mixed into MAIN B<after> those operators are imported:
+
+=begin code :lang<raku>
+use Qwiratry::Query::Slang;
+use Qwiratry::Query::Slang::Topic;
+=end code
+
+Do not put Topic activation in the same module that declares many C<infix>/C<prefix>
+C<is export> operators: importing those operators registers categoricals that
+refresh MAIN and can wipe a same-C<use> Topic mixin. Topic is RakuAST-only
+(via C<Slangify>); legacy grammar is unsupported.
+
+L<Qwiratry::Mold::Slang> already loads Ops and Topic so mold C<when> bodies can
+use topic-based forms. Custom extension CUs that C<use> query operators and
+rely on C<given>/bare nav should load Topic the same way.
+
 =head1 X::Qwiratry::Operator
 
 Extenders need this when they add operator-adjacent behavior and no more

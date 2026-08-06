@@ -4,6 +4,7 @@ use Test;
 use lib 'lib';
 
 use Qwiratry::Query::Slang;
+use Qwiratry::Query::Slang::Topic;
 use Qwiratry::Operator::Navigation;
 use X::Qwiratry;
 

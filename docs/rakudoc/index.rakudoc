@@ -73,11 +73,11 @@ say MyTransform(%data-structure);
 
 =item Raku 6.e or later.
 
-=item C<Slangify>.
+=item C<Slangify> (Mold slang and L<Qwiratry::Query::Slang::Topic>).
 
 =item C<Implementation::Loader> v0.0.7 or later.
 
-=item C<RAKUDO_RAKUAST=1> in the environment.
+=item C<RAKUDO_RAKUAST=1> in the environment (RakuAST-only for query/Topic slang).
 
 =head1 Documentation
 

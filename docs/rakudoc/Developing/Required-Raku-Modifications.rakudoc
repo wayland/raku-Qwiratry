@@ -97,4 +97,10 @@ The elements such as body and h1 are supposed to be I<undeclared> labels; you
 could equally well substitute in filenames if the tree in question happened to 
 be a filesystem instead of a document.
 
+=head1 Cursor Substitution
+
+The type C<Cursor> is used by Raku as an alias for Match.  Can we just make 
+everything use C<Match>, and then use the term C<Cursor> to mean walking through 
+data?  
+
 =end rakudoc

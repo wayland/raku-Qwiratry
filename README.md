@@ -99,9 +99,16 @@ Qwiratry's architecture enables:
 ## Requirements
 
 - Raku 6.e or later
-- `Slangify` module
+- `Slangify` module (Mold slang and `Qwiratry::Query::Slang::Topic`)
 - `Implementation::Loader` v0.0.7 or later
-- Set `RAKUDO_RAKUAST=1` in your environment
+- Set `RAKUDO_RAKUAST=1` in your environment (RakuAST-only for query/Topic slang)
+
+For universe operators and bare navigation under `given`, load Topic **after** the query slang:
+
+```raku
+use Qwiratry::Query::Slang;
+use Qwiratry::Query::Slang::Topic;
+```
 
 ## License
 

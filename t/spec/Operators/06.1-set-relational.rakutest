@@ -5,6 +5,7 @@ use lib 'lib';
 
 use Qwiratry::Operator::Set;
 use Qwiratry::Query::Slang;
+use Qwiratry::Query::Slang::Topic;
 use Qwiratry::Query::NamedJoins;
 use Qwiratry::Query::Runtime;
 

@@ -332,6 +332,8 @@ my $sum = $relation ==> ⌿ { $^a + $^b.age };
 
 Navigation Operators provide sector-based navigation for tree-like structures (XML, JSON, ASTs, Match trees, etc.), but other structures, such as tables. These operators are inspired by XPath sectors but stay idiomatically Raku.  All navigation operators require a right operand (which can be a Whatever `*`), except for the root operator (`⇤`) which is a **unary postfix operator**.  If a left operand is provided, they use that as input, otherwise, they use $_ as input.  They may take additional operands as adverbs.  
 
+Bare forms (no LHS) under `given` need `Qwiratry::Query::Slang::Topic` loaded **after** `Qwiratry::Query::Slang`, so the Topic slang can inject lexical `$_` as the LHS (same load order as universe operators in §6.1.2.2).
+
 Navigation operators can be chained: `$node ⪪ * ⪪ *` means "children of children"
 
 ### 5.1 Navigation Operators Reference
@@ -897,6 +899,18 @@ These operators combine collections to produce new collections.
 ##### 6.1.2.2 Universe-based Operators
 
 These operators require a Universe set that encompasses both collections. The context variable `$_` must be a collection that's a superset of both operands.
+
+Load `Qwiratry::Query::Slang::Topic` **after** `Qwiratry::Query::Slang` so the Topic slang can inject lexical `$_` as the universe operand (RakuAST Rakudo required). Infix categoricals from operator import must settle before Topic is mixed:
+
+```raku
+use Qwiratry::Query::Slang;
+use Qwiratry::Query::Slang::Topic;
+
+given @universe {
+    say (@A ⩃ @B).List;
+    say (∁ @A).List;
+}
+```
 
 | Operator | Unicode | Set Theory Term                     | Boolean Algebra Term | Description |
 |----------|---------|-------------------------------------|----------------------|-------------|

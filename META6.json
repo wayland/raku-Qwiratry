@@ -51,6 +51,8 @@
     "Qwiratry::Query::Runtime": "lib/Qwiratry/Query/Runtime.rakumod",
     "Qwiratry::Query::Selector": "lib/Qwiratry/Query/Selector.rakumod",
     "Qwiratry::Query::Slang": "lib/Qwiratry/Query/Slang.rakumod",
+    "Qwiratry::Query::Slang::Ops": "lib/Qwiratry/Query/Slang/Ops.rakumod",
+    "Qwiratry::Query::Slang::Topic": "lib/Qwiratry/Query/Slang/Topic.rakumod",
     "Qwiratry::Query::Specificity": "lib/Qwiratry/Query/Specificity.rakumod",
     "Qwiratry::Query::Topic": "lib/Qwiratry/Query/Topic.rakumod",
     "Qwiratry::QueryIterator": "lib/Qwiratry/QueryIterator.rakumod",

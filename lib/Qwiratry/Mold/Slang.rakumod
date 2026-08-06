@@ -3,8 +3,13 @@
 Mold slang for transformer bodies: registry, grammar, and Slangify activation.
 
 Load this module in any compunit that uses C<mold>, C<wrapper>, or C<givenroot> syntax
-(the Slangify/Piersing pattern). Also load L<Qwiratry::Query::Slang> in the same
-compunit when mold C<when> blocks use navigation operators (C<⪪>, C<⪪⪪>, etc.).
+(the Slangify/Piersing pattern). Also load in the same compunit:
+
+=item L<Qwiratry::Query::Slang> when mold C<when> blocks use navigation operators (C<⪪>, C<⪪⪪>, etc.).
+
+
+=item L<Qwiratry::Query::Slang::Topic> when mold C<when> blocks use topic-based
+universe/bare-nav forms
 
 Mold syntax (Specification.md section 3.3.3):
 
@@ -24,6 +29,7 @@ mold [name] [signature] [traits] when { ... } do { ... }
 use v6.e.PREVIEW;
 use Qwiratry::Mold;
 use Qwiratry::Query::Slang;
+use Qwiratry::Query::Slang::Topic;
 use Qwiratry::Query::Extract;
 use Qwiratry::Mold::Registry;
 use Qwiratry::Mold::Compiler;

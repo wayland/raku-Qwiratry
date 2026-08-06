@@ -39,4 +39,9 @@ add a C<TreeNavigator>.
 
 =item If it changes output construction from molds, use transformer extension points.
 
+=item If it changes mold matching that uses topic-based query forms
+(C<given>, bare navigation, universe set ops), load
+L<Qwiratry::Query::Slang::Topic> after L<Qwiratry::Query::Slang> in that
+compunit (see L<Other Extensions|Other-Extensions>).
+
 =end rakudoc
