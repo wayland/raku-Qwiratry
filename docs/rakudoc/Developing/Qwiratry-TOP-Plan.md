@@ -4,7 +4,8 @@ Working plan for rewriting [Raku TOP](https://github.com/wayland/Raku-TOP) again
 
 This is a design note, not a commitment to package layout or API names. We will refine it as we implement.
 
-**Prerequisites spec (normative for §4.1–4.2):** [Qwiratry-TOP-Prerequisites.md](Qwiratry-TOP-Prerequisites.md).
+**Prerequisites spec (normative for core I/O foundations):** [Qwiratry-TOP-Prerequisites.md](Qwiratry-TOP-Prerequisites.md).  
+**TOP layer (Relation, Memory, Postgres, Tables):** [Qwiratry-TOP-Basics.md](Qwiratry-TOP-Basics.md).
 
 ## 1. Why rebuild
 
@@ -75,7 +76,7 @@ TOP blurred three concerns that Qwiratry should keep distinct:
 2. **Where the data lives and how we talk to it** (file, HTTP, Memory, Postgres, …) → Qwiratry **Location**
 3. **Relational front-end** (`Database`, `Table`, `Field`, `Tuple`, FieldMode) → TOP layer on top of Location + Format
 
-Today’s Location contract is only whole-value text I/O (`read → Str`, `write(content)`). That is enough for simple File/HTTP blobs, but not for live tables or for Source/Destination on tables. The plan is to **upgrade Location** so the same backend family exposes blob and/or **row** pipeline I/O plus optional Relation handles — not a parallel Storage hierarchy. Streaming-shaped I/O comes first. See §4.1 and [Qwiratry-TOP-Prerequisites.md](Qwiratry-TOP-Prerequisites.md).
+Today’s Location contract is only whole-value text I/O (`read → Str`, `write(content)`). That is enough for simple File/HTTP blobs, but not for live tables or for Source/Destination on tables. The plan is to **upgrade Location** so the same backend family exposes blob and/or **row** pipeline I/O plus optional Relation handles — not a parallel Storage hierarchy. Streaming-shaped I/O comes first ([Qwiratry-TOP-Prerequisites.md](Qwiratry-TOP-Prerequisites.md)); Relation/Tables are TOP Basics ([Qwiratry-TOP-Basics.md](Qwiratry-TOP-Basics.md)). See §4.1.
 
 ### 3.2 Proposed layers
 
@@ -123,7 +124,7 @@ Changes to make in Qwiratry *before* (or as the foundation of) the TOP rebuild, 
 
 ### 4.1 Upgrade Location (absorb TOP Storage needs)
 
-Normative detail: [Qwiratry-TOP-Prerequisites.md](Qwiratry-TOP-Prerequisites.md) (§4–6).
+Normative detail: [Qwiratry-TOP-Basics.md](Qwiratry-TOP-Basics.md) (TOP layer). Core I/O foundations: [Qwiratry-TOP-Prerequisites.md](Qwiratry-TOP-Prerequisites.md).
 
 Today’s Location contract is whole-value text I/O (`read → Str`, `write(content)`). That is right for simple File/HTTP blobs. It is **not** enough for Memory / CSV-as-table / Postgres / `.ods`, and it is **not** enough for Source/Destination on tables.
 
@@ -133,7 +134,7 @@ Today’s Location contract is whole-value text I/O (`read → Str`, `write(cont
 - **Relation** (`use-table`) for the TOP **object** face: live Table handle, actions, fields, FieldMode
 - Same backend shares row read/write paths across Source/Destination and Relation
 
-**Streaming-shaped Location I/O comes first** (prerequisites §5): without Iterator-based Source/Destination, “Source a table” collapses to dumping a table as a string. See [Streaming-Qwiratry-Proposal.rakudoc](Streaming-Qwiratry-Proposal.rakudoc); row streams are in scope for TOP Locations even if Format chunk streaming trails.
+**Streaming-shaped Location I/O comes first** ([Qwiratry-TOP-Prerequisites.md](Qwiratry-TOP-Prerequisites.md)): without Iterator-based Source/Destination, “Source a table” collapses to dumping a table as a string. See [Streaming-Qwiratry-Proposal.rakudoc](Streaming-Qwiratry-Proposal.rakudoc); row streams are in scope for TOP Locations ([Qwiratry-TOP-Basics.md](Qwiratry-TOP-Basics.md)) even if Format chunk streaming trails.
 
 Same discovery factory (`Qwiratry::Location`), same URI schemes (`file://`, `postgres://`, later `memory://` or an in-process convention). File stays blob-oriented; Postgres / Memory / CSV Location grow row Source/Destination + Relation; a backend that only implements blob `read`/`write` simply lacks table capabilities and fails clearly when asked for them.
 
@@ -153,11 +154,11 @@ Same discovery factory (`Qwiratry::Location`), same URI schemes (`file://`, `pos
 Concrete sketch (names negotiable):
 
 ```raku
-# Pipeline face — blob and/or rows (streaming-shaped; see prerequisites §5)
+# Pipeline face — blob and/or rows (streaming-shaped; see prerequisites + Basics)
 role Qwiratry::Location::Base::Source { ... }       # read / read-chunks / read-rows as capable
 role Qwiratry::Location::Base::Destination { ... }  # write / open-sink / open-row-sink as capable
 
-# Object face — live Table
+# Object face — live Table (TOP Basics)
 role Qwiratry::Location::Base::Relation {
     method use-table(...) {...}   # actions, fields, field-mode
 }
@@ -165,7 +166,7 @@ role Qwiratry::Location::Base::Relation {
 
 ### 4.2 Anonymous, swappable Tables as first-class values
 
-Normative detail: [Qwiratry-TOP-Prerequisites.md](Qwiratry-TOP-Prerequisites.md) §7.
+Normative detail: [Qwiratry-TOP-Basics.md](Qwiratry-TOP-Basics.md) §5. Prerequisites: [Qwiratry-TOP-Prerequisites.md](Qwiratry-TOP-Prerequisites.md).
 
 Support tables that live in ordinary variables with no Database and no name required:
 
@@ -181,7 +182,7 @@ Capability gaps across locations are expected (Postgres ≠ `.ods`). Prefer a **
 
 ### 4.3 Soft prerequisites (nice before heavy backends)
 
-- **Location row streaming + Source/Destination on tables** — **required before** treating Relation/Table as done; see prerequisites §5. Format chunk streaming can trail.
+- **Location row streaming + Source/Destination on tables** — **required before** treating Relation/Table as done; see prerequisites (TypedIterator / structured pull) and [Qwiratry-TOP-Basics.md](Qwiratry-TOP-Basics.md). Format chunk streaming can trail.
 - **`Qwiratry::Location::CSV` sibling package** (option C): relation-capable CSV Location for table files/directories. Do **not** “graduate” core `CSVdemo` into a production Format — leave the demo alone; real CSV table support lives in the Location module (§5.3, §6.3). WithBorders will depend on this package (§5.2).
 
 ### 4.4 Explicitly not required as Qwiratry rewrites
@@ -244,7 +245,7 @@ TOP’s `Database::Storage::*` backends become upgraded `Qwiratry::Location::*` 
 - Postgres cursor / potential key-based pagination
 - type mapping (Raku ↔ SQL)
 
-Those become **Location capabilities**, not a second plugin tree. **Source/Destination** are the pipeline face (blob *and* row streams). **Relation** is the live Table object face. Both share row I/O on table-capable backends (prerequisites §4–6).
+Those become **Location capabilities**, not a second plugin tree. **Source/Destination** are the pipeline face (blob *and* row streams). **Relation** is the live Table object face. Both share row I/O on table-capable backends ([Qwiratry-TOP-Basics.md](Qwiratry-TOP-Basics.md)).
 
 Short term: implement **Memory** and **Postgres** as relation-capable locations; **CSV** as its own sibling Location package (§6.3). Other DBIish backends (SQLite, MySQL) are Accept/later — see §12 for multi-dialect SQL.
 
@@ -381,7 +382,8 @@ Compatibility: no need for drop-in `Database::Storage::*` names unless we want a
 
 ## 11. Immediate next steps (when we start coding)
 
-1. Land [Qwiratry-TOP-Prerequisites.md](Qwiratry-TOP-Prerequisites.md): **streaming-shaped Location I/O first** (Source/Destination on tables via row Iterators), then Relation + anonymous Table, sharing row paths.
+1. Land [Qwiratry-TOP-Prerequisites.md](Qwiratry-TOP-Prerequisites.md): **streaming-shaped Location I/O** and **`TypedIterator`**. Then [Qwiratry-TOP-Basics.md](Qwiratry-TOP-Basics.md): Relation + anonymous Table, sharing row paths.
+
 2. Skeleton: FieldMode + Memory Location + minimal Table (anonymous-first) / optional Database.
 3. Port a few Memory + FieldMode tests from Raku-TOP.
 4. Add HalfHuman Format; wire one end-to-end File → Parse → Table → Render example.

@@ -103,4 +103,8 @@ The type C<Cursor> is used by Raku as an alias for Match.  Can we just make
 everything use C<Match>, and then use the term C<Cursor> to mean walking through 
 data?  
 
+=head1 Merge TypedIterator into Iterator
+
+Can we merge TypedIterator into Iterator?  
+
 =end rakudoc
