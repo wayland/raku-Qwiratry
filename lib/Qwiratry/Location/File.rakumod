@@ -16,13 +16,15 @@ directory root for directories, or a C<List> of C<IO::Path> nodes when a glob
 matches more than one path (or exactly one directory). Destination writes coerce
 content to text and create parent directories before writing.
 
-Ordinary files also support optional streaming: C<read-pull> yields fixed-size
-C<Str> chunks, and C<open-sink-push> returns a sink with C<write-chunk>/C<close> for
-incremental writes.
+Ordinary files also support optional streaming: C<read-pull> yields a
+L<TypedIterator> of fixed-size C<Str> chunks (C<.of> is C<Str>), and
+C<open-sink-push> returns a sink with C<write-chunk>/C<close> for incremental
+writes.
 
 =end pod
 use Glob::Grammar;
 use Glob::ToRegexActions;
+use TypedIterator;
 use X::Qwiratry;
 use Qwiratry::Location;
 use Qwiratry::Location::Base;
@@ -204,7 +206,8 @@ class Qwiratry::Location::File::Source is Qwiratry::Location::Base::SourceWalkab
 	 The location string or URI handled by the backend.
 
 
-	Reads an ordinary file as a pull iterator of fixed-size C<Str> chunks.
+	Reads an ordinary file as a L<TypedIterator> of fixed-size C<Str> chunks
+	(C<.of> is C<Str>).
 
 	Each chunk is up to 4096 characters. Glob locations and directories are not
 	streamed; they raise L<X::Qwiratry::IO::LocationError>.
@@ -244,17 +247,20 @@ class Qwiratry::Location::File::Source is Qwiratry::Location::Base::SourceWalkab
 
 		my $handle = $io.open(:r);
 		my constant $chunk-size = 4096;
-		Seq.from-loop({
-			my $chunk := $handle.readchars($chunk-size);
-			# readchars returns '' at EOF; close and end the iterator.
-			if $chunk.chars {
-				$chunk
-			}
-			else {
-				$handle.close;
-				IterationEnd
-			}
-		}).iterator
+		TypedIterator::Wrapper.new(
+			Seq.from-loop({
+				my $chunk := $handle.readchars($chunk-size);
+				# readchars returns '' at EOF; close and end the iterator.
+				if $chunk.chars {
+					$chunk
+				}
+				else {
+					$handle.close;
+					IterationEnd
+				}
+			}).iterator,
+			:of(Str),
+		)
 	}
 }
 

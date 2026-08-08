@@ -111,7 +111,9 @@ role Qwiratry::Location::Base::SourcePull {
 	 The location string or URI handled by the backend.
 
 
-	Reads C<$location> as a pull iterator of C<Str> chunks.
+	Reads C<$location> as a pull iterator of C<Str> chunks. Prefer returning a
+	L<TypedIterator> whose C<.of> is C<Str> so adaptors need not inspect each
+	element.
 
 	Concrete pull sources override this method. Chunk boundaries are
 	backend-defined (for example lines or fixed-size blocks).

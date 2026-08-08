@@ -90,6 +90,29 @@ class X::Qwiratry::IO::LocationError is X::Qwiratry::Operator {
 
 =begin pod
 
+Exception thrown when an adaptor expects text-chunk pull/sink elements but the
+stream advertises another C<TypedIterator.of>, or an untyped stream yields a
+non-C<Str> element.
+
+=end pod
+class X::Qwiratry::IO::ElementType is X::Qwiratry::Operator {
+	has Mu:U $.expected = Str;
+	has Mu $.got;
+	has Mu:U $.advertised;
+
+	method gist(--> Str) {
+		return '' if self.reported;
+		my $msg = "X::Qwiratry::IO::ElementType: $.message";
+		$msg ~= " (expected {$!expected.^name}";
+		$msg ~= ", advertised {$!advertised.^name}" if $!advertised.defined && $!advertised !=== Mu;
+		$msg ~= ", got {$!got.^name}" if $!got.defined;
+		$msg ~= ')';
+		$msg
+	}
+}
+
+=begin pod
+
 Exception thrown when a Qwiratry::Walker cannot interpret a Query AST element.
 This exception is thrown by Qwiratry::Walker.plan() when it encounters a query
 element it does not know how to handle.

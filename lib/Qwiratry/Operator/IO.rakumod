@@ -19,6 +19,7 @@ C<:&execute>.
 =end pod
 unit module Qwiratry::Operator::IO;
 
+use TypedIterator;
 use Qwiratry::Format;
 use Qwiratry::Format::Base;
 use Qwiratry::Location;
@@ -26,13 +27,67 @@ use Qwiratry::Location::Base;
 use Qwiratry::Operator::Capability;
 use X::Qwiratry;
 
+# Reject non-text advertised streams; for Mu/untyped, require each element ~~ Str.
+sub require-text-chunk(Mu $pulled, Mu:U $advertised, Str:D :$operator-type --> Str:D) {
+	unless $pulled ~~ Str {
+		X::Qwiratry::IO::ElementType.new(
+			:message('Adaptor expected a Str text chunk'),
+			:expected(Str),
+			:got($pulled),
+			:advertised($advertised),
+			:$operator-type,
+		).throw;
+	}
+	$pulled
+}
+
+sub assert-text-stream(Iterator:D $chunks, Str:D :$operator-type --> Mu:U) {
+	my $of = iterator-of($chunks);
+	if $of !=== Mu && !of-is-text($of) {
+		X::Qwiratry::IO::ElementType.new(
+			:message('Adaptor expected a text-chunk TypedIterator (of Str)'),
+			:expected(Str),
+			:advertised($of),
+			:$operator-type,
+		).throw;
+	}
+	$of
+}
+
+# When .of is Mu (or plain Iterator), validate each pull is Str for text adaptors.
+class TextChunkValidatingIterator does TypedIterator {
+	has Iterator $!source;
+	has Str $.operator-type is required;
+
+	method new(Iterator:D $source, Str:D :$operator-type!) {
+		self.bless(:$source, :$operator-type);
+	}
+
+	submethod BUILD(Iterator:D :$!source!, Str:D :$!operator-type!) {}
+
+	method of(--> Mu:U) { Str }
+
+	method pull-one() {
+		my $pulled := $!source.pull-one;
+		return $pulled if $pulled =:= IterationEnd;
+		require-text-chunk($pulled, Mu, :operator-type($!operator-type));
+	}
+}
+
+sub ensure-text-pull(Iterator:D $chunks, Str:D :$operator-type --> Iterator:D) {
+	my $of = assert-text-stream($chunks, :$operator-type);
+	return $chunks if of-is-text($of);
+	TextChunkValidatingIterator.new($chunks, :$operator-type)
+}
+
 # Join a pull stream of text chunks into one Str for whole-value fallback.
 sub join-text-chunks(Iterator:D $chunks --> Str) {
+	my $of = assert-text-stream($chunks, :operator-type('ParseOperator'));
 	my @parts;
 	loop {
 		my $pulled := $chunks.pull-one;
 		last if $pulled =:= IterationEnd;
-		@parts.push($pulled.Str);
+		@parts.push(require-text-chunk($pulled, $of, :operator-type('ParseOperator')));
 	}
 	@parts.join
 }
@@ -140,9 +195,12 @@ role LocationOperatorNode does LocationOperator does AdaptorOperatorNode {
 	chosen by C<ParseOperator> when both the source and parser support pull chunks.
 
 	Push destinations prefer an incremental sink when the upstream value is
-	a text-chunk C<Iterator>; otherwise they fall back to whole-value
-	C<write-walkable>. Streamed destination pass-through is single-consumer: the
-	returned value is the consumed iterator, which is exhausted after writing.
+	a text-chunk C<Iterator> (C<TypedIterator.of> is C<Str>, or untyped C<Mu>
+	with per-element C<Str> values); otherwise they fall back to whole-value
+	C<write-walkable>. Non-text advertised streams and non-C<Str> elements raise
+	L<X::Qwiratry::IO::ElementType>. Streamed destination pass-through is
+	single-consumer: the returned value is the consumed iterator, which is
+	exhausted after writing.
 
 	=end pod
 	method evaluate(Mu :$origin, :&execute) {
@@ -160,11 +218,14 @@ role LocationOperatorNode does LocationOperator does AdaptorOperatorNode {
 		if $implementation ~~ Qwiratry::Location::Base::DestinationPush
 			&& $content ~~ Iterator
 		{
+			my $of = assert-text-stream($content, :operator-type('DestinationOperator'));
 			my $sink = $implementation.open-sink-push(self.location);
 			loop {
 				my $pulled := $content.pull-one;
 				last if $pulled =:= IterationEnd;
-				$sink.write-chunk($pulled.Str);
+				$sink.write-chunk(
+					require-text-chunk($pulled, $of, :operator-type('DestinationOperator'))
+				);
 			}
 			$sink.close;
 			return $content;
@@ -350,7 +411,8 @@ class ParseOperator is RakuAST::Node does FormatOperatorNode is export {
 	C<SourceOperator> whose backend does C<SourcePull>, prefers
 	C<read-pull> + C<parse-pull>. A bare text-chunk C<Iterator> input also
 	uses C<parse-pull> when available; otherwise chunks are joined for
-	C<parse-walkable>.
+	C<parse-walkable>. Non-text C<TypedIterator.of> values and non-C<Str>
+	elements raise L<X::Qwiratry::IO::ElementType>.
 
 	=end pod
 	method evaluate(Mu :$origin, :&execute) {
@@ -363,7 +425,10 @@ class ParseOperator is RakuAST::Node does FormatOperatorNode is export {
 			my $source-impl = $source-op.location-implementation;
 			if $source-impl ~~ Qwiratry::Location::Base::SourcePull {
 				return $implementation.parse-pull(
-					$source-impl.read-pull($source-op.location),
+					ensure-text-pull(
+						$source-impl.read-pull($source-op.location),
+						:operator-type('ParseOperator'),
+					),
 				);
 			}
 		}
@@ -372,7 +437,9 @@ class ParseOperator is RakuAST::Node does FormatOperatorNode is export {
 		if $implementation ~~ Qwiratry::Format::Base::ParsePull
 			&& $input ~~ Iterator
 		{
-			return $implementation.parse-pull($input);
+			return $implementation.parse-pull(
+				ensure-text-pull($input, :operator-type('ParseOperator')),
+			);
 		}
 		if $input ~~ Iterator {
 			$input = join-text-chunks($input);

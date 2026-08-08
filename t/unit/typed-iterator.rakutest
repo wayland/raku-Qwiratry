@@ -1,0 +1,99 @@
+#!/usr/bin/env raku
+#| TypedIterator element-type advertisement and text-adaptor checks
+use Test;
+use lib 'lib';
+
+use TypedIterator;
+use Qwiratry::Location;
+use Qwiratry::Location::File;
+use Qwiratry::Operator::Capability;
+use Qwiratry::Operator::IO;
+use Qwiratry::Query::Runtime;
+use X::Qwiratry;
+
+my constant query-runtime = Qwiratry::Query::Runtime.instance;
+%*ENV<QWIRATRY_SKIP_INSTALL_SUGGESTIONS> = 1;
+
+plan 5;
+
+subtest 'TypedIterator defaults and wrappers' => {
+	plan 5;
+
+	ok TypedIterator ~~ Iterator, 'TypedIterator does Iterator';
+	my class T does TypedIterator { method pull-one() { IterationEnd } }
+	is T.of, Mu, 'role default of is Mu';
+
+	my $plain = ('a', 'b').iterator;
+	is iterator-of($plain), Mu, 'plain Iterator is untyped (Mu)';
+
+	my $typed = TypedIterator::Wrapper.new($plain, :of(Str));
+	ok $typed ~~ TypedIterator, 'Wrapper is a TypedIterator';
+	ok of-is-text($typed.of), 'of Str is text';
+}
+
+subtest 'File read-pull advertises Str' => {
+	plan 3;
+
+	my $tmpdir = 't/tmp'.IO;
+	$tmpdir.mkdir unless $tmpdir.d;
+	my $path = $tmpdir.child("typed-iter-file-{$*PID}.txt");
+	$path.spurt('hello world');
+
+	my $source = Qwiratry::Location.make(:type<Source>, :location(~$path));
+	my $chunks = $source.read-pull(~$path);
+	ok $chunks ~~ TypedIterator, 'File read-pull returns TypedIterator';
+	ok of-is-text(iterator-of($chunks)), 'File pull of is Str';
+	is $chunks.pull-one, 'hello world', 'chunk content';
+
+	$path.unlink if $path.e;
+}
+
+subtest 'Destination rejects non-text advertised of' => {
+	plan 1;
+
+	my $tmpdir = 't/tmp'.IO;
+	$tmpdir.mkdir unless $tmpdir.d;
+	my $out = $tmpdir.child("typed-iter-bad-of-{$*PID}.txt");
+
+	my $rows = TypedIterator::Wrapper.new((%(n => 1),).iterator, :of(Associative));
+	dies-ok {
+		execute(
+			DestinationOperator.new(:location(~$out), :subject($rows)),
+		);
+	}, 'Destination errors on TypedIterator.of Associative';
+
+	$out.unlink if $out.e;
+}
+
+subtest 'Destination rejects non-Str element when of is Mu' => {
+	plan 1;
+
+	my $tmpdir = 't/tmp'.IO;
+	$tmpdir.mkdir unless $tmpdir.d;
+	my $out = $tmpdir.child("typed-iter-bad-elem-{$*PID}.txt");
+
+	my $mixed = ('ok', 42).iterator;  # plain Iterator → Mu
+	dies-ok {
+		execute(
+			DestinationOperator.new(:location(~$out), :subject($mixed)),
+		);
+	}, 'Destination errors on non-Str element in untyped stream';
+
+	$out.unlink if $out.e;
+}
+
+subtest 'Parse joins untyped Str chunks without .Str coerce of non-text of' => {
+	plan 2;
+
+	my $text = '[{"score":7}]';
+	my $chunks = TypedIterator::Wrapper.new($text.comb(4).iterator, :of(Str));
+	my $result = execute(
+		ParseOperator.new(:subject($chunks), :format('JSONdemo')),
+	);
+	is $result[0]<score>, 7, 'Parse accepts TypedIterator.of Str';
+
+	my $bad = TypedIterator::Wrapper.new((%(x => 1),).iterator, :of(Associative));
+	dies-ok {
+		execute(ParseOperator.new(:subject($bad), :format('JSONdemo')));
+	}, 'Parse errors on non-text of';
+}

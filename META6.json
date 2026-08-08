@@ -17,6 +17,7 @@
   "provides": {
     "Qwiratry::Context": "lib/Qwiratry/Context.rakumod",
     "WalkCursor": "lib/WalkCursor.rakumod",
+    "TypedIterator": "lib/TypedIterator.rakumod",
     "Qwiratry::QueryCursor": "lib/Qwiratry/QueryCursor.rakumod",
     "Qwiratry::Format::Base": "lib/Qwiratry/Format/Base.rakumod",
     "Qwiratry::Format::CSVdemo": "lib/Qwiratry/Format/CSVdemo.rakumod",

@@ -8,10 +8,10 @@ Related:
 
 * [Walkable vs Streamable (Metanoia 2.3)](https://wayland.github.io/table-oriented-programming/Metanoias/Walkable-vs-Streamable.xml)
 * [Streaming-Qwiratry-Proposal.md](Streaming-Qwiratry-Proposal.md) — I/O-boundary walkable/pull (different “Walkable”)
-* [Qwiratry-TOP-Prerequisites.md](Qwiratry-TOP-Prerequisites.md) — row Sources and Relation (may later expose cursors)
+* [Qwiratry-TOP-Prerequisites.md](Qwiratry-TOP-Prerequisites.md) — row Sources and Relation (§5.6 WalkCursor tree landing done; Memory/SQL cursors still open)
 * `lib/Qwiratry/QueryIterator.rakumod`, `lib/Qwiratry/Context.rakumod`,
-  `lib/Qwiratry/Walker.rakumod`, `lib/Qwiratry/Tree/Navigator/Base.rakumod`
-  (planned: `lib/Cursor.rakumod`, `lib/Qwiratry/QueryCursor.rakumod`)
+  `lib/Qwiratry/Walker.rakumod`, `lib/Qwiratry/Tree/Navigator/Base.rakumod`,
+  `lib/WalkCursor.rakumod`, `lib/Qwiratry/QueryCursor.rakumod`
 
 # Status
 
