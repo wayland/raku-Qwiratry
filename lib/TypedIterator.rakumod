@@ -14,6 +14,9 @@ heterogeneous: consumers inspect each pulled value.
 
 =item Homogeneous producers SHOULD override C<.of> (File pull uses C<Str>).
 
+=item C<Qwiratry::QueryIterator> does C<TypedIterator> (default C<.of> is C<Mu>
+for query matches).
+
 =item C<TypedIterator::Wrapper> wraps an existing C<Iterator> with an C<.of>
 when the producer does not implement C<TypedIterator> itself.
 

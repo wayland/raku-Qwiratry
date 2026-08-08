@@ -46,7 +46,9 @@ L<Other Extensions|../Extending/Other-Extensions> for extender notes.
 element types (default C<Mu> = untyped). File C<read-pull> returns
 C<TypedIterator> with C<.of> = C<Str>. Parse/Destination text adaptors reject
 non-text advertised C<.of> and non-C<Str> elements when C<.of> is C<Mu>
-(L<X::Qwiratry::IO::ElementType>).
+(L<X::Qwiratry::IO::ElementType>). C<QueryIterator> does C<TypedIterator>, so
+C<QueryCursor.iterator> / C<Plan.iterator> are TypedIterators (default C<.of> =
+C<Mu>).
 
 =head2 Changed
 

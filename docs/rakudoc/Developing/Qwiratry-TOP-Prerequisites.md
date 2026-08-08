@@ -7,12 +7,11 @@ Parent plan: [Qwiratry-TOP-Plan.md](Qwiratry-TOP-Plan.md).
 TOP layer (Relation, Memory, Postgres, Tables, anonymous Table front-end):
 [Qwiratry-TOP-Basics.md](Qwiratry-TOP-Basics.md).
 
-**Status:** Partially implemented (post-**0.0.9** / toward **0.10.0**). Landed:
-text-chunk walkable/pull; sector vocabulary; WalkCursor / QueryCursor tree;
-Topic slang; `TypedIterator` (File `.of = Str`) + text-adaptor checks. Remaining
-in **this** document: Extending docs; `QueryIterator does TypedIterator`;
-document pull-vs-walkable discovery (`~~ SourcePull` / `~~ DestinationPush`).
-Row sinks / row `.of` / table Locations → [Basics](Qwiratry-TOP-Basics.md).  
+**Status:** Prerequisites substantially complete (post-**0.0.9** / toward
+**0.10.0**). Landed: text-chunk walkable/pull; sector vocabulary; WalkCursor /
+QueryCursor tree; Topic slang; `TypedIterator` (File `.of = Str`); text-adaptor
+checks; **`QueryIterator does TypedIterator`**. Remaining doc polish may trail
+in Extending; row sinks / table Locations → [Basics](Qwiratry-TOP-Basics.md).  
 **Scope (prerequisites only):** Streaming-shaped Location I/O; `TypedIterator`
 as the common element-kind face (I/O pull **and** query match streams);
 WalkCursor tree contract; no `Qwiratry::Storage::*`.
@@ -77,15 +76,14 @@ These are **out of scope** for prerequisites. Spec and acceptance live in
 | Navigation vocabulary | Former “axis” naming → **sector** |
 | `WalkCursor` / `Sector` / `Axis` | Generic position/`fetch-*`/`move-*` (`lib/WalkCursor.rakumod`) — **not** an Iterator factory |
 | `Qwiratry::QueryCursor` | Tree specialization; `Plan.cursor`; optional Strategy `:cursor`; `.iterator` → `QueryIterator` (match bridge) |
-| `Qwiratry::QueryIterator` | Query match pull stream (+ Context). **Planned:** `does TypedIterator` (default `.of = Mu`) so `QueryCursor.iterator` / `Plan.iterator` are TypedIterators |
+| `Qwiratry::QueryIterator` | Query match pull stream (+ Context); **does** `TypedIterator` (default `.of = Mu`) |
 | Tree Navigator | Multi-step sector helpers; walk-local caches |
 | `Qwiratry::Query::Slang` + `::Ops` + `::Topic` | Topic slang after Slang for `given` / bare nav / universe ops |
 | `TypedIterator` | Top-level role + `TypedIterator::Wrapper`; `.of` default `Mu` |
 
 **Still missing for TOP to plug in cleanly:** Basics Locations (Memory, …) that
 yield row `TypedIterator`s, plus Destination row sinks / Parse skip for
-structured `.of` — specified in Basics, not here. Prerequisite code should make
-`QueryIterator` a `TypedIterator` and keep text adaptors honest.
+structured `.of` — specified in Basics, not here.
 
 ---
 
@@ -123,8 +121,8 @@ Adaptor operators MUST NOT assume every Location is `Str`-only.
 
 TOP table Sources are only honest if the Location and operator stack can carry
 **Iterators** (chunks or later rows) without forcing full materialisation. Text
-walkable/pull **has landed**. Prerequisite follow-ups: `QueryIterator does
-TypedIterator` and Extending docs. Row sinks / table Locations are Basics.
+walkable/pull **has landed**. `QueryIterator does TypedIterator` and Extending
+`.of` docs are landed. Row sinks / table Locations are Basics.
 
 Align names with [Streaming-Qwiratry-Proposal.md](Streaming-Qwiratry-Proposal.md).
 
@@ -175,8 +173,7 @@ role TypedIterator does Iterator {
 }
 # TypedIterator::Wrapper — wrap a foreign Iterator with an explicit :of
 
-# Planned (prerequisite code):
-role QueryIterator does TypedIterator { ... }  # was: does Iterator
+role QueryIterator does TypedIterator { ... }  # match streams + Context
 # QueryCursor.iterator / Plan.iterator → QueryIterator ⇒ also TypedIterator
 # Default .of = Mu (heterogeneous matches); walkers may override later
 ```
@@ -190,8 +187,8 @@ I/O (chunks/rows) or a query match bridge — not I/O-only.
 | Row / `Associative` / Tuple | Structured path: skip text Parse; Destination row sink — **Basics** (no interim row type until table Locations) |
 | `Mu` or plain `Iterator` | Per-element; text adaptors require `Str` or error (no blind `.Str`) (**landed** for text) |
 
-**Landed:** File `.of = Str`; text adaptors raise `X::Qwiratry::IO::ElementType`.  
-**Prerequisite next:** `QueryIterator does TypedIterator`.  
+**Landed:** File `.of = Str`; text adaptors raise `X::Qwiratry::IO::ElementType`;
+`QueryIterator does TypedIterator`.  
 **Basics:** row `.of`, row sinks, Parse skip for structured streams.
 
 Do **not** invent a second Storage tree; do **not** require a Format round-trip
@@ -224,8 +221,8 @@ as the only way to get rows out of a future table Location.
 - [x] File pull returns `TypedIterator` with `.of = Str`.
 - [x] Destination / Parse text path: non-text `.of` → error; `.of = Mu` → per-element `Str` or error.
 - [x] `SourceOperator` remains walkable-only (does not return Iterator) — settled.
-- [ ] `QueryIterator does TypedIterator` (default `.of = Mu`); `QueryCursor.iterator` / `Plan.iterator` are then TypedIterators.
-- [ ] Extending docs describe `.of` for Location pull and for query match streams.
+- [x] `QueryIterator does TypedIterator` (default `.of = Mu`); `QueryCursor.iterator` / `Plan.iterator` are then TypedIterators.
+- [x] Extending docs describe `.of` for Location pull and for query match streams.
 - [x] Pull vs walkable discovery: `~~ SourcePull` / `~~ DestinationPush` (document in Extending); element kind lives on the Iterator via `.of`.
 
 Row sink / Parse skip when `.of` is structured → [Basics](Qwiratry-TOP-Basics.md).
@@ -246,8 +243,9 @@ shipped. Memory/Postgres/Relation cursor backends are **TOP Basics**.
 - [x] Postgres-style `fetch-*` / `move-*` documented for later TOP backends.
 
 **Settled:** `WalkCursor` has no Iterator factory. Optional pull from a cursor is
-`QueryCursor.iterator` only. After `QueryIterator does TypedIterator`, that
-bridge returns a TypedIterator (still typed as `QueryIterator` in signatures).
+`QueryCursor.iterator` only. That bridge returns a `QueryIterator`, which
+**does** `TypedIterator` (default `.of = Mu`; still typed as `QueryIterator` in
+signatures).
 
 Do not force Location Source Iterators through `QueryCursor`.
 
@@ -260,14 +258,13 @@ Do not force Location Source Iterators through `QueryCursor`.
 3. ~~Sector vocabulary + Topic slang~~ — landed.
 4. ~~`TypedIterator` + File `.of = Str` + text-adaptor checks~~ — landed (§5.3).
 5. ~~`SourceOperator` stays walkable-only~~ — settled (§5.4).
-6. **`QueryIterator does TypedIterator`** + Extending docs for `.of` (Location + query).
+6. ~~`QueryIterator does TypedIterator` + Extending docs~~ — landed (§5.3 / §5.5).
 7. **Then** [Qwiratry-TOP-Basics.md](Qwiratry-TOP-Basics.md): Relation, Memory,
    Tables, Postgres, row sinks, row `.of`, …
 
 ## 7. Open points (prerequisite)
 
-- Extending doc pass for `TypedIterator` / `QueryIterator` composition (when coding item 6).
-- Whether specific Tree/Table `QueryIterator`s should override `.of` soon, or leave `Mu` until Basics.
+- Whether specific Tree/Table `QueryIterator`s should override `.of` soon, or leave `Mu` until Basics (default **leave `Mu`**).
 
 Moved to Basics / deferred: interim row `.of` type; Destination row sink + Parse
 skip; full `Supply` push; bare Source returning Iterator.

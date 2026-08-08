@@ -4,9 +4,14 @@
 
 Pull-based iterator role for incremental query result streaming.
 
-C<QueryIterator> composes Raku's C<Iterator> role and adds a required
-L<Qwiratry::Context> slot. Walkers create one query iterator per result stream,
-usually from a reusable plan, so each traversal has independent mutable state.
+C<QueryIterator> composes L<TypedIterator> (and thus core C<Iterator>) and adds
+a required L<Qwiratry::Context> slot. Default C<.of> is C<Mu> (heterogeneous
+matches); concrete walkers may override later. Walkers create one query
+iterator per result stream, usually from a reusable plan, so each traversal has
+independent mutable state.
+
+Because C<QueryIterator> does C<TypedIterator>, C<QueryCursor.iterator> and
+C<Plan.iterator> return values that also satisfy C<~~ TypedIterator>.
 
 Concrete iterators implement C<pull-one> with their traversal cursor, stack,
 queue, or backend cursor. Exhaustion is signaled with C<IterationEnd>, matching
@@ -30,6 +35,7 @@ more specific:
 =begin table
 Aspect                | Regular Iterator | QueryIterator
 Underlying state      | Internal closure  | Shared Context
+Element kind (C<.of>) | None              | Via C<TypedIterator> (default C<Mu>)
 Backtracking support  | No                | Walker-dependent
 Multi-phase execution | No                | Supported through Context/Walker
 Integration           | Standalone        | Walker, Query, and Strategy
@@ -46,6 +52,9 @@ stacks, queues, cursor positions, or backend handles.
 
 =item C<context> is required at construction time and stores the traversal state
  container shared with walker and strategy code.
+
+=item C<of> comes from C<TypedIterator> (default C<Mu>). Leave C<Mu> unless the
+ stream is homogeneous and callers need the advertisement.
 
 =item C<pull-one> returns either any next result value or C<IterationEnd> when no
  more values are available.
@@ -78,6 +87,7 @@ class SimpleQueryIterator does QueryIterator {
 =end pod
 unit module Qwiratry::QueryIterator;
 
+use TypedIterator;
 use Qwiratry::Context;
 
 =begin pod
@@ -85,10 +95,11 @@ use Qwiratry::Context;
 =head1 Role
 
 C<QueryIterator> is the common result-stream contract used by walkers,
-strategies, and transformer traversal.
+strategies, and transformer traversal. It does L<TypedIterator> so match
+streams share the same C<.of> element-kind advertisement as Location pull.
 
 =end pod
-role QueryIterator does Iterator is export {
+role QueryIterator does TypedIterator is export {
 	=begin pod
 
 	=head2 C<context>

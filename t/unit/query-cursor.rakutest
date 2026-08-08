@@ -3,13 +3,15 @@ use Test;
 use lib 'lib';
 
 use WalkCursor;
+use TypedIterator;
 use Qwiratry::QueryCursor;
+use Qwiratry::QueryIterator;
 use Qwiratry::Walker::Implementation::Tree;
 use Qwiratry::Operator::Navigation;
 use Qwiratry::Strategy;
 use X::Qwiratry;
 
-plan 13;
+plan 16;
 
 my $root = %(
 	name => 'root',
@@ -72,6 +74,9 @@ sub collect-names($it) {
 	@names
 }
 my $bridge = $plan.cursor.iterator;
+ok $bridge ~~ QueryIterator, 'QueryCursor.iterator returns QueryIterator';
+ok $bridge ~~ TypedIterator, 'QueryIterator does TypedIterator';
+ok iterator-of($bridge) === Mu, 'match stream default of is Mu';
 my @from-plan = collect-names($plan.iterator);
 my @from-cursor = collect-names($bridge);
 is-deeply @from-cursor, @from-plan, 'QueryCursor.iterator matches Plan.iterator';

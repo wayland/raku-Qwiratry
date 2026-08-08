@@ -103,6 +103,25 @@ Under the operator surface, Qwiratry resolves the concrete source through:
 Qwiratry::Location.make(:type<Source>, :location<input.csv>).read-walkable('input.csv')
 =end code
 
+C<SourceOperator.evaluate> always uses C<read-walkable> (it does not return an
+C<Iterator>). Directory and glob locations keep their walkable return shapes.
+
+=head2 Optional pull (C<SourcePull> / C<TypedIterator>)
+
+When a backend also does C<Qwiratry::Location::Base::SourcePull>, it may
+implement C<read-pull>, which SHOULD return a L<TypedIterator> whose C<.of>
+matches the element kind (File uses C<Str> for text chunks).
+
+Pull vs walkable is discovered with C<~~ SourcePull> (and C<~~ DestinationPush>
+on the other edge). Element kind lives on the iterator via C<.of>, not on a
+separate Location API.
+
+C<ParseOperator> composes C<read-pull> + C<parse-pull> when both the source
+backend and the format support pull. Text adaptors reject non-text C<.of> and
+non-C<Str> elements when C<.of> is C<Mu>
+(C<X::Qwiratry::IO::ElementType>). Structured (row) C<.of> and row sinks are
+TOP Basics work, not required for blob backends.
+
 =head1 Destination
 
 =head2 Destination Responsibilities

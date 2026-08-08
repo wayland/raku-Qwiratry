@@ -7,6 +7,10 @@ Qwiratry query specialization of the generic L<WalkCursor> role.
 Holds C<$current> + C<$origin>, a walk-local Tree Navigator, and Plan/Context
 hooks. See C<docs/rakudoc/Developing/Cursor-Proposal.md>.
 
+C<.iterator> returns a C<QueryIterator> (match bridge via C<Plan.iterator>).
+Because C<QueryIterator> does C<TypedIterator>, that value also satisfies
+C<~~ TypedIterator> (default C<.of> is C<Mu>).
+
 =end pod
 use WalkCursor;
 use Qwiratry::Context;

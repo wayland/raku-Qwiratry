@@ -5,12 +5,13 @@ Tables (and related front-end objects). These are **not** Qwiratry core
 prerequisites.
 
 Depends on: [Qwiratry-TOP-Prerequisites.md](Qwiratry-TOP-Prerequisites.md)
-(streaming Location I/O, `TypedIterator`, WalkCursor tree contract).  
+(streaming Location I/O, `TypedIterator`, `QueryIterator does TypedIterator`,
+WalkCursor tree contract).  
 Parent plan: [Qwiratry-TOP-Plan.md](Qwiratry-TOP-Plan.md) (§4.1–4.2 and following).
 
-**Status:** Not started as product work. Prerequisites: streaming + `TypedIterator`
-text path + WalkCursor tree; planned `QueryIterator does TypedIterator`. Do not
-implement Relation/Table while table Sources would still dump to `Str`.  
+**Status:** Not started as product work. Prerequisites complete for TypedIterator /
+query match streams. Do not implement Relation/Table while table Sources would
+still dump to `Str`.
 **Scope:** Location **Relation** face; Memory / CSV / Postgres Locations; anonymous
 swappable Tables; sharing row I/O with Source/Destination; WalkCursor backends;
 **Destination row sinks** and **Parse skip** for structured `.of`; choosing row

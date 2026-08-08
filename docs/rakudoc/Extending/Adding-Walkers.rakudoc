@@ -105,6 +105,12 @@ The plan's C<iterator> method should return a C<QueryIterator>. The iterator is
 responsible for outputting results lazily and keeping traversal state isolated
 from other iterators created from the same plan.
 
+C<QueryIterator> does L<TypedIterator>, so C<Plan.iterator> and
+C<QueryCursor.iterator> also satisfy C<~~ TypedIterator>. Default C<.of> is
+C<Mu> (heterogeneous matches). Leave that unless the stream is homogeneous and
+callers need the advertisement; do not confuse match streams with Location
+C<read-pull> text chunks (C<.of = Str>).
+
 Use a context object that does C<Qwiratry::Context::Context> when traversal needs
 mutable state or strategy integration.
 
