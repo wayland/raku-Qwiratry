@@ -50,7 +50,7 @@ subtest 'SourceOperator validates locations at construction' => {
 	}
 }
 
-subtest 'installed location backends are discovered from provides metadata' => {
+subtest 'installed location backends are discovered from provides metadata' => sub {
 	my $http-installed = $*REPO.repo-chain.grep(*.^can('installed'))
 		.map(*.installed).flat
 		.grep({ ?($_.meta<provides><Qwiratry::Location::HTTP>) }).so;

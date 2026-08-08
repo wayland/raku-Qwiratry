@@ -12,6 +12,8 @@ C<release-x.y.z> convention.
 
 =head1 Unreleased
 
+=head1 0.0.10 - 2026-08-08
+
 =head2 Added
 
 =item Optional pull/sink capability roles on format and location bases:

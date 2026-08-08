@@ -42,7 +42,11 @@ class Qwiratry::Query::RelationCommon {
 
 	=begin pod
 
-	Compare two rows or scalars for equality (associative rows compare normalized keys).
+	Compare two rows or scalars for equality. Associative rows must have the same
+	normalized key set; values are compared only for keys present on both sides
+	after that check. Shared columns alone do not make unequal schemas equal
+	(so an order row is not equal to a customer row that happens to share
+	C<customer_id>).
 
 	=end pod
 	=begin pod
@@ -67,9 +71,10 @@ class Qwiratry::Query::RelationCommon {
 	method row-equal(Mu $a, Mu $b --> Bool) {
 		$a === $b and return True;
 		if $a ~~ Associative && $b ~~ Associative {
-			my @keys = ($a.keys, $b.keys).flat.map({ self!normalize-key-name($_) }).unique.sort;
-			for @keys -> $name {
-				next unless ($a{$name}:exists) && ($b{$name}:exists);
+			my @ak = $a.keys.map({ self!normalize-key-name($_) }).unique.sort;
+			my @bk = $b.keys.map({ self!normalize-key-name($_) }).unique.sort;
+			@ak eqv @bk or return False;
+			for @ak -> $name {
 				my $va = $a{$name};
 				my $vb = $b{$name};
 				$va.defined == $vb.defined or return False;
